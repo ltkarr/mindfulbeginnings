@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register for a Course — Mindful Beginnings</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<!--
+  ════════════════════════════════════════════════════════
+  PAYPAL SETUP — do this once:
+  1. Go to developer.paypal.com → My Apps & Credentials
+  2. Create an app, copy your Client ID
+  3. Replace YOUR_PAYPAL_CLIENT_ID below with your actual ID
+  ════════════════════════════════════════════════════════
+-->
+<script src="https://www.paypal.com/sdk/js?client-id=BAA5RcD9fIRvtFMf4Ar_JpSHUTUR32DZ9MVnI4jV6EzB7b0DMJVSRKV06q8OiKQVEDWUZamtrBsjpVmxu8&enable-funding=venmo&currency=USD&intent=capture"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a2744;--navy2:#253459;--sky:#4a8fc4;--sky-l:#d6e9f5;
+  --cream:#faf8f4;--text:#1a2744;--muted:#6b7a99;--border:#dde4ee;
+  --success:#2d7a5e;--success-bg:#eaf5f0;--danger:#c0392b;
+  --r:12px;--r-sm:8px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
+header{background:var(--navy);padding:18px 32px;display:flex;align-items:center;gap:14px}
+header img{height:44px;width:44px;object-fit:contain;border-radius:50%;background:white;padding:4px}
+.htext{color:white}.htext .brand{font-family:'DM Serif Display',serif;font-size:20px}.htext .tag{font-size:12px;opacity:.6;font-weight:300}
+.hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 60%,#2d4a7a 100%);color:white;padding:48px 32px 40px;text-align:center}
+.hero h1{font-family:'DM Serif Display',serif;font-size:36px;margin-bottom:10px}.hero h1 em{font-style:italic;color:#a8ccec}
+.hero p{font-size:15px;opacity:.8;font-weight:300;max-width:460px;margin:0 auto}
+.steps-wrap{background:white;border-bottom:1px solid var(--border)}
+.steps{max-width:600px;margin:0 auto;padding:0 24px;display:flex}
+.step{display:flex;align-items:center;gap:8px;padding:16px 0;flex:1;position:relative}
+.step:not(:last-child)::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:24px;height:1px;background:var(--border)}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--border);color:var(--muted);font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s}
+.step.active .step-num{background:var(--navy);color:white}.step.done .step-num{background:var(--success);color:white}
+.step-label{font-size:12px;color:var(--muted)}.step.active .step-label{color:var(--text);font-weight:500}.step.done .step-label{color:var(--success)}
+main{max-width:600px;margin:0 auto;padding:32px 24px 64px}
+.screen{display:none}.screen.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.code-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:36px 32px;text-align:center}
+.code-icon{width:56px;height:56px;background:var(--sky-l);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px}
+.code-card h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:8px}
+.code-card p{color:var(--muted);font-size:14px;margin-bottom:28px;max-width:340px;margin-left:auto;margin-right:auto}
+.code-input{width:100%;padding:14px 16px;font-size:22px;font-family:'DM Serif Display',serif;letter-spacing:4px;text-align:center;text-transform:uppercase;border:2px solid var(--border);border-radius:var(--r-sm);background:var(--cream);color:var(--navy);outline:none;transition:border-color .2s;margin-bottom:6px}
+.code-input:focus{border-color:var(--sky);background:white}.code-input.error{border-color:var(--danger)}
+.error-msg{color:var(--danger);font-size:13px;margin-bottom:12px;min-height:18px}
+.sess-banner{background:var(--sky-l);border-radius:var(--r-sm);border:1px solid #b8d8ee;padding:16px 20px;margin-bottom:24px;display:flex;gap:16px;align-items:flex-start}
+.sess-dot{width:10px;height:10px;border-radius:50%;background:var(--sky);margin-top:6px;flex-shrink:0}
+.sess-banner .cname{font-weight:500;font-size:16px;color:var(--navy)}.sess-banner .cmeta{font-size:13px;color:#3a6a94;margin-top:2px}
+.sess-price{margin-left:auto;font-weight:500;color:var(--navy);font-size:17px;white-space:nowrap}
+.fsec{margin-bottom:28px}
+.fsec-title{font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fgrid .full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:13px;font-weight:500}
+.field input,.field select{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,143,196,.12)}
+.field input.err,.field select.err{border-color:var(--danger)}
+.field textarea{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s;resize:vertical}
+.field textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,143,196,.12)}
+.host-chk{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#f5f8fb;border-radius:var(--r-sm);border:1.5px solid var(--border);cursor:pointer;transition:border-color .2s}
+.host-chk:hover{border-color:var(--sky)}
+.host-chk input[type=checkbox]{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--sky);cursor:pointer}
+.chk-title{font-size:14px;font-weight:500}.chk-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.pay-box{background:white;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px}
+.pay-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.pay-head .ptitle{font-weight:500;font-size:15px}
+.pay-total{font-family:'DM Serif Display',serif;font-size:24px;color:var(--navy)}
+.pay-body{padding:20px}
+.prow{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;color:var(--muted)}
+.prow.total{border-top:1px solid var(--border);margin-top:8px;padding-top:10px;font-weight:500;color:var(--text);font-size:15px}
+#paypal-button-container{margin-top:20px;min-height:50px}
+.host-free{background:var(--success-bg);border:1px solid #a8d8c5;border-radius:var(--r-sm);padding:14px 16px;font-size:14px;color:var(--success);display:flex;gap:10px;align-items:flex-start}
+.btn-p{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:background .2s}
+.btn-p:hover{background:var(--navy2)}
+.btn-p:disabled{opacity:.6;cursor:not-allowed}
+.btn-o{background:transparent;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--muted);cursor:pointer;transition:border-color .2s,color .2s}
+.btn-o:hover{border-color:var(--navy);color:var(--navy)}
+.ok-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:40px 32px;text-align:center}
+.ok-circle{width:64px;height:64px;background:var(--success-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px}
+.ok-card h2{font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:10px}
+.ok-card p{color:var(--muted);font-size:14px;max-width:380px;margin:0 auto 8px}
+.conf-box{background:var(--cream);border-radius:var(--r-sm);padding:16px 20px;margin:24px 0;text-align:left}
+.crow{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
+.crow .cl{color:var(--muted)}.crow .cv{font-weight:500}
+.help{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
+.help a{color:var(--sky);text-decoration:none}
+.waitlist-box{background:#fff7e6;border:1px solid #f0d090;border-radius:var(--r);padding:28px 24px;text-align:center}
+.waitlist-box h3{font-family:'DM Serif Display',serif;font-size:20px;color:#7a5000;margin-bottom:8px}
+.waitlist-box p{font-size:13px;color:#9a6800;margin-bottom:16px;line-height:1.6}
+.waitlist-form{text-align:left;max-width:360px;margin:0 auto}
+.waitlist-form .field{margin-bottom:12px}
+.notice-box{background:#fffbf0;border:1px solid #f0d88a;border-radius:var(--r-sm);padding:14px 16px;font-size:13px;color:#7a5c00;line-height:1.6}
+.perm-item{background:#f8fafd;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:14px 16px}
+.perm-title{font-size:14px;font-weight:500;margin-bottom:4px}
+.perm-desc{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+.perm-radios{display:flex;flex-direction:column;gap:6px}
+.radio-lbl{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.radio-lbl input[type=radio]{accent-color:var(--sky);width:16px;height:16px;flex-shrink:0}
+.waiver-box{background:#f8fafd;border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 18px;font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:14px;max-height:220px;overflow-y:auto}
+.waiver-box p{margin-bottom:10px}.waiver-box p:last-child{margin-bottom:0}
+.waiver-check{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#f5f8fb;border-radius:var(--r-sm);border:1.5px solid var(--border);cursor:pointer;transition:border-color .2s;margin-bottom:12px}
+.waiver-check:hover{border-color:var(--sky)}
+.waiver-check input[type=checkbox]{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--sky);cursor:pointer}
+footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
+@media(max-width:520px){
+  header{padding:14px 20px}.hero{padding:32px 20px 28px}.hero h1{font-size:28px}
+  main{padding:24px 16px 48px}.code-card{padding:28px 20px}
+  .fgrid{grid-template-columns:1fr}.fgrid .full{grid-column:1}.step-label{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/MB%20Logo_Blue-Black%20(1)-8f17c61.png" alt="Mindful Beginnings" onerror="this.style.display='none'">
+  <div class="htext"><div class="brand">Mindful Beginnings</div><div class="tag">Safe Sitter® Courses</div></div>
+</header>
+
+<div class="hero">
+  <h1>Course <em>Registration</em></h1>
+</div>
+
+<div class="steps-wrap"><div class="steps">
+  <div class="step active" id="step1"><div class="step-num">1</div><div class="step-label">Enter code</div></div>
+  <div class="step" id="step2"><div class="step-num">2</div><div class="step-label">Your info</div></div>
+  <div class="step" id="step3"><div class="step-num">3</div><div class="step-label">Payment</div></div>
+  <div class="step" id="step4"><div class="step-num">4</div><div class="step-label">Confirmed</div></div>
+</div></div>
+
+<main>
+
+<div class="screen active" id="screen-code">
+  <div class="code-card">
+    <div class="code-icon">🔑</div>
+    <h2>Enter your session code</h2>
+        <input type="text" class="code-input" id="code-input" placeholder="e.g. SS-0612" maxlength="12" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+    <div class="error-msg" id="code-error"></div>
+    <button class="btn-p" id="code-btn" onclick="checkCode()">Continue →</button>
+    <div class="help">No code? <a href="https://mindfulbeginnings.org/contact">Contact us</a> to find a session near you.</div>
+  </div>
+</div>
+
+<div class="screen" id="screen-info">
+  <div class="sess-banner" id="banner-info"></div>
+  <div class="fsec"><div class="fsec-title" id="student-section-title">Student information</div>
+    <div class="fgrid">
+      <div class="field"><label id="fname-label">First name *</label><input type="text" id="s-first" placeholder="First name"></div>
+      <div class="field"><label id="lname-label">Last name *</label><input type="text" id="s-last" placeholder="Last name"></div>
+      <div class="field full" id="grade-field"><label>Grade</label><select id="s-grade"><option value="">Select grade...</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option></select></div>
+    </div>
+  </div>
+  <div class="fsec"><div class="fsec-title" id="guardian-title">Parent / guardian</div>
+    <div class="fgrid">
+      <div class="field full"><label id="guardian-name-label">Name *</label><input type="text" id="p-name" placeholder="Full name"></div>
+      <div class="field"><label>Email *</label><input type="email" id="p-email" placeholder="your@email.com"></div>
+      <div class="field"><label>Phone</label><input type="tel" id="p-phone" placeholder="(555) 555-5555"></div>
+    </div>
+  </div>
+  <div class="fsec" id="host-section"><div class="fsec-title">Hosting</div>
+    <label class="host-chk"><input type="checkbox" id="is-host"><div><div class="chk-title">I am the host for this session</div><div class="chk-sub">Hosts receive the course at no charge (one per session)</div></div></label>
+  </div>
+  <div class="fsec" id="accommodations-section"><div class="fsec-title">Accommodations / notes</div>
+    <div class="notice-box">A great deal of information is presented in a short period of time during the Safe Sitter® course. We want every child to succeed, and we will work with you to make alternate plans if your child has difficulty keeping up. Please let us know if there is anything we should know to help your child succeed. If your child needs accommodations, please let the Instructor or Site Coordinator know as soon as possible. <strong>Please note:</strong> Safe Sitter® does not provide CPR certification, release the names of graduates, or act as a referral source of babysitters.</div>
+    <div class="field" style="margin-top:12px"><label>Special needs, allergies, or accommodations</label><textarea id="p-notes" rows="3" placeholder="Please share anything that will help your child succeed in the course (optional)"></textarea></div>
+  </div>
+  <div class="fsec" id="permissions-section"><div class="fsec-title">Permissions</div>
+    <div class="perm-item">
+      <div class="perm-title">CPR manikin practice</div>
+      <div class="perm-desc">Safe Sitter® includes practice of rescue skills on CPR manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?</div>
+      <div class="perm-radios">
+        <label class="radio-lbl"><input type="radio" name="cpr-perm" value="yes"> Yes, I give permission</label>
+        <label class="radio-lbl"><input type="radio" name="cpr-perm" value="no"> No, I do not give permission</label>
+      </div>
+    </div>
+    <div class="perm-item" style="margin-top:14px">
+      <div class="perm-title">Emergency medical care</div>
+      <div class="perm-desc">In the event of a health emergency, do you authorize the Instructor to seek emergency care for your child?</div>
+      <div class="perm-radios">
+        <label class="radio-lbl"><input type="radio" name="emerg-perm" value="yes"> Yes, I authorize emergency care</label>
+        <label class="radio-lbl"><input type="radio" name="emerg-perm" value="no"> No, I do not authorize</label>
+      </div>
+    </div>
+  </div>
+  <div class="fsec" id="waiver-section"><div class="fsec-title">Waiver and consent</div>
+    <div id="waiver-cpr-notice" style="background:#fff7e6;border:1px solid #f0d090;border-radius:var(--r-sm);padding:13px 16px;margin-bottom:14px;font-size:13px;color:#7a5000;line-height:1.6">
+      <strong>📋 Please note:</strong> Your child will practice CPR and rescue skills on manikins during this course. <strong>This course does not provide CPR certification.</strong> Upon successful completion, your child will receive a Safe Sitter® certificate of completion.
+    </div>
+
+    <!-- Child / standard waiver -->
+    <div id="waiver-standard">
+      <div style="font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Required acknowledgments</div>
+
+      <label class="waiver-check">
+        <input type="checkbox" id="chk-dismiss">
+        <div><div class="chk-title">Disruptive student policy *</div><div class="chk-sub">Mindful Beginnings reserves the right to decline or send home any student who is disruptive or poses a risk to themselves or others.</div></div>
+      </label>
+
+      <label class="waiver-check">
+        <input type="checkbox" id="chk-liability">
+        <div><div class="chk-title">Risk acknowledgment and release of liability *</div><div class="chk-sub">I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Safe Sitter, Inc. and Mindful Beginnings and their staff from any and all claims arising from my child's participation.</div></div>
+      </label>
+
+      <div id="cpr-checks-wrap">
+        <label class="waiver-check">
+          <input type="checkbox" id="chk-skills-practice">
+          <div><div class="chk-title">Skills practice *</div><div class="chk-sub">Students will practice CPR and rescue skills on manikins.</div></div>
+        </label>
+
+        <label class="waiver-check">
+          <input type="checkbox" id="chk-certification">
+          <div><div class="chk-title">Certification *</div><div class="chk-sub">This course provides a Safe Sitter® certificate of completion. Formal CPR certification is not included.</div></div>
+        </label>
+      </div>
+
+      <label class="waiver-check">
+        <input type="checkbox" id="chk-safe-participate">
+        <div><div class="chk-title">My child can safely participate *</div><div class="chk-sub">I certify that to the best of my knowledge my child is able to safely participate in the program.</div></div>
+      </label>
+    </div>
+
+    <!-- Grandparent / adult waiver -->
+    <div id="waiver-grandparent" style="display:none">
+      <div style="font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Required acknowledgments</div>
+
+      <label class="waiver-check">
+        <input type="checkbox" id="chk-gp-attendance">
+        <div><div class="chk-title">Attendance and punctuality *</div><div class="chk-sub">I understand the importance of attending all sessions and arriving on time.</div></div>
+      </label>
+
+      <label class="waiver-check">
+        <input type="checkbox" id="chk-gp-liability">
+        <div><div class="chk-title">Risk acknowledgment and release of liability *</div><div class="chk-sub">I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Safe Sitter, Inc. and Mindful Beginnings and their staff from any and all claims arising from my participation in this program.</div></div>
+      </label>
+
+      <label class="waiver-check">
+        <input type="checkbox" id="chk-gp-safe-participate">
+        <div><div class="chk-title">I can safely participate *</div><div class="chk-sub">I confirm that I am able to safely participate in the program.</div></div>
+      </label>
+    </div>
+
+    <label class="waiver-check" style="margin-top:14px">
+      <input type="checkbox" id="refund-agree">
+      <div><div class="chk-title">I understand the refund and cancellation policy *</div><div class="chk-sub"><strong>Refund and transfer policy:</strong> All sales are final. If a participant is unable to attend, you may transfer the registration to another student. Please email lindsay@mindfulbeginnings.org with the new participant's name. Any payment settlement for the spot must be handled directly between the involved parties. <br><br><strong>Course cancellations:</strong> Mindful Beginnings reserves the right to cancel any course that does not meet its minimum enrollment requirement. If a course is canceled due to low enrollment, registered families will be notified at least five (5) days before the scheduled date and will receive a full refund.</div></div>
+    </label>
+
+    <!-- Optional permissions (child / standard) -->
+    <div id="waiver-standard-optional">
+      <div style="font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:18px 0 10px">Optional permissions</div>
+
+      <label class="waiver-check">
+        <input type="checkbox" id="chk-photo">
+        <div><div class="chk-title">Photo and recording consent (optional)</div><div class="chk-sub">I consent to the use of photos or recordings of my child taken during the program for publicity purposes by Mindful Beginnings.</div></div>
+      </label>
+    </div>
+
+    <!-- Optional permissions (grandparent / adult) -->
+    <div id="waiver-grandparent-optional" style="display:none">
+      <div style="font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:18px 0 10px">Optional permissions</div>
+
+      <label class="waiver-check">
+        <input type="checkbox" id="chk-gp-photo">
+        <div><div class="chk-title">Photo and recording consent (optional)</div><div class="chk-sub">I consent to the use of photos or recordings taken during the program for publicity purposes by Mindful Beginnings.</div></div>
+      </label>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label id="signature-label">Parent / guardian full name (electronic signature) *</label>
+      <input type="text" id="p-signature" placeholder="Type your full legal name">
+    </div>
+  </div>
+  <button class="btn-p" onclick="goToPayment()">Continue to payment →</button>
+  <div style="text-align:center;margin-top:12px"><button class="btn-o" onclick="goToScreen(1)">← Back</button></div>
+</div>
+
+<div class="screen" id="screen-waitlist">
+  <div class="sess-banner" id="banner-waitlist"></div>
+  <div class="waitlist-box">
+    <h3>This session is full</h3>
+    <p>All spots for this session have been claimed. You are welcome to join the waitlist and we will reach out right away if a spot opens up!</p>
+    <div class="waitlist-form">
+      <div class="field"><label>Your name *</label><input type="text" id="wl-name" placeholder="Full name"></div>
+      <div class="field"><label>Email *</label><input type="email" id="wl-email" placeholder="your@email.com"></div>
+      <div class="field"><label>Phone</label><input type="tel" id="wl-phone" placeholder="(555) 555-5555"></div>
+      <button class="btn-p" style="margin-top:8px" onclick="joinWaitlist()">Join the waitlist</button>
+      <div style="text-align:center;margin-top:12px"><button class="btn-o" onclick="goToScreen(1)">← Try a different code</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-waitlist-success">
+  <div class="ok-card">
+    <div class="ok-circle" style="background:#fff7e6;font-size:24px">📋</div>
+    <h2>You're on the waitlist!</h2>
+    <p>We will be in touch right away if a spot opens up for this session.</p>
+    <div class="conf-box" id="wl-conf-box"></div>
+    <p style="font-size:13px;color:var(--muted)">Questions? <a href="https://mindfulbeginnings.org/contact" style="color:var(--sky)">Contact us</a></p>
+  </div>
+</div>
+
+<div class="screen" id="screen-payment">
+  <div class="sess-banner" id="banner-pay"></div>
+  <div class="pay-box">
+    <div class="pay-head"><div class="ptitle">Order summary</div><div class="pay-total" id="pay-total-disp">$185</div></div>
+    <div class="pay-body">
+      <div class="prow"><span id="pay-course-lbl">Course</span><span id="pay-price-ln">$185.00</span></div>
+      <div class="prow total"><span>Total due today</span><span id="pay-total-ln">$185.00</span></div>
+    </div>
+  </div>
+  <div id="host-free-msg" style="display:none" class="host-free">✓ &nbsp;<div><strong>No payment required.</strong> As the host, your registration is complimentary.</div></div>
+  <div id="paypal-wrap">
+    <div id="paypal-button-container"></div>
+    <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px">Secure payment powered by PayPal.</p>
+    <div style="display:flex;align-items:center;gap:12px;margin:18px 0 14px;color:var(--muted);font-size:12px">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span>OR</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <button id="zelle-btn" type="button" onclick="payWithZelle()" style="width:100%;padding:13px;background:#fff;color:#6D1ED4;border:2px solid #6D1ED4;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s" onmouseover="this.style.background='#f5edff'" onmouseout="this.style.background='#fff'">Pay with Zelle</button>
+    <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Pay directly from your bank — no fees</p>
+    <button id="already-paid-btn" type="button" onclick="alreadyPaid()" style="width:100%;padding:13px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;margin-top:14px" onmouseover="this.style.background='#eef2f8'" onmouseout="this.style.background='#fff'">I already paid for this</button>
+    <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Already paid (e.g. your earlier payment didn't record)? We'll verify it on our end.</p>
+  </div>
+  <div id="host-confirm-wrap" style="display:none;margin-top:8px"><button class="btn-p" id="host-confirm-btn" onclick="completeReg('host-free',null)">Confirm registration — no charge</button></div>
+  <div style="text-align:center;margin-top:14px"><button class="btn-o" onclick="goToScreen(2)">← Back</button></div>
+</div>
+
+<div class="screen" id="screen-success">
+  <div class="ok-card">
+    <div class="ok-circle" id="ok-circle">✓</div>
+    <h2 id="ok-title">You're registered!</h2>
+    <p id="ok-sub">Thank you for registering with Mindful Beginnings. A confirmation email is on its way to you!</p>
+    <div id="zelle-pending-banner" style="display:none;background:#f5edff;border:1px solid #d4b8f5;border-radius:var(--r-sm);padding:14px 16px;margin:0 0 16px;text-align:left;font-size:13px;color:#4a1a8a">
+      <strong>⏳ Payment pending</strong><br>
+      Your spot is reserved! To complete your registration, please send your Zelle payment to <strong>lindsay@mindfulbeginnings.org</strong>. Include the participant's name and course in the memo. Lindsay will confirm receipt within 24 hours.
+    </div>
+    <div id="save-error-banner" style="display:none;background:#fff7e6;border:1px solid #f0d878;border-radius:var(--r-sm);padding:14px 16px;margin:0 0 16px;text-align:left;font-size:13px;color:#7a5a00;line-height:1.55">
+      <strong>✅ Your payment went through and is safe.</strong><br>
+      We hit a snag automatically saving your registration, but <strong>nothing is lost</strong>. Please email the details below (including the PayPal/Transaction ID) to <strong>lindsay@mindfulbeginnings.org</strong> and your spot will be confirmed right away. You will not be charged again.
+    </div>
+    <div class="conf-box" id="conf-box"></div>
+    <button id="cal-btn" onclick="downloadCalendar()" style="width:100%;padding:13px;background:var(--sky-l);color:#1a5c8a;border:1px solid #b8d8ee;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:12px;transition:background .2s" onmouseover="this.style.background='#c4def2'" onmouseout="this.style.background='var(--sky-l)'">📅 Add to my calendar</button>
+    <p style="font-size:13px;color:var(--muted)">Questions? <a href="https://mindfulbeginnings.org/contact" style="color:var(--sky)">Contact us</a></p>
+  </div>
+</div>
+
+<!-- ZELLE PAYMENT INSTRUCTIONS MODAL -->
+<div id="zelle-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'DM Sans',sans-serif">
+  <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
+      <div style="font-size:19px;font-weight:700;color:#1a1a1a">Pay with Zelle</div>
+      <button onclick="closeZelleModal()" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 0 0 12px;line-height:1">&#x2715;</button>
+    </div>
+    <p style="font-size:14px;color:#444;margin:0 0 18px;line-height:1.55">Follow these three steps to send your <strong id="zelle-amount-1">$185</strong> payment:</p>
+    <ol style="padding-left:22px;margin:0 0 20px;font-size:14px;color:#333;line-height:1.7">
+      <li style="margin-bottom:10px">Open your bank app and go to Zelle (or use your bank's transfer feature).</li>
+      <li style="margin-bottom:10px">
+        Send <strong id="zelle-amount-2">$185</strong> to:<br>
+        <span style="display:inline-block;background:#f5edff;color:#4a1a8a;padding:5px 10px;border-radius:6px;margin-top:5px;font-weight:600;font-size:13px;word-break:break-all">lindsay@mindfulbeginnings.org</span>
+      </li>
+      <li>
+        In the memo field, write:<br>
+        <span id="zelle-memo" style="display:inline-block;background:#f6f7fa;color:#1a2744;padding:5px 10px;border-radius:6px;margin-top:5px;font-weight:500;font-size:13px"></span>
+      </li>
+    </ol>
+    <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
+      ⏳ &nbsp;Your spot will be held as <strong>pending</strong> until Lindsay confirms Zelle receipt (usually within 24 hours).
+    </div>
+    <button onclick="confirmZellePayment()" style="width:100%;padding:13px;background:#6D1ED4;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've sent the Zelle payment</button>
+    <button onclick="closeZelleModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+  </div>
+</div>
+
+<!-- ALREADY-PAID CONFIRMATION MODAL -->
+<div id="already-paid-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'DM Sans',sans-serif">
+  <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
+      <div style="font-size:19px;font-weight:700;color:#1a2744">Confirm: already paid</div>
+      <button onclick="closeAlreadyPaidModal()" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 0 0 12px;line-height:1">&#x2715;</button>
+    </div>
+    <p style="font-size:14px;color:#444;margin:0 0 16px;line-height:1.55">Only use this if you have <strong>already paid</strong> for this course (for example, your earlier payment went through but your registration didn't record).</p>
+    <div style="background:#eef2f8;border:1px solid #c9d6e8;border-radius:8px;padding:12px 14px;color:#1a2744;font-size:13px;line-height:1.55;margin-bottom:20px">
+      ✓ &nbsp;You will <strong>not</strong> be charged now. We'll reserve your spot and confirm your existing payment on our end (usually within 24 hours). You'll get a registration confirmation email either way.
+    </div>
+    <button onclick="confirmAlreadyPaid()" style="width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">Yes, I already paid — reserve my spot</button>
+    <button onclick="closeAlreadyPaidModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+  </div>
+</div>
+
+</main>
+<footer>© 2026 Mindful Beginnings · <a href="https://mindfulbeginnings.org" style="color:var(--sky);text-decoration:none">mindfulbeginnings.org</a></footer>
+
+<script>
+// ─── SUPABASE ────────────────────────────────────────────────
+const { createClient } = window.supabase;
+const sb = createClient(
+  'https://evninlytzhtacanrguhx.supabase.co',       // ← same values as admin.html
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2bmlubHl0emh0YWNhbnJndWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTE1MzQsImV4cCI6MjA5MzIyNzUzNH0.7sr0P9BmcPW_cJgWZwndVtaHsZXsbVCcE0Pk1gm3VP8'
+);
+
+const PRICES={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Grandparents: Getting Started':125};
+const MAX_STUDENTS={'Safe Sitter®':8,'Intro to Babysitting':16,'Safe@Home':16,'Grandparents: Getting Started':8};
+let currentSession=null,isHost=false,compMode=false;
+// ── PREPAID / RE-REGISTRATION LINK ───────────────────────────
+// Families who already paid (e.g. the PayPal re-registration cleanup) can use a
+// special link that skips payment but still collects the full waiver + consents:
+//   register.html?code=SS-0612&paid=REREG-2026
+// Change this token whenever you want old links to stop working.
+const PREPAID_TOKEN='REREG-2026';
+
+function sid(){return'id_'+Math.random().toString(36).slice(2,9)}
+
+// Returns the registration cap for the current session — uses the per-session override if set, else the course default, else 8.
+function getMaxSpots(){
+  if(!currentSession)return 8;
+  if(currentSession.maxStudentsOverride&&Number(currentSession.maxStudentsOverride)>0)return Number(currentSession.maxStudentsOverride);
+  return MAX_STUDENTS[currentSession.course]||8;
+}
+
+// Returns the actual price a participant pays for the current session. Uses the per-session price override if set, otherwise the course default. Floored at $0.
+function getEffectivePrice(){
+  if(!currentSession)return 0;
+  if(currentSession.priceOverride!=null)return Math.max(0,Number(currentSession.priceOverride));
+  return PRICES[currentSession.course]||0;
+}
+
+// Auto-fill code from URL param
+window.onload=function(){
+  const p=new URLSearchParams(window.location.search);
+  if(p.get('paid')&&p.get('paid')===PREPAID_TOKEN)compMode=true;
+  const c=p.get('code');
+  if(c){document.getElementById('code-input').value=c.toUpperCase();checkCode();}
+};
+
+async function checkCode(){
+  const val=document.getElementById('code-input').value.trim().toUpperCase();
+  const err=document.getElementById('code-error');
+  const inp=document.getElementById('code-input');
+  const btn=document.getElementById('code-btn');
+  if(!val){err.textContent='Please enter a session code.';inp.classList.add('error');return;}
+  btn.disabled=true;btn.textContent='Checking...';
+  try{
+    const{data:rows,error}=await sb.from('sessions').select('*').eq('code',val);
+    if(error||!rows||!rows.length){
+      err.textContent='Code not found. Please double-check and try again.';
+      inp.classList.add('error');btn.disabled=false;btn.textContent='Continue →';return;
+    }
+    const r=rows[0];
+    // Get current registration count via a database function (anon cannot read the registrations table directly — protects student PII)
+    let regCount=0;
+    try{
+      const{data:cnt}=await sb.rpc('get_registration_count',{p_session_id:r.id});
+      regCount=Number(cnt)||0;
+    }catch(e){console.warn('Count RPC failed:',e);}
+    // Fetch instructor phone via a database function (anon cannot read the instructors table directly — protects instructor PINs and contact info)
+    let instrPhone='';
+    if(r.owner_taught){
+      instrPhone='703-987-5979'; // Lindsay teaches — use her number directly
+    } else if(r.instructor_id){
+      try{
+        const{data:phone}=await sb.rpc('get_instructor_phone',{p_instructor_id:r.instructor_id});
+        instrPhone=phone||'';
+      }catch(e){console.warn('Phone RPC failed:',e);}
+    }
+    currentSession={
+      id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
+      location:r.location||'',hostAddress:r.host_address||'',
+      city:r.city||'',state:r.state||'',zip:r.zip||'',
+      contactName:r.contact_name||'',hostPhone:r.host_phone||'',
+      hostTaken:r.host_taken||false,ownerTaught:r.owner_taught||false,
+      hasHost:r.has_host!==false,instrPhone,regCount,
+      maxStudentsOverride:r.max_students_override||null,
+      priceOverride:r.price_override==null?null:Number(r.price_override)
+    };
+    err.textContent='';inp.classList.remove('error');
+    // Check capacity — uses per-session override if set, else course default
+    const max=getMaxSpots();
+    const forceWaitlist=new URLSearchParams(window.location.search).get('waitlist')==='1';
+    if((regCount>=max||forceWaitlist)&&!compMode){
+      setBanner('banner-waitlist');
+      // Update the dynamic "All N spots have been claimed" text
+      const wlText=document.querySelector('#screen-waitlist .waitlist-box p');
+      if(wlText)wlText.textContent='All '+max+' spots for this session have been claimed. You are welcome to join the waitlist and we will reach out right away if a spot opens up!';
+      goToWaitlist();
+    }else{
+      setBanner('banner-info');goToScreen(2);
+    }
+  }catch(e){
+    console.error(e);err.textContent='Connection error. Please try again.';
+    inp.classList.add('error');
+  }
+  btn.disabled=false;btn.textContent='Continue →';
+}
+
+function setBanner(id){
+  const s=currentSession;
+  const basePrice=PRICES[s.course]||0;
+  const price=getEffectivePrice();
+  const isDiscounted=price<basePrice;
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'}):'';
+  const addrLine=[s.hostAddress,s.city,s.state?(s.state+(s.zip?' '+s.zip:'')):''].filter(Boolean).join(', ');
+  const locationLine=`${s.location||''}${!addrLine&&s.city?', '+s.city:''}${!addrLine&&s.state?' '+s.state:''}`;
+  const priceHTML=isDiscounted
+    ?`<span style="text-decoration:line-through;color:#9aa5b8;font-weight:400;font-size:14px;margin-right:6px">$${basePrice}</span>$${price}`
+    :`$${price}`;
+  document.getElementById(id).innerHTML=`<div class="sess-dot"></div><div><div class="cname">${s.course}</div><div class="cmeta">${d}${s.time?' · '+s.time:''} · ${locationLine}${addrLine?'<br>'+addrLine:''}</div></div><div class="sess-price">${priceHTML}</div>`;
+  const isGP=s.course==='Grandparents: Getting Started';
+  const isNoCPR=s.course==='Intro to Babysitting'||s.course==='Safe@Home';
+  const noHost=s.hasHost===false;
+
+  // Accommodations section
+  const accomSec=document.getElementById('accommodations-section');
+  if(accomSec)accomSec.style.display=isGP?'none':'';
+
+  // Grade field
+  const gradeField=document.getElementById('grade-field');
+  if(gradeField)gradeField.style.display=isGP?'none':'';
+
+  // Host section
+  const hostSec=document.getElementById('host-section');
+  if(hostSec)hostSec.style.display=noHost?'none':'';
+
+  // Section titles and labels
+  document.getElementById('student-section-title').textContent=isGP?'Your information':'Student information';
+  document.getElementById('fname-label').textContent=isGP?'First name *':'Participant\'s first name *';
+  document.getElementById('lname-label').textContent=isGP?'Last name *':'Participant\'s last name *';
+  document.getElementById('guardian-title').textContent=isGP?'Emergency contact':'Parent / guardian';
+  document.getElementById('guardian-name-label').textContent=isGP?'Emergency contact name *':'Name *';
+  document.getElementById('signature-label').textContent=isGP?'Your full name (electronic signature) *':'Parent / guardian full name (electronic signature) *';
+
+  // CPR notice box — hide for grandparents (no child language) and for courses with no CPR manikin use
+  const cprNotice=document.getElementById('waiver-cpr-notice');
+  if(cprNotice)cprNotice.style.display=(isGP||isNoCPR)?'none':'';
+
+  // Permissions — swap labels for grandparents; hide CPR item for courses with no manikin use
+  const permSec=document.getElementById('permissions-section');
+  if(permSec){
+    const cprPermItem=permSec.querySelector('.perm-item');
+    if(cprPermItem)cprPermItem.style.display=isNoCPR?'none':'';
+    permSec.querySelector('.perm-title').textContent=isGP?'CPR manikin practice':'CPR manikin practice';
+    permSec.querySelectorAll('.perm-desc')[0].textContent=isGP
+      ?'This course includes hands-on practice of rescue skills on CPR manikins. Do you give permission to participate?'
+      :'Safe Sitter® includes practice of rescue skills on CPR manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?';
+    permSec.querySelectorAll('.radio-lbl')[0].childNodes[1].textContent=' Yes, I give permission';
+    permSec.querySelectorAll('.radio-lbl')[1].childNodes[1].textContent=' No, I do not give permission';
+    permSec.querySelectorAll('.perm-desc')[1].textContent=isGP
+      ?'In the event of a health emergency, do you authorize the instructor to seek emergency care on your behalf?'
+      :'In the event of a health emergency, do you authorize the Instructor to seek emergency care for your child?';
+    permSec.querySelectorAll('.radio-lbl')[2].childNodes[1].textContent=isGP?' Yes, I authorize emergency care':' Yes, I authorize emergency care';
+    permSec.querySelectorAll('.radio-lbl')[3].childNodes[1].textContent=' No, I do not authorize';
+  }
+
+  // Waiver — swap between child and adult versions
+  document.getElementById('waiver-standard').style.display=isGP?'none':'';
+  document.getElementById('waiver-grandparent').style.display=isGP?'':'none';
+  // Hide CPR-related waiver checkboxes for courses without manikin use
+  const cprChecksWrap=document.getElementById('cpr-checks-wrap');
+  if(cprChecksWrap)cprChecksWrap.style.display=isNoCPR?'none':'';
+  document.getElementById('waiver-standard-optional').style.display=isGP?'none':'';
+  document.getElementById('waiver-grandparent-optional').style.display=isGP?'':'none';
+}
+
+async function goToPayment(){
+  const sf=document.getElementById('s-first').value.trim();
+  const sl=document.getElementById('s-last').value.trim();
+  const pn=document.getElementById('p-name').value.trim();
+  const pe=document.getElementById('p-email').value.trim();
+  const sig=document.getElementById('p-signature').value.trim();
+  let ok=true;
+  [['s-first',sf],['s-last',sl],['p-name',pn],['p-email',pe],['p-signature',sig]].forEach(([id,v])=>{
+    const el=document.getElementById(id);
+    if(!v){el.classList.add('err');ok=false;}else el.classList.remove('err');
+  });
+  const isNoCPR=currentSession&&(currentSession.course==='Intro to Babysitting'||currentSession.course==='Safe@Home');
+  if(!isNoCPR&&!document.querySelector('input[name="cpr-perm"]:checked'))ok=false;
+  if(!document.querySelector('input[name="emerg-perm"]:checked'))ok=false;
+  const isGP=currentSession&&currentSession.course==='Grandparents: Getting Started';
+  const requiredChks=isGP
+    ?['chk-gp-attendance','chk-gp-liability','chk-gp-safe-participate']
+    :(isNoCPR
+      ?['chk-dismiss','chk-liability','chk-safe-participate']
+      :['chk-dismiss','chk-liability','chk-skills-practice','chk-certification','chk-safe-participate']);
+  for(const id of requiredChks){
+    if(!document.getElementById(id).checked)ok=false;
+  }
+  if(!document.getElementById('refund-agree').checked)ok=false;
+  // Remove any existing error banner
+  const oldErr=document.getElementById('form-error-msg');if(oldErr)oldErr.remove();
+  if(!ok){
+    const errDiv=document.createElement('div');
+    errDiv.id='form-error-msg';
+    errDiv.style.cssText='background:#fdf0ee;border:1px solid #f0b8b2;border-radius:8px;padding:12px 16px;color:#c0392b;font-size:13px;font-weight:500;margin-bottom:16px;display:flex;align-items:center;gap:8px';
+    errDiv.innerHTML='⚠️ Please complete all required fields before continuing.';
+    document.getElementById('screen-info').querySelector('.btn-p').before(errDiv);
+    document.getElementById('screen-info').querySelector('.btn-p').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  isHost=document.getElementById('is-host').checked;
+  if(isHost&&currentSession.hostTaken){document.getElementById('is-host').checked=false;isHost=false;alert('The host spot for this session is already taken.');return;}
+  // Re-check capacity before proceeding to payment
+  let liveCount=0;
+  try{
+    const{data:cnt}=await sb.rpc('get_registration_count',{p_session_id:currentSession.id});
+    liveCount=Number(cnt)||0;
+  }catch(e){console.warn('Count RPC failed:',e);}
+  if(!isHost&&!compMode&&liveCount>=getMaxSpots()){goToWaitlist();return;}
+  setBanner('banner-pay');
+  const noCharge=isHost||compMode;
+  const price=isHost?0:getEffectivePrice();
+  // Guard: PayPal cannot process a $0 charge — block and point to Lindsay.
+  // (Skipped in prepaid mode, since prepaid never charges.)
+  if(!noCharge&&price<=0){
+    alert('This session has a registration price of $0. Please contact Lindsay at 703-987-5979 or lindsay@mindfulbeginnings.org to complete your registration.');
+    return;
+  }
+  document.getElementById('pay-total-disp').textContent=noCharge?(isHost?'Free':'Paid'):'$'+price;
+  document.getElementById('pay-course-lbl').textContent=currentSession.course+(isHost?' (host — complimentary)':(compMode?' (already paid)':''));
+  document.getElementById('pay-price-ln').textContent=noCharge?(isHost?'Free':'$'+price.toFixed(2)):'$'+price.toFixed(2);
+  document.getElementById('pay-total-ln').textContent=isHost?'$0.00':(compMode?'$0.00 due now':'$'+price.toFixed(2));
+  document.getElementById('host-free-msg').style.display=noCharge?'flex':'none';
+  document.getElementById('paypal-wrap').style.display=noCharge?'none':'block';
+  document.getElementById('host-confirm-wrap').style.display=noCharge?'block':'none';
+  // Configure the no-charge confirm button for whichever mode we're in.
+  const confirmBtn=document.getElementById('host-confirm-btn');
+  if(compMode&&!isHost){
+    document.getElementById('host-free-msg').innerHTML='✓ &nbsp;<div><strong>No payment required.</strong> You already paid for this session — just confirm your spot below.</div>';
+    confirmBtn.textContent='Confirm registration — already paid';
+    confirmBtn.onclick=function(){completeReg('comp',null);};
+  }else if(isHost){
+    document.getElementById('host-free-msg').innerHTML='✓ &nbsp;<div><strong>No payment required.</strong> As the host, your registration is complimentary.</div>';
+    confirmBtn.textContent='Confirm registration — no charge';
+    confirmBtn.onclick=function(){completeReg('host-free',null);};
+  }
+  if(!noCharge)renderPayPal(price);
+  goToScreen(3);
+}
+
+function renderPayPal(amount){
+  document.getElementById('paypal-button-container').innerHTML='';
+  if(typeof paypal!=='undefined'&&paypal.Buttons){
+    const orderConfig={
+      createOrder:(data,actions)=>actions.order.create({purchase_units:[{description:currentSession.course,amount:{value:amount.toFixed(2),currency_code:'USD'}}]}),
+      onError:(err)=>{
+        console.error('PayPal error:',err);
+        const msg=err&&err.message?err.message:'Unknown error';
+        document.getElementById('paypal-button-container').insertAdjacentHTML('afterend',
+          `<div id="pp-err" style="background:#fdf0ee;border:1px solid #f0b8b2;border-radius:8px;padding:12px 16px;color:#c0392b;font-size:13px;margin-top:10px">
+            ⚠️ PayPal error: ${msg}<br><span style="font-size:11px;opacity:.7">Please try again or contact us directly to arrange payment.</span>
+          </div>`);
+      }
+    };
+    paypal.Buttons({...orderConfig,style:{layout:'vertical',color:'gold',shape:'rect',label:'pay'},onApprove:(data,actions)=>actions.order.capture().then(d=>completeReg('paypal',d.id))}).render('#paypal-button-container');
+    if(paypal.Buttons({fundingSource:paypal.FUNDING.VENMO}).isEligible()){
+      paypal.Buttons({...orderConfig,fundingSource:paypal.FUNDING.VENMO,onApprove:(data,actions)=>actions.order.capture().then(d=>completeReg('venmo',d.id))}).render('#paypal-button-container');
+    }
+  }else{
+    document.getElementById('paypal-button-container').innerHTML='<div style="background:#f5c742;border-radius:8px;padding:14px;text-align:center;font-weight:500;font-size:14px;color:#111;cursor:pointer">Pay with PayPal / Venmo</div>';
+  }
+}
+
+function payWithZelle(){
+  const price=getEffectivePrice();
+  const studentFirst=document.getElementById('s-first').value.trim();
+  const studentLast=document.getElementById('s-last').value.trim();
+  const studentName=(studentFirst+' '+studentLast).trim();
+  // Populate modal contents
+  document.getElementById('zelle-amount-1').textContent='$'+price;
+  document.getElementById('zelle-amount-2').textContent='$'+price;
+  document.getElementById('zelle-memo').textContent=(studentName||'Student name')+' — '+currentSession.course;
+  document.getElementById('zelle-modal').style.display='flex';
+}
+
+function closeZelleModal(){
+  document.getElementById('zelle-modal').style.display='none';
+}
+
+function confirmZellePayment(){
+  closeZelleModal();
+  completeReg('zelle',null);
+}
+
+function alreadyPaid(){
+  document.getElementById('already-paid-modal').style.display='flex';
+}
+function closeAlreadyPaidModal(){
+  document.getElementById('already-paid-modal').style.display='none';
+}
+function confirmAlreadyPaid(){
+  closeAlreadyPaidModal();
+  completeReg('already-paid',null);
+}
+
+
+let isWaitlist=false;
+
+function goToWaitlist(){
+  isWaitlist=true;
+  // Show waitlist screen without changing step indicators
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-waitlist').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function joinWaitlist(){
+  const name=document.getElementById('wl-name').value.trim();
+  const email=document.getElementById('wl-email').value.trim();
+  const phone=document.getElementById('wl-phone').value.trim();
+  if(!name||!email){
+    alert('Please enter your name and email.');return;
+  }
+  const entry={
+    id:sid(),
+    session_id:currentSession.id,
+    student_name:name,
+    parent_name:'',
+    contact:email+(phone?' / '+phone:''),
+    grade:'',
+    cpr_permission:'',
+    emergency_auth:'',
+    waiver_signed:false,
+    signature:'',
+    pay_status:'waitlist',
+    paypal_tx_id:null,
+    notes:'Added to waitlist',
+    created_at:Date.now()
+  };
+  const {ok}=await saveRegistration(entry);
+  if(!ok){
+    alert('Sorry — we could not add you to the waitlist just now. Please try again, or email lindsay@mindfulbeginnings.org.');
+    return;
+  }
+  const d=currentSession.date?new Date(currentSession.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
+  document.getElementById('wl-conf-box').innerHTML=`
+    <div class="crow"><span class="cl">Name</span><span class="cv">${name}</span></div>
+    <div class="crow"><span class="cl">Email</span><span class="cv">${email}</span></div>
+    <div class="crow"><span class="cl">Course</span><span class="cv">${currentSession.course}</span></div>
+    <div class="crow"><span class="cl">Date</span><span class="cv">${d}</span></div>
+    <div class="crow"><span class="cl">Status</span><span class="cv" style="color:#b86a00">On waitlist</span></div>`;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-waitlist-success').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ─── ROBUST SAVE ─────────────────────────────────────────────
+// supabase-js does NOT throw when the database rejects a write — it returns
+// {error} in the resolved result. So we MUST inspect .error, not rely on try/catch.
+// This helper checks the real result, retries transient failures, and self-heals
+// the "photo_consent column doesn't exist yet" case instead of failing silently.
+function isMissingColumnError(err){
+  if(!err)return false;
+  const m=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
+  return err.code==='PGRST204'||m.includes('photo_consent')||(m.includes('column')&&m.includes('schema'));
+}
+async function saveRegistration(row){
+  let lastErr=null;
+  for(let attempt=0;attempt<3;attempt++){
+    let error=null;
+    try{
+      const res=await sb.from('registrations').insert(row);
+      error=res?res.error:null;
+    }catch(networkErr){
+      // True network/exception path (offline, DNS, etc.) — retry.
+      error=networkErr;
+    }
+    if(!error)return{ok:true,error:null};
+    lastErr=error;
+    // Self-heal: if the photo_consent column isn't in the table yet, fold the
+    // consent value into notes and retry without that field.
+    if(isMissingColumnError(error)&&('photo_consent' in row)){
+      const {photo_consent,...legacy}=row;
+      legacy.notes=`[Photo consent: ${photo_consent}]`+(legacy.notes?'\n\n'+legacy.notes:'');
+      row=legacy;
+      continue; // retry immediately with the cleaned row
+    }
+    // Otherwise wait briefly and retry (covers transient blips).
+    await new Promise(r=>setTimeout(r,600*(attempt+1)));
+  }
+  console.error('Registration save failed after retries:',lastErr,row);
+  return{ok:false,error:lastErr};
+}
+
+async function completeReg(method,txId){
+  // Disable the confirm button to prevent double-submit
+  const btn=document.getElementById('host-confirm-btn');
+  if(btn)btn.disabled=true;
+
+  const s=currentSession;
+  const price=getEffectivePrice();
+  const isGP=s.course==='Grandparents: Getting Started';
+  const photoChkId=isGP?'chk-gp-photo':'chk-photo';
+  const photoConsent=document.getElementById(photoChkId).checked?'yes':'no';
+  const reg={
+    id:sid(),
+    session_id:s.id,
+    student_name:document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim(),
+    parent_name:document.getElementById('p-name').value.trim(),
+    contact:document.getElementById('p-email').value.trim()+(document.getElementById('p-phone').value.trim()?' / '+document.getElementById('p-phone').value.trim():''),
+    grade:document.getElementById('s-grade').value,
+    cpr_permission:document.querySelector('input[name="cpr-perm"]:checked')?.value||'',
+    emergency_auth:document.querySelector('input[name="emerg-perm"]:checked')?.value||'',
+    waiver_signed:true,
+    signature:document.getElementById('p-signature').value.trim(),
+    photo_consent:photoConsent,
+    pay_status:isHost?'host':(method==='comp'?'paid':(method==='paypal'||method==='venmo'?'paid':(method==='zelle'||method==='already-paid'?'pending':'unpaid'))),
+    paypal_tx_id:txId||null,
+    notes:(method==='comp'?'[Re-registration — already paid via PayPal] ':(method==='already-paid'?'[Family marked ALREADY PAID — confirm against PayPal] ':''))+document.getElementById('p-notes').value.trim(),
+    created_at:Date.now()
+  };
+
+  const {ok,error}=await saveRegistration(reg);
+  if(ok&&isHost){
+    // Best-effort: anon role cannot UPDATE the sessions table directly, so use the RPC.
+    try{const r=await sb.rpc('mark_host_taken',{p_session_id:s.id});if(r&&r.error)console.warn('mark_host_taken failed:',r.error);}
+    catch(e){console.warn('mark_host_taken error:',e);}
+  }
+  if(!ok){
+    const paymentCaptured=(method==='paypal'||method==='venmo');
+    if(paymentCaptured){
+      // Money is ALREADY captured. Never show a plain success and never drop the data.
+      showSaveFailureRecovery(reg,s,price,method,txId);
+    }else{
+      // Zelle/host: no charge was captured by us, so it is safe to let them retry.
+      alert('Sorry — there was a problem saving your registration. Please try again, or email lindsay@mindfulbeginnings.org.');
+      if(btn)btn.disabled=false;
+    }
+    return;
+  }
+
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
+  const isZelle=method==='zelle';
+  const isAlreadyPaid=method==='already-paid';
+  // Send confirmation email
+  sendConfirmationEmail(reg,s,price);
+  // Build calendar data for download button
+  calendarData=buildCalendarData(s,reg.student_name);
+  // Show/hide Zelle pending banner and update headline
+  document.getElementById('save-error-banner').style.display='none';
+  document.getElementById('ok-circle').textContent='✓';
+  document.getElementById('ok-circle').style.background='var(--success-bg)';
+  document.getElementById('zelle-pending-banner').style.display=isZelle?'block':'none';
+  document.getElementById('ok-title').textContent=(isZelle||isAlreadyPaid)?'Spot reserved!':'You\u2019re registered!';
+  document.getElementById('ok-sub').textContent=isZelle
+    ?'Your spot is being held. Please send your Zelle payment using the details below to complete your registration. A confirmation email is on its way to you!'
+    :(isAlreadyPaid
+      ?'Thank you! Your spot is reserved. We\u2019ll confirm your existing payment on our end shortly \u2014 no further action needed. A confirmation email is on its way to you!'
+      :'Thank you for registering with Mindful Beginnings. A confirmation email is on its way to you!');
+  const amountLabel=isHost?'Free (host)':(isZelle?'$'+price+' (pending — Zelle)':(isAlreadyPaid?'$'+price+' (already paid — confirming)':'$'+price));
+  const amountColor=isHost||(!isZelle&&!isAlreadyPaid)?'var(--success)':'#6D1ED4';
+  document.getElementById('conf-box').innerHTML=`
+    <div class="crow"><span class="cl">Participant</span><span class="cv">${reg.student_name}</span></div>
+    ${reg.grade?`<div class="crow"><span class="cl">Grade</span><span class="cv">${reg.grade}</span></div>`:''}
+    <div class="crow"><span class="cl">Course</span><span class="cv">${s.course}</span></div>
+    <div class="crow"><span class="cl">Date</span><span class="cv">${d}</span></div>
+    ${s.time?`<div class="crow"><span class="cl">Time</span><span class="cv">${s.time}</span></div>`:''}
+    <div class="crow"><span class="cl">Location</span><span class="cv">${s.location||'TBD'}${s.hostAddress?'<br><span style="font-weight:400;font-size:13px">'+s.hostAddress+(s.city?', '+s.city:'')+(s.state?' '+s.state:'')+(s.zip?' '+s.zip:'')+'</span>':''}</span></div>
+    <div class="crow"><span class="cl">Contact</span><span class="cv">${document.getElementById('p-email').value.trim()}</span></div>
+    <div class="crow"><span class="cl">${isZelle?'Amount due':'Amount paid'}</span><span class="cv" style="color:${amountColor}">${amountLabel}</span></div>
+    ${isZelle?`<div class="crow"><span class="cl">Send Zelle to</span><span class="cv" style="font-weight:600">lindsay@mindfulbeginnings.org</span></div>`:''}
+    ${txId?`<div class="crow"><span class="cl">PayPal ID</span><span class="cv" style="font-size:11px">${txId}</span></div>`:''}`;
+  goToScreen(4);
+}
+
+// Shown ONLY when a payment was captured but the database save still failed.
+// Goal: zero data loss. The parent sees their full details + PayPal ID and is
+// told (calmly) to email them; we also email Lindsay a copy for reconciliation.
+function showSaveFailureRecovery(reg,s,price,method,txId){
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
+  document.getElementById('ok-circle').textContent='✓';
+  document.getElementById('ok-circle').style.background='var(--success-bg)';
+  document.getElementById('ok-title').textContent='Payment received';
+  document.getElementById('ok-sub').textContent='Your payment is complete and your spot is safe. One quick step is needed to finish — see below.';
+  document.getElementById('zelle-pending-banner').style.display='none';
+  document.getElementById('save-error-banner').style.display='block';
+  document.getElementById('conf-box').innerHTML=`
+    <div class="crow"><span class="cl">Participant</span><span class="cv">${reg.student_name}</span></div>
+    ${reg.grade?`<div class="crow"><span class="cl">Grade</span><span class="cv">${reg.grade}</span></div>`:''}
+    <div class="crow"><span class="cl">Course</span><span class="cv">${s.course}</span></div>
+    <div class="crow"><span class="cl">Date</span><span class="cv">${d}</span></div>
+    <div class="crow"><span class="cl">Parent / guardian</span><span class="cv">${reg.parent_name||'—'}</span></div>
+    <div class="crow"><span class="cl">Contact</span><span class="cv">${reg.contact||'—'}</span></div>
+    <div class="crow"><span class="cl">Amount paid</span><span class="cv" style="color:var(--success)">$${price} (${method})</span></div>
+    ${txId?`<div class="crow"><span class="cl">PayPal / Transaction ID</span><span class="cv" style="font-size:11px">${txId}</span></div>`:''}`;
+  // Best-effort notifications so the registration is never truly lost.
+  try{sendConfirmationEmail(reg,s,price);}catch(e){console.warn('Parent email failed:',e);}
+  try{
+    emailjs.send('service_delt0r4','template_c3yfejb',{
+      to_email:'lindsay@mindfulbeginnings.org',
+      to_name:'Lindsay Karr',
+      student_name:reg.student_name,
+      course:s.course,
+      date:d,
+      time:s.time||'TBD',
+      location:s.location||'TBD',
+      address:'',
+      instructor_contact:reg.contact||'',
+      amount:`$${price} via ${method} — TX ${txId||'n/a'} — ⚠ AUTO-SAVE FAILED, please add this registration manually`,
+      reply_to:reg.contact||'lindsay@mindfulbeginnings.org'
+    }).catch(err=>console.warn('Owner alert email failed:',err));
+  }catch(e){console.warn('Owner alert email error:',e);}
+  goToScreen(4);
+}
+
+function goToScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(['','screen-code','screen-info','screen-payment','screen-success'][n]).classList.add('active');
+  for(let i=1;i<=4;i++){const st=document.getElementById('step'+i);st.classList.remove('active','done');if(i<n)st.classList.add('done');else if(i===n)st.classList.add('active');}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ─── EMAILJS ─────────────────────────────────────────────────
+emailjs.init('FKuVu4SN8eXJ1cOYM'); // same public key as instructor portal
+
+function sendConfirmationEmail(reg,session,price){
+  const d=session.date?new Date(session.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'TBD';
+  const parentEmail=document.getElementById('p-email').value.trim();
+  if(!parentEmail)return;
+  // Build full address string
+  const addrParts=[session.hostAddress,session.city,session.state?session.state+(session.zip?' '+session.zip:''):''].filter(Boolean);
+  const fullAddress=addrParts.join(', ')||'';
+  // Build contact line
+  const instrContact=session.instrPhone&&session.instrPhone!=='703-987-5979'
+    ?`${session.instrPhone} or Lindsay Karr at 703-987-5979`
+    :'703-987-5979';
+  // Build amount line — show pending for Zelle so parent knows to send payment
+  let amountLine;
+  if(isHost){
+    amountLine='Complimentary (host)';
+  }else if(reg.pay_status==='pending'){
+    amountLine='$'+price+' — PENDING. Please send via Zelle to lindsay@mindfulbeginnings.org to complete registration.';
+  }else{
+    amountLine='$'+price;
+  }
+  emailjs.send(
+    'service_delt0r4',
+    'template_c3yfejb',
+    {
+      to_email: parentEmail,
+      to_name: reg.parent_name||reg.student_name,
+      student_name: reg.student_name,
+      course: session.course,
+      date: d,
+      time: session.time||'TBD',
+      location: session.location||'TBD',
+      address: fullAddress,
+      instructor_contact: instrContact,
+      amount: amountLine,
+      reply_to: 'lindsay@mindfulbeginnings.org'
+    }
+  ).catch(err=>console.warn('Email send failed:',err));
+}
+
+// ─── CALENDAR ────────────────────────────────────────────────
+let calendarData=null;
+
+function buildCalendarData(session,studentName){
+  if(!session.date)return null;
+  // Parse date and time
+  const dateParts=session.date.split('-');
+  const year=parseInt(dateParts[0]),month=parseInt(dateParts[1])-1,day=parseInt(dateParts[2]);
+  // Try to parse start time from session.time string e.g. "1pm-6pm" or "9:00 AM - 2:00 PM"
+  let startHour=9,startMin=0,endHour=14,endMin=0;
+  if(session.time){
+    const t=session.time.toLowerCase();
+    const timeMatch=t.match(/(\d+)(?::(\d+))?\s*(am|pm)/);
+    if(timeMatch){
+      startHour=parseInt(timeMatch[1])+(timeMatch[3]==='pm'&&parseInt(timeMatch[1])!==12?12:0);
+      startMin=parseInt(timeMatch[2]||'0');
+    }
+    const endMatch=t.match(/[-–]\s*(\d+)(?::(\d+))?\s*(am|pm)/);
+    if(endMatch){
+      endHour=parseInt(endMatch[1])+(endMatch[3]==='pm'&&parseInt(endMatch[1])!==12?12:0);
+      endMin=parseInt(endMatch[2]||'0');
+    }
+  }
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  const start=new Date(year,month,day,startHour,startMin);
+  const end=new Date(year,month,day,endHour,endMin);
+  const location=[session.location,session.hostAddress,session.city,session.state?session.state+(session.zip?' '+session.zip:''):''].filter(Boolean).join(', ');
+  const desc=`${session.course} — Mindful Beginnings\nParticipant: ${studentName}\nQuestions? Contact us at lindsay@mindfulbeginnings.org or visit mindfulbeginnings.org`;
+  return[
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Mindful Beginnings//Registration//EN',
+    'BEGIN:VEVENT',
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:${session.course} — Mindful Beginnings`,
+    `LOCATION:${location}`,
+    `DESCRIPTION:${desc}`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+}
+
+function downloadCalendar(){
+  if(!calendarData)return;
+  const blob=new Blob([calendarData],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='mindful-beginnings-course.ics';
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+</script>
+</body>
+</html>
