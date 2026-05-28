@@ -213,7 +213,7 @@ tr:hover td{background:#fafbfd}
         <div><div class="page-title">Sessions</div><div class="page-sub">Manage all course sessions</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <div style="display:flex;gap:6px;align-items:center">
-            <select id="report-filter" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none">
+            <select id="report-filter" onchange="renderSessions()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none">
               <option value="upcoming">Upcoming sessions</option>
               <option value="completed">Completed sessions</option>
               <option value="all">All sessions</option>
@@ -727,9 +727,18 @@ function toggleSessionSort(){
 function renderSessions(){
   const cf=document.getElementById('sf-course').value;
   const mf=document.getElementById('sf-month').value;
+  // The dropdown above the table (Upcoming / Completed / All) scopes which sessions show.
+  // A session is "completed" once its date is in the past; otherwise it's "upcoming".
+  const scope=document.getElementById('report-filter')?.value||'upcoming';
+  const now=new Date();
   let list=sessions.filter(s=>{
     if(cf&&s.course!==cf)return false;
     if(mf&&!s.date.startsWith(mf))return false;
+    if(scope!=='all'){
+      const isPast=new Date(s.date+'T12:00:00')<now;
+      if(scope==='completed'&&!isPast)return false;
+      if(scope==='upcoming'&&isPast)return false;
+    }
     return true;
   }).sort((a,b)=>sessionSortAsc?a.date.localeCompare(b.date):b.date.localeCompare(a.date));
   const t=document.getElementById('sessions-table');
@@ -1605,17 +1614,20 @@ async function openInstructorProfile(id){
 
 // ─── JOBS & MATERIALS ────────────────────────────────────────
 function jobStatus(s,jd){
+  const sessDate=new Date(s.date+'T12:00:00');
+  const payDone=isInstructorPaymentDone(s,jd);
   if(s.ownerTaught){
-    if(jd.evalReceived)return{key:'pay-ready',label:'Wrap-up ready',cls:'sp-payready'};
-    const sessDate=new Date(s.date+'T12:00:00');
-    if(sessDate<new Date()&&!jd.evalReceived)return{key:'eval-pending',label:'Eval pending',cls:'sp-eval'};
+    // Owner taught: no primary hire. Done once eval is in and any co-instructor is paid.
+    if(jd.evalReceived&&payDone)return{key:'paid',label:'Paid',cls:'sp-paid'};
+    if(jd.evalReceived)return{key:'pay-ready',label:'Ready to pay',cls:'sp-payready'};
+    if(sessDate<new Date())return{key:'eval-pending',label:'Eval pending',cls:'sp-eval'};
     if(!jd.materialsSent)return{key:'mat',label:'Materials pending',cls:'sp-mat'};
     return{key:'assigned',label:'Ready',cls:'sp-assigned'};
   }
   if(!jd.instructorId)return{key:'open',label:'Open',cls:'sp-open'};
-  if(jd.payStatus==='paid')return{key:'paid',label:'Paid',cls:'sp-paid'};
+  // Fully paid only when the primary AND any second instructor are both paid.
+  if(jd.payStatus==='paid'&&payDone)return{key:'paid',label:'Paid',cls:'sp-paid'};
   if(jd.evalReceived)return{key:'pay-ready',label:'Ready to pay',cls:'sp-payready'};
-  const sessDate=new Date(s.date+'T12:00:00');
   if(sessDate<new Date()&&!jd.evalReceived)return{key:'eval-pending',label:'Eval pending',cls:'sp-eval'};
   if(!jd.materialsSent)return{key:'mat',label:'Materials pending',cls:'sp-mat'};
   return{key:'assigned',label:'Assigned',cls:'sp-assigned'};
@@ -1683,7 +1695,7 @@ function renderJobs(){
             <input type="checkbox" ${jdi.evalReceived?'checked':''} onchange="toggleEval('${s.id}',this.checked)" style="accent-color:var(--sky)">
             <span>Host evaluation received</span>
           </label>
-          ${jdi.evalReceived&&!jdi.payStatus?`<div style="margin-top:8px"><span class="tag paid" style="font-size:11px">✓ Ready to pay ${instr?instr.name:''}</span></div>`:''}
+          ${jdi.evalReceived&&!isInstructorPaymentDone(s,jdi)?`<div style="margin-top:8px"><span class="tag paid" style="font-size:11px">✓ Ready to pay ${instr?instr.name:''}</span></div>`:''}
         </div>
         <div class="job-section">
           <div class="job-section-title">Payment${s.ownerTaught?'':' — '+fmt(instrFee+(jdi.referralBonus||0))}</div>
