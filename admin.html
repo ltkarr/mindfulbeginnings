@@ -1326,7 +1326,7 @@ function renderSessions(){
           <td style="color:var(--muted)">${instrStatus}</td>
           <td style="color:var(--muted)">—</td>
           <td style="font-weight:500;color:#7a5c1e">${payAmt}<br><span style="font-size:10px;color:var(--muted)">flat pay</span></td>
-          <td style="color:var(--muted)">—</td>
+          <td style="color:${f.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(f.profit)}</td>
           <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${jdi.instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span><span style="font-size:11px;color:${jdi.instrPaid?'var(--success)':'var(--muted)'}">${jdi.instrPaid?'✓ Paid':'Unpaid'}</span></div>`:'<span style="font-size:11px;color:var(--muted)">Upcoming</span>'}</td>
           <td style="text-align:right"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage ▾</button></td></tr>`;
       }
