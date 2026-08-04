@@ -188,7 +188,6 @@ tr:hover td{background:#fafbfd}
       <div class="nav-item" onclick="showScreen('finances',this)"><span class="nav-icon">◈</span> Finances</div>
       <div class="nav-item" onclick="showScreen('codes',this)"><span class="nav-icon">⬡</span> Session codes</div>
       <div class="nav-item" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> Instructors</div>
-      <div class="nav-item" onclick="showScreen('jobs',this)"><span class="nav-icon">◎</span> Jobs & materials</div>
       <div class="nav-item" id="nav-materials" onclick="showScreen('materials',this)"><span class="nav-icon">▣</span> Materials</div>
       <div class="nav-item" onclick="showScreen('reports',this)"><span class="nav-icon">▦</span> Reports</div>
     </div>
@@ -281,6 +280,7 @@ tr:hover td{background:#fafbfd}
     <div class="screen" id="screen-finances">
       <div class="page-header">
         <div><div class="page-title">Finances</div><div class="page-sub">Revenue (net of payment processing fees), expenses, and profit</div></div>
+        <button class="btn primary" onclick="openAddExpense()">+ Add expense</button>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
         <div class="toggle-group" style="margin-bottom:0">
@@ -341,25 +341,9 @@ tr:hover td{background:#fafbfd}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="instructors-table"></table></div></div>
     </div>
 
-    <div class="screen" id="screen-jobs">
-      <div class="page-header">
-        <div><div class="page-title">Jobs & materials</div><div class="page-sub">Track instructor assignments, materials, evaluations, and payments</div></div>
-      </div>
-      <div class="filter-row">
-        <select id="jf-status" onchange="renderJobs()">
-          <option value="">All statuses</option>
-          <option value="open">Open — no instructor</option>
-          <option value="assigned">Assigned</option>
-          <option value="mat">Materials pending</option>
-          <option value="eval-pending">Eval pending</option>
-          <option value="pay-ready">Ready to pay</option>
-          <option value="paid">Paid</option>
-        </select>
-        <input type="month" id="jf-month" onchange="renderJobs()">
-      </div>
-      <div id="jobs-list"></div>
-    </div>
-
+    <!-- The "Jobs & materials" tab was removed — the per-session Wrap-up checklist
+         (Sessions tab) covers instructor payments, materials, and evaluations. The
+         renderJobs()/job-action functions below are kept but no-op without the screen. -->
     <div class="screen" id="screen-materials">
       <div class="page-header">
         <div><div class="page-title">Materials</div><div class="page-sub">Teaching kits &amp; equipment — what's out, when it's due back, and whether you have enough</div></div>
@@ -725,6 +709,9 @@ async function loadData(){
     if(co.error)console.warn('Equipment checkouts table not loaded:',co.error);
     equipment=(eq.data||[]).map(equipmentFromDB);
     matCheckouts=(co.data||[]).map(checkoutFromDB);
+    // An instructor may have accepted a job since the last load — let the
+    // Materials checkouts pick up the newly assigned name.
+    if(equipmentTablesReady)syncCheckoutInstructors();
   }catch(e){
     console.error('Failed to load data:',e);
     showToast('⚠️ Could not connect to database. Check your Supabase config.');
@@ -1592,7 +1579,8 @@ function openSessionMenu(ev,sessId){
   // is already recorded for this session, show that (✓) and open it for editing
   // instead — so you can always tell which classes already have materials handled.
   const exCo=matCheckouts.find(x=>x.sessionId===sessId);
-  if(exCo)items.push({label:coUsesExisting(exCo)?'📦 Covered ✓ (using kit they already have) — view':'📦 Equipment reserved ✓ — view / edit',act:`showScreen('materials',document.getElementById('nav-materials'));openEditCheckout('${exCo.id}')`});
+  if(exCo&&coNoEquipment(exCo))items.push({label:'📦 No equipment needed ✓ — view in Materials',act:`showScreen('materials',document.getElementById('nav-materials'))`});
+  else if(exCo)items.push({label:coUsesExisting(exCo)?'📦 Covered ✓ (using kit they already have) — view':'📦 Equipment reserved ✓ — view / edit',act:`showScreen('materials',document.getElementById('nav-materials'));openEditCheckout('${exCo.id}')`});
   else items.push({label:'📦 Check out equipment',act:`showScreen('materials',document.getElementById('nav-materials'));openCheckout('${sessId}')`});
   items.push({label:'✏️ Edit session',act:`openEditSession('${sessId}')`,sep:true});
   items.push({label:'🗑 Delete',act:`deleteSession('${sessId}')`,danger:true});
@@ -2262,6 +2250,9 @@ async function saveSession(editId){
     if(preInstrId)jobDataCache[s.id].waitlist=(jobDataCache[s.id].waitlist||[]).filter(id=>id!==preInstrId);
     upsertJobData(s.id);
   }
+  // If this save assigned an instructor, let any blank equipment checkout for
+  // this session pick up their name.
+  syncCheckoutInstructors();
 }
 
 async function deleteSession(id){
@@ -2906,6 +2897,10 @@ function jobStatus(s,jd){
 }
 
 function renderJobs(){
+  // The Jobs & materials screen was removed — bail out quietly when other code
+  // paths (wrap-up, dashboard toggles) still call this for a refresh.
+  const el=document.getElementById('jobs-list');
+  if(!el)return;
   const jd=jobDataCache;
   const sf=document.getElementById('jf-status').value;
   const mf=document.getElementById('jf-month').value;
@@ -2916,7 +2911,6 @@ function renderJobs(){
     if(sf){const st=jobStatus(s,jdi);if(st.key!==sf)return false;}
     return true;
   }).sort((a,b)=>b.date.localeCompare(a.date));
-  const el=document.getElementById('jobs-list');
   if(!list.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px 0">No sessions found.</div>';return;}
   el.innerHTML=list.map(s=>{
     const jdi=jd[s.id]||{};
@@ -3005,6 +2999,7 @@ function assignInstructor(sessId,instrId){
   const s=sessions.find(x=>x.id===sessId);
   if(s){s.instructorId=instrId||null;dbWrite(sb.from('sessions').update({instructor_id:instrId||null}).eq('id',sessId),'Instructor assignment');}
   upsertJobData(sessId);
+  syncCheckoutInstructors();
 }
 function setMaterialsMethod(sessId,method){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
@@ -4057,8 +4052,37 @@ function coActiveOn(c,d){return!!(c.outDate&&c.outDate<=d&&d<=coEnd(c));}
 // (from an overlapping checkout), so nothing extra leaves the shelf. Stored as a
 // sentinel entry inside the items jsonb — no schema change needed. These records
 // mark the session as handled but never consume inventory and can't be overdue.
+// ── Cross-talk: instructor assignments → equipment checkouts ──
+// Equipment is often reserved before anyone has accepted the job, so "Who has it"
+// starts out blank. When an instructor later accepts the job from their portal (or
+// you assign one here) this fills their name into any blank, still-open checkout
+// tied to that session, so the Materials area follows assignments automatically.
+// Runs at login, when the tab regains focus (that's when portal acceptances arrive),
+// and after you save a session or assign an instructor.
+function syncCheckoutInstructors(){
+  const updated=[];
+  (matCheckouts||[]).forEach(c=>{
+    if(!c.sessionId||c.returnedDate||coNoEquipment(c))return;
+    if((c.person||'').trim())return;
+    const s=sessions.find(x=>x.id===c.sessionId);if(!s)return;
+    const list=sessionInstructorList(s);
+    if(!list.length)return;
+    c.person=list[0].name;
+    updated.push(c.person);
+    dbWrite(sb.from('equipment_checkouts').update({person:c.person}).eq('id',c.id),'Checkout instructor sync');
+  });
+  if(updated.length){
+    showToast('📦 Equipment checkout'+(updated.length>1?'s':'')+' updated — now assigned to '+[...new Set(updated)].join(', '));
+    renderMaterials();
+  }
+}
 function coUsesExisting(c){return(c.items||[]).some(it=>it&&it.usesExisting);}
-function coIsOverdue(c){return!coUsesExisting(c)&&!c.returnedDate&&c.dueDate&&c.dueDate<matToday();}
+// A "no equipment needed" record: you checked the box saying this class needs
+// nothing off the shelf. Stored the same sentinel way (no schema change) — it
+// removes the session from the checkout dropdown and the materials reminders,
+// never consumes inventory, and can't be overdue.
+function coNoEquipment(c){return(c.items||[]).some(it=>it&&it.noEquipment);}
+function coIsOverdue(c){return!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returnedDate&&c.dueDate&&c.dueDate<matToday();}
 
 // ── What each course needs on-site (the "will I need materials?" warning system) ──
 // Edit the numbers here if a course's kit ever changes. Keys are matched against
@@ -4091,9 +4115,10 @@ function matNeedsLabel(needs){
 // (plus optional extraItems, e.g. the ones being typed in the modal right now).
 function sessionMatMissing(s,extraItems,excludeId,extraPerson){
   const needs=sessionMatNeeds(s);if(!needs)return[];
-  // Session marked "instructor uses what they already have" → nothing is missing.
-  if((extraItems||[]).some(it=>it&&it.usesExisting))return[];
-  if(matCheckouts.some(c=>c.sessionId===s.id&&c.id!==excludeId&&coUsesExisting(c)))return[];
+  // Session marked "instructor uses what they already have" or "no equipment
+  // needed" → nothing is missing.
+  if((extraItems||[]).some(it=>it&&(it.usesExisting||it.noEquipment)))return[];
+  if(matCheckouts.some(c=>c.sessionId===s.id&&c.id!==excludeId&&(coUsesExisting(c)||coNoEquipment(c))))return[];
   const have={};
   const tied=matCheckouts.filter(c=>c.sessionId===s.id&&c.id!==excludeId);
   tied.forEach(c=>(c.items||[]).forEach(it=>{if(it.equipmentId)have[it.equipmentId]=(have[it.equipmentId]||0)+(Number(it.qty)||0);}));
@@ -4104,7 +4129,7 @@ function sessionMatMissing(s,extraItems,excludeId,extraPerson){
   if(extraPerson&&extraPerson.trim())persons.add(extraPerson.trim().toLowerCase());
   if(persons.size&&s.date){
     const end=sessionEndDate(s);
-    matCheckouts.filter(c=>c.sessionId!==s.id&&c.id!==excludeId&&!coUsesExisting(c)&&!c.returnedDate&&persons.has((c.person||'').trim().toLowerCase())&&c.outDate<=end&&s.date<=coEnd(c))
+    matCheckouts.filter(c=>c.sessionId!==s.id&&c.id!==excludeId&&!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returnedDate&&persons.has((c.person||'').trim().toLowerCase())&&c.outDate<=end&&s.date<=coEnd(c))
       .forEach(c=>(c.items||[]).forEach(it=>{if(it.equipmentId)have[it.equipmentId]=(have[it.equipmentId]||0)+(Number(it.qty)||0);}));
   }
   const missing=[];
@@ -4120,7 +4145,7 @@ function matSessBadge(s){
   if(s.isHold||!s.date)return'';
   const co=matCheckouts.find(c=>c.sessionId===s.id);
   if(co)
-    return' <span style="background:#e8f4e8;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;white-space:nowrap" title="'+(coUsesExisting(co)?'Covered — the instructor is using equipment they already have out':'Equipment checkout recorded for this session')+'">📦 ✓</span>';
+    return' <span style="background:#e8f4e8;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;white-space:nowrap" title="'+(coNoEquipment(co)?'Marked as needing no equipment':coUsesExisting(co)?'Covered — the instructor is using equipment they already have out':'Equipment checkout recorded for this session')+'">'+(coNoEquipment(co)?'📦 none needed ✓':'📦 ✓')+'</span>';
   if(equipment.length&&sessionEndDate(s)>=matToday()&&sessionMatNeeds(s))
     return' <span style="background:#fdeeda;color:#9a6b1e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;white-space:nowrap" title="This course usually needs equipment — nothing reserved yet">📦 needed</span>';
   return'';
@@ -4164,6 +4189,7 @@ function matConflicts(horizon){
 }
 function eqAbbr(name){return(name||'').replace(/\(.*?\)/g,'').trim().split(/\s+/)[0]||'?';}
 function coItemsLabel(c,short){
+  if(coNoEquipment(c))return short?'🚫 no equipment':'No equipment needed';
   if(coUsesExisting(c))return short?'↩ shared kit':'Using equipment already out — nothing extra';
   const parts=(c.items||[]).filter(it=>Number(it.qty)>0).map(it=>{
     const eq=equipment.find(x=>x.id===it.equipmentId);
@@ -4214,7 +4240,7 @@ function renderMatAlerts(){
     const noneRes=needy.filter(s=>!matCheckouts.some(c=>c.sessionId===s.id));
     if(noneRes.length){
       bits.push(`<div class="alert warn">🎒 &nbsp;<span><strong>Upcoming classes that need materials — nothing reserved yet:</strong><br>${noneRes.map(s=>
-        `${escapeHtml(s.course)} — ${fdN(s)} &nbsp;<span style="color:var(--muted)">(needs ${escapeHtml(matNeedsLabel(sessionMatNeeds(s)))})</span> <button class="btn sm" style="margin-left:4px" onclick="openCheckout('${s.id}')">Reserve now</button>`
+        `${escapeHtml(s.course)} — ${fdN(s)} &nbsp;<span style="color:var(--muted)">(needs ${escapeHtml(matNeedsLabel(sessionMatNeeds(s)))})</span> <button class="btn sm" style="margin-left:4px" onclick="openCheckout('${s.id}')">Reserve now</button> <button class="btn sm" onclick="markNoEquipment('${s.id}')">🚫 No equipment needed</button>`
       ).join('<br>')}</span></div>`);
     }
     const partial=needy.filter(s=>matCheckouts.some(c=>c.sessionId===s.id)&&sessionMatMissing(s).length);
@@ -4269,7 +4295,7 @@ function renderMatCal(){
   for(let i=0;i<first.getDay();i++)html+='<div class="mat-day blank"></div>';
   for(let day=1;day<=daysInMonth;day++){
     const d=fmtYMD(new Date(y,m,day));
-    const active=matCheckouts.filter(c=>coActiveOn(c,d));
+    const active=matCheckouts.filter(c=>!coNoEquipment(c)&&coActiveOn(c,d));
     const conflict=equipment.some(eq=>qtyOutOn(eq.id,d)>eq.qty);
     const chips=active.map(c=>{
       const cls=c.returnedDate?'returned':coIsOverdue(c)?'overdue':'';
@@ -4287,14 +4313,15 @@ function renderMatTable(){
   let list=matCheckouts.slice();
   // Covered records ("using what they already have") aren't physical loans — once
   // their class date passes they're history, not something awaiting return.
-  if(filter==='active')list=list.filter(c=>!c.returnedDate&&!(coUsesExisting(c)&&c.dueDate&&c.dueDate<today));
+  if(filter==='active')list=list.filter(c=>!c.returnedDate&&!((coUsesExisting(c)||coNoEquipment(c))&&c.dueDate&&c.dueDate<today));
   list.sort((a,b)=>(a.outDate||'').localeCompare(b.outDate||''));
   const fdate=x=>x?new Date(x+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
   document.getElementById('mat-table').innerHTML=
     `<thead><tr><th>Equipment</th><th>Session</th><th>Who has it</th><th>Out</th><th>Due back</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>`+
     (list.length?list.map(c=>{
       let status;
-      if(coUsesExisting(c))status=`<span class="tag host" title="No extra equipment went out — the instructor is using kit(s) from another checkout">↩ Shared kit</span>`;
+      if(coNoEquipment(c))status=`<span class="tag host" title="You marked this class as needing no equipment — remove this row to undo">🚫 No equipment needed</span>`;
+      else if(coUsesExisting(c))status=`<span class="tag host" title="No extra equipment went out — the instructor is using kit(s) from another checkout">↩ Shared kit</span>`;
       else if(c.returnedDate)status=`<span class="tag paid">✓ Returned ${new Date(c.returnedDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
       else if(coIsOverdue(c))status=`<span class="tag" style="background:var(--danger-bg);color:var(--danger)">⏰ Overdue</span>`;
       else if(c.outDate<=today)status=`<span class="tag unpaid">Out now</span>`;
@@ -4308,9 +4335,9 @@ function renderMatTable(){
         <td>${status}</td>
         <td style="color:var(--muted);font-size:12px;max-width:140px">${escapeHtml(c.notes)||'—'}</td>
         <td><div class="btn-row">
-          ${coUsesExisting(c)?'':c.returnedDate?`<button class="btn sm" onclick="undoReturn('${c.id}')">Undo return</button>`:`<button class="btn sm success" onclick="markReturned('${c.id}')">✓ Returned</button>`}
-          <button class="btn sm" onclick="openEditCheckout('${c.id}')">Edit</button>
-          <button class="btn sm danger" onclick="deleteCheckout('${c.id}')">Remove</button>
+          ${coUsesExisting(c)||coNoEquipment(c)?'':c.returnedDate?`<button class="btn sm" onclick="undoReturn('${c.id}')">Undo return</button>`:`<button class="btn sm success" onclick="markReturned('${c.id}')">✓ Returned</button>`}
+          ${coNoEquipment(c)?'':`<button class="btn sm" onclick="openEditCheckout('${c.id}')">Edit</button>`}
+          <button class="btn sm danger" onclick="deleteCheckout('${c.id}')" title="${coNoEquipment(c)?'Removing this puts the session back in the checkout list and reminders':''}">Remove</button>
         </div></td></tr>`;
     }).join(''):`<tr class="empty-row"><td colspan="8">${filter==='active'?'Nothing is checked out right now — everything is on the shelf. 🎉':'No checkouts recorded yet.'}</td></tr>`)+'</tbody>';
 }
@@ -4395,6 +4422,12 @@ function buildCheckoutModal(c,presetSessId){
     <div class="form-grid">
       <div class="fg full"><label>For session (optional — fills in the dates &amp; instructor; classes with equipment already reserved aren't listed)</label>
         <select id="m-co-sess" onchange="coSessChanged()"><option value="">— Not tied to a session —</option>${sessOpts}</select></div>
+      <div class="fg full" id="m-co-noeq-wrap" style="display:none">
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+          <input type="checkbox" id="m-co-noeq" onchange="coNoEquipmentChecked(this)" style="margin-top:2px;width:15px;height:15px;accent-color:var(--sky)">
+          <span>🚫 No equipment needed for this class <span style="font-weight:400;color:var(--muted)">— checking this removes it from this list and the materials reminders</span></span>
+        </label>
+      </div>
       <div class="fg full" id="m-co-needs" style="display:none"></div>
       <div class="fg"><label>Out (leaves you) *</label><input type="date" id="m-co-out" value="${c?c.outDate:today}" onchange="coUpdateAvail()"></div>
       <div class="fg"><label>Due back *</label><input type="date" id="m-co-due" value="${c?c.dueDate:today}" onchange="coUpdateAvail()"></div>
@@ -4418,6 +4451,13 @@ function coSessChanged(){
   const sessId=document.getElementById('m-co-sess').value;
   const s=sessions.find(x=>x.id===sessId);
   const who=document.getElementById('m-co-who');
+  // "No equipment needed" checkbox: only for NEW checkouts with a session picked.
+  const noeqWrap=document.getElementById('m-co-noeq-wrap');
+  if(noeqWrap){
+    noeqWrap.style.display=(s&&!window._coEditId)?'block':'none';
+    const noeqCb=document.getElementById('m-co-noeq');
+    if(noeqCb)noeqCb.checked=false;
+  }
   if(!s){
     // Switched to "Not tied to a session" — clear a name we auto-filled earlier
     // so it doesn't silently stick to the wrong record. A hand-typed name stays.
@@ -4449,7 +4489,7 @@ function coPrefillNeeds(s){
   const who=(document.getElementById('m-co-who')?.value||'').trim().toLowerCase();
   const have={};
   if(who&&out&&due&&out<=due)matCheckouts
-    .filter(x=>x.id!==(window._coEditId||null)&&!coUsesExisting(x)&&!x.returnedDate&&(x.person||'').trim().toLowerCase()===who&&x.outDate<=due&&out<=coEnd(x))
+    .filter(x=>x.id!==(window._coEditId||null)&&!coUsesExisting(x)&&!coNoEquipment(x)&&!x.returnedDate&&(x.person||'').trim().toLowerCase()===who&&x.outDate<=due&&out<=coEnd(x))
     .forEach(x=>(x.items||[]).forEach(it=>{if(it.equipmentId)have[it.equipmentId]=(have[it.equipmentId]||0)+(Number(it.qty)||0);}));
   Object.entries(needs).forEach(([k,q])=>{
     const eq=matEqOfKind(k);if(!eq)return;
@@ -4485,7 +4525,7 @@ function coUpdateAvail(){
     let msg='';
     if(whoRaw&&out&&due&&out<=due){
       const who=whoRaw.toLowerCase();
-      const overlaps=matCheckouts.filter(x=>x.id!==excludeId&&!coUsesExisting(x)&&!x.returnedDate&&(x.person||'').trim().toLowerCase()===who&&x.outDate<=due&&out<=coEnd(x));
+      const overlaps=matCheckouts.filter(x=>x.id!==excludeId&&!coUsesExisting(x)&&!coNoEquipment(x)&&!x.returnedDate&&(x.person||'').trim().toLowerCase()===who&&x.outDate<=due&&out<=coEnd(x));
       if(overlaps.length){
         const fd=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
         const first=escapeHtml(whoRaw.split(' ')[0]);
@@ -4531,7 +4571,7 @@ async function coUseExisting(){
   if(needs&&outDate&&dueDate){
     const who=person.toLowerCase();
     const have={};
-    matCheckouts.filter(x=>!coUsesExisting(x)&&!x.returnedDate&&(x.person||'').trim().toLowerCase()===who&&x.outDate<=dueDate&&outDate<=coEnd(x))
+    matCheckouts.filter(x=>!coUsesExisting(x)&&!coNoEquipment(x)&&!x.returnedDate&&(x.person||'').trim().toLowerCase()===who&&x.outDate<=dueDate&&outDate<=coEnd(x))
       .forEach(x=>(x.items||[]).forEach(it=>{if(it.equipmentId)have[it.equipmentId]=(have[it.equipmentId]||0)+(Number(it.qty)||0);}));
     const missing=[];
     Object.entries(needs).forEach(([k,q])=>{
@@ -4546,6 +4586,30 @@ async function coUseExisting(){
   closeModal();renderMaterials();
   showToast('↩ Noted — '+(person||'they')+' will use the equipment they already have. Nothing new checked out.');
   dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(c)),'New checkout');
+}
+// ── "No equipment needed" ──
+// Checking the box in the checkout modal (or the button in the reminders) records
+// a zero-quantity marker tied to the session. That removes the session from the
+// "For session" dropdown and from the "nothing reserved yet" reminders — nothing
+// leaves the shelf and nothing is ever due back. Undo by removing its row in the
+// Checkouts table.
+function coNoEquipmentChecked(el){
+  if(!el.checked)return;
+  const sessId=document.getElementById('m-co-sess').value;
+  if(!sessId){el.checked=false;return;}
+  closeModal();
+  markNoEquipment(sessId);
+}
+async function markNoEquipment(sessId){
+  const s=sessions.find(x=>x.id===sessId);if(!s)return;
+  if(matCheckouts.some(c=>c.sessionId===sessId&&coNoEquipment(c))){renderMaterials();return;}
+  const outDate=s.date||matToday();
+  const dueDate=(s.isRecurring&&s.recurEndDate)?s.recurEndDate:outDate;
+  const c={id:sid(),sessionId:sessId,person:'',items:[{noEquipment:true,qty:0}],outDate,dueDate,returnedDate:null,notes:'',createdAt:Date.now()};
+  matCheckouts.push(c);
+  renderMaterials();
+  showToast('🚫 Noted — no equipment needed for '+s.course+'. It\'s out of the checkout list and reminders.');
+  dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(c)),'No-equipment marker');
 }
 async function saveCheckout(editId){
   const outDate=document.getElementById('m-co-out').value;
