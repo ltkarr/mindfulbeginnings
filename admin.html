@@ -188,6 +188,7 @@ tr:hover td{background:#fafbfd}
       <div class="nav-item" onclick="showScreen('finances',this)"><span class="nav-icon">◈</span> Finances</div>
       <div class="nav-item" onclick="showScreen('codes',this)"><span class="nav-icon">⬡</span> Session codes</div>
       <div class="nav-item" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> Instructors</div>
+      <div class="nav-item" onclick="showScreen('partners',this)"><span class="nav-icon">◈</span> Partners</div>
       <div class="nav-item" id="nav-materials" onclick="showScreen('materials',this)"><span class="nav-icon">▣</span> Materials</div>
       <div class="nav-item" onclick="showScreen('reports',this)"><span class="nav-icon">▦</span> Reports</div>
     </div>
@@ -341,6 +342,19 @@ tr:hover td{background:#fafbfd}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="instructors-table"></table></div></div>
     </div>
 
+    <div class="screen" id="screen-partners">
+      <div class="page-header">
+        <div><div class="page-title">Community partners</div><div class="page-sub">Commission owed to your Community Partnerships Liaisons, calculated from the revenue you have actually collected</div></div>
+        <div class="btn-row">
+          <button class="btn" onclick="exportPartnersCSV()">⬇ Download statement (CSV)</button>
+          <button class="btn primary" onclick="openAddPartner()">+ Add partner</button>
+        </div>
+      </div>
+      <div id="partners-setup"></div>
+      <div id="partners-controls"></div>
+      <div id="partners-body"></div>
+    </div>
+
     <!-- The "Jobs & materials" tab was removed — the per-session Wrap-up checklist
          (Sessions tab) covers instructor payments, materials, and evaluations. The
          renderJobs()/job-action functions below are kept but no-op without the screen. -->
@@ -451,7 +465,7 @@ function extraDaysFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at||Date.now(),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at||Date.now(),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -463,6 +477,9 @@ let EXTRA_DATES_COL=true;
 let EXTRA_DAYS_COL=true;
 function sessionToDB(s){
   const o={id:s.id,code:s.code,course:s.course,date:s.date||null,time:s.time||null,location:s.location||null,host_address:s.hostAddress||null,city:s.city||null,state:s.state||null,zip:s.zip||null,contact_name:s.contactName||null,host_phone:s.hostPhone||null,owner_taught:s.ownerTaught||false,host_taken:s.hostTaken||false,has_host:s.hasHost!==false,instructor_id:s.instructorId||null,second_instructor_id:s.secondInstructorId||null,max_students_override:s.maxStudentsOverride||null,notes:s.notes||null,additional_costs:s.additionalCosts||[],wifi_info:s.wifiInfo||null,price_override:s.priceOverride==null?null:Number(s.priceOverride),instr_pay_override:s.instrPayOverride==null?null:Number(s.instrPayOverride),is_virtual:s.isVirtual||false,zoom_link:s.zoomLink||null,is_custom_job:s.isCustomJob||false,is_hold:s.isHold||false,allow_waitlist:s.allowWaitlist!==false,reserved_seats:s.reservedSeats||null,hold_term:s.holdTerm||null,hold_payment:s.holdPayment||null,is_recurring:s.isRecurring||false,recur_pattern:s.recurPattern||null,recur_end_date:s.recurEndDate||null,bill_to_org:s.billToOrg||null,billed_headcount:s.billedHeadcount==null||s.billedHeadcount===''?null:Number(s.billedHeadcount)};
+  // Only sent once the partners setup SQL has added the column, so an older
+  // database keeps saving sessions normally.
+  if(ORIGINATED_COL){o.originated_by=s.originatedBy||null;o.origination_note=s.originationNote||null;}
   if(EXTRA_DATES_COL)o.extra_dates=(s.extraDates||[]).filter(Boolean);
   if(EXTRA_DAYS_COL)o.extra_days=(s.extraDays||[]).filter(x=>x&&x.date).map(x=>({date:x.date,time:x.time||''}));
   return o;
@@ -616,6 +633,7 @@ function rerenderActiveScreen(){
   else if(name==='finances'){renderFinances();renderExpenses();}
   else if(name==='codes')renderCodes();
   else if(name==='instructors')renderInstructors();
+  else if(name==='partners')renderPartners();
   else if(name==='jobs')renderJobs();
   else if(name==='materials')renderMaterials();
   else if(name==='reports')renderReports();
@@ -713,6 +731,13 @@ const INSTR_EXTRA_HOURS=0.5;
 
 let sessions=[],registrations=[],instructors=[],jobDataCache={},expenses=[],invoices=[],finView='monthly',sessionSortAsc=true;
 let equipment=[],matCheckouts=[],equipmentTablesReady=true,matCalYM=null;
+// Community Partnerships Liaisons and their monthly commission payouts.
+// partnersTableReady goes false when the setup SQL has not been run yet, and the
+// Partners screen shows the instructions instead of an empty table.
+let partners=[],partnerPayouts=[],partnersTableReady=true,partnerPeriod=null;
+// Set to false automatically if the database is missing sessions.originated_by,
+// so a session still saves (minus its attribution) instead of failing outright.
+let ORIGINATED_COL=true;
 
 function sid(){return crypto.randomUUID();}
 
@@ -779,6 +804,17 @@ async function loadData(){
       sb.from('equipment').select('*').order('sort',{ascending:true}),
       sb.from('equipment_checkouts').select('*').order('out_date',{ascending:true})
     ]);
+    // Partner tables are newer. If the setup SQL has not been run yet the rest of
+    // the app still loads and the Partners tab explains what to do.
+    const [pt,pp]=await Promise.all([
+      sb.from('partners').select('*').order('name',{ascending:true}),
+      sb.from('partner_payouts').select('*')
+    ]);
+    partnersTableReady=!pt.error;
+    if(pt.error)console.warn('Partners table not loaded (run partners_setup.sql if you haven\'t):',pt.error);
+    if(pp.error)console.warn('Partner payouts table not loaded:',pp.error);
+    partners=(pt.data||[]).map(partnerFromDB);
+    partnerPayouts=(pp.data||[]).map(payoutFromDB);
     // Supabase returns errors on the result object instead of throwing. If any table
     // failed to load, say so loudly — otherwise the dashboard quietly shows wrong numbers.
     // The two equipment tables are newer — if they haven't been created yet the rest of
@@ -1065,6 +1101,767 @@ function sessionInstructorNames(s,fallback){
 function fmt(n){const v=Math.abs(n);return'$'+(Number.isInteger(v)?v.toLocaleString('en-US'):v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));}
 function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 
+// ─── COMMUNITY PARTNERSHIPS LIAISON: COMMISSION ENGINE ───────
+// Implements Section 3 of the Community Partnerships Liaison agreement. Every
+// number below is derived from data you already enter for a session — the only
+// new field you fill in is "Originated by" on the session form.
+//
+//  §3.A  Monthly tiered commission on Collected Revenue originated that month.
+//        Reaching a higher tier applies that rate to ALL of the month's revenue,
+//        retroactively — not just the dollars above the threshold.
+//  §3.B  Large-scale organizational accelerator: a single organizational booking
+//        collecting $3,000+ earns at least 20%, whatever the monthly tier is.
+//  §3.C  New organizational partner bonus: a flat $50 the first time a new
+//        school / PTA / troop / rec center / faith community pays for a program.
+//  §3.D  "Collected Revenue" = fees ACTUALLY RECEIVED, net of refunds, discounts,
+//        taxes and payment-processing fees. Money not yet collected earns nothing,
+//        so uninvoiced and unpaid work sits in "Awaiting collection" until it lands.
+//  §3.F  Repeat and renewal bookings — see PARTNER_SETTINGS.repeatPolicy.
+
+const PARTNER_TIERS=[
+  {min:0,     max:2499.99,  rate:0.10, name:'Tier 1', label:'Standard'},
+  {min:2500,  max:4999.99,  rate:0.15, name:'Tier 2', label:'Growth'},
+  {min:5000,  max:9999.99,  rate:0.20, name:'Tier 3', label:'High Performer'},
+  {min:10000, max:Infinity, rate:0.25, name:'Tier 4', label:'Premier Partner'}
+];
+const PARTNER_ACCEL_MIN=3000;      // §3.B threshold, per organizational contract
+const PARTNER_ACCEL_RATE=0.20;     // §3.B floor rate
+const PARTNER_NEW_ORG_BONUS=50;    // §3.C flat bonus
+
+// Two judgment calls the contract leaves open. Both are switchable from the
+// Partners screen, and both are saved in this browser so they stick.
+//
+//   accelGrouping — §3.B says "a single organizational contract ... for a single
+//     program or multi-session booking". 'booking' treats each session row as one
+//     contract (a recurring or multi-day booking is a single row, so it already
+//     counts as one). 'org-month' treats everything one organization collects in a
+//     month as one contract, which is the more generous reading.
+//
+//   repeatPolicy — §3.F says repeat and renewal bookings earn the 10% baseline,
+//     "unless part of a new monthly volume push that qualifies for higher tiers".
+//     'tier' honours that carve-out: repeats count toward volume and earn the
+//     month's tier rate. 'flat10' is the conservative reading: repeats still count
+//     toward volume for tier purposes but are themselves paid at 10%.
+const PARTNER_SETTINGS_DEFAULTS={accelGrouping:'booking',repeatPolicy:'tier'};
+let _partnerSettings=null;
+function partnerSettings(){
+  if(_partnerSettings)return _partnerSettings;
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem('mb_partner_settings')||'{}')||{};}catch(e){saved={};}
+  _partnerSettings={...PARTNER_SETTINGS_DEFAULTS,...saved};
+  return _partnerSettings;
+}
+function setPartnerSetting(key,val){
+  const s=partnerSettings();s[key]=val;
+  try{localStorage.setItem('mb_partner_settings',JSON.stringify(s));}catch(e){}
+  if(typeof renderPartners==='function')renderPartners();
+}
+
+// Money rounds to cents at every step so the statement always adds up to the
+// number you actually send over Zelle.
+function round2(n){return Math.round((Number(n)||0)*100)/100;}
+
+// ─── PARTNER RECORD MAPPING ──────────────────────────────────
+function partnerFromDB(r){
+  return{id:r.id,name:r.name||'',email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',
+    pin:r.pin||'',status:r.status||'active',startDate:r.start_date||'',endDate:r.end_date||'',
+    contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',
+    contractSignature:r.contract_signature||'',w9Submitted:r.w9_submitted||false,
+    notes:r.notes||'',createdAt:r.created_at||Date.now()};
+}
+function partnerToDB(p){
+  return{id:p.id,name:p.name,email:p.email||null,phone:p.phone||null,zelle:p.zelle||null,
+    pin:p.pin||null,status:p.status||'active',start_date:p.startDate||null,end_date:p.endDate||null,
+    contract_signed:p.contractSigned||false,contract_signed_date:p.contractSignedDate||null,
+    contract_signature:p.contractSignature||null,w9_submitted:p.w9Submitted||false,
+    notes:p.notes||null};
+}
+function payoutFromDB(r){
+  return{id:r.id,partnerId:r.partner_id,period:r.period,amount:Number(r.amount)||0,
+    breakdown:r.breakdown||{},paidDate:r.paid_date||'',method:r.method||'Zelle',
+    notes:r.notes||'',createdAt:r.created_at||Date.now()};
+}
+function payoutToDB(p){
+  return{id:p.id,partner_id:p.partnerId,period:p.period,amount:Number(p.amount)||0,
+    breakdown:p.breakdown||{},paid_date:p.paidDate||null,method:p.method||'Zelle',notes:p.notes||null};
+}
+function partnerById(id){return partners.find(p=>p.id===id)||null;}
+function partnerName(id){const p=partnerById(id);return p?p.name:'';}
+
+// ─── WHO IS THE BOOKING WITH? ────────────────────────────────
+// The organization paying for a session, if it is organizational rather than a
+// private home class. "Bill to organization" is the reliable signal; a custom job
+// falls back to its location, which is how organizational jobs are entered today.
+function sessionOrgName(s){
+  const o=(s.billToOrg||'').trim();
+  if(o)return o;
+  if(s.isCustomJob)return (s.location||s.contactName||'').trim();
+  return '';
+}
+function sessionIsOrgBooking(s){return !!sessionOrgName(s);}
+
+// A stable identity for the client behind a booking, used to tell a brand-new
+// relationship from a repeat or renewal. Organizations key on their name; private
+// home classes key on the host's name. A booking with neither can never be
+// classified as a repeat, which errs in the partner's favour.
+function bookingPartyKey(s){
+  const org=sessionOrgName(s);
+  if(org)return 'org:'+org.trim().toLowerCase();
+  const h=(s.contactName||'').trim().toLowerCase();
+  return h?'host:'+h:'session:'+s.id;
+}
+
+// ─── WHEN DID THE MONEY ACTUALLY LAND? (§3.D) ────────────────
+// Organizational work is invoiced and paid later, so it counts as collected on
+// the day its invoice was marked paid. Work that is uninvoiced, or invoiced but
+// unpaid, has not been collected and earns no commission yet.
+function sessionOrgCollectedDate(s){
+  const inv=(invoices||[]).find(v=>v.status==='paid'&&(v.lineItems||[]).some(li=>li.sessionId===s.id));
+  if(!inv)return '';
+  return String(inv.paidDate||inv.issueDate||'').slice(0,10);
+}
+// Families pay online at the moment they register, so the registration timestamp
+// is the collection date.
+function regCollectedDate(r){
+  const t=regCreatedTime(r);
+  if(!t)return '';
+  return new Date(t).toISOString().slice(0,10);
+}
+
+// Every dollar of Collected Revenue a session produces, one entry per source.
+// amount is always NET — processing fees are already removed, per §3.D.
+function partnerRevenueEvents(s){
+  const out=[];
+  if(!s||s.isHold)return out;
+
+  // A custom job bills the organization a flat fee held in priceOverride.
+  if(s.isCustomJob){
+    const amt=s.priceOverride!=null?Number(s.priceOverride):0;
+    if(amt>0){
+      const c=sessionOrgCollectedDate(s);
+      out.push({sessionId:s.id,kind:'org',gross:amt,amount:round2(amt),fee:0,
+        collectedOn:c,month:c?c.slice(0,7):'',collected:!!c});
+    }
+    return out;
+  }
+
+  // Individual families who have paid.
+  (registrations||[]).filter(r=>r.sessionId===s.id&&r.payStatus==='paid').forEach(r=>{
+    const gross=regEffectivePrice(r,s);
+    if(!(gross>0))return;
+    const fee=processingFee(gross);
+    const d=regCollectedDate(r);
+    out.push({sessionId:s.id,kind:'family',regId:r.id,gross:round2(gross),
+      amount:round2(gross-fee),fee:round2(fee),
+      collectedOn:d,month:d?d.slice(0,7):'',collected:!!d});
+  });
+
+  // An organization's roster headcount, invoiced at month end. No processing fee
+  // applies — you are paid by check or transfer, not through PayPal.
+  if(s.billToOrg&&s.billedHeadcount){
+    const rate=s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
+    const amt=Number(s.billedHeadcount)*rate;
+    if(amt>0){
+      const c=sessionOrgCollectedDate(s);
+      out.push({sessionId:s.id,kind:'org',gross:round2(amt),amount:round2(amt),fee:0,
+        collectedOn:c,month:c?c.slice(0,7):'',collected:!!c});
+    }
+  }
+  return out;
+}
+
+// First time each client party ever paid Mindful Beginnings anything, looking at
+// EVERY session in the system rather than only this partner's. That is what makes
+// the $50 bonus (§3.C) genuinely "new partner" money: an organization you were
+// already working with does not become new because a liaison reintroduced it.
+function partyFirstPaidIndex(){
+  const idx={};
+  (sessions||[]).forEach(s=>{
+    const k=bookingPartyKey(s);
+    if(k.startsWith('session:'))return;
+    partnerRevenueEvents(s).forEach(ev=>{
+      if(!ev.collected)return;
+      if(!idx[k]||ev.collectedOn<idx[k].date)idx[k]={date:ev.collectedOn,sessionId:s.id};
+    });
+  });
+  return idx;
+}
+
+function tierFor(monthTotal){
+  const t=Number(monthTotal)||0;
+  for(let i=PARTNER_TIERS.length-1;i>=0;i--){if(t>=PARTNER_TIERS[i].min)return PARTNER_TIERS[i];}
+  return PARTNER_TIERS[0];
+}
+function nextTierFor(monthTotal){
+  const cur=tierFor(monthTotal);
+  const i=PARTNER_TIERS.indexOf(cur);
+  return i<PARTNER_TIERS.length-1?PARTNER_TIERS[i+1]:null;
+}
+
+// ─── THE STATEMENT ───────────────────────────────────────────
+// Everything owed to one partner for one calendar month, with the reasoning for
+// every rate shown so you can answer "why this number?" from the screen.
+function partnerStatement(partnerId,period){
+  const cfg=partnerSettings();
+  const mine=(sessions||[]).filter(s=>s.originatedBy===partnerId&&!s.isHold);
+  const firstPaid=partyFirstPaidIndex();
+
+  const rows=[],pending=[];
+  mine.forEach(s=>{
+    const evs=partnerRevenueEvents(s);
+    const uncollected=evs.filter(e=>!e.collected);
+    if(uncollected.length){
+      pending.push({session:s,amount:round2(uncollected.reduce((a,e)=>a+e.amount,0)),
+        reason:sessionIsOrgBooking(s)?'Waiting on the organization invoice to be marked paid':'Registrations not marked paid'});
+    }
+    const inMonth=evs.filter(e=>e.collected&&e.month===period);
+    if(!inMonth.length)return;
+    const key=bookingPartyKey(s);
+    const first=firstPaid[key];
+    // A repeat is a booking for a party that had already paid before this booking's
+    // own first collection — the same party's second engagement onward.
+    const earliest=inMonth.map(e=>e.collectedOn).sort()[0];
+    const isRepeat=!!(first&&first.sessionId!==s.id);
+    rows.push({
+      session:s,sessionId:s.id,collected:round2(inMonth.reduce((a,e)=>a+e.amount,0)),
+      gross:round2(inMonth.reduce((a,e)=>a+e.gross,0)),
+      fees:round2(inMonth.reduce((a,e)=>a+(e.fee||0),0)),
+      familyCount:inMonth.filter(e=>e.kind==='family').length,
+      isOrg:sessionIsOrgBooking(s),org:sessionOrgName(s),
+      isRepeat,firstCollectedOn:earliest,partyKey:key,accelerated:false
+    });
+  });
+
+  // §3.A — the tier is set by the month's TOTAL originated collected revenue, and
+  // then applies to every dollar of it.
+  const monthTotal=round2(rows.reduce((a,r)=>a+r.collected,0));
+  const tier=tierFor(monthTotal);
+  const next=nextTierFor(monthTotal);
+  const toNext=next?round2(next.min-monthTotal):0;
+
+  // §3.B — group bookings into "contracts" and find which groups clear $3,000.
+  const groupKey=r=>cfg.accelGrouping==='org-month'&&r.isOrg?('org:'+r.org.toLowerCase()):('sess:'+r.sessionId);
+  const groupTotals={};
+  rows.forEach(r=>{const k=groupKey(r);groupTotals[k]=round2((groupTotals[k]||0)+r.collected);});
+
+  rows.forEach(r=>{
+    let rate=tier.rate;
+    let reason=`${tier.name} (${tier.label}) — ${Math.round(tier.rate*100)}% on the month's total`;
+    if(cfg.repeatPolicy==='flat10'&&r.isRepeat&&rate>0.10){
+      rate=0.10;reason='Repeat / renewal booking — 10% baseline (§3.F)';
+    }
+    const gt=groupTotals[groupKey(r)]||0;
+    if(r.isOrg&&gt>=PARTNER_ACCEL_MIN&&rate<PARTNER_ACCEL_RATE){
+      rate=PARTNER_ACCEL_RATE;r.accelerated=true;
+      reason=`Large-scale organizational accelerator — ${fmtPlain(gt)} contract earns 20% (§3.B)`;
+    }
+    r.rate=rate;r.reason=reason;r.commission=round2(r.collected*rate);
+  });
+
+  const commission=round2(rows.reduce((a,r)=>a+r.commission,0));
+
+  // §3.C — $50 the first time a brand-new organization pays, credited in the month
+  // that first payment landed, and only on the booking that earned it.
+  const bonuses=[];
+  rows.forEach(r=>{
+    if(!r.isOrg)return;
+    const f=firstPaid[r.partyKey];
+    if(f&&f.sessionId===r.sessionId&&String(f.date).slice(0,7)===period){
+      bonuses.push({org:r.org,sessionId:r.sessionId,amount:PARTNER_NEW_ORG_BONUS,date:f.date});
+    }
+  });
+  const bonusTotal=round2(bonuses.reduce((a,b)=>a+b.amount,0));
+  const total=round2(commission+bonusTotal);
+
+  const payout=(partnerPayouts||[]).find(p=>p.partnerId===partnerId&&p.period===period)||null;
+
+  rows.sort((a,b)=>String(a.firstCollectedOn).localeCompare(String(b.firstCollectedOn)));
+  return{partnerId,period,rows,pending,monthTotal,tier,nextTier:next,toNextTier:toNext,
+    commission,bonuses,bonusTotal,total,payout,
+    pendingTotal:round2(pending.reduce((a,p)=>a+p.amount,0))};
+}
+
+// Plain dollar string usable inside the engine without depending on render code.
+function fmtPlain(n){
+  const v=Number(n)||0;
+  return '$'+v.toLocaleString('en-US',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2});
+}
+
+// Every month in which a partner collected anything, newest first. Drives the
+// month picker and the all-time totals.
+function partnerPeriods(partnerId){
+  const set=new Set();
+  (sessions||[]).filter(s=>s.originatedBy===partnerId&&!s.isHold).forEach(s=>{
+    partnerRevenueEvents(s).forEach(e=>{if(e.collected&&e.month)set.add(e.month);});
+  });
+  (partnerPayouts||[]).filter(p=>p.partnerId===partnerId).forEach(p=>set.add(p.period));
+  return[...set].sort().reverse();
+}
+
+// Lifetime figures for the roster row.
+function partnerLifetime(partnerId){
+  let revenue=0,earned=0,paid=0,unpaid=0;
+  partnerPeriods(partnerId).forEach(per=>{
+    const st=partnerStatement(partnerId,per);
+    revenue=round2(revenue+st.monthTotal);
+    // A month already paid is frozen at the amount that was actually sent.
+    const amt=st.payout&&st.payout.paidDate?st.payout.amount:st.total;
+    earned=round2(earned+amt);
+    if(st.payout&&st.payout.paidDate)paid=round2(paid+st.payout.amount);
+    else unpaid=round2(unpaid+st.total);
+  });
+  return{revenue,earned,paid,unpaid};
+}
+
+// The month you would normally be paying right now. Commissions are calculated on
+// the prior calendar month and paid by the 10th (§3.E), so the previous month is
+// the useful default.
+function defaultPartnerPeriod(){
+  const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function periodLabel(p){
+  if(!p)return '';
+  return new Date(p+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'});
+}
+
+// ─── COMMUNITY PARTNERS: SESSION ATTRIBUTION FIELD ───────────
+// Dropped into all four session forms (course session and custom job, new and
+// edit). Leaving it on "Not applicable" means you sourced the booking yourself
+// and no commission is owed — that is the default, so nothing changes for the
+// work you bring in directly.
+function partnerOriginFieldHtml(s){
+  const active=partners.filter(p=>p.status!=='inactive'||(s&&s.originatedBy===p.id));
+  if(!partnersTableReady||!active.length)return '';
+  const cur=s?(s.originatedBy||''):'';
+  const note=s?(s.originationNote||''):'';
+  return `<div class="fg full" style="background:#f5f1fa;border:1px solid #ddd0ee;border-radius:var(--r-sm);padding:12px 14px">
+    <label style="margin-bottom:2px">Originated by <span style="font-weight:400;color:var(--muted)">(optional — community partner commission)</span></label>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Credit this booking to the liaison who made the first introduction. Commission is calculated on revenue you have actually collected, and only pays out once the money is in. Leave this blank for anything you sourced yourself.</div>
+    <select id="m-originby" style="width:100%">
+      <option value="">— Not applicable (I sourced this myself) —</option>
+      ${active.map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${escapeHtml(p.name)}${p.status==='inactive'?' (inactive)':''}</option>`).join('')}
+    </select>
+    <input type="text" id="m-originnote" value="${escapeHtml(note)}" placeholder="Optional: how the introduction happened (e.g. &quot;met the PTA president at the spring fair, intro email 3/4&quot;)" style="width:100%;margin-top:8px">
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">The note is your own record of the first documented introduction, which is what the agreement uses to settle any attribution question later.</div>
+  </div>`;
+}
+function readOriginatedBy(){
+  const el=document.getElementById('m-originby');
+  return el&&el.value?el.value:null;
+}
+function readOriginationNote(){
+  const el=document.getElementById('m-originnote');
+  return el?(el.value||'').trim():'';
+}
+
+// ─── PARTNERS SCREEN ─────────────────────────────────────────
+const PARTNER_SETUP_HTML=`<div class="alert warn" style="display:block">
+  <div style="font-weight:500;margin-bottom:6px">⚙️ One setup step left</div>
+  <div style="line-height:1.6">The partner tables don't exist in your database yet. Open your Supabase dashboard → <strong>SQL Editor</strong> → <strong>New query</strong>, paste in the contents of <strong>partners_setup.sql</strong>, and click Run. Then reload this page. Nothing else in the portal is affected until you do.</div>
+</div>`;
+
+function renderPartners(){
+  const setupEl=document.getElementById('partners-setup');
+  const ctrlEl=document.getElementById('partners-controls');
+  const bodyEl=document.getElementById('partners-body');
+  if(!setupEl)return;
+
+  if(!partnersTableReady){
+    setupEl.innerHTML=PARTNER_SETUP_HTML;ctrlEl.innerHTML='';bodyEl.innerHTML='';return;
+  }
+  setupEl.innerHTML='';
+
+  // Month picker: every month anyone collected anything, plus this month and the
+  // month you would normally be paying right now, so the list is never empty.
+  const allPeriods=new Set([defaultPartnerPeriod(),new Date().toISOString().slice(0,7)]);
+  partners.forEach(p=>partnerPeriods(p.id).forEach(x=>allPeriods.add(x)));
+  const periods=[...allPeriods].sort().reverse();
+  if(!partnerPeriod||!periods.includes(partnerPeriod))partnerPeriod=periods.includes(defaultPartnerPeriod())?defaultPartnerPeriod():periods[0];
+
+  const cfg=partnerSettings();
+  const statements=partners.map(p=>partnerStatement(p.id,partnerPeriod));
+  const monthRevenue=round2(statements.reduce((a,s)=>a+s.monthTotal,0));
+  const monthOwed=round2(statements.reduce((a,s)=>a+(s.payout&&s.payout.paidDate?0:s.total),0));
+  const monthPaid=round2(statements.reduce((a,s)=>a+(s.payout&&s.payout.paidDate?s.payout.amount:0),0));
+  const monthPending=round2(statements.reduce((a,s)=>a+s.pendingTotal,0));
+
+  ctrlEl.innerHTML=`
+    <div class="alert info" style="display:block">
+      <div style="line-height:1.6">💡 &nbsp;Commission is calculated on <strong>revenue you have actually collected</strong> in the selected month — a family's payment counts the day they register and pay, and an organization's counts the day you mark its invoice paid under Finances. Per the agreement, you calculate on the prior calendar month and pay by the 10th, so this opens on last month.</div>
+    </div>
+    <div class="card" style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between">
+      <div>
+        <label style="font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px">Commission month</label>
+        <select onchange="partnerPeriod=this.value;renderPartners()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);outline:none">
+          ${periods.map(p=>`<option value="${p}" ${p===partnerPeriod?'selected':''}>${periodLabel(p)}</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1;min-width:280px;display:flex;gap:16px;flex-wrap:wrap;justify-content:flex-end">
+        <div>
+          <label style="font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px" title="Section 3.B of the agreement">$3,000 accelerator counts</label>
+          <select onchange="setPartnerSetting('accelGrouping',this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);outline:none">
+            <option value="booking" ${cfg.accelGrouping==='booking'?'selected':''}>Each booking on its own</option>
+            <option value="org-month" ${cfg.accelGrouping==='org-month'?'selected':''}>All of one org's bookings that month</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px" title="Section 3.F of the agreement">Repeat bookings earn</label>
+          <select onchange="setPartnerSetting('repeatPolicy',this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);outline:none">
+            <option value="tier" ${cfg.repeatPolicy==='tier'?'selected':''}>The month's tier rate</option>
+            <option value="flat10" ${cfg.repeatPolicy==='flat10'?'selected':''}>Flat 10% baseline</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="m-label">Collected via partners</div><div class="m-val">${fmt(monthRevenue)}</div><div class="m-sub">${periodLabel(partnerPeriod)}</div></div>
+      <div class="metric"><div class="m-label">Commission owed</div><div class="m-val ${monthOwed>0?'red':''}">${fmt(monthOwed)}</div><div class="m-sub">Due by the 10th of next month</div></div>
+      <div class="metric"><div class="m-label">Already paid</div><div class="m-val green">${fmt(monthPaid)}</div><div class="m-sub">This month's payouts</div></div>
+      <div class="metric"><div class="m-label">Awaiting collection</div><div class="m-val">${fmt(monthPending)}</div><div class="m-sub">Earns nothing until the money lands</div></div>
+    </div>`;
+
+  if(!partners.length){
+    bodyEl.innerHTML=`<div class="card" style="text-align:center;padding:44px 22px">
+      <div style="font-size:15px;font-weight:500;margin-bottom:6px">No community partners yet</div>
+      <div style="color:var(--muted);font-size:13px;max-width:460px;margin:0 auto 18px">Add your first Community Partnerships Liaison, then pick them under "Originated by" on any session they brought you. Everything on this page fills in from there.</div>
+      <button class="btn primary" onclick="openAddPartner()">+ Add partner</button>
+    </div>`;
+    return;
+  }
+
+  bodyEl.innerHTML=partners.map((p,i)=>partnerCardHtml(p,statements[i])).join('');
+}
+
+function partnerCardHtml(p,st){
+  const paid=!!(st.payout&&st.payout.paidDate);
+  const lt=partnerLifetime(p.id);
+  const pct=st.nextTier?Math.max(0,Math.min(100,(st.monthTotal/st.nextTier.min)*100)):100;
+
+  const onboarding=[];
+  if(!p.contractSigned)onboarding.push('signed agreement');
+  if(!p.w9Submitted)onboarding.push('W-9');
+
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-size:17px;font-weight:500">${escapeHtml(p.name)}
+          ${p.status==='inactive'?'<span class="tag pending" style="margin-left:8px">Inactive</span>':''}
+          ${paid?'<span class="tag paid" style="margin-left:8px">'+periodLabel(st.period)+' paid</span>':''}
+        </div>
+        <div style="color:var(--muted);font-size:12px;margin-top:4px">
+          ${p.email?escapeHtml(p.email)+' · ':''}${p.phone?escapeHtml(p.phone)+' · ':''}Zelle: ${p.zelle?escapeHtml(p.zelle):'<span style="color:var(--danger)">not on file</span>'}
+        </div>
+        <div style="font-size:11px;margin-top:5px">
+          ${onboarding.length
+            ?`<span style="color:var(--warn)">⚠ Missing: ${onboarding.join(', ')}</span>`
+            :'<span style="color:var(--success)">✓ Agreement signed · W-9 on file</span>'}
+        </div>
+      </div>
+      <div class="btn-row">
+        ${paid
+          ?`<button class="btn sm" onclick="undoPartnerPayout('${p.id}')">Undo paid</button>`
+          :`<button class="btn sm success" onclick="markPartnerPaid('${p.id}')" ${st.total>0?'':'disabled title="Nothing owed for this month"'}>Mark ${fmt(st.total)} paid</button>`}
+        <button class="btn sm primary" onclick="openPartnerStatement('${p.id}')">🧾 Statement</button>
+        <button class="btn sm" onclick="openEditPartner('${p.id}')">Edit</button>
+        <button class="btn sm danger" onclick="deletePartner('${p.id}')">Remove</button>
+      </div>
+    </div>
+
+    <div class="metrics" style="margin-bottom:16px">
+      <div class="metric"><div class="m-label">Collected revenue</div><div class="m-val">${fmt(st.monthTotal)}</div><div class="m-sub">Originated in ${periodLabel(st.period)}</div></div>
+      <div class="metric"><div class="m-label">Tier reached</div><div class="m-val" style="font-size:20px">${st.tier.name}</div><div class="m-sub">${st.tier.label} — ${Math.round(st.tier.rate*100)}% on the whole month</div></div>
+      <div class="metric"><div class="m-label">${st.nextTier?'To reach '+st.nextTier.name:'Top tier'}</div><div class="m-val" style="font-size:20px">${st.nextTier?fmt(st.toNextTier):'—'}</div>
+        <div style="height:5px;background:var(--border);border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--sky)"></div></div>
+        <div class="m-sub">${st.nextTier?'more would lift the whole month to '+Math.round(st.nextTier.rate*100)+'%':'Premier Partner — 25%'}</div></div>
+      <div class="metric"><div class="m-label">Commission</div><div class="m-val">${fmt(st.commission)}</div><div class="m-sub">${st.bonusTotal?'+ '+fmt(st.bonusTotal)+' in bonuses':'No bonuses this month'}</div></div>
+      <div class="metric"><div class="m-label">${paid?'Paid':'Total due'}</div><div class="m-val ${paid?'green':''}">${fmt(paid?st.payout.amount:st.total)}</div><div class="m-sub">${paid?'Sent '+fmtShortDate(st.payout.paidDate)+' via '+(st.payout.method||'Zelle'):'By the 10th of next month'}</div></div>
+    </div>
+
+    ${paid&&Math.abs(st.payout.amount-st.total)>0.01?`<div class="alert warn" style="display:block">The figures behind this month have changed since you paid it. You sent <strong>${fmt(st.payout.amount)}</strong>; the same month now calculates to <strong>${fmt(st.total)}</strong>. The paid amount is what counts — undo and re-mark it only if you intend to settle the difference.</div>`:''}
+
+    ${st.rows.length?`<div class="tbl-wrap"><table>
+      <thead><tr><th>Collected</th><th>Course</th><th>Client</th><th>Collected revenue</th><th>Rate</th><th>Commission</th><th>Why this rate</th></tr></thead>
+      <tbody>${st.rows.map(r=>`<tr>
+        <td style="font-size:12px;white-space:nowrap">${fmtShortDate(r.firstCollectedOn)}</td>
+        <td style="font-size:12px">${escapeHtml(r.session.course)}${r.session.date?`<br><span style="color:var(--muted);font-size:11px">held ${fmtShortDate(r.session.date)}</span>`:''}</td>
+        <td style="font-size:12px">${r.isOrg?'🏛 '+escapeHtml(r.org):'🏠 '+escapeHtml(r.session.contactName||'Private home class')}
+          ${r.isRepeat?'<br><span class="tag pending" style="margin-top:3px">Repeat</span>':'<br><span class="tag host" style="margin-top:3px">First booking</span>'}</td>
+        <td style="font-weight:500">${fmt(r.collected)}${r.fees?`<br><span style="color:var(--muted);font-size:11px">${fmt(r.gross)} less ${fmt(r.fees)} fees</span>`:''}${r.familyCount?`<br><span style="color:var(--muted);font-size:11px">${r.familyCount} famil${r.familyCount===1?'y':'ies'}</span>`:''}</td>
+        <td style="font-weight:500;${r.accelerated?'color:#6D1ED4':''}">${Math.round(r.rate*100)}%${r.accelerated?'<br><span style="font-size:10px">accelerator</span>':''}</td>
+        <td style="font-weight:500;color:var(--success)">${fmt(r.commission)}</td>
+        <td style="font-size:11px;color:var(--muted);max-width:230px">${escapeHtml(r.reason)}</td>
+      </tr>`).join('')}
+      ${st.bonuses.map(b=>`<tr style="background:#faf8fd">
+        <td style="font-size:12px;white-space:nowrap">${fmtShortDate(b.date)}</td>
+        <td style="font-size:12px" colspan="2">🎉 New organizational partner bonus — ${escapeHtml(b.org)}</td>
+        <td style="color:var(--muted);font-size:12px">—</td><td style="color:var(--muted);font-size:12px">flat</td>
+        <td style="font-weight:500;color:var(--success)">${fmt(b.amount)}</td>
+        <td style="font-size:11px;color:var(--muted)">First paid program from a brand-new organization (§3.C)</td>
+      </tr>`).join('')}
+      <tr style="background:var(--cream);font-weight:500">
+        <td colspan="3">${periodLabel(st.period)} total</td>
+        <td>${fmt(st.monthTotal)}</td><td></td>
+        <td style="color:var(--success)">${fmt(st.total)}</td><td></td>
+      </tr>
+      </tbody></table></div>`
+    :`<div style="color:var(--muted);font-size:13px;padding:14px 0;font-style:italic">No revenue collected from this partner's introductions in ${periodLabel(st.period)}.</div>`}
+
+    ${st.pending.length?`<div style="margin-top:18px">
+      <div class="card-title" style="margin-bottom:8px">Awaiting collection — no commission yet</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Session</th><th>Date</th><th>Client</th><th>Amount</th><th>What's holding it up</th></tr></thead>
+        <tbody>${st.pending.map(x=>`<tr>
+          <td style="font-size:12px">${escapeHtml(x.session.course)}</td>
+          <td style="font-size:12px">${fmtShortDate(x.session.date)}</td>
+          <td style="font-size:12px">${escapeHtml(sessionOrgName(x.session)||x.session.contactName||'—')}</td>
+          <td style="font-weight:500;color:var(--warn)">${fmt(x.amount)}</td>
+          <td style="font-size:11px;color:var(--muted)">${escapeHtml(x.reason)}</td>
+        </tr>`).join('')}</tbody></table></div>
+    </div>`:''}
+
+    <div style="margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border);font-size:12px;color:var(--muted);display:flex;gap:20px;flex-wrap:wrap">
+      <span>Lifetime revenue originated: <strong style="color:var(--text)">${fmt(lt.revenue)}</strong></span>
+      <span>Lifetime commission paid: <strong style="color:var(--success)">${fmt(lt.paid)}</strong></span>
+      <span>Outstanding across all months: <strong style="color:${lt.unpaid>0?'var(--warn)':'var(--text)'}">${fmt(lt.unpaid)}</strong></span>
+    </div>
+  </div>`;
+}
+
+function fmtShortDate(d){
+  if(!d)return '—';
+  const dt=new Date(String(d).slice(0,10)+'T12:00:00');
+  return isNaN(dt)?String(d):dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+// ─── PARTNER RECORDS ─────────────────────────────────────────
+function openAddPartner(){
+  showModal(`<div class="modal-head"><h3>Add community partner</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="fg full"><label>Full name *</label><input type="text" id="m-pname" placeholder="Full name"></div>
+    <div class="fg"><label>Email</label><input type="email" id="m-pemail" placeholder="email@example.com"></div>
+    <div class="fg"><label>Phone</label><input type="tel" id="m-pphone" placeholder="(555) 555-5555"></div>
+    <div class="fg full"><label>Zelle (mobile or email) *</label><input type="text" id="m-pzelle" placeholder="Where commission gets sent"><div style="font-size:11px;color:var(--muted);margin-top:4px">Copy this from the bottom of their signed agreement — it's how commission is remitted under §3.E.</div></div>
+    <div class="fg"><label>Agreement effective date</label><input type="date" id="m-pstart"></div>
+    <div class="fg"><label>Status</label><select id="m-pstatus" style="width:100%"><option value="active" selected>Active</option><option value="inactive">Inactive (agreement ended)</option></select></div>
+    <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
+      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Paperwork</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-pcontract" style="width:auto;margin:0"> Signed Community Partnerships Liaison agreement on file</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-pw9" style="width:auto;margin:0"> W-9 received (needed before you can issue a 1099)</label>
+    </div>
+    <div class="fg full"><label>Notes</label><input type="text" id="m-pnotes" placeholder="Optional"></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="savePartner(null)">Add partner</button></div>`);
+}
+
+function openEditPartner(id){
+  const p=partnerById(id);if(!p)return;
+  showModal(`<div class="modal-head"><h3>Edit partner</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="fg full"><label>Full name *</label><input type="text" id="m-pname" value="${escapeHtml(p.name)}"></div>
+    <div class="fg"><label>Email</label><input type="email" id="m-pemail" value="${escapeHtml(p.email)}"></div>
+    <div class="fg"><label>Phone</label><input type="tel" id="m-pphone" value="${escapeHtml(p.phone)}"></div>
+    <div class="fg full"><label>Zelle (mobile or email) *</label><input type="text" id="m-pzelle" value="${escapeHtml(p.zelle)}"></div>
+    <div class="fg"><label>Agreement effective date</label><input type="date" id="m-pstart" value="${p.startDate||''}"></div>
+    <div class="fg"><label>Status</label><select id="m-pstatus" style="width:100%"><option value="active" ${p.status!=='inactive'?'selected':''}>Active</option><option value="inactive" ${p.status==='inactive'?'selected':''}>Inactive (agreement ended)</option></select></div>
+    <div class="fg full"><label>Termination date <span style="font-weight:400;color:var(--muted)">(only if the agreement ended)</span></label><input type="date" id="m-pend" value="${p.endDate||''}"><div style="font-size:11px;color:var(--muted);margin-top:4px">After termination, commission is only payable on courses delivered or already scheduled as of this date (§7). Bookings made later earn nothing, so leave "Originated by" blank on those.</div></div>
+    <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
+      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Paperwork</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-pcontract" ${p.contractSigned?'checked':''} style="width:auto;margin:0"> Signed Community Partnerships Liaison agreement on file</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-pw9" ${p.w9Submitted?'checked':''} style="width:auto;margin:0"> W-9 received (needed before you can issue a 1099)</label>
+    </div>
+    <div class="fg full"><label>Notes</label><input type="text" id="m-pnotes" value="${escapeHtml(p.notes)}"></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="savePartner('${id}')">Save</button></div>`);
+}
+
+async function savePartner(editId){
+  const name=(document.getElementById('m-pname').value||'').trim();
+  if(!name){showToast('Please enter the partner’s name.');return;}
+  const contractSigned=!!document.getElementById('m-pcontract')?.checked;
+  const wasSigned=editId?!!(partnerById(editId)||{}).contractSigned:false;
+  const data={
+    name,
+    email:(document.getElementById('m-pemail').value||'').trim(),
+    phone:(document.getElementById('m-pphone').value||'').trim(),
+    zelle:(document.getElementById('m-pzelle').value||'').trim(),
+    startDate:document.getElementById('m-pstart')?.value||'',
+    endDate:document.getElementById('m-pend')?.value||'',
+    status:document.getElementById('m-pstatus')?.value||'active',
+    contractSigned,
+    w9Submitted:!!document.getElementById('m-pw9')?.checked,
+    notes:(document.getElementById('m-pnotes').value||'').trim()
+  };
+  let p;
+  if(editId){
+    p=partnerById(editId);if(!p)return;
+    Object.assign(p,data);
+  }else{
+    p={id:sid(),pin:'',contractSignedDate:'',contractSignature:'',createdAt:Date.now(),...data};
+    partners.push(p);
+  }
+  // Stamp the date the agreement was first marked signed, so the record shows when.
+  if(contractSigned&&!wasSigned&&!p.contractSignedDate)p.contractSignedDate=new Date().toISOString().slice(0,10);
+  if(!contractSigned)p.contractSignedDate='';
+  partners.sort((a,b)=>a.name.localeCompare(b.name));
+  closeModal();renderPartners();
+  const ok=await dbWrite(sb.from('partners').upsert(partnerToDB(p)),'Partner');
+  if(ok){showToast(editId?'Partner updated.':'Partner added. Pick them under "Originated by" on any session they bring you.');}
+  else{await loadData();renderPartners();}
+}
+
+async function deletePartner(id){
+  const p=partnerById(id);if(!p)return;
+  const credited=sessions.filter(s=>s.originatedBy===id).length;
+  const paidOut=partnerPayouts.filter(x=>x.partnerId===id&&x.paidDate).length;
+  let msg='Remove '+p.name+' from your partners?';
+  if(credited)msg+='\n\n'+credited+' session'+(credited===1?'':'s')+' credited to them will lose that credit, and any commission history on this page will disappear with it.';
+  if(paidOut)msg+='\n'+paidOut+' recorded payout'+(paidOut===1?'':'s')+' will also be deleted.';
+  msg+='\n\nIf the agreement simply ended, set their status to Inactive instead — that keeps the record intact.';
+  if(!confirm(msg))return;
+  partners=partners.filter(x=>x.id!==id);
+  partnerPayouts=partnerPayouts.filter(x=>x.partnerId!==id);
+  sessions.forEach(s=>{if(s.originatedBy===id)s.originatedBy=null;});
+  renderPartners();
+  const ok=await dbWrite(sb.from('partners').delete().eq('id',id),'Remove partner');
+  if(!ok){await loadData();renderPartners();}
+}
+
+// ─── PAYOUTS ─────────────────────────────────────────────────
+// Marking a month paid freezes the whole calculation. A refund, a price edit or a
+// late invoice afterwards can then never quietly rewrite what you already sent.
+async function markPartnerPaid(partnerId){
+  const st=partnerStatement(partnerId,partnerPeriod);
+  const p=partnerById(partnerId);
+  if(!p||st.total<=0)return;
+  if(!p.zelle&&!confirm('There is no Zelle handle on file for '+p.name+'. Record this payout anyway?'))return;
+  const today=new Date().toISOString().slice(0,10);
+  const breakdown={
+    tier:st.tier.name,rate:st.tier.rate,collectedRevenue:st.monthTotal,
+    commission:st.commission,bonuses:st.bonuses,bonusTotal:st.bonusTotal,
+    settings:partnerSettings(),
+    lines:st.rows.map(r=>({sessionId:r.sessionId,course:r.session.course,date:r.session.date,
+      client:r.isOrg?r.org:(r.session.contactName||'Private home class'),
+      collected:r.collected,rate:r.rate,commission:r.commission,reason:r.reason,repeat:r.isRepeat}))
+  };
+  const existing=partnerPayouts.find(x=>x.partnerId===partnerId&&x.period===partnerPeriod);
+  const row=existing||{id:sid(),partnerId,period:partnerPeriod,method:'Zelle',notes:''};
+  Object.assign(row,{amount:st.total,breakdown,paidDate:today});
+  if(!existing)partnerPayouts.push(row);
+  renderPartners();
+  const ok=await dbWrite(sb.from('partner_payouts').upsert(payoutToDB(row),{onConflict:'partner_id,period'}),'Partner payout');
+  if(ok)showToast('Recorded '+fmt(st.total)+' paid to '+p.name+' for '+periodLabel(partnerPeriod)+'.');
+  else{await loadData();renderPartners();}
+}
+
+async function undoPartnerPayout(partnerId){
+  const row=partnerPayouts.find(x=>x.partnerId===partnerId&&x.period===partnerPeriod);
+  if(!row)return;
+  if(!confirm('Undo the recorded payout of '+fmt(row.amount)+' for '+periodLabel(partnerPeriod)+'? This only changes your records here — it does not reverse a Zelle transfer.'))return;
+  partnerPayouts=partnerPayouts.filter(x=>x!==row);
+  renderPartners();
+  const ok=await dbWrite(sb.from('partner_payouts').delete().eq('id',row.id),'Undo partner payout');
+  if(!ok){await loadData();renderPartners();}
+}
+
+// ─── STATEMENT ───────────────────────────────────────────────
+// A plain, printable page you can hand or email to the partner. It shows the
+// booking, the money collected, and the rate — and no student names, contact
+// details or roster data, so nothing confidential leaves with it.
+function openPartnerStatement(partnerId){
+  const p=partnerById(partnerId);if(!p)return;
+  const st=partnerStatement(partnerId,partnerPeriod);
+  const paid=!!(st.payout&&st.payout.paidDate);
+  const lines=st.rows.map(r=>`<tr>
+      <td>${fmtShortDate(r.firstCollectedOn)}</td>
+      <td>${escapeHtml(r.session.course)}</td>
+      <td>${escapeHtml(r.isOrg?r.org:(r.session.contactName?'Private home class — '+r.session.contactName:'Private home class'))}${r.isRepeat?' <span style="color:#6b7a99;font-size:11px">(repeat)</span>':''}</td>
+      <td style="text-align:right">${fmt(r.collected)}</td>
+      <td style="text-align:right">${Math.round(r.rate*100)}%</td>
+      <td style="text-align:right">${fmt(r.commission)}</td>
+    </tr>`).join('')+
+    st.bonuses.map(b=>`<tr>
+      <td>${fmtShortDate(b.date)}</td>
+      <td colspan="2">New organizational partner bonus — ${escapeHtml(b.org)}</td>
+      <td style="text-align:right">—</td><td style="text-align:right">flat</td>
+      <td style="text-align:right">${fmt(b.amount)}</td>
+    </tr>`).join('');
+
+  showModal(`<div class="modal-head"><h3>Commission statement</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">
+    <div id="partner-statement" style="font-size:13px;line-height:1.6">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-family:'DM Serif Display',serif;font-size:20px;color:var(--navy)">Mindful Beginnings LLC</div>
+        <div style="color:var(--muted);font-size:12px">Community Partnerships Liaison — commission statement</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+        <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px">Partner</div>
+          <div style="font-weight:500">${escapeHtml(p.name)}</div>
+          ${p.zelle?`<div style="color:var(--muted);font-size:12px">Zelle: ${escapeHtml(p.zelle)}</div>`:''}</div>
+        <div style="text-align:right"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px">Period</div>
+          <div style="font-weight:500">${periodLabel(st.period)}</div>
+          <div style="color:var(--muted);font-size:12px">${paid?'Paid '+fmtShortDate(st.payout.paidDate):'Payable by the 10th of the following month'}</div></div>
+      </div>
+      ${st.rows.length||st.bonuses.length?`<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="border-bottom:1px solid var(--border);text-align:left">
+          <th style="padding:6px 4px">Collected</th><th style="padding:6px 4px">Program</th><th style="padding:6px 4px">Client</th>
+          <th style="padding:6px 4px;text-align:right">Collected revenue</th><th style="padding:6px 4px;text-align:right">Rate</th><th style="padding:6px 4px;text-align:right">Commission</th>
+        </tr></thead>
+        <tbody>${lines}</tbody>
+        <tfoot><tr style="border-top:1px solid var(--border);font-weight:500">
+          <td colspan="3" style="padding:8px 4px">Total collected revenue originated — ${st.tier.name} (${st.tier.label}), ${Math.round(st.tier.rate*100)}%</td>
+          <td style="padding:8px 4px;text-align:right">${fmt(st.monthTotal)}</td><td></td>
+          <td style="padding:8px 4px;text-align:right;font-size:15px">${fmt(st.total)}</td>
+        </tr></tfoot>
+      </table>`:'<div style="color:var(--muted);font-style:italic;padding:20px 0;text-align:center">No collected revenue originated in this period.</div>'}
+      ${st.pendingTotal>0?`<div style="margin-top:16px;padding:10px 12px;background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);font-size:12px;color:var(--warn)">${fmt(st.pendingTotal)} of originated revenue has not been collected yet. Per §3.D, commission is earned when the fees are actually received, so it will appear on the statement for the month the payment lands.</div>`:''}
+      <div style="margin-top:18px;font-size:11px;color:var(--muted);line-height:1.6">
+        Calculated under Section 3 of the Independent Contractor Agreement — Community Partnerships Liaison. Collected Revenue is net of refunds, chargebacks, discounts, taxes and third-party payment processing fees. Remitted via Zelle by the tenth day of the following month.
+      </div>
+    </div>
+  </div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Close</button><button class="btn primary" onclick="printPartnerStatement()">🖨 Print / save as PDF</button></div>`);
+}
+
+function printPartnerStatement(){
+  const el=document.getElementById('partner-statement');if(!el)return;
+  const w=window.open('','_blank');
+  if(!w){showToast('Your browser blocked the print window. Allow pop-ups for this page and try again.');return;}
+  w.document.write(`<!DOCTYPE html><html><head><title>Commission statement</title>
+    <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a2744;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.6;font-size:13px}
+    :root{--navy:#1a2744;--muted:#6b7a99;--border:#dde4ee;--warn:#b86a00;--warn-bg:#fff7e6;--r-sm:7px}
+    table{width:100%;border-collapse:collapse}th,td{padding:6px 4px}</style></head>
+    <body>${el.innerHTML}</body></html>`);
+  w.document.close();
+  setTimeout(()=>{w.focus();w.print();},260);
+}
+
+// ─── EXPORT ──────────────────────────────────────────────────
+function exportPartnersCSV(){
+  const rows=[['Partner','Period','Collected revenue','Tier','Tier rate','Commission','Bonuses','Total due','Payout status','Paid date',
+    '--- Booking detail ---','Collected on','Course','Session date','Client','Org?','Repeat?','Booking revenue','Rate applied','Booking commission','Why this rate']];
+  partners.forEach(p=>{
+    const st=partnerStatement(p.id,partnerPeriod);
+    const paid=!!(st.payout&&st.payout.paidDate);
+    rows.push([p.name,partnerPeriod,st.monthTotal.toFixed(2),st.tier.name+' '+st.tier.label,Math.round(st.tier.rate*100)+'%',
+      st.commission.toFixed(2),st.bonusTotal.toFixed(2),st.total.toFixed(2),
+      paid?'Paid '+fmt(st.payout.amount):'Outstanding',paid?st.payout.paidDate:'','','','','','','','','','','','']);
+    st.rows.forEach(r=>{
+      rows.push(['','','','','','','','','','','',r.firstCollectedOn,r.session.course,r.session.date||'',
+        r.isOrg?r.org:(r.session.contactName||'Private home class'),r.isOrg?'Yes':'No',r.isRepeat?'Yes':'No',
+        r.collected.toFixed(2),Math.round(r.rate*100)+'%',r.commission.toFixed(2),r.reason]);
+    });
+    st.bonuses.forEach(b=>{
+      rows.push(['','','','','','','','','','','',b.date,'New organizational partner bonus','',b.org,'Yes','No','0.00','flat',b.amount.toFixed(2),'First paid program from a new organization (3.C)']);
+    });
+    st.pending.forEach(x=>{
+      rows.push(['','','','','','','','','','','','NOT YET COLLECTED',x.session.course,x.session.date||'',
+        sessionOrgName(x.session)||x.session.contactName||'',sessionIsOrgBooking(x.session)?'Yes':'No','',x.amount.toFixed(2),'—','0.00',x.reason]);
+    });
+  });
+  reportDownloadCSV(rows,'partner-commission-'+partnerPeriod);
+}
+
 // ─── SCREENS ─────────────────────────────────────────────────
 function showScreen(name,el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1077,6 +1874,7 @@ function showScreen(name,el){
   if(name==='finances'){renderFinances();renderExpenses();}
   if(name==='codes')renderCodes();
   if(name==='instructors')renderInstructors();
+  if(name==='partners')renderPartners();
   if(name==='jobs')renderJobs();
   if(name==='materials')renderMaterials();
   if(name==='reports')renderReports();
@@ -1895,6 +2693,7 @@ function openAddSession(){
       </div>
       ${orgDatalistHtml()}
     </div>
+    ${partnerOriginFieldHtml(null)}
     <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee)</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:13px;color:var(--muted)">$</span>
@@ -1990,6 +2789,7 @@ function openAddCustomJob(){
       <input type="text" id="cj-billorg" list="org-datalist" placeholder="e.g. Girls on the Run">
       ${orgDatalistHtml()}
     </div>
+    ${partnerOriginFieldHtml(null)}
     <div class="fg full"><label>Assign to instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
       <select id="cj-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option></select>
     </div>
@@ -2023,7 +2823,7 @@ async function saveCustomJob(){
   const code=uniqueCustomJobCode(date);
   const instrEl=document.getElementById('cj-instr');
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
-  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:'',hostPhone:'',code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null};
+  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:'',hostPhone:'',code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote()};
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null;
@@ -2084,6 +2884,7 @@ function openEditCustomJob(id){
       <input type="text" id="cj-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. Girls on the Run">
       ${orgDatalistHtml()}
     </div>
+    ${partnerOriginFieldHtml(s)}
     <div class="fg full"><label>Assign to instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
       <select id="cj-instr" style="width:100%"><option value="">— Post as open job —</option></select>
     </div>
@@ -2119,7 +2920,7 @@ async function saveEditCustomJob(id){
   const instrEl=document.getElementById('cj-instr');
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
   const prevSnapshot={...s};
-  Object.assign(s,{isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim()});
+  Object.assign(s,{isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote()});
   closeModal();renderSessions();renderDashboard();
   let saveFailed=false,saveErr=null;
   try{const{error}=await sb.from('sessions').upsert(sessionToDB(s));if(error){saveFailed=true;saveErr=error;}}catch(e){saveFailed=true;saveErr=e;}
@@ -2329,6 +3130,7 @@ function openEditSession(id){
       </div>
       ${orgDatalistHtml()}
     </div>
+    ${partnerOriginFieldHtml(s)}
     <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee of ${fmt((()=>{const dc=COURSES[s.course]||{};return (dc.instrFlatFee!==undefined?dc.instrFlatFee:(dc.hours||0)*INSTR_RATE+INSTR_RATE)+INSTR_EXTRA_HOURS*INSTR_RATE;})())})</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:13px;color:var(--muted)">$</span>
@@ -2398,6 +3200,8 @@ async function saveSession(editId){
   const billToOrg=(document.getElementById('m-billorg')?.value||'').trim();
   const billCountRaw=document.getElementById('m-billcount')?.value;
   const billedHeadcount=(billToOrg&&billCountRaw!==''&&billCountRaw!=null)?Number(billCountRaw):null;
+  const originatedBy=readOriginatedBy();
+  const originationNote=readOriginationNote();
   // Additional class days: drop blanks and duplicate dates (including the main date), keep sorted by date.
   // Each day keeps its own time; extraDates stays as a plain date list for older code and other pages.
   const _seenDays=new Set([date]);
@@ -2410,9 +3214,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,originatedBy,originationNote});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,originatedBy,originationNote};
     sessions.push(s);
   }
   closeModal();renderSessions();renderDashboard();renderCodes();
@@ -2425,18 +3229,21 @@ async function saveSession(editId){
     const {error}=await sb.from('sessions').upsert(sessionToDB(s));
     if(error){saveFailed=true;saveErr=error;}
   }catch(e){saveFailed=true;saveErr=e;}
-  // If the database doesn't have the extra_dates / extra_days columns yet, retry without the
-  // missing column so the rest of the session still saves, and tell the admin exactly what to
-  // run in Supabase. Up to two retries, since both columns could be missing.
-  for(let _attempt=0;saveFailed&&_attempt<2;_attempt++){
+  // If the database doesn't have the extra_dates / extra_days / originated_by columns yet,
+  // retry without the missing column so the rest of the session still saves, and tell the
+  // admin exactly what to run in Supabase. Up to three retries, since all could be missing.
+  for(let _attempt=0;saveFailed&&_attempt<3;_attempt++){
     const _msg=(saveErr&&saveErr.message)||'';
-    if(EXTRA_DAYS_COL&&/extra_days/i.test(_msg))EXTRA_DAYS_COL=false;
-    else if(EXTRA_DATES_COL&&/extra_dates/i.test(_msg))EXTRA_DATES_COL=false;
+    let _note='';
+    if(EXTRA_DAYS_COL&&/extra_days/i.test(_msg)){EXTRA_DAYS_COL=false;_note='days';}
+    else if(EXTRA_DATES_COL&&/extra_dates/i.test(_msg)){EXTRA_DATES_COL=false;_note='days';}
+    else if(ORIGINATED_COL&&/originated_by|origination_note/i.test(_msg)){ORIGINATED_COL=false;_note='partner';}
     else break;
     saveFailed=false;saveErr=null;
     try{
       const {error}=await sb.from('sessions').upsert(sessionToDB(s));
       if(error){saveFailed=true;saveErr=error;}
+      else if(_note==='partner')showToast('⚠️ Saved, but WITHOUT the "Originated by" partner credit — run partners_setup.sql once in the Supabase SQL editor, then re-save this session.');
       else showToast("⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';");
     }catch(e){saveFailed=true;saveErr=e;}
   }
