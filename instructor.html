@@ -83,6 +83,20 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .info-card{background:white;border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px}
 .info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--border);font-size:14px}
 .info-row:last-child{border-bottom:none}
+/* ── Expanded job-card detail sections (schedule, location, good-to-know) ── */
+.jc-section{border-top:1px solid var(--border);margin-top:14px;padding-top:12px}
+.jc-section-t{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px}
+.sched{border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+.sched-row{display:flex;align-items:center;gap:10px;padding:7px 12px;font-size:13px;border-bottom:.5px solid var(--border);background:white}
+.sched-row:last-child{border-bottom:none}
+.sched-row.closed{background:var(--warn-bg);color:var(--warn)}
+.sched-n{width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--sky-l);color:#1a5c8a;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.sched-row.closed .sched-n{background:#f4dcb0;color:var(--warn)}
+.sched-d{flex:1;min-width:0}
+.sched-t{font-size:12px;color:var(--muted);white-space:nowrap}
+.sched-row.closed .sched-t{color:var(--warn);font-style:italic}
+@media(max-width:420px){.sched-row{font-size:12px;padding:7px 9px;gap:8px}.sched-t{font-size:11px}}
+
 .info-label{color:var(--muted)}
 @media(max-width:520px){
   main{padding:20px 14px 48px}.jc-details{grid-template-columns:1fr 1fr}header{padding:14px 16px}
@@ -182,8 +196,23 @@ const sb = createClient(
 emailjs.init('FKuVu4SN8eXJ1cOYM');
 
 // ─── MAPPING ─────────────────────────────────────────────────
+// Extra meeting days: newer rows store [{date,time}] in extra_days (each day can have
+// its own time); older rows only have extra_dates (["YYYY-MM-DD"]). Read whichever is
+// present so the job board always shows every meeting day.
+function extraDaysFromDB(r){
+  const src=(Array.isArray(r.extra_days)&&r.extra_days.length)?r.extra_days:(Array.isArray(r.extra_dates)?r.extra_dates:[]);
+  return src.map(x=>typeof x==='string'?{date:x,time:''}:{date:(x&&x.date)||'',time:(x&&x.time)||''})
+    .filter(x=>x.date).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+}
+// Closures / no-class weeks the admin entered, e.g. {date:'2026-11-24',reason:'Thanksgiving break'}.
+function closuresFromDB(r){
+  const src=Array.isArray(r.closures)?r.closures:[];
+  return src.map(x=>typeof x==='string'?{date:x,reason:''}:{date:(x&&x.date)||'',reason:(x&&x.reason)||''})
+    .filter(x=>x.date).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+}
 function sessionFromDB(r){
-  return{id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,extraDates:Array.isArray(r.extra_dates)?r.extra_dates.filter(Boolean).slice().sort():[]};
+  const extraDays=extraDaysFromDB(r);
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -288,6 +317,158 @@ function lastSessDate(s){
 }
 function countRegs(sessId){return regCountMap[sessId]||0;}
 
+// ─── CLASS SCHEDULE HELPERS ──────────────────────────────────
+// Every meeting day of a session as [{date,time}], first day first. Days added by the
+// admin can carry their own time; a blank one inherits the main class time.
+function sessMeetings(s){
+  if(!s||!s.date)return[];
+  const extras=(s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}));
+  const seen=new Set();
+  return[{date:s.date,time:s.time||''},...extras.map(x=>({date:(x&&x.date)||'',time:(x&&x.time)||''}))]
+    .filter(x=>x.date&&!seen.has(x.date)&&!!seen.add(x.date))
+    .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0)
+    .map(x=>({date:x.date,time:x.time||s.time||''}));
+}
+// Weeks the class does NOT meet. Closures the admin entered come through with their
+// reason; on top of that, for a series that meets the same weekday every week, any
+// missing week between the first and last class is inferred and labelled "No class",
+// so a gap in the schedule never looks like a data-entry mistake.
+function sessClosures(s){
+  const explicit=((s&&s.closures)||[]).filter(x=>x&&x.date).map(x=>({date:x.date,reason:x.reason||'',auto:false}));
+  const have=new Set(explicit.map(x=>x.date));
+  const out=explicit.slice();
+  const meetings=sessMeetings(s);
+  if(meetings.length>=3){
+    const toD=x=>new Date(x+'T12:00:00');
+    const dows=new Set(meetings.map(m=>toD(m.date).getDay()));
+    if(dows.size===1){
+      const met=new Set(meetings.map(m=>m.date));
+      const first=toD(meetings[0].date).getTime(), last=toD(meetings[meetings.length-1].date).getTime();
+      const WEEK=7*86400000;
+      for(let t=first+WEEK;t<last;t+=WEEK){
+        const d=new Date(t);
+        // Build the date string in LOCAL time — toISOString() shifts the day in some timezones.
+        const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        if(!met.has(iso)&&!have.has(iso)){out.push({date:iso,reason:'',auto:true});have.add(iso);}
+      }
+    }
+  }
+  return out.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+}
+// "Sep 8 – Nov 3, 2026" for a series; the full date for a one-day class.
+function sessRangeLabel(s){
+  const m=sessMeetings(s);
+  if(!m.length)return'';
+  if(m.length===1)return fmtDate(m[0].date);
+  const a=new Date(m[0].date+'T12:00:00'),b=new Date(m[m.length-1].date+'T12:00:00');
+  const sameYear=a.getFullYear()===b.getFullYear();
+  const f=(d,y)=>d.toLocaleDateString('en-US',y?{month:'short',day:'numeric',year:'numeric'}:{month:'short',day:'numeric'});
+  return f(a,!sameYear)+' – '+f(b,true);
+}
+// "Tuesdays" when every meeting falls on the same weekday, otherwise blank.
+function sessWeekdayPattern(s){
+  const m=sessMeetings(s);
+  if(m.length<2)return'';
+  const dows=new Set(m.map(x=>new Date(x.date+'T12:00:00').getDay()));
+  if(dows.size!==1)return'';
+  return new Date(m[0].date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long'})+'s';
+}
+// One time for the summary row: the shared time if every day matches, else a flag
+// telling the instructor to read the day-by-day schedule.
+function sessTimeSummary(s){
+  const m=sessMeetings(s);
+  if(!m.length)return s&&s.time?s.time:'TBD';
+  const times=m.map(x=>(x.time||'').trim()).filter(Boolean);
+  if(!times.length)return'TBD';
+  const uniq=[...new Set(times)];
+  if(uniq.length===1)return uniq[0];
+  // Most days share a time and one or two differ: show the usual time and flag the
+  // exceptions rather than a vague "varies", so the summary row stays useful.
+  const counts={};times.forEach(t=>{counts[t]=(counts[t]||0)+1;});
+  const main=uniq.sort((a,b)=>counts[b]-counts[a])[0];
+  const others=times.length-counts[main];
+  return main+' · '+others+' day'+(others!==1?'s':'')+' differ'+(others===1?'s':'');
+}
+// Short one-line summary under the course name.
+function sessHeadline(s){
+  const m=sessMeetings(s);
+  const bits=[];
+  if(m.length>1)bits.push(m.length+' classes');
+  bits.push(sessRangeLabel(s)||'Date TBD');
+  const pat=sessWeekdayPattern(s);
+  if(pat)bits.push(pat);
+  const closed=sessClosures(s).length;
+  if(closed)bits.push(closed+' no-class week'+(closed!==1?'s':''));
+  return bits.join(' · ');
+}
+// Day-by-day schedule table: numbered class days interleaved with closures in date order.
+function scheduleHTML(s){
+  const meetings=sessMeetings(s);
+  if(!meetings.length)return'';
+  // A one-day class with no closures is fully described by the Date/Time tiles above —
+  // a one-row "schedule" would just be noise.
+  if(meetings.length===1&&!sessClosures(s).length)return'';
+  const rows=[
+    ...meetings.map((m,i)=>({date:m.date,cls:true,n:i+1,time:m.time})),
+    ...sessClosures(s).map(c=>({date:c.date,cls:false,reason:c.reason,auto:c.auto}))
+  ].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const dLabel=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  const body=rows.map(r=>r.cls
+    ?`<div class="sched-row"><div class="sched-n">${r.n}</div><div class="sched-d">${dLabel(r.date)}</div><div class="sched-t">${escapeHtml(r.time||'TBD')}</div></div>`
+    :`<div class="sched-row closed"><div class="sched-n">✕</div><div class="sched-d">${dLabel(r.date)} — <strong>No class</strong>${r.reason?' · '+escapeHtml(r.reason):''}</div><div class="sched-t">${r.auto?'break':''}</div></div>`
+  ).join('');
+  const total=meetings.length;
+  return`<div class="jc-section">
+    <div class="jc-section-t">Class schedule — ${total} class${total!==1?'es':''}</div>
+    <div class="sched">${body}</div>
+  </div>`;
+}
+// Where the class happens. Street address, host cell and WiFi are private: they are
+// only ever rendered when showPrivate is true (i.e. the instructor holds this job).
+function locationHTML(s,showPrivate,priv){
+  const cityLine=[s.city,s.state].filter(Boolean).join(', ')+(s.zip?' '+s.zip:'');
+  const lines=[];
+  if(s.isVirtual){
+    lines.push(`<div style="font-weight:500">Virtual class (Zoom)</div>`);
+    lines.push(`<div style="font-size:12px;color:var(--muted)">You can teach this one from home. ${showPrivate?'The Zoom link is emailed to you and to registered families before the first class.':'The Zoom link is sent to you once you accept.'}</div>`);
+  }else{
+    lines.push(`<div style="font-weight:500">${escapeHtml(s.location||'Location TBD')}</div>`);
+    if(showPrivate&&priv&&priv.hostAddress)lines.push(`<div>${escapeHtml(priv.hostAddress)}</div>`);
+    if(cityLine.trim())lines.push(`<div>${escapeHtml(cityLine.trim())}</div>`);
+    if(showPrivate){
+      if(priv&&priv.hostPhone)lines.push(`<div style="margin-top:6px;font-size:12px"><span style="color:var(--muted)">Host cell:</span> ${escapeHtml(priv.hostPhone)}</div>`);
+      if(priv&&priv.contactDay)lines.push(`<div style="font-size:12px"><span style="color:var(--muted)">Day-of contact:</span> ${escapeHtml(priv.contactDay)}</div>`);
+      if(priv&&priv.wifiInfo)lines.push(`<div style="font-size:12px"><span style="color:var(--muted)">WiFi:</span> ${escapeHtml(priv.wifiInfo)}</div>`);
+      if(priv===undefined)lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">Loading site details…</div>`);
+      else if(!priv||(!priv.hostAddress&&!priv.hostPhone))lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">No street address or host contact on file yet — text Lindsay at 703-987-5979 if you need it.</div>`);
+    }else{
+      lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">📍 The exact street address, host cell and WiFi are shared as soon as you accept this job.</div>`);
+    }
+  }
+  return`<div class="jc-section"><div class="jc-section-t">${s.isVirtual?'Format':'Where'}</div><div style="font-size:13px;line-height:1.7">${lines.join('')}</div></div>`;
+}
+// "Good to know": the admin's instructor-facing job details, plus what the course needs.
+function goodToKnowHTML(s){
+  const c=COURSES[s.course]||{};
+  const bits=[];
+  if(s.instructorInfo)bits.push(escapeHtml(s.instructorInfo).replace(/\n/g,'<br>'));
+  const facts=[];
+  if(c.hours)facts.push(`Course length on file: <strong>${c.hours}h</strong>`);
+  if(c.requiresRN)facts.push('Requires an <strong>RN credential</strong>');
+  if(c.requiresSafeSitter)facts.push('Requires <strong>Safe Sitter® training</strong>');
+  if(!s.isCustomJob){
+    const cap=s.maxStudentsOverride||c.maxStudents;
+    if(cap)facts.push(`Class capacity: <strong>${cap} students</strong>`);
+  }
+  if(s.secondInstructorId)facts.push('A <strong>second instructor</strong> is assigned to this class');
+  if(!bits.length&&!facts.length)return'';
+  return`<div class="jc-section"><div class="jc-section-t">Good to know</div>
+    ${bits.length?`<div style="font-size:13px;line-height:1.6;margin-bottom:${facts.length?'8px':'0'}">${bits.join('<br>')}</div>`:''}
+    ${facts.length?`<ul style="margin:0;padding-left:18px;font-size:12px;color:var(--muted);line-height:1.7">${facts.map(f=>'<li>'+f+'</li>').join('')}</ul>`:''}
+  </div>`;
+}
+
+
 // ─── AUTH ────────────────────────────────────────────────────
 async function doLogin(){
   const pin=document.getElementById('pin-input').value.trim();
@@ -350,9 +531,16 @@ async function doLogin(){
 // snapshot — new job posts never appeared until they fully signed out and back
 // in. loadData() is now reusable and re-run automatically (see refreshData).
 async function loadData(){
-  const SESSION_COLS='id,code,course,date,time,location,city,owner_taught,host_taken,instructor_id,notes,instr_pay_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates';
+  // Columns the job board needs. Deliberately EXCLUDES host_address, host_phone,
+  // contact_name, wifi_info and zoom_link: this table is read with the anon key, so
+  // anything listed here is effectively public. Those private site details are fetched
+  // per-job through the instructor_session_private RPC once a job is accepted.
+  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,extra_days,closures,instructor_info';
+  // Fallback tier: drops only the newest columns (extra_days / closures / instructor_info),
+  // so a database that has not run the latest SQL still gets everything else.
+  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,instructor_id,notes,instr_pay_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates';
   let[s,j,r]=await Promise.all([
-    sb.from('sessions').select(SESSION_COLS),
+    sb.from('sessions').select(SESSION_COLS_FULL),
     sb.from('job_data').select('*'),
     sb.rpc('get_all_registration_counts')
   ]);
@@ -363,7 +551,11 @@ async function loadData(){
   // defaults any absent field (allow_waitlist→true, is_hold→false), so the
   // boards still render instead of blanking the entire portal.
   if(s.error){
-    console.error('sessions load failed with full column list, retrying with core columns:',s.error);
+    console.warn('sessions load failed with full column list, retrying without the newest columns:',s.error);
+    s=await sb.from('sessions').select(SESSION_COLS_MID);
+  }
+  if(s.error){
+    console.error('sessions load failed again, retrying with core columns only:',s.error);
     s=await sb.from('sessions').select('id,code,course,date,time,location,city,owner_taught,host_taken,instructor_id,notes,instr_pay_override,is_custom_job,is_virtual');
   }
   // Surface load failures instead of letting them masquerade as an empty job board.
@@ -580,19 +772,27 @@ function renderOpen(){
       actions=`<button class="btn primary" onclick="acceptJob('${s.id}')">Accept this job</button>`;
     }
     const earningsHtml=`<div class="jc-detail-val">${fmt(fee)}</div>`;
-    const locStr=(s.location||s.city)?`${escapeHtml(s.location||'')}${s.location&&s.city?', ':''}${escapeHtml(s.city||'')}`:'TBD';
+    const locStr=s.isVirtual?'Virtual (Zoom)':((s.location||s.city)?`${escapeHtml(s.location||'')}${s.location&&s.city?', ':''}${escapeHtml(s.city||'')}`:'TBD');
+    const meetings=sessMeetings(s);
+    const closedCount=sessClosures(s).length;
+    // Pay-per-class helps an instructor judge a long series at a glance.
+    const perClass=meetings.length>1?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmt(fee/meetings.length)} per class</div>`:'';
     return`<div class="job-card">
-      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div><div class="jc-meta">${fmtSessDates(s)}</div></div>${pill}</div>
+      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div><div class="jc-meta">${escapeHtml(sessHeadline(s))}</div></div>${pill}</div>
       <div class="jc-details">
-        <div class="jc-detail"><div class="jc-detail-label">Time</div><div class="jc-detail-val">${escapeHtml(s.time||'TBD')}</div></div>
+        <div class="jc-detail"><div class="jc-detail-label">Time</div><div class="jc-detail-val">${escapeHtml(sessTimeSummary(s))}</div></div>
+        <div class="jc-detail"><div class="jc-detail-label">${meetings.length>1?'Class days':'Date'}</div><div class="jc-detail-val">${meetings.length>1?meetings.length+' days'+(closedCount?' · '+closedCount+' off':''):fmtDate(s.date)}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">Location</div><div class="jc-detail-val">${locStr}</div></div>
-        <div class="jc-detail"><div class="jc-detail-label">Your earnings</div>${earningsHtml}</div>
+        <div class="jc-detail"><div class="jc-detail-label">Your earnings</div>${earningsHtml}${perClass}</div>
         ${s.isCustomJob
           ?`<div class="jc-detail"><div class="jc-detail-label">Pay type</div><div class="jc-detail-val">Flat rate</div></div>`
           :`<div class="jc-detail"><div class="jc-detail-label">Course hours</div><div class="jc-detail-val">${COURSES[s.course]?.hours||'—'}h</div></div>
         <div class="jc-detail"><div class="jc-detail-label">Students registered</div><div class="jc-detail-val">${countRegs(s.id)}</div></div>`}
       </div>
-      <div class="jc-actions">${actions}</div></div>`;
+      ${scheduleHTML(s)}
+      ${locationHTML(s,false,null)}
+      ${goodToKnowHTML(s)}
+      <div class="jc-section"><div class="jc-actions">${actions}</div></div></div>`;
   }).join('');
 }
 
@@ -698,6 +898,26 @@ async function leaveWaitlist(sessId){
   refreshJobViews();showToast('Removed from waitlist.');
 }
 
+// ─── PRIVATE SITE DETAILS ────────────────────────────────────
+// Street address, host cell, day-of contact and WiFi are NOT in the job-board query
+// (that table is read with the anon key). They come from the instructor_session_private
+// database function, which checks the PIN and that this instructor actually holds the
+// job before returning anything. Results are cached per session and the card re-renders.
+let privCache={},privPending={};
+function ensurePrivate(sessId){
+  if(privCache[sessId]!==undefined||privPending[sessId])return;
+  privPending[sessId]=true;
+  sb.rpc('instructor_session_private',{p_pin:me.pin,p_session_id:sessId}).then(({data,error})=>{
+    const row=Array.isArray(data)?data[0]:data;
+    privCache[sessId]=(!error&&row)?{
+      hostAddress:row.host_address||'',hostPhone:row.host_phone||'',
+      wifiInfo:row.wifi_info||'',contactDay:row.contact_day||''
+    }:null;
+    privPending[sessId]=false;
+    renderMyJobs();
+  }).catch(()=>{privCache[sessId]=null;privPending[sessId]=false;});
+}
+
 // ─── MY JOBS ─────────────────────────────────────────────────
 function renderMyJobs(){
   const myJobs=allSessions.filter(s=>{const jdi=jobDataCache[s.id]||{};return jdi.instructorId===me.id;}).sort((a,b)=>b.date.localeCompare(a.date));
@@ -731,16 +951,26 @@ function renderMyJobs(){
     const earningsHtml=bonus>0
       ?`<div class="jc-detail-val">${fmt(fee)}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Base ${fmt(baseFee)} + Bonus ${fmt(bonus)}</div>`
       :`<div class="jc-detail-val">${fmt(fee)}</div>`;
+    // Pull the private site details for jobs still to come (address, host cell, WiFi).
+    if(upcoming&&!s.isVirtual)ensurePrivate(s.id);
+    const meetings=sessMeetings(s);
+    const closedCount=sessClosures(s).length;
     return`<div class="job-card">
-      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div><div class="jc-meta">${fmtSessDates(s)} · ${escapeHtml(s.time||'')}<br>${escapeHtml(s.location||'')}${s.city?', '+escapeHtml(s.city):''}</div></div>
+      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div><div class="jc-meta">${escapeHtml(sessHeadline(s))} · ${escapeHtml(sessTimeSummary(s))}</div></div>
       <span class="pill ${upcoming?'pill-accepted':'pill-taken'}">${upcoming?'Upcoming':'Completed'}</span></div>
       <div class="jc-details">
+        <div class="jc-detail"><div class="jc-detail-label">Time</div><div class="jc-detail-val">${escapeHtml(sessTimeSummary(s))}</div></div>
+        <div class="jc-detail"><div class="jc-detail-label">${meetings.length>1?'Class days':'Date'}</div><div class="jc-detail-val">${meetings.length>1?meetings.length+' days'+(closedCount?' · '+closedCount+' off':''):fmtDate(s.date)}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">Your earnings</div>${earningsHtml}</div>
         ${s.isCustomJob
           ?`<div class="jc-detail"><div class="jc-detail-label">Pay type</div><div class="jc-detail-val">Flat rate</div></div>`
           :`<div class="jc-detail"><div class="jc-detail-label">Students</div><div class="jc-detail-val">${countRegs(s.id)}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">Materials</div><div class="jc-detail-val" style="font-size:12px">${matHtml}</div></div>`}
       </div>
+      ${scheduleHTML(s)}
+      ${locationHTML(s,true,privCache[s.id])}
+      ${goodToKnowHTML(s)}
+      <div style="height:14px"></div>
       ${payHtml}
       ${jdi.notes?`<div style="font-size:12px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:var(--r-sm)">📝 ${escapeHtml(jdi.notes)}</div>`:''}
       <div class="jc-actions" style="margin-top:12px">
@@ -969,7 +1199,10 @@ async function printRoster(sessId){
       contactDay:row.contact_day||s.contactDay
     };
   }catch(e){/* fall back to session object */}
-  const d=fmtSessDates(s);
+  // A series with many meetings would produce an unreadable "A & B & C & ..." string,
+  // so print the range and count instead once there are more than two class days.
+  const _mtgs=sessMeetings(s);
+  const d=_mtgs.length>2?(_mtgs.length+' classes · '+sessRangeLabel(s)):fmtSessDates(s);
   // Clean, filename-safe date for the saved-PDF name (no weekday, no special characters).
   const dFile=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const rosterTitle='Roster - '+dFile;
@@ -1023,6 +1256,7 @@ async function printRoster(sessId){
       <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(s.location||'TBD')}${s.city?', '+escapeHtml(s.city):''}</strong></div>
       <div><span style="color:#6b7a99">Session code:</span> <strong>${escapeHtml(s.code)}</strong></div>
       <div><span style="color:#6b7a99">Students:</span> <strong>${regs.length}</strong></div>
+      ${_mtgs.length>1?`<div style="grid-column:1/-1;border-top:1px solid #dde4ee;padding-top:8px;margin-top:4px"><span style="color:#6b7a99">Class days:</span> <strong>${_mtgs.map(m=>new Date(m.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' · ')}</strong>${sessClosures(s).length?`<div style="color:#b86a00;font-size:12px;margin-top:4px">No class: ${sessClosures(s).map(c=>new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+escapeHtml(c.reason)+')':'')).join(' · ')}</div>`:''}</div>`:''}
     </div>
     <div class="info-box">
       <div class="info-box-label">Session Info</div>
@@ -1067,11 +1301,22 @@ function myUpcomingJobs(){
 function printJobsCalendar(){
   const jobs=myUpcomingJobs();
   if(!jobs.length){showToast('No upcoming jobs to print yet.');return;}
+  // One row per CLASS DAY (not per job) so a multi-week series prints as the schedule
+  // an instructor actually works, with the no-class weeks called out in place.
   const rows=jobs.map(s=>{
-    const jdi=jobDataCache[s.id]||{};
-    const d=fmtSessDates(s,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-    const loc=(s.location||'TBD')+(s.city?', '+s.city:'');
-    return`<tr><td style="white-space:nowrap">${d}</td><td>${escapeHtml(s.time||'TBD')}</td><td>${escapeHtml(s.course)}</td><td>${escapeHtml(loc)}</td><td>${countRegs(s.id)}</td></tr>`;
+    const priv=privCache[s.id];
+    const loc=[(s.location||'TBD'),(priv&&priv.hostAddress)||'',[s.city,s.state].filter(Boolean).join(', ')+(s.zip?' '+s.zip:'')].filter(x=>x&&x.trim()).join('<br>');
+    const days=sessMeetings(s);
+    const items=[
+      ...days.map((m,i)=>({date:m.date,cls:true,n:i+1,time:m.time})),
+      ...sessClosures(s).map(c=>({date:c.date,cls:false,reason:c.reason}))
+    ].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    return items.map((it,idx)=>{
+      const d=new Date(it.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+      if(!it.cls)return`<tr style="color:#b86a00"><td style="white-space:nowrap">${d}</td><td colspan="4"><em>No class${it.reason?' — '+escapeHtml(it.reason):''}</em></td></tr>`;
+      const label=escapeHtml(s.course)+(days.length>1?` <span style="color:#6b7a99">(class ${it.n} of ${days.length})</span>`:'');
+      return`<tr><td style="white-space:nowrap">${d}</td><td>${escapeHtml(it.time||s.time||'TBD')}</td><td>${label}</td><td>${idx===0?loc:'<span style="color:#aaa">↑ same</span>'}</td><td>${countRegs(s.id)}</td></tr>`;
+    }).join('');
   }).join('');
   const printTitle='Upcoming Jobs - '+escapeHtml(me.name);
   const html=`<!DOCTYPE html><html><head><title>${printTitle}</title>
@@ -1169,12 +1414,19 @@ function downloadJobsICS(){
   const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Mindful Beginnings//Instructor Portal//EN','CALSCALE:GREGORIAN'];
   jobs.forEach(s=>{
     const jdi=jobDataCache[s.id]||{};
-    const allDates=[s.date,...(s.extraDates||[]).filter(Boolean)];
-    const loc=(s.location||'')+(s.city?', '+s.city:'');
+    // Every meeting day, each with its own time (a day can differ from the main class time).
+    const days=sessMeetings(s);
+    const allDates=days.map(d=>d.date);
+    const priv=privCache[s.id];
+    const loc=[(priv&&priv.hostAddress)||'',(s.location||''),[s.city,s.state].filter(Boolean).join(', ')+(s.zip?' '+s.zip:'')].filter(x=>x&&x.trim()).join(' · ');
     const fee=instrFeeForJob(s,jdi)+(jdi.referralBonus||0);
-    const desc=`Mindful Beginnings teaching job.\nStudents registered: ${countRegs(s.id)}\nYour fee: ${fmt(fee)}`;
-    const tr=parseTimeRange(s.time);
-    allDates.forEach((dateStr,idx)=>{
+    const closureNote=sessClosures(s).map(c=>'No class '+new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+c.reason+')':'')).join('; ');
+    const desc=`Mindful Beginnings teaching job.\nStudents registered: ${countRegs(s.id)}\nYour fee: ${fmt(fee)}`
+      +(closureNote?`\nClosures: ${closureNote}`:'')
+      +(s.instructorInfo?`\n\n${s.instructorInfo}`:'');
+    days.forEach((day,idx)=>{
+      const dateStr=day.date;
+      const tr=parseTimeRange(day.time||s.time);
       lines.push('BEGIN:VEVENT');
       lines.push('UID:'+s.id+'-'+dateStr+'@mindfulbeginnings.com');
       lines.push('DTSTAMP:'+dtstamp);

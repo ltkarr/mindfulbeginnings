@@ -463,9 +463,17 @@ function extraDaysFromDB(r){
   return src.map(x=>typeof x==='string'?{date:x,time:''}:{date:(x&&x.date)||'',time:(x&&x.time)||''})
     .filter(x=>x.date).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
 }
+// Closures come back as [{date,reason}]; tolerate a plain date-string list from
+// any older row so nothing is lost if the column was hand-edited.
+function closuresFromDB(r){
+  const src=Array.isArray(r.closures)?r.closures:[];
+  return src.map(x=>typeof x==='string'?{date:x,reason:''}:{date:(x&&x.date)||'',reason:(x&&x.reason)||''})
+    .filter(x=>x.date).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+}
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at||Date.now(),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
+  const closures=closuresFromDB(r);
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at||Date.now(),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -475,6 +483,13 @@ function sessionFromDB(r){
 // extra_days adds the per-day times used by this admin page.)
 let EXTRA_DATES_COL=true;
 let EXTRA_DAYS_COL=true;
+// Same graceful-degradation pattern for the instructor-facing detail columns.
+// (Run in the Supabase SQL editor:
+//   alter table sessions add column if not exists closures jsonb default '[]';
+//   alter table sessions add column if not exists instructor_info text;
+// )
+let CLOSURES_COL=true;
+let INSTR_INFO_COL=true;
 function sessionToDB(s){
   const o={id:s.id,code:s.code,course:s.course,date:s.date||null,time:s.time||null,location:s.location||null,host_address:s.hostAddress||null,city:s.city||null,state:s.state||null,zip:s.zip||null,contact_name:s.contactName||null,host_phone:s.hostPhone||null,owner_taught:s.ownerTaught||false,host_taken:s.hostTaken||false,has_host:s.hasHost!==false,instructor_id:s.instructorId||null,second_instructor_id:s.secondInstructorId||null,max_students_override:s.maxStudentsOverride||null,notes:s.notes||null,additional_costs:s.additionalCosts||[],wifi_info:s.wifiInfo||null,price_override:s.priceOverride==null?null:Number(s.priceOverride),instr_pay_override:s.instrPayOverride==null?null:Number(s.instrPayOverride),is_virtual:s.isVirtual||false,zoom_link:s.zoomLink||null,is_custom_job:s.isCustomJob||false,is_hold:s.isHold||false,allow_waitlist:s.allowWaitlist!==false,reserved_seats:s.reservedSeats||null,hold_term:s.holdTerm||null,hold_payment:s.holdPayment||null,is_recurring:s.isRecurring||false,recur_pattern:s.recurPattern||null,recur_end_date:s.recurEndDate||null,bill_to_org:s.billToOrg||null,billed_headcount:s.billedHeadcount==null||s.billedHeadcount===''?null:Number(s.billedHeadcount)};
   // Only sent once the partners setup SQL has added the column, so an older
@@ -482,6 +497,8 @@ function sessionToDB(s){
   if(ORIGINATED_COL){o.originated_by=s.originatedBy||null;o.origination_note=s.originationNote||null;}
   if(EXTRA_DATES_COL)o.extra_dates=(s.extraDates||[]).filter(Boolean);
   if(EXTRA_DAYS_COL)o.extra_days=(s.extraDays||[]).filter(x=>x&&x.date).map(x=>({date:x.date,time:x.time||''}));
+  if(CLOSURES_COL)o.closures=(s.closures||[]).filter(x=>x&&x.date).map(x=>({date:x.date,reason:x.reason||''}));
+  if(INSTR_INFO_COL)o.instructor_info=s.instructorInfo||null;
   return o;
 }
 function regFromDB(r){
@@ -760,15 +777,115 @@ function recurLabel(s){
   return p+(fd&&ed?', '+fd+' – '+ed:'');
 }
 function recurBadge(s){return s.isRecurring?`<span style="background:#e3eef7;color:#1a5c8a;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">↻ ${recurLabel(s)}</span>`:'';}
-// Every custom job gets a unique code even when several share the same date —
-// CJ-0910, CJ-0910-2, CJ-0910-3, and so on. This is what allows two custom jobs
-// on the same day (and same time) to save without colliding.
-function uniqueCustomJobCode(dateStr,excludeId){
-  const d=new Date(dateStr+'T12:00:00');
-  const base='CJ-'+(d.getMonth()+1).toString().padStart(2,'0')+(d.getDate()).toString().padStart(2,'0');
-  let code=base,n=2;
-  while(sessions.some(x=>x.code===code&&x.id!==excludeId)){code=base+'-'+(n++);}
-  return code;
+/* ─── SESSION CODES ───────────────────────────────────────────────────────
+   A code is what a parent types on the registration page, so it has to be
+   unique for all time and it should say something about the class.
+
+     Dated sessions        ABBR-YYMMDD          SS-260822, SAH-260909
+     Two of the same, one day   + a letter      SS-261016, SS-261016B
+     Multi-week school club     ABBR-SITE-TERM  SAH-CASH-F26, MFBC-GRNW-F26
+
+   The club form deliberately has no date in it. A ten-week club is not one
+   date, and the old CJ-MMDD codes were generated once from whatever date the
+   job was created with and never updated — which is how CJ-0914 ended up on a
+   club that starts September 17 and CJ-0916-2 on one that starts the 18th. */
+const COURSE_ABBR={
+  'Safe Sitter®':'SS','Intro to Babysitting':'IB','Safe@Home':'SAH',
+  'Safe@Home — Virtual':'SAHV','Safe@Home — Series':'SAHS',
+  'Grandparents: Getting Started':'GP','All Kids Welcome':'AKW',
+  'Stay Ready: Choking Rescue and CPR':'SR',
+  'Campus Ready: Safety Skills for College Life':'CR',
+  'Steady and Ready':'STR','My First Babysitters Club':'MFBC'
+};
+// Custom-job titles are free text ("My First Babysitter's Club — Greenwood
+// Elementary — 10 week series"), so match the program out of the words.
+const TITLE_ABBR=[
+  [/first\s*babysitter/i,'MFBC'],[/safe\s*sitter/i,'SS'],
+  [/safe\s*@?\s*home/i,'SAH'],[/intro to babysit/i,'IB'],
+  [/grandparent/i,'GP'],[/all kids welcome/i,'AKW'],
+  [/choking|cpr|stay ready/i,'SR'],[/campus ready/i,'CR'],
+  [/steady and ready/i,'STR'],[/girls on the run|gotr/i,'GOTR'],
+  [/caregiv/i,'CARE'],[/babysitting course/i,'BC']
+];
+function courseAbbr(course){
+  if(COURSE_ABBR[course])return COURSE_ABBR[course];
+  const t=String(course||'');
+  for(const [re,ab] of TITLE_ABBR){if(re.test(t))return ab;}
+  const ini=t.replace(/[^A-Za-z ]/g,' ').trim().split(/\s+/).slice(0,3).map(w=>w[0]||'').join('').toUpperCase();
+  return ini||'C';
+}
+// Site name → short tag used in club codes.
+const SITE_TAGS=[
+  [/cashell/i,'CASH'],[/greenwood/i,'GRNW'],[/sherwood/i,'SHER'],
+  [/belmont/i,'BELM'],[/rosemary/i,'ROSE'],[/olney/i,'OLNY'],
+  [/beth el/i,'BETH'],[/little house/i,'LTLH'],[/lab school/i,'LABS'],
+  [/writer'?s center/i,'WRIT'],[/tenley/i,'TENL'],[/davis/i,'DAVS'],
+  [/bethesda metro/i,'BMAV'],[/loudo?un/i,'LOUD'],[/arlington/i,'ARLN']
+];
+function siteTag(text){
+  const t=String(text||'');
+  for(const [re,tag] of SITE_TAGS){if(re.test(t))return tag;}
+  const w=(t.replace(/[^A-Za-z ]/g,' ').trim().split(/\s+/)[0]||'');
+  return w.slice(0,4).toUpperCase()||'SITE';
+}
+// Term label from a date: F26 fall, W26 winter, SP26 spring, SU26 summer.
+function termTag(dateStr){
+  const d=dateStr?new Date(dateStr+'T12:00:00'):new Date();
+  if(isNaN(d.getTime()))return '';
+  const m=d.getMonth()+1,yy=String(d.getFullYear()).slice(-2);
+  if(m>=8)return 'F'+yy;
+  if(m<=2)return 'W'+yy;
+  if(m<=5)return 'SP'+yy;
+  return 'SU'+yy;
+}
+// First code wins; the next one that would collide gets B, then C, and so on.
+function uniquifyCode(base,excludeId){
+  const taken=c=>sessions.some(x=>x.code===c&&x.id!==excludeId);
+  if(!taken(base))return base;
+  for(let i=1;i<26;i++){const c=base+String.fromCharCode(65+i);if(!taken(c))return c;}
+  let n=2,c;do{c=base+'-'+(n++);}while(taken(c));
+  return c;
+}
+// Standard dated code: ABBR-YYMMDD.
+function autoSessionCode(course,dateStr,excludeId){
+  const ab=courseAbbr(course);
+  const d=dateStr?new Date(dateStr+'T12:00:00'):null;
+  if(!d||isNaN(d.getTime()))return uniquifyCode(ab+'-H'+String(Date.now()).slice(-4),excludeId);
+  const base=ab+'-'+String(d.getFullYear()).slice(-2)
+            +String(d.getMonth()+1).padStart(2,'0')
+            +String(d.getDate()).padStart(2,'0');
+  return uniquifyCode(base,excludeId);
+}
+// Multi-week club code: ABBR-SITE-TERM.
+function autoSeriesCode(course,site,dateStr,excludeId){
+  return uniquifyCode(courseAbbr(course)+'-'+siteTag(site||course)+'-'+termTag(dateStr),excludeId);
+}
+// Recurring jobs at a site are clubs; one-off jobs get the dated form.
+function uniqueCustomJobCode(dateStr,excludeId,course,site,isSeries){
+  return isSeries?autoSeriesCode(course,site,dateStr,excludeId)
+                 :autoSessionCode(course,dateStr,excludeId);
+}
+// Does this code have the given date baked into it? Used to spot a code that
+// went stale because the session was moved after the code was issued.
+function codeLooksDated(code,dateStr){
+  if(!code||!dateStr)return false;
+  const d=new Date(dateStr+'T12:00:00');if(isNaN(d.getTime()))return false;
+  const mm=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  const yy=String(d.getFullYear()).slice(-2);
+  return code.includes(yy+mm+dd)||new RegExp('-'+mm+dd+'(?![0-9])').test(code);
+}
+// When a session is moved to a new date and its code still points at the old
+// one, offer to reissue — but only while nobody has registered, because a code
+// already sent to families must never change underneath them.
+function reissueStaleCode(sessId,code,oldDate,newDate,suggested){
+  if(!oldDate||!newDate||oldDate===newDate)return code;
+  if(!codeLooksDated(code,oldDate))return code;
+  if(codeLooksDated(code,newDate))return code;
+  if(registrations.some(r=>r.sessionId===sessId))return code;
+  if(!suggested||suggested===code)return code;
+  const f=s=>new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  return confirm('This session moved from '+f(oldDate)+' to '+f(newDate)+', but its code ('+code+') still points at the old date.\n\nUpdate the code to '+suggested+'?\n\nNobody has registered for this session yet, so no existing links break.')
+    ?suggested:code;
 }
 function toggleRecurFields(on){
   const el=document.getElementById('cj-recur-fields');
@@ -2591,6 +2708,52 @@ function addEditDate(){
 }
 function removeEditDate(i){_editDays.splice(i,1);renderEditDates();}
 
+// ── Closures / no-class dates (school breaks, holidays) ──────────────────────
+// A weekly series often skips a week. Those weeks are simply absent from the class
+// date list, so instructors could not tell a break from a mistake. Closures store the
+// skipped date plus a plain-English reason ("Thanksgiving break") and are shown on the
+// instructor job board next to the class schedule.
+let _editClosures=[];
+function renderEditClosures(){
+  const el=document.getElementById('closures-list');if(!el)return;
+  el.innerHTML=_editClosures.length?_editClosures.map((d,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap">No class</span>
+      <input type="date" value="${d.date||''}" onchange="_editClosures[${i}].date=this.value" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      <input type="text" value="${(d.reason||'').replace(/"/g,'&quot;')}" placeholder="Reason, e.g. Thanksgiving break" oninput="_editClosures[${i}].reason=this.value" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white">
+      <button type="button" class="btn sm" onclick="removeEditClosure(${i})" title="Remove this closure">✕</button>
+    </div>`).join(''):'<div style="font-size:11px;color:var(--muted)">No closures. Add the weeks this series skips (school breaks, holidays) so instructors see exactly which weeks are off.</div>';
+}
+function addEditClosure(){_editClosures.push({date:'',reason:''});renderEditClosures();}
+function removeEditClosure(i){_editClosures.splice(i,1);renderEditClosures();}
+// Suggest closures automatically: for a weekly series, any missing week between the
+// first and last class day is almost certainly a break. One click fills them in and
+// the admin just types the reason.
+function suggestClosures(){
+  const main=(document.getElementById('m-date')||{}).value||'';
+  if(!main){alert('Set the class start date first.');return;}
+  const days=[main,..._editDays.map(d=>d.date).filter(Boolean)].sort();
+  if(days.length<2){alert('Add the additional class days first — closures are worked out from the weekly pattern.');return;}
+  const toDate=x=>new Date(x+'T12:00:00');
+  const DAY=86400000, WEEK=7*DAY;
+  // Only meaningful for a same-weekday weekly series.
+  const first=toDate(days[0]);
+  if(!days.every(d=>toDate(d).getDay()===first.getDay())){alert('Automatic closures only work for a series that meets on the same weekday each week. Add closures manually below.');return;}
+  const have=new Set(days);
+  const existing=new Set(_editClosures.map(c=>c.date).filter(Boolean));
+  const last=toDate(days[days.length-1]);
+  let added=0;
+  for(let t=first.getTime()+WEEK;t<last.getTime();t+=WEEK){
+    const d=new Date(t);
+    // Format in LOCAL time — toISOString() would shift the day in some timezones.
+    const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(!have.has(iso)&&!existing.has(iso)){_editClosures.push({date:iso,reason:''});added++;}
+  }
+  _editClosures.sort((a,b)=>(a.date||'')<(b.date||'')?-1:1);
+  renderEditClosures();
+  if(!added)alert('No skipped weeks found — every week between the first and last class has a meeting.');
+}
+
 // Toggle the "Place a hold" fields and relax the date requirement in the add/edit
 // session form. A hold is a reserved-but-unscheduled booking that stays off the
 // instructor job board until it is published.
@@ -2603,6 +2766,7 @@ function toggleHoldMode(on){
 function openAddSession(){
   _editCosts=[];
   _editDays=[];
+  _editClosures=[];
   _pricingCtxCreatedAt=Date.now(); // brand-new session → new program-guide pricing
   showModal(`<div class="modal-head"><h3>Add new session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
@@ -2632,6 +2796,17 @@ function openAddSession(){
       </div>
       <div id="extra-dates-list"></div>
     </div>
+    <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <label style="margin-bottom:0">Closures / no-class weeks <span style="font-weight:400;color:var(--muted)">(optional — school breaks, holidays)</span></label>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn sm" onclick="suggestClosures()" title="Fill in weeks skipped by the class schedule">✨ Find skipped weeks</button>
+          <button type="button" class="btn sm" onclick="addEditClosure()">+ Add closure</button>
+        </div>
+      </div>
+      <div id="closures-list"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Instructors see these on the job board so they know exactly which weeks are off before accepting.</div>
+    </div>
     <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" placeholder="e.g. The Smith Family or Bethesda Community Center"></div>
     <div class="fg full"><label>Street Address</label><input type="text" id="m-haddr" placeholder="e.g. 123 Maple St"></div>
     <div class="fg"><label>City</label><input type="text" id="m-city" placeholder="e.g. Bethesda"></div>
@@ -2639,7 +2814,7 @@ function openAddSession(){
     <div class="fg"><label>Zip</label><input type="text" id="m-zip" placeholder="e.g. 20814" maxlength="10"></div>
     <div class="fg"><label>Contact Name</label><input type="text" id="m-cname" placeholder="e.g. Jane Smith"></div>
     <div class="fg"><label>Contact Phone / Email</label><input type="text" id="m-hphone" placeholder="e.g. 301-555-0199 or jane@email.com"></div>
-    <div class="fg full"><label>Session code (auto-generated if blank)</label><input type="text" id="m-code" placeholder="e.g. SS-0612" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="fg full"><label>Session code (auto-generated if blank)</label><input type="text" id="m-code" placeholder="auto — e.g. SS-260612" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg full"><label>Instructor</label>
       <select id="m-owner" onchange="toggleInstrSelect(this.value)"><option value="no">Hired instructor ($50/hr + travel)</option><option value="yes">You are teaching (no instructor cost)</option></select></div>
     <div class="fg full" id="m-instr-wrap" style="margin-top:-4px">
@@ -2701,7 +2876,12 @@ function openAddSession(){
         <span id="m-instr-pay-preview" style="font-size:12px;font-weight:500"></span>
       </div>
     </div>
-    <div class="fg full"><label>Notes</label><input type="text" id="m-notes" placeholder="Optional"></div>
+    <div class="fg full"><label>Notes <span style="font-weight:400;color:var(--muted)">(internal — not shown to instructors)</span></label><input type="text" id="m-notes" placeholder="Optional"></div>
+    <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px">
+      <label style="margin-bottom:6px">Job details for instructors <span style="font-weight:400;color:var(--muted)">(optional — shown on the job board)</span></label>
+      <textarea id="m-instrinfo" rows="3" placeholder="e.g. Park in the north lot and check in at the front desk. Room 204. Tables and a projector are provided; bring your own laptop. Dress: business casual." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Parking, check-in, room, what the venue provides, dress code — anything an instructor needs to decide and prepare. Visible before they accept, so leave host phone numbers out.</div>
+    </div>
     <div class="fg full">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <label style="margin-bottom:0">Additional costs <span style="font-weight:400;color:var(--muted)">(facility rental, parking, etc.)</span></label>
@@ -2713,6 +2893,7 @@ function openAddSession(){
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveSession(null)">Add session</button></div>`);
   renderEditCosts();
   renderEditDates();
+  renderEditClosures();
   // populate instructor options (primary + second)
   const instrSel=document.getElementById('m-instr');
   const instrSel2=document.getElementById('m-instr2');
@@ -2773,6 +2954,8 @@ function openAddCustomJob(){
     <div class="fg"><label>City</label><input type="text" id="cj-city" placeholder="e.g. Bethesda"></div>
     <div class="fg"><label>State</label><input type="text" id="cj-state" placeholder="MD" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg"><label>Zip</label><input type="text" id="cj-zip" maxlength="10"></div>
+    <div class="fg full"><label>Session code <span style="font-weight:400;color:var(--muted)">(leave blank to generate — recurring school clubs get e.g. MFBC-GRNW-F26, one-off jobs get e.g. GOTR-261121)</span></label>
+      <input type="text" id="cj-code" placeholder="auto" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg full"><label>Total pay for this job * <span style="font-weight:400;color:var(--muted)">(flat dollar amount — this is the entire pay for the assignment)</span></label>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:15px;color:var(--muted)">$</span>
@@ -2820,7 +3003,17 @@ async function saveCustomJob(){
   const recurEndDate=isRecurring?(document.getElementById('cj-recur-end')?.value||''):'';
   if(isRecurring&&!recurEndDate){alert('Please select the last meeting date for this recurring job.');return;}
   if(isRecurring&&recurEndDate<=date){alert('The last meeting date must be after the first meeting date.');return;}
-  const code=uniqueCustomJobCode(date);
+  // Recurring job at a site = a multi-week club, so it gets the ABBR-SITE-TERM
+  // form instead of a code frozen to whatever its first meeting date happens
+  // to be today.
+  const siteName=document.getElementById('cj-loc').value||title;
+  let code=(document.getElementById('cj-code')?.value||'').trim().toUpperCase();
+  if(!code){
+    code=uniqueCustomJobCode(date,null,title,siteName,isRecurring);
+  }else if(sessions.some(x=>x.code===code)){
+    alert('The code '+code+' is already in use. Please pick another, or clear the field to have one generated.');
+    return;
+  }
   const instrEl=document.getElementById('cj-instr');
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
   const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:'',hostPhone:'',code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote()};
@@ -2868,6 +3061,8 @@ function openEditCustomJob(id){
     <div class="fg"><label>City</label><input type="text" id="cj-city" value="${s.city||''}"></div>
     <div class="fg"><label>State</label><input type="text" id="cj-state" value="${s.state||''}" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg"><label>Zip</label><input type="text" id="cj-zip" value="${s.zip||''}" maxlength="10"></div>
+    <div class="fg full"><label>Session code <span style="font-weight:400;color:var(--muted)">(this is what parents type to register — clear it to regenerate)</span></label>
+      <input type="text" id="cj-code" value="${escapeHtml(s.code||'')}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg full"><label>Total pay for this job *</label>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:15px;color:var(--muted)">$</span>
@@ -2919,13 +3114,24 @@ async function saveEditCustomJob(id){
   if(isRecurring&&recurEndDate<=date){alert('The last meeting date must be after the first meeting date.');return;}
   const instrEl=document.getElementById('cj-instr');
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
+  const siteName=document.getElementById('cj-loc').value||title;
+  const _prevDate=s.date;
+  let code=(document.getElementById('cj-code')?.value||'').trim().toUpperCase();
+  if(!code){
+    code=uniqueCustomJobCode(date,id,title,siteName,isRecurring);
+  }else if(sessions.some(x=>x.code===code&&x.id!==id)){
+    alert('The code '+code+' is already in use by another session. Please pick another, or clear the field to have one generated.');
+    return;
+  }else{
+    code=reissueStaleCode(id,code,_prevDate,date,uniqueCustomJobCode(date,id,title,siteName,isRecurring));
+  }
   const prevSnapshot={...s};
-  Object.assign(s,{isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote()});
-  closeModal();renderSessions();renderDashboard();
+  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote()});
+  closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null;
   try{const{error}=await sb.from('sessions').upsert(sessionToDB(s));if(error){saveFailed=true;saveErr=error;}}catch(e){saveFailed=true;saveErr=e;}
   if(saveFailed){
-    Object.assign(s,prevSnapshot);renderSessions();renderDashboard();
+    Object.assign(s,prevSnapshot);renderSessions();renderDashboard();renderCodes();
     showToast('⚠️ Could not save. '+(saveErr&&saveErr.message?saveErr.message:'Check your connection.'));return;
   }
   if(!jobDataCache[s.id])jobDataCache[s.id]={waitlist:[]};
@@ -3028,6 +3234,7 @@ function openEditSession(id){
   if(s.isCustomJob){openEditCustomJob(id);return;}
   _editCosts=JSON.parse(JSON.stringify(s.additionalCosts||[]));
   _editDays=JSON.parse(JSON.stringify((s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}))));
+  _editClosures=JSON.parse(JSON.stringify(s.closures||[]));
   _pricingCtxCreatedAt=s.createdAt??null; // existing session → keep the price table it was created under
   showModal(`<div class="modal-head"><h3>Edit session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
@@ -3068,6 +3275,17 @@ function openEditSession(id){
         <button type="button" class="btn sm" onclick="addEditDate()">+ Add another day</button>
       </div>
       <div id="extra-dates-list"></div>
+    </div>
+    <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <label style="margin-bottom:0">Closures / no-class weeks <span style="font-weight:400;color:var(--muted)">(optional — school breaks, holidays)</span></label>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn sm" onclick="suggestClosures()" title="Fill in weeks skipped by the class schedule">✨ Find skipped weeks</button>
+          <button type="button" class="btn sm" onclick="addEditClosure()">+ Add closure</button>
+        </div>
+      </div>
+      <div id="closures-list"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Instructors see these on the job board so they know exactly which weeks are off before accepting.</div>
     </div>
     <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" value="${s.location||''}"></div>
     <div class="fg full" style="display:${s.isVirtual?'none':'flex'}"><label>Street Address</label><input type="text" id="m-haddr" value="${s.hostAddress||''}"></div>
@@ -3138,7 +3356,12 @@ function openEditSession(id){
         <span id="m-instr-pay-preview" style="font-size:12px;font-weight:500"></span>
       </div>
     </div>
-    <div class="fg full"><label>Notes</label><input type="text" id="m-notes" value="${s.notes||''}"></div>
+    <div class="fg full"><label>Notes <span style="font-weight:400;color:var(--muted)">(internal — not shown to instructors)</span></label><input type="text" id="m-notes" value="${s.notes||''}"></div>
+    <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px">
+      <label style="margin-bottom:6px">Job details for instructors <span style="font-weight:400;color:var(--muted)">(optional — shown on the job board)</span></label>
+      <textarea id="m-instrinfo" rows="3" placeholder="e.g. Park in the north lot and check in at the front desk. Room 204. Tables and a projector are provided; bring your own laptop." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${(s.instructorInfo||'').replace(/</g,'&lt;')}</textarea>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Parking, check-in, room, what the venue provides, dress code — anything an instructor needs to decide and prepare. Visible before they accept, so leave host phone numbers out.</div>
+    </div>
     <div class="fg full">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <label style="margin-bottom:0">Additional costs <span style="font-weight:400;color:var(--muted)">(facility rental, parking, etc.)</span></label>
@@ -3150,6 +3373,7 @@ function openEditSession(id){
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveSession('${id}')">Save changes</button></div>`);
   renderEditCosts();
   renderEditDates();
+  renderEditClosures();
   updatePricePreview();
   updateInstrPayPreview();
   toggleVirtualFields(s.isVirtual?'yes':'no');
@@ -3167,15 +3391,20 @@ async function saveSession(editId){
   const reservedSeats=holdSeatsRaw&&Number(holdSeatsRaw)>0?Number(holdSeatsRaw):null;
   const holdPayment=isHold?(document.getElementById('m-hold-payment')?.value||''):'';
   const course=document.getElementById('m-course').value;
+  const _prevDate=editId?(sessions.find(x=>x.id===editId)||{}).date:null;
   let code=document.getElementById('m-code').value.trim().toUpperCase();
   if(!code){
-    const abbr={'Safe Sitter®':'SS','Intro to Babysitting':'IB','Safe@Home':'SAH','Safe@Home — Virtual':'SAHV','Safe@Home — Series':'SAHS','Grandparents: Getting Started':'GP','All Kids Welcome':'AKW','Stay Ready: Choking Rescue and CPR':'SR','Campus Ready: Safety Skills for College Life':'CR','Steady and Ready':'STR','My First Babysitters Club':'MFBC'};
-    if(date){
-      const d=new Date(date+'T12:00:00');
-      code=(abbr[course]||'C')+'-'+(d.getMonth()+1).toString().padStart(2,'0')+(d.getDate()).toString().padStart(2,'0');
-    }else{
-      code=(abbr[course]||'C')+'-H'+String(Date.now()).slice(-4);
+    // Blank = generate one. autoSessionCode already guarantees it is unused.
+    code=autoSessionCode(course,date,editId||null);
+  }else{
+    // Typed by hand: refuse to save a code another session already owns, or the
+    // registration page would send those families to whichever it found first.
+    const clash=sessions.find(x=>x.code===code&&x.id!==editId);
+    if(clash){
+      alert('The code '+code+' is already used by:\n\n'+clash.course+' — '+(clash.date||'no date')+'\n\nPlease pick a different code, or clear the field to have one generated.');
+      return;
     }
+    code=reissueStaleCode(editId,code,_prevDate,date,autoSessionCode(course,date,editId||null));
   }
   const additionalCosts=_editCosts.filter(c=>c.label||c.amount);
   // Read instructor BEFORE closing the modal
@@ -3210,13 +3439,20 @@ async function saveSession(editId){
     .map(x=>({date:x.date,time:(x.time||'').trim()}))
     .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
   const extraDates=extraDays.map(x=>x.date);
+  // Closures: drop blanks and duplicates, keep date-sorted.
+  const _seenClosures=new Set();
+  const closures=_editClosures
+    .filter(x=>x&&x.date&&!_seenClosures.has(x.date)&&!!_seenClosures.add(x.date))
+    .map(x=>({date:x.date,reason:(x.reason||'').trim()}))
+    .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const instructorInfo=(document.getElementById('m-instrinfo')?.value||'').trim();
   let s, prevSnapshot=null;
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,originatedBy,originationNote});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,originatedBy,originationNote};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote};
     sessions.push(s);
   }
   closeModal();renderSessions();renderDashboard();renderCodes();
@@ -3232,11 +3468,13 @@ async function saveSession(editId){
   // If the database doesn't have the extra_dates / extra_days / originated_by columns yet,
   // retry without the missing column so the rest of the session still saves, and tell the
   // admin exactly what to run in Supabase. Up to three retries, since all could be missing.
-  for(let _attempt=0;saveFailed&&_attempt<3;_attempt++){
+  for(let _attempt=0;saveFailed&&_attempt<5;_attempt++){
     const _msg=(saveErr&&saveErr.message)||'';
     let _note='';
     if(EXTRA_DAYS_COL&&/extra_days/i.test(_msg)){EXTRA_DAYS_COL=false;_note='days';}
     else if(EXTRA_DATES_COL&&/extra_dates/i.test(_msg)){EXTRA_DATES_COL=false;_note='days';}
+    else if(CLOSURES_COL&&/closures/i.test(_msg)){CLOSURES_COL=false;_note='detail';}
+    else if(INSTR_INFO_COL&&/instructor_info/i.test(_msg)){INSTR_INFO_COL=false;_note='detail';}
     else if(ORIGINATED_COL&&/originated_by|origination_note/i.test(_msg)){ORIGINATED_COL=false;_note='partner';}
     else break;
     saveFailed=false;saveErr=null;
@@ -3244,6 +3482,7 @@ async function saveSession(editId){
       const {error}=await sb.from('sessions').upsert(sessionToDB(s));
       if(error){saveFailed=true;saveErr=error;}
       else if(_note==='partner')showToast('⚠️ Saved, but WITHOUT the "Originated by" partner credit — run partners_setup.sql once in the Supabase SQL editor, then re-save this session.');
+      else if(_note==='detail')showToast("⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;");
       else showToast("⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';");
     }catch(e){saveFailed=true;saveErr=e;}
   }
@@ -3601,8 +3840,14 @@ function modalIsOpen(){
   const r=document.getElementById('modal-root');
   return !!(r&&r.firstElementChild);
 }
+// A form is NEVER closed by clicking the dark area around it. That click-away
+// used to be the single biggest way to lose a half-filled form: if you drag to
+// highlight text inside a field and release the mouse past the edge of the white
+// box, the browser reports that click against the backdrop, not the field you
+// started in — so highlighting a value to retype it threw the whole form away.
+// Cancel and ✕ are now the only ways out, and both are deliberate.
 function showModal(html){
-  document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;
+  document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onmousedown="if(event.target===this)event.preventDefault()"><div class="modal">${html}</div></div>`;
   _pushModalState();
 }
 function closeModal(){
