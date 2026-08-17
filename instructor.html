@@ -36,7 +36,8 @@ header{background:var(--navy);padding:16px 24px;display:flex;align-items:center;
 .h-name{font-size:12px;color:rgba(255,255,255,.6);margin-top:1px}
 .h-logout{background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:5px 12px;border-radius:100px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
 .h-logout:hover{color:white;border-color:rgba(255,255,255,.6)}
-.tabs{background:white;border-bottom:1px solid var(--border);display:flex;padding:0 24px}
+.tabs{background:white;border-bottom:1px solid var(--border);display:flex;padding:0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
 .tab{padding:14px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
 .tab:hover{color:var(--text)}
 .tab.active{color:var(--navy);border-bottom-color:var(--sky)}
@@ -96,6 +97,42 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .sched-t{font-size:12px;color:var(--muted);white-space:nowrap}
 .sched-row.closed .sched-t{color:var(--warn);font-style:italic}
 @media(max-width:420px){.sched-row{font-size:12px;padding:7px 9px;gap:8px}.sched-t{font-size:11px}}
+/* ── Headline numbers: pay, commitment, effective rate ── */
+.hero-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:14px}
+.hero-cell{background:white;padding:11px 13px}
+.hero-v{font-family:'DM Serif Display',serif;font-size:20px;line-height:1.15;color:var(--navy)}
+.hero-l{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-top:3px}
+.hero-s{font-size:11px;color:var(--muted);margin-top:2px}
+/* ── Fit checks: reasons to say yes, and any blockers ── */
+.fit{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:14px}
+.fit-row{display:flex;gap:9px;align-items:flex-start;padding:9px 12px;font-size:13px;line-height:1.5;background:white}
+.fit-ic{flex:0 0 auto;font-size:13px;line-height:1.5}
+.fit-x{flex:1;min-width:0}
+.fit-good{background:var(--success-bg);color:var(--success)}
+.fit-good strong{color:var(--success)}
+.fit-warn{background:var(--warn-bg);color:var(--warn)}
+.fit-bad{background:var(--danger-bg);color:var(--danger)}
+.fit-info{background:white;color:var(--text)}
+.fit-bar{display:block;height:5px;border-radius:100px;background:rgba(0,0,0,.08);margin-top:6px;overflow:hidden}
+.fit-bar>span{display:block;height:100%;background:currentColor;opacity:.55;border-radius:100px}
+/* ── Compact date chips ── */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 5px;border:1px solid var(--border);border-radius:100px;background:white;font-size:12px;white-space:nowrap}
+.chip-n{width:19px;height:19px;flex:0 0 19px;border-radius:50%;background:var(--sky-l);color:#1a5c8a;font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.chip-d{font-weight:500}
+.chip-t{color:var(--muted);font-size:11px}
+.chip-off{background:var(--warn-bg);border-color:#f0d9b0;color:var(--warn)}
+.chip-off .chip-n{background:#f4dcb0;color:var(--warn)}
+.chip-off .chip-d{text-decoration:line-through;opacity:.8}
+.chip-off .chip-t{color:var(--warn);font-style:italic}
+/* ── "What happens after I accept" ── */
+.wh{border:1px solid var(--border);border-radius:var(--r-sm);background:var(--cream);margin-top:12px}
+.wh summary{cursor:pointer;padding:10px 13px;font-size:12px;font-weight:500;color:var(--navy);list-style:none}
+.wh summary::-webkit-details-marker{display:none}
+.wh summary:before{content:'▸ ';color:var(--muted)}
+.wh[open] summary:before{content:'▾ '}
+.wh ul{margin:0;padding:0 16px 12px 32px;font-size:12px;color:var(--muted);line-height:1.65}
+.wh li{margin-bottom:4px}
 
 .info-label{color:var(--muted)}
 @media(max-width:520px){
@@ -401,31 +438,206 @@ function sessHeadline(s){
   if(closed)bits.push(closed+' no-class week'+(closed!==1?'s':''));
   return bits.join(' · ');
 }
+// ─── FIT CHECKS: WHY THIS JOB IS (OR IS NOT) RIGHT FOR ME ────
+// A multi-week series is a big commitment. These helpers answer the questions an
+// instructor actually asks before accepting: am I free every one of those dates,
+// what is this worth per hour, will the class even run, and have I taught it before.
+
+// Teaching minutes for one meeting. Falls back to the course's configured length
+// when the time string cannot be parsed, so the totals are never blank.
+function meetingMinutes(s,timeStr){
+  const tr=parseTimeRange(timeStr||s.time);
+  if(tr&&tr.startMin!=null&&tr.endMin!=null&&tr.endMin>tr.startMin)return tr.endMin-tr.startMin;
+  const c=COURSES[s.course]||{};
+  return (c.hours||0)*60;
+}
+// Total teaching time across every meeting day, in hours.
+function sessTotalHours(s){
+  const mins=sessMeetings(s).reduce((t,m)=>t+meetingMinutes(s,m.time),0);
+  return Math.round((mins/60)*100)/100;
+}
+function fmtHours(h){
+  if(!h)return'—';
+  const whole=Math.floor(h),mins=Math.round((h-whole)*60);
+  return mins?(whole?whole+'h '+mins+'m':mins+'m'):whole+'h';
+}
+// Calendar weeks the series spans, first meeting to last.
+function sessWeekSpan(s){
+  const m=sessMeetings(s);
+  if(m.length<2)return 1;
+  const a=new Date(m[0].date+'T12:00:00'),b=new Date(m[m.length-1].date+'T12:00:00');
+  return Math.max(1,Math.round((b-a)/(7*86400000))+1);
+}
+// Whole days from today until the first class. Negative means it already started.
+function daysUntil(dateStr){
+  if(!dateStr)return null;
+  const t=new Date();t.setHours(0,0,0,0);
+  const d=new Date(dateStr+'T12:00:00');d.setHours(0,0,0,0);
+  return Math.round((d-t)/86400000);
+}
+// Every meeting of every job THIS instructor already holds, keyed by date, so a
+// candidate job can be checked against them without rescanning the whole list.
+function myMeetingIndex(){
+  const idx={};
+  allSessions.forEach(s=>{
+    const jdi=jobDataCache[s.id]||{};
+    if(jdi.instructorId!==me.id)return;
+    sessMeetings(s).forEach(m=>{
+      const tr=parseTimeRange(m.time||s.time);
+      (idx[m.date]=idx[m.date]||[]).push({
+        sessionId:s.id,course:s.course,
+        start:tr?tr.startMin:null,
+        end:tr?(tr.endMin!=null?tr.endMin:tr.startMin+120):null
+      });
+    });
+  });
+  return idx;
+}
+// Dates where accepting this job would double-book the instructor. Two classes on the
+// same day only conflict if their times actually overlap; when a time cannot be parsed
+// we flag it as a same-day clash rather than quietly assuming it is fine.
+function sessConflicts(s,idx){
+  idx=idx||myMeetingIndex();
+  const out=[];
+  sessMeetings(s).forEach((m,i)=>{
+    const held=idx[m.date];
+    if(!held||!held.length)return;
+    const tr=parseTimeRange(m.time||s.time);
+    const aS=tr?tr.startMin:null,aE=tr?(tr.endMin!=null?tr.endMin:tr.startMin+120):null;
+    held.forEach(h=>{
+      if(h.sessionId===s.id)return; // the same job, not a clash
+      const overlaps=(aS==null||h.start==null)?true:(aS<h.end&&h.start<aE);
+      if(overlaps)out.push({date:m.date,n:i+1,course:h.course,certain:!(aS==null||h.start==null)});
+    });
+  });
+  return out;
+}
+// How many times this instructor has taught this course / taught at this venue before.
+// Experience is a real confidence signal: "you have taught this six times" and
+// "first time teaching this one" lead to very different decisions.
+function myHistory(s){
+  let course=0,venue=0;
+  const venueKey=(s.location||'').trim().toLowerCase();
+  allSessions.forEach(x=>{
+    const jdi=jobDataCache[x.id]||{};
+    if(jdi.instructorId!==me.id||x.id===s.id)return;
+    if(x.course===s.course)course++;
+    if(venueKey&&(x.location||'').trim().toLowerCase()===venueKey)venue++;
+  });
+  return{course,venue};
+}
+// Seats filled vs capacity. A class that is nearly full is very unlikely to be
+// cancelled, which is the other thing an instructor is quietly worried about.
+function enrollment(s){
+  const c=COURSES[s.course]||{};
+  const cap=s.maxStudentsOverride||c.maxStudents||null;
+  const n=countRegs(s.id);
+  return{n,cap,pct:cap?Math.min(100,Math.round(n/cap*100)):null};
+}
+
+// The row of headline numbers at the top of a card: what it pays, what it costs
+// in time, and what that works out to per hour.
+function heroStripHTML(s,fee){
+  const meetings=sessMeetings(s);
+  const hours=sessTotalHours(s);
+  const perHour=hours>0?fee/hours:null;
+  const span=sessWeekSpan(s);
+  const cells=[
+    {v:fmt(fee),l:'Total pay',sub:meetings.length>1?fmt(fee/meetings.length)+' per class':''},
+    {v:meetings.length>1?meetings.length+' classes':'1 class',l:'Commitment',sub:meetings.length>1?'over '+span+' weeks':(sessTimeSummary(s)||'')},
+    {v:fmtHours(hours),l:'Teaching time',sub:(()=>{
+      if(meetings.length<2)return'total';
+      const lens=new Set(meetings.map(m=>meetingMinutes(s,m.time)));
+      return fmtHours(hours/meetings.length)+(lens.size===1?' each':' average');
+    })()},
+    perHour?{v:fmt(Math.round(perHour))+'/hr',l:'Effective rate',sub:'teaching time only'}:null
+  ].filter(Boolean);
+  return`<div class="hero-strip">${cells.map(c=>`
+    <div class="hero-cell"><div class="hero-v">${c.v}</div><div class="hero-l">${c.l}</div>${c.sub?`<div class="hero-s">${escapeHtml(c.sub)}</div>`:''}</div>`).join('')}</div>`;
+}
+
+// The "should I take this?" checklist. Green means a reason to say yes, amber is a
+// caution worth reading, red is a genuine blocker.
+function fitChecksHTML(s,idx){
+  const rows=[];
+  const meetings=sessMeetings(s);
+  const conflicts=sessConflicts(s,idx);
+  if(conflicts.length){
+    const list=conflicts.slice(0,3).map(c=>`class ${c.n} on ${new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})} (${escapeHtml(c.course)})`).join(', ');
+    rows.push({t:'bad',ic:'⚠️',x:`<strong>Schedule conflict:</strong> ${list}${conflicts.length>3?` and ${conflicts.length-3} more`:''} — you are already booked.`});
+  }else{
+    rows.push({t:'good',ic:'✓',x:meetings.length>1?`You are free all ${meetings.length} class dates`:'This date is free on your calendar'});
+  }
+  const hist=myHistory(s);
+  if(hist.course>0)rows.push({t:'good',ic:'✓',x:`You have taught <strong>${escapeHtml(s.course)}</strong> ${hist.course} time${hist.course!==1?'s':''} before`});
+  else rows.push({t:'info',ic:'📘',x:`First time teaching <strong>${escapeHtml(s.course)}</strong> — the Instructor guide tab walks through it, and materials come with a lesson plan`});
+  if(hist.venue>0)rows.push({t:'good',ic:'📍',x:`You have taught at <strong>${escapeHtml(s.location)}</strong> before — you know the drill`});
+  const en=enrollment(s);
+  if(!s.isCustomJob&&en.cap){
+    const t=en.pct>=70?'good':en.pct>=30?'info':'warn';
+    rows.push({t,ic:t==='good'?'🎟️':'🎟️',x:`<strong>${en.n} of ${en.cap} seats filled</strong>${en.pct>=70?' — this class is going ahead':en.n===0?' — enrollment has not opened up yet':''}`,bar:en.pct});
+  }
+  const d=daysUntil(s.date);
+  if(d!=null&&d>=0){
+    const t=d<=7?'warn':'info';
+    rows.push({t,ic:'⏱',x:d===0?'<strong>Starts today</strong>':d===1?'<strong>Starts tomorrow</strong>':`Starts in <strong>${d} days</strong>${meetings.length>1?` · wraps up ${new Date(meetings[meetings.length-1].date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'})}`:''}`});
+  }
+  return`<div class="fit">${rows.map(r=>`
+    <div class="fit-row fit-${r.t}"><span class="fit-ic">${r.ic}</span><span class="fit-x">${r.x}
+      ${r.bar!=null?`<span class="fit-bar"><span style="width:${r.bar}%"></span></span>`:''}</span></div>`).join('')}</div>`;
+}
+
+// Plain-language answer to "what am I signing up for once I tap accept?" — removes the
+// fear of an unknown process, which is a real reason people hesitate on a first job.
+function whatHappensHTML(s){
+  const items=[
+    'Lindsay is emailed straight away and the job moves to your <strong>My jobs</strong> tab.',
+    s.isCustomJob?'':'Your teaching materials are arranged — either shipped to the host or ready to pick up. You will see which on the job card.',
+    s.isCustomJob?'':'Print your student roster from the job card any time before the first class.',
+    s.isVirtual?'The Zoom link is sent to you and to registered families before the first class.':'The exact address, host cell and WiFi details unlock on your job card.',
+    s.isCustomJob
+      ?`Payment of <strong>${fmt(instrFee(s))}</strong> is sent by Zelle after the event.`
+      :'Payment is sent by Zelle once the host submits their evaluation after the final class.',
+    'Plans change — you can hand a job back from My jobs, and anyone on the waitlist gets first refusal.'
+  ].filter(Boolean);
+  return`<details class="wh"><summary>What happens after I accept?</summary>
+    <ul>${items.map(i=>'<li>'+i+'</li>').join('')}</ul></details>`;
+}
+
 // Day-by-day schedule table: numbered class days interleaved with closures in date order.
 function scheduleHTML(s){
   const meetings=sessMeetings(s);
   if(!meetings.length)return'';
-  // A one-day class with no closures is fully described by the Date/Time tiles above —
-  // a one-row "schedule" would just be noise.
-  if(meetings.length===1&&!sessClosures(s).length)return'';
-  const rows=[
-    ...meetings.map((m,i)=>({date:m.date,cls:true,n:i+1,time:m.time})),
-    ...sessClosures(s).map(c=>({date:c.date,cls:false,reason:c.reason,auto:c.auto}))
-  ].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
-  const dLabel=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-  const body=rows.map(r=>r.cls
-    ?`<div class="sched-row"><div class="sched-n">${r.n}</div><div class="sched-d">${dLabel(r.date)}</div><div class="sched-t">${escapeHtml(r.time||'TBD')}</div></div>`
-    :`<div class="sched-row closed"><div class="sched-n">✕</div><div class="sched-d">${dLabel(r.date)} — <strong>No class</strong>${r.reason?' · '+escapeHtml(r.reason):''}</div><div class="sched-t">${r.auto?'break':''}</div></div>`
-  ).join('');
-  const total=meetings.length;
+  const closures=sessClosures(s);
+  // A one-day class with no closures is fully described by the tiles above — a
+  // one-chip "schedule" would just be noise.
+  if(meetings.length===1&&!closures.length)return'';
+  // Most days share a time; only the exceptions need their time printed on the chip,
+  // which keeps a twelve-week series down to a couple of lines instead of twelve rows.
+  const times=meetings.map(m=>(m.time||'').trim()).filter(Boolean);
+  const counts={};times.forEach(t=>{counts[t]=(counts[t]||0)+1;});
+  const usual=[...new Set(times)].sort((a,b)=>counts[b]-counts[a])[0]||'';
+  const chips=[
+    ...meetings.map((m,i)=>({date:m.date,cls:true,n:i+1,time:m.time,odd:(m.time||'').trim()&&(m.time||'').trim()!==usual})),
+    ...closures.map(c=>({date:c.date,cls:false,reason:c.reason,auto:c.auto}))
+  ].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0)
+   .map(c=>{
+     const d=new Date(c.date+'T12:00:00');
+     const lbl=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+     if(!c.cls)return`<span class="chip chip-off" title="${escapeHtml(c.reason||'No class')}"><span class="chip-n">✕</span><span class="chip-d">${lbl}</span><span class="chip-t">${escapeHtml(c.reason||'no class')}</span></span>`;
+     return`<span class="chip"><span class="chip-n">${c.n}</span><span class="chip-d">${lbl}</span>${c.odd?`<span class="chip-t">${escapeHtml(c.time)}</span>`:''}</span>`;
+   }).join('');
+  const pat=sessWeekdayPattern(s);
+  const offNote=closures.length?` · <span style="color:var(--warn)">${closures.length} week${closures.length!==1?'s':''} off</span>`:'';
   return`<div class="jc-section">
-    <div class="jc-section-t">Class schedule — ${total} class${total!==1?'es':''}</div>
-    <div class="sched">${body}</div>
+    <div class="jc-section-t">Class schedule — ${meetings.length} class${meetings.length!==1?'es':''}${pat?', '+pat.toLowerCase():''}${offNote}</div>
+    <div class="chips">${chips}</div>
+    ${usual?`<div style="font-size:11px;color:var(--muted);margin-top:7px">Usual time ${escapeHtml(usual)}${times.length&&[...new Set(times)].length>1?' · a chip with its own time meets at a different hour':''}</div>`:''}
   </div>`;
 }
 // Where the class happens. Street address, host cell and WiFi are private: they are
 // only ever rendered when showPrivate is true (i.e. the instructor holds this job).
-function locationHTML(s,showPrivate,priv){
+function locationHTML(s,showPrivate,priv,mapLink){
   const cityLine=[s.city,s.state].filter(Boolean).join(', ')+(s.zip?' '+s.zip:'');
   const lines=[];
   if(s.isVirtual){
@@ -433,7 +645,7 @@ function locationHTML(s,showPrivate,priv){
     lines.push(`<div style="font-size:12px;color:var(--muted)">You can teach this one from home. ${showPrivate?'The Zoom link is emailed to you and to registered families before the first class.':'The Zoom link is sent to you once you accept.'}</div>`);
   }else{
     lines.push(`<div style="font-weight:500">${escapeHtml(s.location||'Location TBD')}</div>`);
-    if(showPrivate&&priv&&priv.hostAddress)lines.push(`<div>${escapeHtml(priv.hostAddress)}</div>`);
+    if(showPrivate&&priv&&priv.hostAddress)lines.push(`<div>${escapeHtml(priv.hostAddress)}${mapLink||''}</div>`);
     if(cityLine.trim())lines.push(`<div>${escapeHtml(cityLine.trim())}</div>`);
     if(showPrivate){
       if(priv&&priv.hostPhone)lines.push(`<div style="margin-top:6px;font-size:12px"><span style="color:var(--muted)">Host cell:</span> ${escapeHtml(priv.hostPhone)}</div>`);
@@ -442,7 +654,7 @@ function locationHTML(s,showPrivate,priv){
       if(priv===undefined)lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">Loading site details…</div>`);
       else if(!priv||(!priv.hostAddress&&!priv.hostPhone))lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">No street address or host contact on file yet — text Lindsay at 703-987-5979 if you need it.</div>`);
     }else{
-      lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">📍 The exact street address, host cell and WiFi are shared as soon as you accept this job.</div>`);
+      lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">📍 The exact street address, host cell and WiFi are shared as soon as you accept this job.${mapLink||''}</div>`);
     }
   }
   return`<div class="jc-section"><div class="jc-section-t">${s.isVirtual?'Format':'Where'}</div><div style="font-size:13px;line-height:1.7">${lines.join('')}</div></div>`;
@@ -453,7 +665,6 @@ function goodToKnowHTML(s){
   const bits=[];
   if(s.instructorInfo)bits.push(escapeHtml(s.instructorInfo).replace(/\n/g,'<br>'));
   const facts=[];
-  if(c.hours)facts.push(`Course length on file: <strong>${c.hours}h</strong>`);
   if(c.requiresRN)facts.push('Requires an <strong>RN credential</strong>');
   if(c.requiresSafeSitter)facts.push('Requires <strong>Safe Sitter® training</strong>');
   if(!s.isCustomJob){
@@ -734,6 +945,9 @@ function renderOpen(){
     el.innerHTML=`<div class="empty"><div class="empty-icon">📅</div><div class="empty-msg">No open jobs right now</div><div class="empty-sub">New posts appear here automatically — or tap Refresh above to check again.${allSessions.length===0?`<br><br><span style="font-family:monospace;font-size:11px;color:var(--muted)">Diagnostic: the database returned 0 sessions (${PORTAL_VERSION}). If you know classes exist, screenshot this and text it to Lindsay.</span>`:''}</div></div>`;
     return;
   }
+  // Built once per render: every meeting of every job this instructor already holds,
+  // so each card can be checked for double-booking without rescanning the list.
+  const idx=myMeetingIndex();
   el.innerHTML=sessions.map(s=>{
     const jdi=jobDataCache[s.id]||{};
     const isOnWaitlist=(jdi.waitlist||[]).includes(me.id);
@@ -771,27 +985,17 @@ function renderOpen(){
       pill='<span class="pill pill-open">Open</span>';
       actions=`<button class="btn primary" onclick="acceptJob('${s.id}')">Accept this job</button>`;
     }
-    const earningsHtml=`<div class="jc-detail-val">${fmt(fee)}</div>`;
-    const locStr=s.isVirtual?'Virtual (Zoom)':((s.location||s.city)?`${escapeHtml(s.location||'')}${s.location&&s.city?', ':''}${escapeHtml(s.city||'')}`:'TBD');
     const meetings=sessMeetings(s);
-    const closedCount=sessClosures(s).length;
-    // Pay-per-class helps an instructor judge a long series at a glance.
-    const perClass=meetings.length>1?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmt(fee/meetings.length)} per class</div>`:'';
+    const mapQ=encodeURIComponent([s.location,s.city,s.state,s.zip].filter(Boolean).join(', '));
+    const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:12px;color:var(--sky)">View on map ↗</a>`:'';
     return`<div class="job-card">
       <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div><div class="jc-meta">${escapeHtml(sessHeadline(s))}</div></div>${pill}</div>
-      <div class="jc-details">
-        <div class="jc-detail"><div class="jc-detail-label">Time</div><div class="jc-detail-val">${escapeHtml(sessTimeSummary(s))}</div></div>
-        <div class="jc-detail"><div class="jc-detail-label">${meetings.length>1?'Class days':'Date'}</div><div class="jc-detail-val">${meetings.length>1?meetings.length+' days'+(closedCount?' · '+closedCount+' off':''):fmtDate(s.date)}</div></div>
-        <div class="jc-detail"><div class="jc-detail-label">Location</div><div class="jc-detail-val">${locStr}</div></div>
-        <div class="jc-detail"><div class="jc-detail-label">Your earnings</div>${earningsHtml}${perClass}</div>
-        ${s.isCustomJob
-          ?`<div class="jc-detail"><div class="jc-detail-label">Pay type</div><div class="jc-detail-val">Flat rate</div></div>`
-          :`<div class="jc-detail"><div class="jc-detail-label">Course hours</div><div class="jc-detail-val">${COURSES[s.course]?.hours||'—'}h</div></div>
-        <div class="jc-detail"><div class="jc-detail-label">Students registered</div><div class="jc-detail-val">${countRegs(s.id)}</div></div>`}
-      </div>
+      ${heroStripHTML(s,fee)}
+      ${fitChecksHTML(s,idx)}
       ${scheduleHTML(s)}
-      ${locationHTML(s,false,null)}
+      ${locationHTML(s,false,null,mapLink)}
       ${goodToKnowHTML(s)}
+      ${whatHappensHTML(s)}
       <div class="jc-section"><div class="jc-actions">${actions}</div></div></div>`;
   }).join('');
 }
@@ -931,6 +1135,7 @@ function renderMyJobs(){
     el.innerHTML=`<div class="empty"><div class="empty-icon">🗂️</div><div class="empty-msg">No accepted jobs yet</div><div class="empty-sub">Head to "Open jobs" to accept your first session.</div></div>`;
     return;
   }
+  const idx=myMeetingIndex();
   el.innerHTML=myJobs.map(s=>{
     const jdi=jobDataCache[s.id]||{};
     const baseFee=instrFeeForJob(s,jdi);
@@ -955,20 +1160,29 @@ function renderMyJobs(){
     if(upcoming&&!s.isVirtual)ensurePrivate(s.id);
     const meetings=sessMeetings(s);
     const closedCount=sessClosures(s).length;
+    // Warn if this accepted job collides with another job they also hold — better to
+    // find out here than on the day.
+    const clashes=upcoming?sessConflicts(s,idx):[];
+    const dblBooked=clashes.length?`<div class="alert warn" style="margin-bottom:14px">⚠️ &nbsp;<span><strong>You are double-booked.</strong> ${clashes.slice(0,2).map(c=>escapeHtml(c.course)+' on '+new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' and ')} clashes with this job. Please hand one back or call Lindsay.</span></div>`:'';
+    const priv0=privCache[s.id];
+    const mapQ=encodeURIComponent([(priv0&&priv0.hostAddress)||'',s.location,s.city,s.state,s.zip].filter(Boolean).join(', '));
+    const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:12px;color:var(--sky)">Directions ↗</a>`:'';
     return`<div class="job-card">
       <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div><div class="jc-meta">${escapeHtml(sessHeadline(s))} · ${escapeHtml(sessTimeSummary(s))}</div></div>
       <span class="pill ${upcoming?'pill-accepted':'pill-taken'}">${upcoming?'Upcoming':'Completed'}</span></div>
-      <div class="jc-details">
+      ${upcoming?heroStripHTML(s,fee):`<div class="jc-details">
         <div class="jc-detail"><div class="jc-detail-label">Time</div><div class="jc-detail-val">${escapeHtml(sessTimeSummary(s))}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">${meetings.length>1?'Class days':'Date'}</div><div class="jc-detail-val">${meetings.length>1?meetings.length+' days'+(closedCount?' · '+closedCount+' off':''):fmtDate(s.date)}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">Your earnings</div>${earningsHtml}</div>
-        ${s.isCustomJob
-          ?`<div class="jc-detail"><div class="jc-detail-label">Pay type</div><div class="jc-detail-val">Flat rate</div></div>`
-          :`<div class="jc-detail"><div class="jc-detail-label">Students</div><div class="jc-detail-val">${countRegs(s.id)}</div></div>
-        <div class="jc-detail"><div class="jc-detail-label">Materials</div><div class="jc-detail-val" style="font-size:12px">${matHtml}</div></div>`}
-      </div>
+      </div>`}
+      ${s.isCustomJob?'':`<div class="jc-details">
+        <div class="jc-detail"><div class="jc-detail-label">Students registered</div><div class="jc-detail-val">${countRegs(s.id)}</div></div>
+        <div class="jc-detail"><div class="jc-detail-label">Materials</div><div class="jc-detail-val" style="font-size:12px">${matHtml}</div></div>
+      </div>`}
+      ${bonus>0?`<div style="font-size:11px;color:var(--muted);margin:-6px 0 12px">Earnings include a referral bonus of ${fmt(bonus)} on top of the ${fmt(baseFee)} base fee.</div>`:''}
+      ${dblBooked}
       ${scheduleHTML(s)}
-      ${locationHTML(s,true,privCache[s.id])}
+      ${locationHTML(s,true,privCache[s.id],mapLink)}
       ${goodToKnowHTML(s)}
       <div style="height:14px"></div>
       ${payHtml}
