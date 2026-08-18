@@ -568,7 +568,6 @@ function enrollment(s){
 function heroStripHTML(s,fee){
   const meetings=sessMeetings(s);
   const hours=sessTotalHours(s);
-  const perHour=hours>0?fee/hours:null;
   const span=sessWeekSpan(s);
   const cells=[
     {v:fmt(fee),l:'Total pay',sub:meetings.length>1?fmt(fee/meetings.length)+' per class':''},
@@ -577,8 +576,7 @@ function heroStripHTML(s,fee){
       if(meetings.length<2)return'total';
       const lens=new Set(meetings.map(m=>meetingMinutes(s,m.time)));
       return fmtHours(hours/meetings.length)+(lens.size===1?' each':' average');
-    })()},
-    perHour?{v:fmt(Math.round(perHour))+'/hr',l:'Effective rate',sub:'teaching time only'}:null
+    })()}
   ].filter(Boolean);
   return`<div class="hero-strip">${cells.map(c=>`
     <div class="hero-cell"><div class="hero-v">${c.v}</div><div class="hero-l">${c.l}</div>${c.sub?`<div class="hero-s">${escapeHtml(c.sub)}</div>`:''}</div>`).join('')}</div>`;
@@ -598,7 +596,7 @@ function fitChecksHTML(s,idx){
   }
   const hist=myHistory(s);
   if(hist.course>0)rows.push({t:'good',ic:'✓',x:`You have taught <strong>${escapeHtml(s.course)}</strong> ${hist.course} time${hist.course!==1?'s':''} before`});
-  else rows.push({t:'info',ic:'📘',x:`First time teaching <strong>${escapeHtml(s.course)}</strong> — the Instructor guide tab walks through it, and materials come with a lesson plan`});
+  else rows.push({t:'info',ic:'📘',x:`First time teaching <strong>${escapeHtml(s.course)}</strong> — see the Instructor guide tab to prepare`});
   if(hist.venue>0)rows.push({t:'good',ic:'📍',x:`You have taught at <strong>${escapeHtml(s.location)}</strong> before — you know the drill`});
   const en=enrollment(s);
   if(!s.isCustomJob&&en.cap){
@@ -708,7 +706,7 @@ function locationHTML(s,showPrivate,priv,mapLink){
 function notesHTML(s){
   const n=(s.notes||'').trim();
   if(!n)return'';
-  return`<div class="jc-section"><div class="jc-section-t">Notes from Lindsay</div>
+  return`<div class="jc-section"><div class="jc-section-t">Notes</div>
     <div class="notes-box">${escapeHtml(n).replace(/\n/g,'<br>')}</div></div>`;
 }
 // "Good to know": the admin's instructor-facing job details, plus what the course needs.
