@@ -2699,6 +2699,7 @@ function renderEditDates(){
       <input type="text" value="${(d.time||'').replace(/"/g,'&quot;')}" placeholder="e.g. 4:00 PM – 6:30 PM" oninput="_editDays[${i}].time=this.value" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white">
       <button type="button" class="btn sm" onclick="removeEditDate(${i})" title="Remove this day">✕</button>
     </div>`).join(''):'<div style="font-size:11px;color:var(--muted)">This class meets once. Use “+ Add another day” for courses that meet on more than one day (e.g. Safe Sitter split over two afternoons).</div>';
+  renderSeriesWarning();
 }
 function addEditDate(){
   // Pre-fill the new day's time with the main class time — multi-day courses
@@ -2707,6 +2708,20 @@ function addEditDate(){
   _editDays.push({date:'',time:mainTime});renderEditDates();
 }
 function removeEditDate(i){_editDays.splice(i,1);renderEditDates();}
+
+// A course whose name says "series" / "8 week" but which has no additional class days
+// is almost always a series whose dates were never entered. Instructors then see
+// "1 class" on the job board and the pay-per-class and calendar export are wrong, so
+// flag it right where the days are added.
+function renderSeriesWarning(){
+  const box=document.getElementById('series-warning');if(!box)return;
+  const sel=document.getElementById('m-course')||document.getElementById('cj-title');
+  const name=(sel&&sel.value)||'';
+  const looksSeries=/series|week|multi/i.test(name);
+  const show=looksSeries&&_editDays.filter(d=>d&&d.date).length===0;
+  box.style.display=show?'block':'none';
+  if(show)box.innerHTML='⚠️ <strong>This looks like a multi-week series but only one class day is set.</strong> Add every meeting date above — instructors otherwise see “1 class” on the job board, and the per-class pay, calendar export and conflict checks are all worked out from these dates.';
+}
 
 // ── Closures / no-class dates (school breaks, holidays) ──────────────────────
 // A weekly series often skips a week. Those weeks are simply absent from the class
@@ -2725,6 +2740,39 @@ function renderEditClosures(){
     </div>`).join(''):'<div style="font-size:11px;color:var(--muted)">No closures. Add the weeks this series skips (school breaks, holidays) so instructors see exactly which weeks are off.</div>';
 }
 function addEditClosure(){_editClosures.push({date:'',reason:''});renderEditClosures();}
+
+// Turn the "recurring" pattern on a custom job into an actual list of class dates.
+// Ticking "recurring" alone only stored a pattern and an end date, which nothing ever
+// expanded — so the job board showed one class for an eight-week club. This fills in
+// every meeting between the first date and the last so the schedule is real data.
+function generateCustomDates(){
+  const startEl=document.getElementById('cj-date');
+  const start=startEl?startEl.value:'';
+  if(!start){alert('Please set the first date at the top of the form first.');return;}
+  const on=document.getElementById('cj-recur')&&document.getElementById('cj-recur').checked;
+  const endEl=document.getElementById('cj-recur-end');
+  const end=endEl?endEl.value:'';
+  if(!on||!end){alert('Tick “This is a recurring job”, choose how often it repeats, and set the last meeting date — then press this button.');return;}
+  if(end<=start){alert('The last meeting date must be after the first date.');return;}
+  const pattern=(document.getElementById('cj-recur-pattern')||{}).value||'weekly';
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const endD=new Date(end+'T12:00:00');
+  const time=((document.getElementById('cj-time')||{}).value||'').trim();
+  const have=new Set([start,..._editDays.map(d=>d.date).filter(Boolean)]);
+  const out=[];
+  let cur=new Date(start+'T12:00:00'),guard=0;
+  while(guard++<400){
+    if(pattern==='monthly')cur.setMonth(cur.getMonth()+1);
+    else cur.setDate(cur.getDate()+(pattern==='biweekly'?14:7));
+    if(cur>endD)break;
+    const d=iso(cur);
+    if(!have.has(d)){out.push({date:d,time});have.add(d);}
+  }
+  if(!out.length){alert('No additional dates to add — every meeting in that range is already listed.');return;}
+  _editDays=_editDays.concat(out).sort((a,b)=>(a.date||'')<(b.date||'')?-1:1);
+  renderEditDates();
+  showToast('Added '+out.length+' class date'+(out.length!==1?'s':'')+'. Add any closures below, then save.');
+}
 function removeEditClosure(i){_editClosures.splice(i,1);renderEditClosures();}
 // Suggest closures automatically: for a weekly series, any missing week between the
 // first and last class day is almost certainly a break. One click fills them in and
@@ -2795,6 +2843,7 @@ function openAddSession(){
         <button type="button" class="btn sm" onclick="addEditDate()">+ Add another day</button>
       </div>
       <div id="extra-dates-list"></div>
+      <div id="series-warning" style="display:none;margin-top:8px;padding:9px 11px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:12px;line-height:1.5"></div>
     </div>
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
@@ -2876,7 +2925,8 @@ function openAddSession(){
         <span id="m-instr-pay-preview" style="font-size:12px;font-weight:500"></span>
       </div>
     </div>
-    <div class="fg full"><label>Notes <span style="font-weight:400;color:var(--muted)">(internal — not shown to instructors)</span></label><input type="text" id="m-notes" placeholder="Optional"></div>
+    <div class="fg full"><label>Notes <span style="font-weight:400;color:var(--muted)">(shown to instructors on the job board)</span></label>
+      <textarea id="m-notes" rows="3" placeholder="Optional — e.g. the week-by-week dates of a series" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
     <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px">
       <label style="margin-bottom:6px">Job details for instructors <span style="font-weight:400;color:var(--muted)">(optional — shown on the job board)</span></label>
       <textarea id="m-instrinfo" rows="3" placeholder="e.g. Park in the north lot and check in at the front desk. Room 204. Tables and a projector are provided; bring your own laptop. Dress: business casual." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea>
@@ -2917,6 +2967,7 @@ function openAddSession(){
       toggleVirtualFields(vSel.value);
     }
     updateRnNotice();
+    renderSeriesWarning();
   });
   updateMaxHint();
   updatePricePreview();
@@ -2931,6 +2982,7 @@ function openAddSession(){
 // post to the instructor board for someone to claim. It has a flat total pay,
 // no student registrations, and no course affiliation.
 function openAddCustomJob(){
+  _editDays=[];_editClosures=[];
   showModal(`<div class="modal-head"><h3>Add custom job</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Job title *</label><input type="text" id="cj-title" placeholder="e.g. Healthy Kids 5K Volunteer, Community Fair Booth"></div>
@@ -2948,6 +3000,28 @@ function openAddCustomJob(){
         </div>
         <div class="fg" style="margin:0"><label>Last meeting date *</label><input type="date" id="cj-recur-end"></div>
       </div>
+    </div>
+    <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <label style="margin-bottom:0">Class dates <span style="font-weight:400;color:var(--muted)">(every day this job meets)</span></label>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn sm" onclick="generateCustomDates()" title="Fill in every date from the recurring pattern above">📅 Fill from pattern</button>
+          <button type="button" class="btn sm" onclick="addEditDate()">+ Add a day</button>
+        </div>
+      </div>
+      <div id="extra-dates-list"></div>
+      <div id="series-warning" style="display:none;margin-top:8px;padding:9px 11px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:12px;line-height:1.5"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">The date above is day 1. Add the rest here (or tick “recurring” and press “Fill from pattern”) so instructors see the full schedule, the right pay per class, and correct calendar entries.</div>
+    </div>
+    <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <label style="margin-bottom:0">Closures / no-class weeks <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn sm" onclick="suggestClosures()">✨ Find skipped weeks</button>
+          <button type="button" class="btn sm" onclick="addEditClosure()">+ Add closure</button>
+        </div>
+      </div>
+      <div id="closures-list"></div>
     </div>
     <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" placeholder="e.g. Bethesda Community Center"></div>
     <div class="fg full"><label>Street Address</label><input type="text" id="cj-addr" placeholder="e.g. 123 Maple St"></div>
@@ -2987,8 +3061,25 @@ function openAddCustomJob(){
       <input type="text" id="cj-notes" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID"></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCustomJob()">Add job</button></div>`);
+  renderEditDates();renderEditClosures();
   const instrSel=document.getElementById('cj-instr');
   instructors.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=i.name;instrSel.appendChild(o);});
+}
+
+// Class days / closures as they should be written to a custom job. Shared by the add
+// and edit paths so the two can never disagree.
+function customJobDayFields(mainDate){
+  const seen=new Set([mainDate]);
+  const extraDays=_editDays
+    .filter(x=>x&&x.date&&!seen.has(x.date)&&!!seen.add(x.date))
+    .map(x=>({date:x.date,time:(x.time||'').trim()}))
+    .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const seenC=new Set();
+  const closures=_editClosures
+    .filter(x=>x&&x.date&&!seenC.has(x.date)&&!!seenC.add(x.date))
+    .map(x=>({date:x.date,reason:(x.reason||'').trim()}))
+    .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  return{extraDays,extraDates:extraDays.map(x=>x.date),closures};
 }
 
 async function saveCustomJob(){
@@ -3016,7 +3107,7 @@ async function saveCustomJob(){
   }
   const instrEl=document.getElementById('cj-instr');
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
-  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:'',hostPhone:'',code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote()};
+  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:'',hostPhone:'',code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),...customJobDayFields(date)};
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null;
@@ -3038,6 +3129,8 @@ async function saveCustomJob(){
 function openEditCustomJob(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
   const jdi=jobDataCache[s.id]||{};
+  _editDays=JSON.parse(JSON.stringify((s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}))));
+  _editClosures=JSON.parse(JSON.stringify(s.closures||[]));
   showModal(`<div class="modal-head"><h3>Edit custom job</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Job title *</label><input type="text" id="cj-title" value="${s.course||''}"></div>
@@ -3055,6 +3148,28 @@ function openEditCustomJob(id){
         </div>
         <div class="fg" style="margin:0"><label>Last meeting date *</label><input type="date" id="cj-recur-end" value="${s.recurEndDate||''}"></div>
       </div>
+    </div>
+    <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <label style="margin-bottom:0">Class dates <span style="font-weight:400;color:var(--muted)">(every day this job meets)</span></label>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn sm" onclick="generateCustomDates()" title="Fill in every date from the recurring pattern above">📅 Fill from pattern</button>
+          <button type="button" class="btn sm" onclick="addEditDate()">+ Add a day</button>
+        </div>
+      </div>
+      <div id="extra-dates-list"></div>
+      <div id="series-warning" style="display:none;margin-top:8px;padding:9px 11px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:12px;line-height:1.5"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">The date above is day 1. Add the rest here (or tick “recurring” and press “Fill from pattern”) so instructors see the full schedule, the right pay per class, and correct calendar entries.</div>
+    </div>
+    <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <label style="margin-bottom:0">Closures / no-class weeks <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn sm" onclick="suggestClosures()">✨ Find skipped weeks</button>
+          <button type="button" class="btn sm" onclick="addEditClosure()">+ Add closure</button>
+        </div>
+      </div>
+      <div id="closures-list"></div>
     </div>
     <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" value="${s.location||''}"></div>
     <div class="fg full"><label>Street Address</label><input type="text" id="cj-addr" value="${s.hostAddress||''}"></div>
@@ -3094,6 +3209,7 @@ function openEditCustomJob(id){
       <input type="text" id="cj-notes" value="${s.notes||''}" placeholder="e.g. Wear MB shirt, check in at volunteer tent"></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveEditCustomJob('${id}')">Save changes</button></div>`);
+  renderEditDates();renderEditClosures();
   const instrSel=document.getElementById('cj-instr');
   const curInstrId=jdi.instructorId||s.instructorId||'';
   instructors.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=i.name;if(i.id===curInstrId)o.selected=true;instrSel.appendChild(o);});
@@ -3126,7 +3242,7 @@ async function saveEditCustomJob(id){
     code=reissueStaleCode(id,code,_prevDate,date,uniqueCustomJobCode(date,id,title,siteName,isRecurring));
   }
   const prevSnapshot={...s};
-  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote()});
+  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),...customJobDayFields(date)});
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null;
   try{const{error}=await sb.from('sessions').upsert(sessionToDB(s));if(error){saveFailed=true;saveErr=error;}}catch(e){saveFailed=true;saveErr=e;}
@@ -3275,6 +3391,7 @@ function openEditSession(id){
         <button type="button" class="btn sm" onclick="addEditDate()">+ Add another day</button>
       </div>
       <div id="extra-dates-list"></div>
+      <div id="series-warning" style="display:none;margin-top:8px;padding:9px 11px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:12px;line-height:1.5"></div>
     </div>
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
@@ -3356,7 +3473,8 @@ function openEditSession(id){
         <span id="m-instr-pay-preview" style="font-size:12px;font-weight:500"></span>
       </div>
     </div>
-    <div class="fg full"><label>Notes <span style="font-weight:400;color:var(--muted)">(internal — not shown to instructors)</span></label><input type="text" id="m-notes" value="${s.notes||''}"></div>
+    <div class="fg full"><label>Notes <span style="font-weight:400;color:var(--muted)">(shown to instructors on the job board)</span></label>
+      <textarea id="m-notes" rows="3" placeholder="Optional — e.g. the week-by-week dates of a series" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${(s.notes||'').replace(/</g,'&lt;')}</textarea></div>
     <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px">
       <label style="margin-bottom:6px">Job details for instructors <span style="font-weight:400;color:var(--muted)">(optional — shown on the job board)</span></label>
       <textarea id="m-instrinfo" rows="3" placeholder="e.g. Park in the north lot and check in at the front desk. Room 204. Tables and a projector are provided; bring your own laptop." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${(s.instructorInfo||'').replace(/</g,'&lt;')}</textarea>
@@ -3378,8 +3496,9 @@ function openEditSession(id){
   updateInstrPayPreview();
   toggleVirtualFields(s.isVirtual?'yes':'no');
   toggleInstrSelect(s.ownerTaught?'yes':'no');
-  document.getElementById('m-course').addEventListener('change',updateRnNotice);
+  document.getElementById('m-course').addEventListener('change',()=>{updateRnNotice();renderSeriesWarning();});
   updateRnNotice();
+  renderSeriesWarning();
 }
 
 async function saveSession(editId){

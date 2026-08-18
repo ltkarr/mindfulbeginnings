@@ -8,8 +8,11 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<!-- Shared course data / pricing / caps / promos. Must load before the inline script below. -->
-<script src="/config.js"></script>
+<!-- Course data for the job board. This page deliberately loads config-instructor.js
+     rather than config.js: instructors can view any file their portal downloads, and
+     config.js carries prices, material costs and promo codes. Keep business data OUT
+     of config-instructor.js. If the file is missing, the built-in table below is used. -->
+<script src="/config-instructor.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -51,6 +54,8 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .jc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .jc-course{font-weight:500;font-size:15px}
 .jc-meta{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.jc-when{font-size:13px;font-weight:500;color:var(--navy);margin-top:4px;line-height:1.45}
+.jc-when .jc-when-off{color:var(--warn);font-weight:500}
 .jc-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px}
 .jc-detail{background:var(--cream);border-radius:var(--r-sm);padding:10px 12px}
 .jc-detail-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:3px}
@@ -133,6 +138,7 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .wh[open] summary:before{content:'▾ '}
 .wh ul{margin:0;padding:0 16px 12px 32px;font-size:12px;color:var(--muted);line-height:1.65}
 .wh li{margin-bottom:4px}
+.notes-box{font-size:13px;line-height:1.65;background:var(--sky-l);border:1px solid #b8d8ee;border-radius:var(--r-sm);padding:11px 13px;color:#1a5c8a;white-space:normal;overflow-wrap:anywhere}
 
 .info-label{color:var(--muted)}
 @media(max-width:520px){
@@ -249,7 +255,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -267,18 +273,19 @@ function jobToDB(sessId,j){
 // preserved. Keep these in sync with config.js.
 if(typeof COURSES==='undefined'){
   window.COURSES={
-    'Safe Sitter®':{hours:5, requiresSafeSitter:true},
-    'Intro to Babysitting':{hours:1},
-    'Safe@Home':{hours:1.5},
-    'Safe@Home — Series':{hours:1},
-    'Grandparents: Getting Started':{hours:3, requiresSafeSitter:true},
-    'All Kids Welcome':{hours:1.5, instrFlatFee:75, virtual:true},
-    'Stay Ready: Choking Rescue and CPR':{hours:1, instrFlatFee:100, requiresRN:true},
-    'Campus Ready: Safety Skills for College Life':{hours:1, instrFlatFee:100, requiresRN:true},
-    'Steady and Ready':{hours:1.5},
-    'My First Babysitters Club':{hours:1}
+    'Safe Sitter®':{hours:5, maxStudents:16, requiresSafeSitter:true},
+    'Intro to Babysitting':{hours:1, maxStudents:20},
+    'Safe@Home':{hours:1.5, maxStudents:16},
+    'Safe@Home — Series':{hours:1, maxStudents:16},
+    'Safe@Home — Virtual':{hours:1, maxStudents:16, instrFlatFee:75, virtual:true},
+    'Grandparents: Getting Started':{hours:3, maxStudents:16, requiresSafeSitter:true},
+    'All Kids Welcome':{hours:1.5, maxStudents:20, instrFlatFee:75, virtual:true},
+    'Stay Ready: Choking Rescue and CPR':{hours:1.5, maxStudents:12, requiresRN:true},
+    'Campus Ready: Safety Skills for College Life':{hours:1, maxStudents:12, instrFlatFee:100, requiresRN:true},
+    'Steady and Ready':{hours:1.5, maxStudents:8},
+    'My First Babysitters Club':{hours:1, maxStudents:12}
   };
-  console.warn('config.js did not define COURSES — using built-in fallback. Check that /config.js is deploying correctly.');
+  console.warn('config-instructor.js did not define COURSES — using built-in fallback. Check that /config-instructor.js is deploying correctly.');
 }
 // SAFETY PATCH: credential filtering depends on requiresRN / requiresSafeSitter flags.
 // If config.js loaded but predates those flags (or they get dropped in a future edit),
@@ -357,9 +364,30 @@ function countRegs(sessId){return regCountMap[sessId]||0;}
 // ─── CLASS SCHEDULE HELPERS ──────────────────────────────────
 // Every meeting day of a session as [{date,time}], first day first. Days added by the
 // admin can carry their own time; a blank one inherits the main class time.
+// Older custom jobs were saved with only a recurring pattern ("weekly until Nov 3") and
+// no actual dates, which made an eight-week club look like a single class. When a job has
+// a pattern but no explicit days, work the dates out from the pattern so the schedule,
+// pay-per-class and calendar export are right without the job having to be re-entered.
+function recurringMeetings(s){
+  if(!s||!s.isRecurring||!s.date||!s.recurEndDate)return[];
+  if(s.recurEndDate<=s.date)return[];
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const end=new Date(s.recurEndDate+'T12:00:00');
+  const pattern=s.recurPattern||'weekly';
+  const out=[];
+  let cur=new Date(s.date+'T12:00:00'),guard=0;
+  while(guard++<400){
+    if(pattern==='monthly')cur.setMonth(cur.getMonth()+1);
+    else cur.setDate(cur.getDate()+(pattern==='biweekly'?14:7));
+    if(cur>end)break;
+    out.push({date:iso(cur),time:''});
+  }
+  return out;
+}
 function sessMeetings(s){
   if(!s||!s.date)return[];
-  const extras=(s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}));
+  let extras=(s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}));
+  if(!extras.length)extras=recurringMeetings(s);
   const seen=new Set();
   return[{date:s.date,time:s.time||''},...extras.map(x=>({date:(x&&x.date)||'',time:(x&&x.time)||''}))]
     .filter(x=>x.date&&!seen.has(x.date)&&!!seen.add(x.date))
@@ -604,6 +632,22 @@ function whatHappensHTML(s){
     <ul>${items.map(i=>'<li>'+i+'</li>').join('')}</ul></details>`;
 }
 
+// The schedule line that sits directly under the job title. For a series this is the
+// most important sentence on the card, so it is styled as content rather than metadata.
+function whenLineHTML(s){
+  const m=sessMeetings(s);
+  if(!m.length)return'';
+  const closed=sessClosures(s).length;
+  const pat=sessWeekdayPattern(s);
+  const time=sessTimeSummary(s);
+  let main;
+  if(m.length===1){
+    main=fmtDate(m[0].date)+(time&&time!=='TBD'?' · '+time:'');
+  }else{
+    main=m.length+' classes · '+sessRangeLabel(s)+(pat?' · '+pat:'')+(time&&time!=='TBD'?' · '+time:'');
+  }
+  return`<div class="jc-when">${escapeHtml(main)}${closed?` <span class="jc-when-off">· ${closed} week${closed!==1?'s':''} off</span>`:''}</div>`;
+}
 // Day-by-day schedule table: numbered class days interleaved with closures in date order.
 function scheduleHTML(s){
   const meetings=sessMeetings(s);
@@ -659,6 +703,14 @@ function locationHTML(s,showPrivate,priv,mapLink){
   }
   return`<div class="jc-section"><div class="jc-section-t">${s.isVirtual?'Format':'Where'}</div><div style="font-size:13px;line-height:1.7">${lines.join('')}</div></div>`;
 }
+// Lindsay's notes on the session, shown to instructors verbatim. This is often where
+// the week-by-week dates of a series are written out, so it sits high on the card.
+function notesHTML(s){
+  const n=(s.notes||'').trim();
+  if(!n)return'';
+  return`<div class="jc-section"><div class="jc-section-t">Notes from Lindsay</div>
+    <div class="notes-box">${escapeHtml(n).replace(/\n/g,'<br>')}</div></div>`;
+}
 // "Good to know": the admin's instructor-facing job details, plus what the course needs.
 function goodToKnowHTML(s){
   const c=COURSES[s.course]||{};
@@ -669,7 +721,7 @@ function goodToKnowHTML(s){
   if(c.requiresSafeSitter)facts.push('Requires <strong>Safe Sitter® training</strong>');
   if(!s.isCustomJob){
     const cap=s.maxStudentsOverride||c.maxStudents;
-    if(cap)facts.push(`Class capacity: <strong>${cap} students</strong>`);
+    if(cap)facts.push(`Class capacity: <strong>${cap} students</strong>${s.maxStudentsOverride?' (set for this class)':''}`);
   }
   if(s.secondInstructorId)facts.push('A <strong>second instructor</strong> is assigned to this class');
   if(!bits.length&&!facts.length)return'';
@@ -746,10 +798,10 @@ async function loadData(){
   // contact_name, wifi_info and zoom_link: this table is read with the anon key, so
   // anything listed here is effectively public. Those private site details are fetched
   // per-job through the instructor_session_private RPC once a job is accepted.
-  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,extra_days,closures,instructor_info';
+  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,extra_days,closures,instructor_info';
   // Fallback tier: drops only the newest columns (extra_days / closures / instructor_info),
   // so a database that has not run the latest SQL still gets everything else.
-  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,instructor_id,notes,instr_pay_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates';
+  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date';
   let[s,j,r]=await Promise.all([
     sb.from('sessions').select(SESSION_COLS_FULL),
     sb.from('job_data').select('*'),
@@ -989,9 +1041,10 @@ function renderOpen(){
     const mapQ=encodeURIComponent([s.location,s.city,s.state,s.zip].filter(Boolean).join(', '));
     const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:12px;color:var(--sky)">View on map ↗</a>`:'';
     return`<div class="job-card">
-      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div><div class="jc-meta">${escapeHtml(sessHeadline(s))}</div></div>${pill}</div>
+      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>${pill}</div>
       ${heroStripHTML(s,fee)}
       ${fitChecksHTML(s,idx)}
+      ${notesHTML(s)}
       ${scheduleHTML(s)}
       ${locationHTML(s,false,null,mapLink)}
       ${goodToKnowHTML(s)}
@@ -1168,7 +1221,7 @@ function renderMyJobs(){
     const mapQ=encodeURIComponent([(priv0&&priv0.hostAddress)||'',s.location,s.city,s.state,s.zip].filter(Boolean).join(', '));
     const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:12px;color:var(--sky)">Directions ↗</a>`:'';
     return`<div class="job-card">
-      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div><div class="jc-meta">${escapeHtml(sessHeadline(s))} · ${escapeHtml(sessTimeSummary(s))}</div></div>
+      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>
       <span class="pill ${upcoming?'pill-accepted':'pill-taken'}">${upcoming?'Upcoming':'Completed'}</span></div>
       ${upcoming?heroStripHTML(s,fee):`<div class="jc-details">
         <div class="jc-detail"><div class="jc-detail-label">Time</div><div class="jc-detail-val">${escapeHtml(sessTimeSummary(s))}</div></div>
@@ -1181,6 +1234,7 @@ function renderMyJobs(){
       </div>`}
       ${bonus>0?`<div style="font-size:11px;color:var(--muted);margin:-6px 0 12px">Earnings include a referral bonus of ${fmt(bonus)} on top of the ${fmt(baseFee)} base fee.</div>`:''}
       ${dblBooked}
+      ${notesHTML(s)}
       ${scheduleHTML(s)}
       ${locationHTML(s,true,privCache[s.id],mapLink)}
       ${goodToKnowHTML(s)}

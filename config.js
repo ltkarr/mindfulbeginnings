@@ -1,6 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════════
    MINDFUL BEGINNINGS — SHARED CONFIG (config.js)
    Updated August 2026 · program-guide pricing + Safe@Home — Series
+   Aug 17 2026 · Safe Sitter® and Grandparents caps raised 8 → 16 to match admin.html
    ════════════════════════════════════════════════════════════════════════
 
    Loaded by register.html and instructor.html. This file is the single
@@ -33,7 +34,7 @@
      requiresSafeSitter → only Safe Sitter® certified instructors see these jobs
      requiresRN         → only Registered Nurse instructors see these jobs   */
 const COURSES={
-  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:8,requiresSafeSitter:true},
+  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true},
   'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20},
   'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16},
   // Program guide (Aug 2026): Safe@Home is $65 as a 90-minute single session,
@@ -44,7 +45,7 @@ const COURSES={
   // Schedule it under this course so register.html shows the virtual price automatically.
   // Still tick "Virtual session" on the session itself so families get the Zoom link.
   'Safe@Home — Virtual':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:10,hours:1,instrFlatFee:75,maxStudents:16,virtual:true},
-  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:8,requiresSafeSitter:true},
+  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true},
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true},
   'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true},
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true},
@@ -120,12 +121,12 @@ function getPriceForSession(course,dateStr){
    Per-course registration caps used by register.html (a per-session
    max-students override, set in the admin, wins over these).               */
 const MAX_STUDENTS={
-  'Safe Sitter®':8,
+  'Safe Sitter®':16,
   'Intro to Babysitting':20,
   'Safe@Home':16,
   'Safe@Home — Virtual':16,
   'Safe@Home — Series':16,
-  'Grandparents: Getting Started':8,
+  'Grandparents: Getting Started':16,
   'All Kids Welcome':20,
   'Stay Ready: Choking Rescue and CPR':12,
   'Campus Ready: Safety Skills for College Life':12,
