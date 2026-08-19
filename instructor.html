@@ -170,7 +170,7 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
   <div class="tabs">
     <div class="tab active" onclick="showTab('open',this)">Open jobs</div>
     <div class="tab" onclick="showTab('myjobs',this)">My jobs</div>
-    <div class="tab" onclick="showTab('guide',this)">📖 Instructor guide</div>
+    <div class="tab" onclick="showTab('guide',this)">📖 Instructor FAQs</div>
     <div class="tab" onclick="showTab('myprofile',this)">My profile</div>
     <div class="tab" onclick="showTab('contract',this)">📋 Contract</div>
     <div class="tab" onclick="showTab('w9',this)">📄 W-9</div>
@@ -202,8 +202,8 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
       <div id="myprofile-content"></div>
     </div>
     <div class="screen" id="tab-guide">
-      <div class="section-title">Instructor guide</div>
-      <div class="section-sub">Your reference for preparing and teaching a Mindful Beginnings course. View it online or download a PDF to keep on hand.</div>
+      <div class="section-title">Instructor FAQs</div>
+      <div class="section-sub">Your reference for preparing and teaching a Mindful Beginnings course. Open the folder to read or download any of the materials.</div>
       <div id="guide-content"></div>
     </div>
     <div class="screen" id="tab-contract">
@@ -596,7 +596,7 @@ function fitChecksHTML(s,idx){
   }
   const hist=myHistory(s);
   if(hist.course>0)rows.push({t:'good',ic:'✓',x:`You have taught <strong>${escapeHtml(s.course)}</strong> ${hist.course} time${hist.course!==1?'s':''} before`});
-  else rows.push({t:'info',ic:'📘',x:`First time teaching <strong>${escapeHtml(s.course)}</strong> — see the Instructor guide tab to prepare`});
+  else rows.push({t:'info',ic:'📘',x:`First time teaching <strong>${escapeHtml(s.course)}</strong> — see the Instructor FAQs tab to prepare`});
   if(hist.venue>0)rows.push({t:'good',ic:'📍',x:`You have taught at <strong>${escapeHtml(s.location)}</strong> before — you know the drill`});
   const en=enrollment(s);
   if(!s.isCustomJob&&en.cap){
@@ -2038,21 +2038,18 @@ async function signContract(){
 }
 
 // ─── INSTRUCTOR GUIDE ────────────────────────────────────────
-const GUIDE_DOC_ID='1yHHnKa1_5LOV9Sk4JHrMKBqK65JB2LR9yXdPiycuYEY';
-const GUIDE_VIEW_URL='https://docs.google.com/document/d/'+GUIDE_DOC_ID+'/edit?tab=t.0';
-const GUIDE_PDF_URL='https://docs.google.com/document/d/'+GUIDE_DOC_ID+'/export?format=pdf';
+const GUIDE_VIEW_URL='https://drive.google.com/drive/folders/1Ud6FlZlitf3KndxPnij6p5BIPjv9vZSF?usp=drive_link';
 
 function renderGuide(){
   const el=document.getElementById('guide-content');
   el.innerHTML=`
     <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Mindful Beginnings instructor guide</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:18px">Covers preparing before you teach, picking up materials, course delivery and pacing, CPR manikins, AV equipment and WiFi, teaching a virtual class, and ID badges. Please review it before your first session.</div>
+      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Mindful Beginnings instructor FAQs</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px">Covers preparing before you teach, picking up materials, course delivery and pacing, CPR manikins, AV equipment and WiFi, teaching a virtual class, and ID badges. Please review before your first session.</div>
       <div style="display:flex;flex-wrap:wrap;gap:10px">
-        <a href="${GUIDE_VIEW_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">📖 View guide online</a>
-        <a href="${GUIDE_PDF_URL}" target="_blank" rel="noopener" class="btn" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">⬇️ Download as PDF</a>
+        <a href="${GUIDE_VIEW_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">📖 Open instructor FAQs</a>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px">The PDF opens in a new tab and saves to your device. The online version always shows the latest updates.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px">Opens in a new tab. The folder always shows the latest materials — open any file to read it online or download a copy.</div>
     </div>`;
 }
 
