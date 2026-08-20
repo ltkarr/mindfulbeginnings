@@ -746,7 +746,7 @@ async function doLogin(){
       btn.disabled=false;btn.textContent='Sign in';return;
     }
     // Keep the PIN client-side so we can authorize subsequent operations. It is also the password the user just typed; we are not learning anything they don't already know.
-    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||''};
+    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||''};
     // Safe Sitter® credential: if the instructor_login function predates the
     // safe_sitter_certified column and did not return it, fetch it via a small
     // helper RPC (created by the setup SQL). If that RPC does not exist either,
@@ -897,8 +897,13 @@ function showTab(name,el){
 }
 
 // ─── JOB BOARDS (helpers) ────────────────────────────────────
+// The headshot step is satisfied by an uploaded file (headshotPath). headshotCompleted
+// is still honoured so instructors who ticked the old "mark as complete" button — back
+// when headshots were booked through a photographer — are not locked out of the job
+// board retroactively. It is also set alongside the path on every new upload, so the
+// admin's own onboarding check keeps working with no change.
 function isOnboardingComplete(){
-  return !!(me.contractSigned && me.w9Submitted && me.cprCertPath && me.licensePath && me.headshotCompleted);
+  return !!(me.contractSigned && me.w9Submitted && me.cprCertPath && me.licensePath && (me.headshotPath || me.headshotCompleted));
 }
 // ── COURSE ELIGIBILITY ──────────────────────────────────────
 // Which jobs an instructor can see and accept, by credential tier:
@@ -946,7 +951,7 @@ function renderOnboardingGate(el){
     {label:'Submit your W-9 form',done:!!me.w9Submitted,tab:'w9'},
     {label:'Upload your CPR certification',done:!!me.cprCertPath,tab:'myprofile'},
     {label:'Upload your driver\'s license / ID',done:!!me.licensePath,tab:'myprofile'},
-    {label:'Complete your headshot photo for the website',done:!!me.headshotCompleted,tab:'myprofile'},
+    {label:'Upload your headshot photo for the website',done:!!(me.headshotPath||me.headshotCompleted),tab:'myprofile'},
   ];
   const list=steps.map(s=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--border)">
@@ -1254,8 +1259,8 @@ async function renderMyProfile(){
   el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px">Loading...</div>';
 
   // Get signed URLs for existing docs
-  const[cprUrl,licUrl]=await Promise.all([
-    getSignedUrl(me.cprCertPath),getSignedUrl(me.licensePath)
+  const[cprUrl,licUrl,headshotUrl]=await Promise.all([
+    getSignedUrl(me.cprCertPath),getSignedUrl(me.licensePath),getSignedUrl(me.headshotPath)
   ]);
 
   el.innerHTML=`
@@ -1281,10 +1286,29 @@ async function renderMyProfile(){
 
       <div>
         <div style="font-size:13px;font-weight:500;margin-bottom:6px">📸 Headshot photo for the website</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">You will receive a registration link from Headshot Photo to schedule and complete your headshot. Once your photo is taken, mark this step as complete.</div>
-        ${me.headshotCompleted
-          ?`<div style="display:flex;align-items:center;gap:8px"><span class="pill pill-accepted">✓ Headshot completed</span><button class="btn sm" onclick="unmarkHeadshot()">Undo</button></div>`
-          :`<button class="btn primary" onclick="markHeadshotComplete()">Mark headshot as complete</button>`}
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">
+          Upload a professional headshot here — it's used on your instructor profile on the Mindful Beginnings website.
+          Please use a clear, well-lit photo of your face and shoulders against a simple background.
+          Don't have one? We recommend <a href="https://www.dreamwave.ai/" target="_blank" rel="noopener noreferrer" style="color:var(--sky);font-weight:500">dreamwave.ai</a>,
+          which turns a selfie into studio-quality headshots in about an hour. It's optional — any professional photo works.
+        </div>
+        ${headshotUrl
+          ?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <img src="${headshotUrl}" alt="Your headshot" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--border)">
+              <span class="tag paid">✓ Uploaded</span>
+              <a href="${headshotUrl}" target="_blank" class="btn sm">View</a>
+              <button class="btn sm" onclick="triggerUpload('headshot')">Replace</button>
+            </div>`
+          :me.headshotCompleted
+            /* Marked complete under the old photographer-scheduled process. The step is
+               already satisfied, but we still invite them to upload the actual file. */
+            ?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span class="pill pill-accepted">✓ Marked complete</span>
+                <button class="btn sm" onclick="triggerUpload('headshot')">Upload your photo</button>
+                <span style="font-size:12px;color:var(--muted)">We don't have the file yet — please upload it when you can.</span>
+              </div>`
+            :`<button class="btn primary" onclick="triggerUpload('headshot')">Upload headshot</button>`}
+        <input type="file" id="upload-headshot" style="display:none" accept=".jpg,.jpeg,.png,.webp" onchange="handleUpload(this,'headshot')">
       </div>
     </div>
 
@@ -1314,20 +1338,54 @@ async function getSignedUrl(path){
   }catch(e){return null;}
 }
 
+// Where each upload type is recorded: [in-memory field on `me`, database column].
+const UPLOAD_FIELDS={
+  resume:  ['resumePath',  'resume_path'],
+  cpr:     ['cprCertPath', 'cpr_cert_path'],
+  license: ['licensePath', 'license_path'],
+  headshot:['headshotPath','headshot_path'],
+};
+
+// headshot_path is newer than the rest of the instructors table. Set to false the
+// first time a write fails because the column is missing, so we stop retrying it.
+// (Run in the Supabase SQL editor to enable it:
+//   alter table instructors add column if not exists headshot_path text;
+let HEADSHOT_PATH_COL=true;
+function isMissingColumnError(e){
+  const msg=(e&&(e.message||e.details||e.hint)||'')+'';
+  return e&&e.code==='42703' || /headshot_path/i.test(msg) && /(does not exist|unknown|column)/i.test(msg);
+}
+
 async function handleUpload(input,type){
   const file=input.files[0];if(!file)return;
-  const ext=file.name.split('.').pop();
+  const map=UPLOAD_FIELDS[type];
+  if(!map){console.error('Unknown upload type:',type);return;}
+  const[field,dbField]=map;
+  const ext=(file.name.split('.').pop()||'').toLowerCase();
   const path=`${me.id}/${type}.${ext}`;
   showToast('Uploading...');
   try{
     const{error}=await sb.storage.from('instructor-docs').upload(path,file,{upsert:true});
     if(error)throw error;
-    // Save path to instructor record — and verify it actually saved
-    const field=type==='resume'?'resumePath':type==='cpr'?'cprCertPath':'licensePath';
-    const dbField=type==='resume'?'resume_path':type==='cpr'?'cpr_cert_path':'license_path';
-    const{error:saveErr}=await sb.rpc('instructor_update_self',{p_pin:me.pin,p_changes:{[dbField]:path}});
+    // Save path to instructor record — and verify it actually saved. A headshot also
+    // flips headshot_completed, which is what the admin's onboarding check reads.
+    const changes=(type==='headshot')
+      ?(HEADSHOT_PATH_COL?{[dbField]:path,headshot_completed:true}:{headshot_completed:true})
+      :{[dbField]:path};
+    let{error:saveErr}=await sb.rpc('instructor_update_self',{p_pin:me.pin,p_changes:changes});
+    // If the database has not had headshot_path added yet, record just the completion
+    // flag rather than leaving the instructor stuck on this step. The file itself is
+    // already safely in storage, and admin.html finds it by probing the known path.
+    if(saveErr&&type==='headshot'&&HEADSHOT_PATH_COL&&isMissingColumnError(saveErr)){
+      HEADSHOT_PATH_COL=false;
+      console.warn('headshot_path column missing. Headshot uploaded to storage and marked complete. To store the path, run:\n  alter table instructors add column if not exists headshot_path text;');
+      const retry=await sb.rpc('instructor_update_self',{p_pin:me.pin,p_changes:{headshot_completed:true}});
+      saveErr=retry.error||null;
+    }
     if(saveErr)throw saveErr;
+    // Track the path in memory either way so the uploaded photo previews immediately.
     me[field]=path;
+    if(type==='headshot')me.headshotCompleted=true;
     showToast('✓ Uploaded successfully!');
     renderMyProfile();
     checkAndNotifyOnboardingComplete();
@@ -1336,42 +1394,6 @@ async function handleUpload(input,type){
   }catch(e){
     console.error(e);showToast('Upload failed. Please try again.');
   }
-}
-
-async function markHeadshotComplete(){
-  let saveError=null;
-  try{
-    const{error}=await sb.rpc('instructor_update_self',{p_pin:me.pin,p_changes:{headshot_completed:true}});
-    if(error)saveError=error;
-  }catch(e){saveError=e;}
-  if(saveError){
-    console.error('Could not save headshot_completed to DB:',saveError);
-    showToast('⚠ Could not save — please tell Lindsay. ('+(saveError.message||'database error')+')');
-    return;
-  }
-  me.headshotCompleted=true;
-  showToast('✓ Headshot marked as complete!');
-  renderMyProfile();
-  checkAndNotifyOnboardingComplete();
-  refreshJobViews();
-}
-
-async function unmarkHeadshot(){
-  if(!confirm('Mark your headshot as not yet complete?'))return;
-  let saveError=null;
-  try{
-    const{error}=await sb.rpc('instructor_update_self',{p_pin:me.pin,p_changes:{headshot_completed:false}});
-    if(error)saveError=error;
-  }catch(e){saveError=e;}
-  if(saveError){
-    console.error('Could not save headshot_completed to DB:',saveError);
-    showToast('⚠ Could not save — please tell Lindsay. ('+(saveError.message||'database error')+')');
-    return;
-  }
-  me.headshotCompleted=false;
-  showToast('Headshot marked as not complete.');
-  renderMyProfile();
-  refreshJobViews();
 }
 
 function downloadIncomeSummary(){
@@ -1757,24 +1779,52 @@ function renderContract(){
     </div>`;
 }
 
-// Four agreement versions exist. Which one a contractor sees and signs is set
+// Five agreement versions exist. Which one a contractor sees and signs is set
 // per-person in the admin (contract_type) when they are hired:
-//   'standard'    → Safe Sitter® instructor agreement
-//   'proprietary' → RN agreement covering Campus Ready / Stay Ready (no 4-course
-//                   minimum or $500 training reimbursement)
-//   'mb_courses'  → Instructor agreement for Mindful Beginnings' own courses
-//                   (Safe@Home, Intro to Babysitting, My First Babysitters Club,
-//                   All Kids Welcome, Steady & Ready) — not Safe Sitter® affiliated
-//   'curriculum'  → Curriculum Specialist agreement (content creation/editing,
-//                   work-made-for-hire, per-project approved hours — not teaching)
+//   'standard'         → Safe Sitter® instructor agreement
+//   'proprietary'      → RN agreement covering Campus Ready / Stay Ready (no 4-course
+//                        minimum or $500 training reimbursement)
+//   'mb_courses'       → ORIGINAL instructor agreement for Mindful Beginnings' own
+//                        courses. Superseded by 'mb_courses_2026' for new hires, but
+//                        kept here permanently so anyone who already signed it still
+//                        sees and prints the exact wording they agreed to. Do not
+//                        edit this version's text.
+//   'mb_courses_2026'  → CURRENT instructor agreement for Mindful Beginnings' own
+//                        courses (Safe@Home, Intro to Babysitting, My First
+//                        Babysitters Club, All Kids Welcome, Steady & Ready) — not
+//                        Safe Sitter® affiliated. Adds the definition of a "course"
+//                        as the full multi-session series, the Hourly vs Flat Rate
+//                        structure (§5.1), payment only on Course Completion with no
+//                        partial or per-session pay (§5.2), and the 48-hour materials
+//                        return window.
+//   'curriculum'       → Curriculum Specialist agreement (content creation/editing,
+//                        work-made-for-hire, per-project approved hours — not teaching)
 function contractHTML(sigName, sigDate){
   const t=me&&me.contractType;
   if(t==='proprietary')return proprietaryContractHTML(sigName,sigDate);
   if(t==='mb_courses')return mbCoursesContractHTML(sigName,sigDate);
+  if(t==='mb_courses_2026')return mbCourses2026ContractHTML(sigName,sigDate);
   if(t==='curriculum')return curriculumContractHTML(sigName,sigDate);
   return standardContractHTML(sigName,sigDate);
 }
 
+// Spells a whole-dollar rate the way the agreements word it — 50 becomes
+// "fifty dollars ($50)". Amounts that don't spell cleanly fall back to the
+// numeral alone so the sentence still reads correctly.
+function spellDollars(n){
+  n=Number(n)||0;
+  const ones=['zero','one','two','three','four','five','six','seven','eight','nine','ten',
+    'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+  const tens=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+  let w='';
+  if(Number.isInteger(n)&&n>0&&n<100)w=n<20?ones[n]:tens[Math.floor(n/10)]+(n%10?'-'+ones[n%10]:'');
+  return w?`${w} dollars ($${n})`:`$${n}`;
+}
+
+// FROZEN — original MB Courses agreement, superseded by mbCourses2026ContractHTML.
+// Instructors who signed this version still render and print from it, so its wording
+// must stay exactly as it was on the day they signed. Do not edit or "fix" this text;
+// put changes in the 2026 version below.
 function mbCoursesContractHTML(sigName, sigDate){
   sigName=escapeHtml(sigName); sigDate=escapeHtml(sigDate);
   return `
@@ -1823,6 +1873,71 @@ function mbCoursesContractHTML(sigName, sigDate){
         <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
         <div>By: Lindsay Karr</div>
         <div>Title: Owner / Founder</div>
+      </div>
+      <div>
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div>Signature: <strong>${sigName}</strong></div>
+        <div>Date: <strong>${sigDate}</strong></div>
+        <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
+      </div>
+    </div>`;
+}
+
+// CURRENT MB Courses agreement (2026 revision). Keep this wording identical to the
+// mb_courses_2026 branch of contractPrintBody() in admin.html so the PDF Lindsay
+// downloads matches exactly what the instructor signed here.
+function mbCourses2026ContractHTML(sigName, sigDate){
+  sigName=escapeHtml(sigName); sigDate=escapeHtml(sigDate);
+  const rate=spellDollars(me?me.hourlyRate:50);
+  return `
+    <p style="margin-bottom:12px"><strong>INDEPENDENT CONTRACTOR AGREEMENT</strong><br><span style="font-weight:400">Mindful Beginnings LLC — Instructor, Mindful Beginnings Courses</span></p>
+    <p style="margin-bottom:10px">This Independent Contractor Agreement (the "Agreement") is entered into as of ${sigDate} (the "Effective Date"), by and between Mindful Beginnings LLC (the "Company") and ${sigName} (the "Contractor").</p>
+
+    <p style="margin-bottom:6px"><strong>1. SERVICES PROVIDED</strong></p>
+    <p style="margin-bottom:4px">The Company engages the Contractor to serve as an instructor (the "Services") for courses created and owned by Mindful Beginnings LLC, including but not limited to: MB Safe@Home, Intro to Babysitting, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready, and any other curricula created or provided by the Company (collectively, the "MB Courses"). The Contractor agrees to perform these Services with professional diligence, strictly adhering to the curriculum, safety protocols, and quality standards established by the Company.</p>
+    <p style="margin-bottom:12px"><em>Definition of "Course."</em> For purposes of this Agreement, a "course" means the complete curriculum as scheduled, including every session within a multi-session series. By way of example, an eight (8) week course consisting of eight (8) weekly class sessions constitutes one (1) course, not eight (8) courses.</p>
+
+    <p style="margin-bottom:6px"><strong>2. NON-AFFILIATION WITH SAFE SITTER INC.</strong></p>
+    <p style="margin-bottom:12px">The MB Courses are original, proprietary programs created by Mindful Beginnings LLC. They are not affiliated with, endorsed by, licensed by, or derived from Safe Sitter, Inc.® or its curricula. Safe Sitter® instructor training or certification is not required to teach the MB Courses under this Agreement. The Contractor agrees not to represent, market, or describe the MB Courses as Safe Sitter® courses or as being affiliated with Safe Sitter, Inc.</p>
+
+    <p style="margin-bottom:6px"><strong>3. INDEPENDENT CONTRACTOR STATUS (1099)</strong></p>
+    <p style="margin-bottom:4px">The parties agree that the Contractor is an independent contractor and not an employee, agent, or partner of the Company.</p>
+    <p style="margin-bottom:4px"><em>Taxes:</em> The Contractor will receive an IRS Form 1099 for all compensation paid. The Contractor is solely responsible for all self-employment taxes, including federal, state, and local income taxes.</p>
+    <p style="margin-bottom:4px"><em>Benefits:</em> The Contractor is not eligible for, and shall not participate in, any Company-sponsored benefits.</p>
+    <p style="margin-bottom:12px"><em>Exclusivity of Course Offerings:</em> While the Contractor retains the right to perform other professional services for the public, the Contractor agrees that any and all MB Courses taught by the Contractor must be registered through, managed by, and branded as Mindful Beginnings LLC. The Contractor is strictly prohibited from teaching the MB Courses independently or for a third party during the term of this Agreement.</p>
+
+    <p style="margin-bottom:6px"><strong>4. MATERIALS, EQUIPMENT &amp; PROPRIETARY DATA</strong></p>
+    <p style="margin-bottom:4px">The Company will provide all necessary supplies (e.g., manikins, clipboards, training aids) and all curriculum materials for the MB Courses.</p>
+    <p style="margin-bottom:4px"><em>Ownership of Curriculum:</em> All MB Course curricula, lesson plans, instructor guides, student materials, and related content are the sole and exclusive property of Mindful Beginnings LLC. The Contractor may use these materials only to deliver courses under this Agreement and may not copy, reproduce, distribute, sell, adapt, or teach from them in any other capacity.</p>
+    <p style="margin-bottom:4px"><em>Return Policy:</em> All materials must be returned to the Company within forty-eight (48) hours of the Course Completion of each course, as "Course Completion" is defined in Section 5.2. For multi-session courses, materials are returned following the final session unless the Company directs otherwise in writing.</p>
+    <p style="margin-bottom:4px"><em>Loss &amp; Damage:</em> The Contractor is financially liable for damaged or unreturned items. Fees will be deducted from compensation or invoiced: Laptop, case, and speakers ($1,200); Projector, case, and remote ($875); Manikins ($325/unit); Soft-bodied dolls ($75/unit); any power strip or cord ($50/each).</p>
+    <p style="margin-bottom:12px"><em>Ownership of Leads:</em> All participant lists, host facility contacts, and registration data acquired through the Services are the sole proprietary property of Mindful Beginnings LLC.</p>
+
+    <p style="margin-bottom:6px"><strong>5. COMPENSATION &amp; PAYMENT TERMS</strong></p>
+    <p style="margin-bottom:4px"><em>5.1 Rate Structure.</em> Compensation for each course is designated by the Company in writing at the time the assignment is offered, as either (a) an Hourly Rate of <strong>${rate}</strong> per instructional hour, or (b) a Flat Rate — a single, all-inclusive fee for the entire course in the amount stated in the written assignment. If the Company makes no written designation for a given course, the Hourly Rate applies.</p>
+    <p style="margin-bottom:4px"><em>5.2 Course Completion; No Partial Payment.</em> "Course Completion" means the conclusion of the final scheduled session of the course. All sessions of a multi-session course constitute a single course. Compensation is earned and payable only upon Course Completion. No per-session, partial, prorated, or interim payment is due or will be made at any point before the final session of the course has been taught, regardless of the number of sessions in the series or the length of the course.</p>
+    <p style="margin-bottom:4px"><em>5.3 Travel.</em> For courses designated at the Hourly Rate, a paid travel allowance is added as specified in the written assignment for that course — either one (1) hour at the Hourly Rate per course, or one (1) hour at the Hourly Rate per class session. If the written assignment does not specify, one (1) hour of travel per course applies. For courses designated at a Flat Rate, the flat fee is all-inclusive and travel is already included. No additional travel pay, mileage, per-session travel allowance, setup or breakdown time, or other add-on compensation of any kind will be paid on a Flat Rate course.</p>
+    <p style="margin-bottom:4px"><em>5.4 Rate Adjustments.</em> The Company retains sole discretion regarding rate increases. Any changes must be in writing; no verbal agreements shall be binding.</p>
+    <p style="margin-bottom:4px"><em>5.5 Conditions for Payment.</em> Payments are processed via Zelle only after all of the following have occurred: (1) Course Completion as defined in Section 5.2, (2) Physical return and verification of all equipment and materials under Section 4, and (3) Receipt of at least one completed evaluation form. Payment will be remitted within ten (10) business days after the last of these three conditions is satisfied.</p>
+    <p style="margin-bottom:12px"><em>5.6 Payment Method.</em> Remittance will be made electronically via Zelle.</p>
+
+    <p style="margin-bottom:6px"><strong>6. MINIMUM ENROLLMENT &amp; COURSE CANCELLATION</strong></p>
+    <p style="margin-bottom:12px">The Company reserves the right to cancel any scheduled course that does not meet required minimum enrollment. The Contractor will be notified of any such cancellation no later than five (5) days prior to the scheduled course date. The Contractor shall not be entitled to compensation for any course canceled under this provision.</p>
+
+    <p style="margin-bottom:6px"><strong>7. INSURANCE &amp; LIABILITY</strong></p>
+    <p style="margin-bottom:12px">The Contractor agrees to indemnify and hold Mindful Beginnings LLC harmless from any claims, damages, or legal fees arising from the Contractor's gross negligence or willful misconduct during the performance of Services.</p>
+
+    <p style="margin-bottom:6px"><strong>8. TERM &amp; TERMINATION</strong></p>
+    <p style="margin-bottom:4px"><em>Termination for Convenience:</em> Either party may terminate this Agreement at any time, for any reason or no reason, effective immediately upon written notice. Upon termination, the Contractor must immediately return all Company property, including all curriculum materials.</p>
+    <p style="margin-bottom:4px"><em>Payment on Termination:</em> If this Agreement terminates before Course Completion of a course then in progress, no compensation is owed for that partially delivered course, except as required by applicable law.</p>
+    <p style="margin-bottom:6px"><em>Non-Solicitation:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to solicit, contact, or provide instruction in the MB Courses or similar child safety, babysitting, or childcare-readiness instruction services directly to any client, host family, referral, or lead introduced to or through Mindful Beginnings LLC during the term of this Agreement. This includes, but is not limited to, families who registered for a course, host families who provided a venue, and any individual or organization whose contact information was obtained through the performance of Services.</p>
+    <p style="margin-bottom:20px"><em>Geographic Non-Compete:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to offer, provide, or facilitate the MB Courses or substantially similar child safety, babysitting, or childcare-readiness instruction services — whether independently, through a competing company, or in any other capacity — within a thirty (30) mile radius of Bethesda, Maryland. This clause applies regardless of how the Contractor markets or brands such services.</p>
+
+    <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
+      <div>
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div>By: Lindsay Karr</div>
+        <div>Title: Owner &amp; Founder</div>
       </div>
       <div>
         <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>

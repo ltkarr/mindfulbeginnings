@@ -521,8 +521,11 @@ function instructorFromDB(r){
   // safeSitterCertified is tri-state: true/false when the safe_sitter_certified column
   // exists in the database, null when it does not (setup SQL not run yet). While null,
   // the UI falls back to "has a Safe Sitter® training date on file" as the credential.
-  return{id:r.id,name:r.name,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,createdAt:r.created_at||Date.now()};
+  return{id:r.id,name:r.name,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,createdAt:r.created_at||Date.now()};
 }
+// headshot_path is deliberately absent below: only the instructor portal writes it,
+// and including it here would break saving an instructor on databases that have not
+// had the column added yet. An upsert leaves columns it does not mention untouched.
 function instructorToDB(i){
   const row={id:i.id,name:i.name,email:i.email||null,phone:i.phone||null,zelle:i.zelle||null,pin:i.pin,bio:i.bio||null,hourly_rate:i.hourlyRate||50,safe_sitter_training_date:i.safeSitterTrainingDate||null,resume_path:i.resumePath||null,cpr_cert_path:i.cprCertPath||null,license_path:i.licensePath||null,sweatshirt_size:i.sweatshirtSize||null,contract_type:i.contractType||'standard',is_rn:i.isRN||false};
   // Only send safe_sitter_certified when we have a real value — if the column has not
@@ -4090,7 +4093,9 @@ function renderInstructors(){
             if(!i.w9Submitted)missing.push('W-9');
             if(!i.cprCertPath)missing.push('CPR cert');
             if(!i.licensePath)missing.push('license/ID');
-            if(!i.headshotCompleted)missing.push('headshot');
+            // Satisfied by an uploaded headshot, or by the legacy "marked complete"
+            // flag for instructors who finished this step under the old process.
+            if(!(i.headshotPath||i.headshotCompleted))missing.push('headshot');
             return missing.length
               ?`<br><span style="font-size:11px;color:var(--danger)" title="This instructor cannot see the job board until every onboarding step is complete">🔒 Locked out of job board — missing: ${missing.join(', ')}</span>`
               :'<br><span style="font-size:11px;color:var(--success)" title="All 5 onboarding steps complete — this instructor can see and accept jobs">✓ Onboarding complete</span>';
@@ -4102,7 +4107,7 @@ function renderInstructors(){
             if(i.isRN)creds.push('🩺 RN');
             return`<br><span style="font-size:11px;color:${creds.length?'#1a5c8a':'var(--muted)'};font-weight:500" title="Controls which job posts this instructor sees in their portal">${creds.length?creds.join(' · '):'Everyone-courses only'}</span>`;
           })()}
-          ${({proprietary:'<br><span style="font-size:11px;color:#1a5c8a;font-weight:500">📄 RN agreement</span>',mb_courses:'<br><span style="font-size:11px;color:#1a5c8a;font-weight:500">📄 MB Courses agreement</span>',curriculum:'<br><span style="font-size:11px;color:#7a5c1a;font-weight:500">📄 Curriculum Specialist agreement</span>'})[i.contractType]||''}
+          ${({proprietary:'<br><span style="font-size:11px;color:#1a5c8a;font-weight:500">📄 RN agreement</span>',mb_courses:'<br><span style="font-size:11px;color:#1a5c8a;font-weight:500" title="Signed the original MB Courses agreement. Their saved PDF still prints that version, which is what they agreed to.">📄 MB Courses agreement <span style="color:var(--muted);font-weight:400">(2025 version)</span></span>',mb_courses_2026:'<br><span style="font-size:11px;color:#1a5c8a;font-weight:500">📄 MB Courses agreement</span>',curriculum:'<br><span style="font-size:11px;color:#7a5c1a;font-weight:500">📄 Curriculum Specialist agreement</span>'})[i.contractType]||''}
           ${(()=>{const tc=classesTaughtBy(i.id);return tc>=5?`<br><span style="font-size:11px;color:#b8860b;font-weight:600" title="Lifetime classes taught (primary or second instructor, past dates only)">🏅 ${tc} classes taught</span>`:'';})()}
           ${myJobs.length?`<br><span style="font-size:11px;color:var(--sky)">▶ ${myJobs.length} job${myJobs.length!==1?'s':''}</span>`:''}
         </td>
@@ -4181,7 +4186,7 @@ function openAddInstructor(){
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready &amp; Campus Ready jobs</label>
       <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">Courses open to everyone (All Kids Welcome, Steady and Ready, My First Babysitters Club, Safe@Home, Safe@Home — Virtual, Safe@Home — Series, Intro to Babysitting) are always visible. Check both boxes if the instructor holds both credentials.</div>
     </div>
-    <div class="fg full"><label>Contractor agreement version</label><select id="m-icontract" style="width:100%"><option value="standard" selected>Safe Sitter® instructor agreement</option><option value="proprietary">RN agreement (Campus Ready / Stay Ready)</option><option value="mb_courses">MB Courses instructor agreement (Safe@Home, Intro, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready)</option><option value="curriculum">Curriculum Specialist agreement (content development, not teaching)</option></select><div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">Controls which agreement this person sees and signs on the instructor portal. Pick it when you hire them, before sharing their PIN.</div></div>
+    <div class="fg full"><label>Contractor agreement version</label><select id="m-icontract" style="width:100%"><option value="standard" selected>Safe Sitter® instructor agreement</option><option value="proprietary">RN agreement (Campus Ready / Stay Ready)</option><option value="mb_courses_2026">MB Courses instructor agreement (Safe@Home, Intro, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready)</option><option value="curriculum">Curriculum Specialist agreement (content development, not teaching)</option></select><div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">Controls which agreement this person sees and signs on the instructor portal. Pick it when you hire them, before sharing their PIN.</div></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveInstructor(null)">Add instructor</button></div>`);
 }
@@ -4204,7 +4209,7 @@ function openEditInstructor(id){
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" ${i.isRN?'checked':''} style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready &amp; Campus Ready jobs</label>
       <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">Courses open to everyone (All Kids Welcome, Steady and Ready, My First Babysitters Club, Safe@Home, Safe@Home — Virtual, Safe@Home — Series, Intro to Babysitting) are always visible. Check both boxes if the instructor holds both credentials.</div>
     </div>
-    <div class="fg full"><label>Contractor agreement version</label><select id="m-icontract" style="width:100%"><option value="standard" ${(i.contractType||'standard')==='standard'?'selected':''}>Safe Sitter® instructor agreement</option><option value="proprietary" ${i.contractType==='proprietary'?'selected':''}>RN agreement (Campus Ready / Stay Ready)</option><option value="mb_courses" ${i.contractType==='mb_courses'?'selected':''}>MB Courses instructor agreement (Safe@Home, Intro, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready)</option><option value="curriculum" ${i.contractType==='curriculum'?'selected':''}>Curriculum Specialist agreement (content development, not teaching)</option></select><div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">Controls which agreement this person sees and signs on the instructor portal. Changing this does not un-sign an agreement that was already signed.</div></div>
+    <div class="fg full"><label>Contractor agreement version</label><select id="m-icontract" style="width:100%"><option value="standard" ${(i.contractType||'standard')==='standard'?'selected':''}>Safe Sitter® instructor agreement</option><option value="proprietary" ${i.contractType==='proprietary'?'selected':''}>RN agreement (Campus Ready / Stay Ready)</option><option value="mb_courses_2026" ${i.contractType==='mb_courses_2026'?'selected':''}>MB Courses instructor agreement (Safe@Home, Intro, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready)</option>${i.contractType==='mb_courses'?'<option value="mb_courses" selected>MB Courses instructor agreement — 2025 version (retired, already signed)</option>':''}<option value="curriculum" ${i.contractType==='curriculum'?'selected':''}>Curriculum Specialist agreement (content development, not teaching)</option></select><div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">Controls which agreement this person sees and signs on the instructor portal. Changing this does not un-sign an agreement that was already signed.${i.contractType==='mb_courses'?' This person signed the retired 2025 MB Courses agreement — switching them to the current version will make the portal show the new terms as already signed, so only do it after they have actually signed the new one.':''}</div></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveInstructor('${id}')">Save</button></div>`);
 }
@@ -4263,6 +4268,22 @@ async function getSignedUrl(path){
   }catch(e){return null;}
 }
 
+// Headshots upload to a predictable path ({instructorId}/headshot.{ext}), so if the
+// instructors table has no headshot_path column yet we can still find the file by
+// trying the handful of image extensions the portal accepts. Once the column exists
+// this never runs — the stored path is used directly.
+//   alter table instructors add column if not exists headshot_path text;
+const HEADSHOT_EXTS=['jpg','jpeg','png','webp'];
+async function getHeadshotUrl(i){
+  if(i.headshotPath)return getSignedUrl(i.headshotPath);
+  if(!i.headshotCompleted)return null;
+  for(const ext of HEADSHOT_EXTS){
+    const url=await getSignedUrl(`${i.id}/headshot.${ext}`);
+    if(url)return url;
+  }
+  return null;
+}
+
 async function openInstructorProfile(id){
   const i=instructors.find(x=>x.id===id);if(!i)return;
   showModal(`<div class="modal-head"><h3>Instructor Profile</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -4273,8 +4294,8 @@ async function openInstructorProfile(id){
     .reduce((sum,s)=>{const c=COURSES[s.course]||{};return sum+instrBaseFee(s,i);},0);
 
   // Get signed URLs for docs
-  const[resumeUrl,cprUrl,licUrl]=await Promise.all([
-    getSignedUrl(i.resumePath),getSignedUrl(i.cprCertPath),getSignedUrl(i.licensePath)
+  const[resumeUrl,cprUrl,licUrl,headshotUrl]=await Promise.all([
+    getSignedUrl(i.resumePath),getSignedUrl(i.cprCertPath),getSignedUrl(i.licensePath),getHeadshotUrl(i)
   ]);
 
   const trainDate=i.safeSitterTrainingDate?new Date(i.safeSitterTrainingDate+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'Not entered yet';
@@ -4306,6 +4327,14 @@ async function openInstructorProfile(id){
         ${resumeUrl?`<a href="${resumeUrl}" target="_blank" class="btn sm">📄 View Resume</a>`:'<span style="font-size:12px;color:var(--muted);font-style:italic">Resume not uploaded</span>'}
         ${cprUrl?`<a href="${cprUrl}" target="_blank" class="btn sm">🩺 View CPR Cert</a>`:'<span style="font-size:12px;color:var(--muted);font-style:italic"> &nbsp;·&nbsp; CPR cert not uploaded</span>'}
         ${licUrl?`<a href="${licUrl}" target="_blank" class="btn sm">🪪 View License</a>`:'<span style="font-size:12px;color:var(--muted);font-style:italic"> &nbsp;·&nbsp; License not uploaded</span>'}
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        ${headshotUrl
+          ?`<img src="${headshotUrl}" alt="${i.name} headshot" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--border)">
+            <a href="${headshotUrl}" target="_blank" class="btn sm" download>📸 View / download headshot</a>`
+          :i.headshotCompleted
+            ?'<span style="font-size:12px;color:var(--muted);font-style:italic">📸 Headshot marked complete under the old process — no file on record</span>'
+            :'<span style="font-size:12px;color:var(--muted);font-style:italic">📸 Headshot not uploaded</span>'}
       </div>
     </div>
 
@@ -5131,9 +5160,26 @@ Owner, Mindful Beginnings
 
 // ─── PRINT CONTRACT ──────────────────────────────────────────
 // Human-readable name for each agreement version (used in the printed subtitle).
-const CONTRACT_TYPE_NAMES={standard:'Safe Sitter® Instructor Agreement',proprietary:'RN Agreement — Campus Ready / Stay Ready',mb_courses:'Instructor, Mindful Beginnings Courses',curriculum:'Curriculum Specialist'};
+const CONTRACT_TYPE_NAMES={standard:'Safe Sitter® Instructor Agreement',proprietary:'RN Agreement — Campus Ready / Stay Ready',mb_courses:'Instructor, Mindful Beginnings Courses (2025 version)',mb_courses_2026:'Instructor, Mindful Beginnings Courses',curriculum:'Curriculum Specialist'};
+
+// Spells a whole-dollar rate the way the agreements word it — 50 becomes
+// "fifty dollars ($50)". Amounts that don't spell cleanly fall back to the numeral
+// alone so the sentence still reads correctly. Mirrors the helper of the same name
+// in instructor.html.
+function spellDollars(n){
+  n=Number(n)||0;
+  const ones=['zero','one','two','three','four','five','six','seven','eight','nine','ten',
+    'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+  const tens=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+  let w='';
+  if(Number.isInteger(n)&&n>0&&n<100)w=n<20?ones[n]:tens[Math.floor(n/10)]+(n%10?'-'+ones[n%10]:'');
+  return w?`${w} dollars ($${n})`:`$${n}`;
+}
+
 // Printable body for each agreement version. Keep the wording identical to the
 // matching template in instructor.html so the saved PDF reflects what was signed.
+// The 'mb_courses' branch is frozen history — it is what earlier MB instructors
+// actually signed. New MB hires get 'mb_courses_2026'.
 function contractPrintBody(i){
   const t=i.contractType||'standard';
   if(t==='proprietary')return `
@@ -5224,6 +5270,55 @@ function contractPrintBody(i){
     <div class="section">
       <div class="section-title">8. Term &amp; Termination</div>
       <p><em>Termination for Convenience:</em> Either party may terminate this Agreement at any time, for any reason or no reason, effective immediately upon written notice. Upon termination, the Contractor must immediately return all Company property, including all curriculum materials. If termination occurs before the four-course commitment (Section 4) is satisfied, the $500 training fee becomes due immediately.</p>
+      <p><em>Non-Solicitation:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to solicit, contact, or provide instruction in the MB Courses or similar child safety, babysitting, or childcare-readiness instruction services directly to any client, host family, referral, or lead introduced to or through Mindful Beginnings LLC during the term of this Agreement. This includes, but is not limited to, families who registered for a course, host families who provided a venue, and any individual or organization whose contact information was obtained through the performance of Services.</p>
+      <p><em>Geographic Non-Compete:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to offer, provide, or facilitate the MB Courses or substantially similar child safety, babysitting, or childcare-readiness instruction services — whether independently, through a competing company, or in any other capacity — within a thirty (30) mile radius of Bethesda, Maryland. This clause applies regardless of how the Contractor markets or brands such services.</p>
+    </div>`;
+  if(t==='mb_courses_2026')return `
+    <div class="section">
+      <div class="section-title">1. Services Provided</div>
+      <p>The Company engages the Contractor to serve as an instructor (the "Services") for courses created and owned by Mindful Beginnings LLC, including but not limited to: MB Safe@Home, Intro to Babysitting, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready, and any other curricula created or provided by the Company (collectively, the "MB Courses"). The Contractor agrees to perform these Services with professional diligence, strictly adhering to the curriculum, safety protocols, and quality standards established by the Company.</p>
+      <p><em>Definition of "Course."</em> For purposes of this Agreement, a "course" means the complete curriculum as scheduled, including every session within a multi-session series. By way of example, an eight (8) week course consisting of eight (8) weekly class sessions constitutes one (1) course, not eight (8) courses.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">2. Non-Affiliation with Safe Sitter Inc.</div>
+      <p>The MB Courses are original, proprietary programs created by Mindful Beginnings LLC. They are not affiliated with, endorsed by, licensed by, or derived from Safe Sitter, Inc.® or its curricula. Safe Sitter® instructor training or certification is not required to teach the MB Courses under this Agreement. The Contractor agrees not to represent, market, or describe the MB Courses as Safe Sitter® courses or as being affiliated with Safe Sitter, Inc.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">3. Independent Contractor Status (1099)</div>
+      <p>The parties agree that the Contractor is an independent contractor and not an employee, agent, or partner of the Company.</p>
+      <p><em>Taxes:</em> The Contractor will receive an IRS Form 1099 for all compensation paid. The Contractor is solely responsible for all self-employment taxes, including federal, state, and local income taxes.</p>
+      <p><em>Benefits:</em> The Contractor is not eligible for, and shall not participate in, any Company-sponsored benefits.</p>
+      <p><em>Exclusivity of Course Offerings:</em> While the Contractor retains the right to perform other professional services for the public, the Contractor agrees that any and all MB Courses taught by the Contractor must be registered through, managed by, and branded as Mindful Beginnings LLC. The Contractor is strictly prohibited from teaching the MB Courses independently or for a third party during the term of this Agreement.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">4. Materials, Equipment &amp; Proprietary Data</div>
+      <p>The Company will provide all necessary supplies (e.g., manikins, clipboards, training aids) and all curriculum materials for the MB Courses.</p>
+      <p><em>Ownership of Curriculum:</em> All MB Course curricula, lesson plans, instructor guides, student materials, and related content are the sole and exclusive property of Mindful Beginnings LLC. The Contractor may use these materials only to deliver courses under this Agreement and may not copy, reproduce, distribute, sell, adapt, or teach from them in any other capacity.</p>
+      <p><em>Return Policy:</em> All materials must be returned to the Company within forty-eight (48) hours of the Course Completion of each course, as "Course Completion" is defined in Section 5.2. For multi-session courses, materials are returned following the final session unless the Company directs otherwise in writing.</p>
+      <p><em>Loss &amp; Damage:</em> The Contractor is financially liable for damaged or unreturned items. Fees will be deducted from compensation or invoiced: Laptop, case, and speakers ($1,200); Projector, case, and remote ($875); Manikins ($325/unit); Soft-bodied dolls ($75/unit); any power strip or cord ($50/each).</p>
+      <p><em>Ownership of Leads:</em> All participant lists, host facility contacts, and registration data acquired through the Services are the sole proprietary property of Mindful Beginnings LLC.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">5. Compensation &amp; Payment Terms</div>
+      <p><em>5.1 Rate Structure.</em> Compensation for each course is designated by the Company in writing at the time the assignment is offered, as either (a) an Hourly Rate of <strong>${spellDollars(i.hourlyRate||50)}</strong> per instructional hour, or (b) a Flat Rate — a single, all-inclusive fee for the entire course in the amount stated in the written assignment. If the Company makes no written designation for a given course, the Hourly Rate applies.</p>
+      <p><em>5.2 Course Completion; No Partial Payment.</em> "Course Completion" means the conclusion of the final scheduled session of the course. All sessions of a multi-session course constitute a single course. Compensation is earned and payable only upon Course Completion. No per-session, partial, prorated, or interim payment is due or will be made at any point before the final session of the course has been taught, regardless of the number of sessions in the series or the length of the course.</p>
+      <p><em>5.3 Travel.</em> For courses designated at the Hourly Rate, a paid travel allowance is added as specified in the written assignment for that course — either one (1) hour at the Hourly Rate per course, or one (1) hour at the Hourly Rate per class session. If the written assignment does not specify, one (1) hour of travel per course applies. For courses designated at a Flat Rate, the flat fee is all-inclusive and travel is already included. No additional travel pay, mileage, per-session travel allowance, setup or breakdown time, or other add-on compensation of any kind will be paid on a Flat Rate course.</p>
+      <p><em>5.4 Rate Adjustments.</em> The Company retains sole discretion regarding rate increases. Any changes must be in writing; no verbal agreements shall be binding.</p>
+      <p><em>5.5 Conditions for Payment.</em> Payments are processed via Zelle only after all of the following have occurred: (1) Course Completion as defined in Section 5.2, (2) Physical return and verification of all equipment and materials under Section 4, and (3) Receipt of at least one completed evaluation form. Payment will be remitted within ten (10) business days after the last of these three conditions is satisfied.</p>
+      <p><em>5.6 Payment Method.</em> Remittance will be made electronically via Zelle.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">6. Minimum Enrollment &amp; Course Cancellation</div>
+      <p>The Company reserves the right to cancel any scheduled course that does not meet required minimum enrollment. The Contractor will be notified of any such cancellation no later than five (5) days prior to the scheduled course date. The Contractor shall not be entitled to compensation for any course canceled under this provision.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">7. Insurance &amp; Liability</div>
+      <p>The Contractor agrees to indemnify and hold Mindful Beginnings LLC harmless from any claims, damages, or legal fees arising from the Contractor's gross negligence or willful misconduct during the performance of Services.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">8. Term &amp; Termination</div>
+      <p><em>Termination for Convenience:</em> Either party may terminate this Agreement at any time, for any reason or no reason, effective immediately upon written notice. Upon termination, the Contractor must immediately return all Company property, including all curriculum materials.</p>
+      <p><em>Payment on Termination:</em> If this Agreement terminates before Course Completion of a course then in progress, no compensation is owed for that partially delivered course, except as required by applicable law.</p>
       <p><em>Non-Solicitation:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to solicit, contact, or provide instruction in the MB Courses or similar child safety, babysitting, or childcare-readiness instruction services directly to any client, host family, referral, or lead introduced to or through Mindful Beginnings LLC during the term of this Agreement. This includes, but is not limited to, families who registered for a course, host families who provided a venue, and any individual or organization whose contact information was obtained through the performance of Services.</p>
       <p><em>Geographic Non-Compete:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to offer, provide, or facilitate the MB Courses or substantially similar child safety, babysitting, or childcare-readiness instruction services — whether independently, through a competing company, or in any other capacity — within a thirty (30) mile radius of Bethesda, Maryland. This clause applies regardless of how the Contractor markets or brands such services.</p>
     </div>`;
