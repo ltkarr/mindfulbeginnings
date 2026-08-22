@@ -171,6 +171,7 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
     <div class="tab active" onclick="showTab('open',this)">Open jobs</div>
     <div class="tab" onclick="showTab('myjobs',this)">My jobs</div>
     <div class="tab" onclick="showTab('guide',this)">📖 Instructor FAQs</div>
+    <div class="tab" onclick="showTab('materials',this)">📚 Course materials</div>
     <div class="tab" onclick="showTab('myprofile',this)">My profile</div>
     <div class="tab" onclick="showTab('contract',this)">📋 Contract</div>
     <div class="tab" onclick="showTab('w9',this)">📄 W-9</div>
@@ -205,6 +206,11 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
       <div class="section-title">Instructor FAQs</div>
       <div class="section-sub">Your reference for preparing and teaching a Mindful Beginnings course. Open the folder to read or download any of the materials.</div>
       <div id="guide-content"></div>
+    </div>
+    <div class="screen" id="tab-materials">
+      <div class="section-title">Course materials</div>
+      <div class="section-sub">Presentations, facilitator guides, handbooks, and certificates for every course you teach. Open the Resource Center for the full index, or jump straight to a course folder below.</div>
+      <div id="materials-content"></div>
     </div>
     <div class="screen" id="tab-contract">
       <div class="section-title">Independent Contractor Agreement</div>
@@ -890,6 +896,7 @@ function showTab(name,el){
   if(name==='open'){renderOpen();refreshData(false);}
   if(name==='myjobs'){renderMyJobs();refreshData(false);}
   if(name==='guide')renderGuide();
+  if(name==='materials')renderMaterials();
   if(name==='myprofile')renderMyProfile();
   if(name==='contract')renderContract();
   if(name==='w9')renderW9();
@@ -1779,7 +1786,7 @@ function renderContract(){
     </div>`;
 }
 
-// Five agreement versions exist. Which one a contractor sees and signs is set
+// Eight agreement versions exist. Which one a contractor sees and signs is set
 // per-person in the admin (contract_type) when they are hired:
 //   'standard'         → Safe Sitter® instructor agreement
 //   'proprietary'      → RN agreement covering Campus Ready / Stay Ready (no 4-course
@@ -1789,7 +1796,7 @@ function renderContract(){
 //                        kept here permanently so anyone who already signed it still
 //                        sees and prints the exact wording they agreed to. Do not
 //                        edit this version's text.
-//   'mb_courses_2026'  → CURRENT instructor agreement for Mindful Beginnings' own
+//   'mb_courses_2026'  → instructor agreement for Mindful Beginnings' own
 //                        courses (Safe@Home, Intro to Babysitting, My First
 //                        Babysitters Club, All Kids Welcome, Steady & Ready) — not
 //                        Safe Sitter® affiliated. Adds the definition of a "course"
@@ -1797,10 +1804,25 @@ function renderContract(){
 //                        structure (§5.1), payment only on Course Completion with no
 //                        partial or per-session pay (§5.2), and the 48-hour materials
 //                        return window.
+//                        return window. Superseded by 'mb_courses_rev2026' for new
+//                        hires; kept permanently so anyone who already signed it still
+//                        sees the exact wording they agreed to. Do not edit its text.
 //   'curriculum'       → Curriculum Specialist agreement (content creation/editing,
 //                        work-made-for-hire, per-project approved hours — not teaching)
+//
+//   August 2026 revision — CURRENT for all new hires. Same three teaching roles,
+//   rewritten Section 6 (cancellation for ANY reason, any notice, no cancellation
+//   pay, pay only for sessions actually taught), 7.2 limitation of liability, and a
+//   new Section 9 (entire agreement, voluntary-payment/no-waiver, notices by text or
+//   email, e-signature, Maryland law, severability, survival):
+//   'standard_rev2026'    → Safe Sitter® instructor
+//   'proprietary_rev2026' → RN / Campus Ready / Stay Ready
+//   'mb_courses_rev2026'  → MB Courses (adds pro-rata pay on cut-short Flat Rate courses)
 function contractHTML(sigName, sigDate){
   const t=me&&me.contractType;
+  if(t==='proprietary_rev2026')return proprietaryRev2026ContractHTML(sigName,sigDate);
+  if(t==='mb_courses_rev2026')return mbCoursesRev2026ContractHTML(sigName,sigDate);
+  if(t==='standard_rev2026')return standardRev2026ContractHTML(sigName,sigDate);
   if(t==='proprietary')return proprietaryContractHTML(sigName,sigDate);
   if(t==='mb_courses')return mbCoursesContractHTML(sigName,sigDate);
   if(t==='mb_courses_2026')return mbCourses2026ContractHTML(sigName,sigDate);
@@ -1819,6 +1841,256 @@ function spellDollars(n){
   let w='';
   if(Number.isInteger(n)&&n>0&&n<100)w=n<20?ones[n]:tens[Math.floor(n/10)]+(n%10?'-'+ones[n%10]:'');
   return w?`${w} dollars ($${n})`:`$${n}`;
+}
+
+// ── August 2026 revision ─────────────────────────────────────
+// These three versions add Section 6 (Scheduling, Cancellation & Postponement),
+// Section 7.2 (Limitation of Liability) and Section 9 (General: entire agreement,
+// voluntary-payment/no-waiver, notices, e-signature, Maryland law, severability).
+// The text is duplicated in full inside each function ON PURPOSE — do not factor
+// the shared sections into a helper. Once an instructor signs a version, that
+// version's wording must never change, and a shared helper would silently rewrite
+// contracts people have already signed.
+function proprietaryRev2026ContractHTML(sigName, sigDate){
+  sigName=escapeHtml(sigName); sigDate=escapeHtml(sigDate);
+  const rate=spellDollars(me?me.hourlyRate:50);
+  return `
+    <p style="margin-bottom:4px"><strong>INDEPENDENT CONTRACTOR AGREEMENT</strong><br><span style="font-weight:400">Mindful Beginnings LLC — Instructor, Proprietary Curricula</span></p>
+    <p style="margin-bottom:12px;color:var(--muted);font-size:11px">Version: August 2026</p>
+    <p style="margin-bottom:10px">This Independent Contractor Agreement (the "Agreement") is entered into as of ${sigDate} (the "Effective Date"), by and between Mindful Beginnings LLC (the "Company") and ${sigName} (the "Contractor").</p>
+
+    <p style="margin-bottom:6px"><strong>1. SERVICES PROVIDED</strong></p>
+    <p style="margin-bottom:4px">The Company engages the Contractor to serve as an instructor for proprietary curricula developed by the Company, including but not limited to Campus Ready and Stay Ready (the "Services"). The Contractor agrees to perform these Services with professional diligence, strictly adhering to the curriculum, safety protocols, and quality standards established by the Company.</p>
+    <p style="margin-bottom:12px"><em>Definition of "Course."</em> For purposes of this Agreement, a "course" means the complete curriculum as scheduled, including every session within a multi-session series. By way of example, a four (4) week course consisting of four (4) weekly class sessions constitutes one (1) course, not four (4) courses. A "session" means a single scheduled class meeting within a course.</p>
+
+    <p style="margin-bottom:6px"><strong>2. INDEPENDENT CONTRACTOR STATUS (1099)</strong></p>
+    <p style="margin-bottom:4px">The parties agree that the Contractor is an independent contractor and not an employee, agent, or partner of the Company.</p>
+    <p style="margin-bottom:4px"><em>Taxes:</em> The Contractor will receive an IRS Form 1099 for all compensation paid. The Contractor is solely responsible for all self-employment taxes, including federal, state, and local income taxes.</p>
+    <p style="margin-bottom:4px"><em>Benefits:</em> The Contractor is not eligible for, and shall not participate in, any Company-sponsored benefits.</p>
+    <p style="margin-bottom:12px"><em>Exclusivity of Course Offerings:</em> While the Contractor retains the right to perform other professional services for the public, the Contractor agrees that any and all Mindful Beginnings LLC courses (or other proprietary curricula provided by the Company) taught by the Contractor must be registered through, managed by, and branded as Mindful Beginnings LLC. The Contractor is strictly prohibited from teaching these specific proprietary courses independently or for a third party during the term of this Agreement.</p>
+
+    <p style="margin-bottom:6px"><strong>3. TRAINING &amp; MATERIALS</strong></p>
+    <p style="margin-bottom:12px">The Company will provide necessary training regarding its proprietary curricula at no cost to the Contractor. There is no minimum course fulfillment commitment or training cost reimbursement requirement associated with this Agreement.</p>
+
+    <p style="margin-bottom:6px"><strong>4. MATERIALS, EQUIPMENT &amp; PROPRIETARY DATA</strong></p>
+    <p style="margin-bottom:4px">The Company will provide all necessary supplies (e.g., manikins, clipboards, training aids, curriculum manuals).</p>
+    <p style="margin-bottom:4px"><em>Return Policy:</em> All materials must be returned to the Company within twenty-four (24) hours of the conclusion of each course. If a course or session is cancelled after materials have been issued, all materials must be returned within twenty-four (24) hours of the Contractor's receipt of the cancellation notice.</p>
+    <p style="margin-bottom:4px"><em>Loss &amp; Damage:</em> The Contractor is financially liable for damaged or unreturned items. Fees will be deducted from compensation or invoiced: Laptop, case, and speakers ($1,200); Projector, case, and remote ($875); Manikins ($325/unit); Soft-bodied dolls ($75/unit); any power strip or cord ($50/each).</p>
+    <p style="margin-bottom:12px"><em>Ownership of Leads:</em> All participant lists, host facility contacts, and registration data acquired through the Services are the sole proprietary property of Mindful Beginnings LLC.</p>
+
+    <p style="margin-bottom:6px"><strong>5. COMPENSATION &amp; PAYMENT TERMS</strong></p>
+    <p style="margin-bottom:4px"><em>5.1 Rate.</em> The Company agrees to pay the Contractor <strong>${rate}</strong> per instructional hour actually and fully taught. A paid travel allowance of one (1) hour at the same rate will be added for each course actually instructed.</p>
+    <p style="margin-bottom:4px"><em>5.2 Compensation Is Earned by Instruction.</em> Compensation is earned only for instructional hours the Contractor actually and fully teaches. No compensation, fee, or allowance of any kind is earned in respect of a course or session that does not take place, for any reason. The travel allowance is payable only in connection with a course actually instructed.</p>
+    <p style="margin-bottom:4px"><em>5.3 Rate Adjustments.</em> The Company retains sole discretion regarding rate increases. Any changes must be in writing; no verbal agreements shall be binding.</p>
+    <p style="margin-bottom:4px"><em>5.4 Conditions for Payment.</em> Payments are processed via Zelle only after all of the following have occurred: (1) conclusion of the course, (2) physical return and verification of all equipment and materials under Section 4, and (3) receipt of at least one completed evaluation form. Payment will be remitted within ten (10) business days after the last of these three conditions is satisfied. Where compensation is payable under Section 6.4 for a course cut short, conditions (1) and (3) shall not apply, and payment will be remitted within ten (10) business days after return and verification of all equipment and materials.</p>
+    <p style="margin-bottom:12px"><em>5.5 Payment Method.</em> Remittance will be made electronically via Zelle.</p>
+
+    <p style="margin-bottom:6px"><strong>6. SCHEDULING, CANCELLATION &amp; POSTPONEMENT</strong></p>
+    <p style="margin-bottom:4px"><em>6.1 No Guarantee of Work.</em> This Agreement does not guarantee the Contractor any minimum number of courses, sessions, or hours, and does not obligate the Company to offer, or the Contractor to accept, any particular assignment. A scheduled assignment is an offer of work for a specific date and is not a guarantee that the course or session will take place.</p>
+    <p style="margin-bottom:4px"><em>6.2 Cancellation by the Company.</em> The Company may cancel, postpone, reschedule, relocate, or shorten any scheduled course or session at any time, for any reason or for no reason, and with no minimum advance notice. Such reasons include but are not limited to: insufficient enrollment; cancellation, rescheduling, non-payment, or breach by the client, host family, school, camp, organization, or facility; loss or unavailability of the venue; weather or hazardous conditions; illness or emergency; or any other business, safety, or operational reason. The Company will use reasonable efforts to notify the Contractor as far in advance as is practicable, but the amount of notice actually given shall not affect the parties' rights or obligations under this Agreement, and no failure to provide any particular amount of notice shall entitle the Contractor to any compensation or damages.</p>
+    <p style="margin-bottom:4px"><em>6.3 No Compensation for Cancelled Work.</em> The Contractor shall not be entitled to any compensation, cancellation fee, kill fee, minimum or guaranteed payment, travel allowance, mileage, expense reimbursement, preparation time, lost-opportunity or lost-income payment, or damages of any kind on account of any course or session that is cancelled, postponed, rescheduled, relocated, or shortened for any reason. This applies whether or not the Contractor had reserved the date, declined other work, arranged childcare or travel, or spent time preparing.</p>
+    <p style="margin-bottom:4px"><em>6.4 Sessions Already Taught.</em> If a multi-session course is cancelled or discontinued after it has begun, the Contractor will be paid at the rate in Section 5.1 for the instructional hours actually and fully taught before the cancellation, plus any travel allowance attributable to sessions actually instructed. No compensation is owed for any session not taught. This Section 6.4 states the Contractor's sole and exclusive remedy in the event of a cancellation.</p>
+    <p style="margin-bottom:4px"><em>6.5 Postponement and Rescheduling.</em> A course or session that is postponed, rescheduled, or relocated is a continuation of the same assignment and does not create a new or additional assignment or any additional compensation. If the Contractor is unavailable for the rescheduled date or new location, the Contractor may decline it without penalty, and no compensation is owed for either the original or the rescheduled date.</p>
+    <p style="margin-bottom:4px"><em>6.6 Force Majeure.</em> Neither party shall be liable for any failure or delay in performance caused by circumstances beyond its reasonable control, including weather, natural disaster, fire, public health emergency, government or school closure order, loss of utilities, or unavailability of the facility. No compensation is owed for any course or session not delivered for such reasons.</p>
+    <p style="margin-bottom:4px"><em>6.7 Cancellation by the Contractor.</em> The Contractor shall notify the Company as soon as the Contractor becomes aware of any inability to instruct a course or session the Contractor has accepted, and in no event less than fourteen (14) days before the scheduled date except in the case of documented illness or emergency. Repeated or late cancellations by the Contractor may result in termination under Section 8. No compensation is owed for any session the Contractor does not instruct.</p>
+    <p style="margin-bottom:12px"><em>6.8 Acknowledgment of Risk.</em> The Contractor acknowledges that scheduled course dates depend on clients, host facilities, enrollment, and other third parties outside the Company's control, and accepts the risk that scheduled work may not occur. The Contractor is responsible for the Contractor's own business and scheduling decisions made in reliance on a scheduled date.</p>
+
+    <p style="margin-bottom:6px"><strong>7. INSURANCE &amp; LIABILITY</strong></p>
+    <p style="margin-bottom:4px"><em>7.1 Indemnification.</em> The Contractor agrees to indemnify and hold Mindful Beginnings LLC harmless from any claims, damages, or legal fees arising from the Contractor's gross negligence or willful misconduct during the performance of Services.</p>
+    <p style="margin-bottom:12px"><em>7.2 Limitation of Liability.</em> In no event shall the Company be liable to the Contractor for lost profits, lost opportunities, or any consequential, incidental, indirect, special, or punitive damages. The Company's total aggregate liability to the Contractor under this Agreement, on any theory of liability, shall not exceed the compensation earned by the Contractor under Section 5 for instruction actually delivered.</p>
+
+    <p style="margin-bottom:6px"><strong>8. TERM &amp; TERMINATION</strong></p>
+    <p style="margin-bottom:4px"><em>Termination for Convenience:</em> Either party may terminate this Agreement at any time, for any reason or no reason, effective immediately upon written notice. Upon termination, the Contractor must immediately return all Company property.</p>
+    <p style="margin-bottom:4px"><em>Payment on Termination:</em> If this Agreement terminates while a course is in progress, compensation is owed only for instructional hours actually and fully taught, calculated as provided in Section 6.4.</p>
+    <p style="margin-bottom:6px"><em>Non-Solicitation:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to solicit, contact, or provide proprietary safety instruction services directly to any client, host family, referral, or lead introduced to or through Mindful Beginnings LLC during the term of this Agreement. This includes, but is not limited to, families who registered for a course, host families who provided a venue, and any individual or organization whose contact information was obtained through the performance of Services.</p>
+    <p style="margin-bottom:12px"><em>Geographic Non-Compete:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to offer, provide, or facilitate substantially similar safety instruction services, whether independently, through a competing company, or in any other capacity, within a thirty (30) mile radius of Bethesda, Maryland. This clause applies regardless of how the Contractor markets or brands such services.</p>
+
+    <p style="margin-bottom:6px"><strong>9. GENERAL</strong></p>
+    <p style="margin-bottom:4px"><em>9.1 Entire Agreement.</em> This Agreement constitutes the entire agreement between the parties with respect to its subject matter and supersedes all prior and contemporaneous proposals, discussions, representations, text messages, emails, and understandings, whether written or oral. No amendment, waiver, or modification is effective unless set out in a writing signed by both parties. No verbal statement, text message, email, custom, or course of dealing shall create any payment obligation, notice requirement, or guarantee of work not expressly stated in this Agreement.</p>
+    <p style="margin-bottom:4px"><em>9.2 No Waiver; Voluntary Payments.</em> No failure or delay by the Company in exercising any right under this Agreement operates as a waiver of that right, and a waiver on one occasion is not a waiver on any other occasion. If the Company chooses to pay the Contractor for a cancelled course or session on any occasion, that payment is a voluntary gratuity made at the Company's sole discretion. It is not an admission of any obligation, does not modify this Agreement, and does not establish a course of dealing or any entitlement to a similar payment in the future.</p>
+    <p style="margin-bottom:4px"><em>9.3 Assignment and Substitution.</em> The Contractor may not assign this Agreement or subcontract, delegate, or send any substitute or additional person to instruct a course or session without the Company's prior written approval.</p>
+    <p style="margin-bottom:4px"><em>9.4 Notices.</em> Any notice under this Agreement, including notice of cancellation, postponement, or termination, may be given by email or text message to the contact information the receiving party has most recently provided to the other, or through the Company's instructor portal, and is deemed given when sent. Notice given by any of these means constitutes written notice for all purposes under this Agreement.</p>
+    <p style="margin-bottom:4px"><em>9.5 Electronic Signature.</em> The parties agree that this Agreement may be executed electronically, including by typed name through the Company's instructor portal, and that an electronic signature has the same force and effect as an original handwritten signature.</p>
+    <p style="margin-bottom:4px"><em>9.6 Governing Law and Venue.</em> This Agreement is governed by the laws of the State of Maryland, without regard to its conflict-of-laws principles. The parties consent to the exclusive jurisdiction and venue of the state courts located in Montgomery County, Maryland, and waive any objection to that venue.</p>
+    <p style="margin-bottom:4px"><em>9.7 Severability.</em> If any provision of this Agreement is held invalid or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, or if it cannot be so modified, severed, and the remainder of this Agreement shall remain in full force and effect.</p>
+    <p style="margin-bottom:20px"><em>9.8 Survival.</em> Sections 4, 6, 7, 8, and 9 survive the expiration or termination of this Agreement.</p>
+
+    <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
+      <div>
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div>By: Lindsay Karr</div>
+        <div>Title: Owner &amp; Founder</div>
+      </div>
+      <div>
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div>Signature: <strong>${sigName}</strong></div>
+        <div>Date: <strong>${sigDate}</strong></div>
+        <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
+      </div>
+    </div>`;
+}
+
+function mbCoursesRev2026ContractHTML(sigName, sigDate){
+  sigName=escapeHtml(sigName); sigDate=escapeHtml(sigDate);
+  const rate=spellDollars(me?me.hourlyRate:50);
+  return `
+    <p style="margin-bottom:4px"><strong>INDEPENDENT CONTRACTOR AGREEMENT</strong><br><span style="font-weight:400">Mindful Beginnings LLC — Instructor, Mindful Beginnings Courses</span></p>
+    <p style="margin-bottom:12px;color:var(--muted);font-size:11px">Version: August 2026</p>
+    <p style="margin-bottom:10px">This Independent Contractor Agreement (the "Agreement") is entered into as of ${sigDate} (the "Effective Date"), by and between Mindful Beginnings LLC (the "Company") and ${sigName} (the "Contractor").</p>
+
+    <p style="margin-bottom:6px"><strong>1. SERVICES PROVIDED</strong></p>
+    <p style="margin-bottom:4px">The Company engages the Contractor to serve as an instructor (the "Services") for courses created and owned by Mindful Beginnings LLC, including but not limited to: MB Safe@Home, Intro to Babysitting, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready, and any other curricula created or provided by the Company (collectively, the "MB Courses"). The Contractor agrees to perform these Services with professional diligence, strictly adhering to the curriculum, safety protocols, and quality standards established by the Company.</p>
+    <p style="margin-bottom:12px"><em>Definition of "Course."</em> For purposes of this Agreement, a "course" means the complete curriculum as scheduled, including every session within a multi-session series. By way of example, an eight (8) week course consisting of eight (8) weekly class sessions constitutes one (1) course, not eight (8) courses. A "session" means a single scheduled class meeting within a course.</p>
+
+    <p style="margin-bottom:6px"><strong>2. NON-AFFILIATION WITH SAFE SITTER INC.</strong></p>
+    <p style="margin-bottom:12px">The MB Courses are original, proprietary programs created by Mindful Beginnings LLC. They are not affiliated with, endorsed by, licensed by, or derived from Safe Sitter, Inc.® or its curricula. Safe Sitter® instructor training or certification is not required to teach the MB Courses under this Agreement. The Contractor agrees not to represent, market, or describe the MB Courses as Safe Sitter® courses or as being affiliated with Safe Sitter, Inc.</p>
+
+    <p style="margin-bottom:6px"><strong>3. INDEPENDENT CONTRACTOR STATUS (1099)</strong></p>
+    <p style="margin-bottom:4px">The parties agree that the Contractor is an independent contractor and not an employee, agent, or partner of the Company.</p>
+    <p style="margin-bottom:4px"><em>Taxes:</em> The Contractor will receive an IRS Form 1099 for all compensation paid. The Contractor is solely responsible for all self-employment taxes, including federal, state, and local income taxes.</p>
+    <p style="margin-bottom:4px"><em>Benefits:</em> The Contractor is not eligible for, and shall not participate in, any Company-sponsored benefits.</p>
+    <p style="margin-bottom:12px"><em>Exclusivity of Course Offerings:</em> While the Contractor retains the right to perform other professional services for the public, the Contractor agrees that any and all MB Courses taught by the Contractor must be registered through, managed by, and branded as Mindful Beginnings LLC. The Contractor is strictly prohibited from teaching the MB Courses independently or for a third party during the term of this Agreement.</p>
+
+    <p style="margin-bottom:6px"><strong>4. MATERIALS, EQUIPMENT &amp; PROPRIETARY DATA</strong></p>
+    <p style="margin-bottom:4px">The Company will provide all necessary supplies (e.g., manikins, clipboards, training aids) and all curriculum materials for the MB Courses.</p>
+    <p style="margin-bottom:4px"><em>Ownership of Curriculum:</em> All MB Course curricula, lesson plans, instructor guides, student materials, and related content are the sole and exclusive property of Mindful Beginnings LLC. The Contractor may use these materials only to deliver courses under this Agreement and may not copy, reproduce, distribute, sell, adapt, or teach from them in any other capacity.</p>
+    <p style="margin-bottom:4px"><em>Return Policy:</em> All materials must be returned to the Company within forty-eight (48) hours of the Course Completion of each course, as "Course Completion" is defined in Section 5.2. For multi-session courses, materials are returned following the final session unless the Company directs otherwise in writing. If a course or session is cancelled after materials have been issued, all materials must be returned within forty-eight (48) hours of the Contractor's receipt of the cancellation notice.</p>
+    <p style="margin-bottom:4px"><em>Loss &amp; Damage:</em> The Contractor is financially liable for damaged or unreturned items. Fees will be deducted from compensation or invoiced: Laptop, case, and speakers ($1,200); Projector, case, and remote ($875); Manikins ($325/unit); Soft-bodied dolls ($75/unit); any power strip or cord ($50/each).</p>
+    <p style="margin-bottom:12px"><em>Ownership of Leads:</em> All participant lists, host facility contacts, and registration data acquired through the Services are the sole proprietary property of Mindful Beginnings LLC.</p>
+
+    <p style="margin-bottom:6px"><strong>5. COMPENSATION &amp; PAYMENT TERMS</strong></p>
+    <p style="margin-bottom:4px"><em>5.1 Rate Structure.</em> Compensation for each course is designated by the Company in writing at the time the assignment is offered, as either (a) an Hourly Rate of <strong>${rate}</strong> per instructional hour, or (b) a Flat Rate — a single, all-inclusive fee for the entire course in the amount stated in the written assignment. If the Company makes no written designation for a given course, the Hourly Rate applies.</p>
+    <p style="margin-bottom:4px"><em>5.2 Course Completion; No Partial Payment.</em> "Course Completion" means the conclusion of the final scheduled session of the course. All sessions of a multi-session course constitute a single course. Except as expressly provided in Section 6.4, compensation is earned and payable only upon Course Completion, and no per-session, partial, prorated, or interim payment is due or will be made at any point before the final scheduled session of the course has been taught, regardless of the number of sessions in the series or the length of the course.</p>
+    <p style="margin-bottom:4px"><em>5.3 Travel.</em> For courses designated at the Hourly Rate, a paid travel allowance is added as specified in the written assignment for that course — either one (1) hour at the Hourly Rate per course, or one (1) hour at the Hourly Rate per class session. If the written assignment does not specify, one (1) hour of travel per course applies. For courses designated at a Flat Rate, the flat fee is all-inclusive and travel is already included. No additional travel pay, mileage, per-session travel allowance, setup or breakdown time, or other add-on compensation of any kind will be paid on a Flat Rate course. A travel allowance is payable only in connection with a session actually and fully instructed.</p>
+    <p style="margin-bottom:4px"><em>5.4 Rate Adjustments.</em> The Company retains sole discretion regarding rate increases. Any changes must be in writing; no verbal agreements shall be binding.</p>
+    <p style="margin-bottom:4px"><em>5.5 Conditions for Payment.</em> Payments are processed via Zelle only after all of the following have occurred: (1) Course Completion as defined in Section 5.2, (2) physical return and verification of all equipment and materials under Section 4, and (3) receipt of at least one completed evaluation form. Payment will be remitted within ten (10) business days after the last of these three conditions is satisfied. Where compensation is payable under Section 6.4 for a course cut short, conditions (1) and (3) shall not apply, and payment will be remitted within ten (10) business days after return and verification of all equipment and materials.</p>
+    <p style="margin-bottom:12px"><em>5.6 Payment Method.</em> Remittance will be made electronically via Zelle.</p>
+
+    <p style="margin-bottom:6px"><strong>6. SCHEDULING, CANCELLATION &amp; POSTPONEMENT</strong></p>
+    <p style="margin-bottom:4px"><em>6.1 No Guarantee of Work.</em> This Agreement does not guarantee the Contractor any minimum number of courses, sessions, or hours, and does not obligate the Company to offer, or the Contractor to accept, any particular assignment. A scheduled assignment is an offer of work for a specific date and is not a guarantee that the course or session will take place.</p>
+    <p style="margin-bottom:4px"><em>6.2 Cancellation by the Company.</em> The Company may cancel, postpone, reschedule, relocate, or shorten any scheduled course or session at any time, for any reason or for no reason, and with no minimum advance notice. Such reasons include but are not limited to: insufficient enrollment; cancellation, rescheduling, non-payment, or breach by the client, host family, school, camp, organization, or facility; loss or unavailability of the venue; weather or hazardous conditions; illness or emergency; or any other business, safety, or operational reason. The Company will use reasonable efforts to notify the Contractor as far in advance as is practicable, but the amount of notice actually given shall not affect the parties' rights or obligations under this Agreement, and no failure to provide any particular amount of notice shall entitle the Contractor to any compensation or damages.</p>
+    <p style="margin-bottom:4px"><em>6.3 No Compensation for Cancelled Work.</em> The Contractor shall not be entitled to any compensation, cancellation fee, kill fee, minimum or guaranteed payment, travel allowance, mileage, expense reimbursement, preparation time, lost-opportunity or lost-income payment, or damages of any kind on account of any course or session that is cancelled, postponed, rescheduled, relocated, or shortened for any reason. This applies whether or not the Contractor had reserved the date, declined other work, arranged childcare or travel, or spent time preparing.</p>
+    <p style="margin-bottom:4px"><em>6.4 Sessions Already Taught.</em> If a multi-session course is cancelled or discontinued after it has begun, the Contractor will be paid only for the sessions actually and fully instructed before the cancellation, as follows: (a) <em>Hourly Rate courses</em> — the Hourly Rate for each instructional hour actually and fully taught, plus any travel allowance attributable to sessions actually instructed; (b) <em>Flat Rate courses</em> — a pro rata portion of the Flat Rate, calculated as the Flat Rate multiplied by the number of sessions actually and fully instructed, divided by the total number of sessions originally scheduled for that course, with no travel or other add-on compensation payable. No compensation is owed for any session not taught. This Section 6.4 states the Contractor's sole and exclusive remedy in the event of a cancellation.</p>
+    <p style="margin-bottom:4px"><em>6.5 Postponement and Rescheduling.</em> A course or session that is postponed, rescheduled, or relocated is a continuation of the same assignment and does not create a new or additional assignment or any additional compensation. If the Contractor is unavailable for the rescheduled date or new location, the Contractor may decline it without penalty, and no compensation is owed for either the original or the rescheduled date.</p>
+    <p style="margin-bottom:4px"><em>6.6 Force Majeure.</em> Neither party shall be liable for any failure or delay in performance caused by circumstances beyond its reasonable control, including weather, natural disaster, fire, public health emergency, government or school closure order, loss of utilities, or unavailability of the facility. No compensation is owed for any course or session not delivered for such reasons.</p>
+    <p style="margin-bottom:4px"><em>6.7 Cancellation by the Contractor.</em> The Contractor shall notify the Company as soon as the Contractor becomes aware of any inability to instruct a course or session the Contractor has accepted, and in no event less than fourteen (14) days before the scheduled date except in the case of documented illness or emergency. Repeated or late cancellations by the Contractor may result in termination under Section 8. No compensation is owed for any session the Contractor does not instruct.</p>
+    <p style="margin-bottom:12px"><em>6.8 Acknowledgment of Risk.</em> The Contractor acknowledges that scheduled course dates depend on clients, host facilities, enrollment, and other third parties outside the Company's control, and accepts the risk that scheduled work may not occur. The Contractor is responsible for the Contractor's own business and scheduling decisions made in reliance on a scheduled date.</p>
+
+    <p style="margin-bottom:6px"><strong>7. INSURANCE &amp; LIABILITY</strong></p>
+    <p style="margin-bottom:4px"><em>7.1 Indemnification.</em> The Contractor agrees to indemnify and hold Mindful Beginnings LLC harmless from any claims, damages, or legal fees arising from the Contractor's gross negligence or willful misconduct during the performance of Services.</p>
+    <p style="margin-bottom:12px"><em>7.2 Limitation of Liability.</em> In no event shall the Company be liable to the Contractor for lost profits, lost opportunities, or any consequential, incidental, indirect, special, or punitive damages. The Company's total aggregate liability to the Contractor under this Agreement, on any theory of liability, shall not exceed the compensation earned by the Contractor under Section 5 for instruction actually delivered.</p>
+
+    <p style="margin-bottom:6px"><strong>8. TERM &amp; TERMINATION</strong></p>
+    <p style="margin-bottom:4px"><em>Termination for Convenience:</em> Either party may terminate this Agreement at any time, for any reason or no reason, effective immediately upon written notice. Upon termination, the Contractor must immediately return all Company property, including all curriculum materials.</p>
+    <p style="margin-bottom:4px"><em>Payment on Termination:</em> If this Agreement terminates before Course Completion of a course then in progress, compensation is owed only for the sessions actually and fully instructed, calculated as provided in Section 6.4, and no other compensation is owed for that partially delivered course.</p>
+    <p style="margin-bottom:6px"><em>Non-Solicitation:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to solicit, contact, or provide instruction in the MB Courses or similar child safety, babysitting, or childcare-readiness instruction services directly to any client, host family, referral, or lead introduced to or through Mindful Beginnings LLC during the term of this Agreement. This includes, but is not limited to, families who registered for a course, host families who provided a venue, and any individual or organization whose contact information was obtained through the performance of Services.</p>
+    <p style="margin-bottom:12px"><em>Geographic Non-Compete:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to offer, provide, or facilitate the MB Courses or substantially similar child safety, babysitting, or childcare-readiness instruction services — whether independently, through a competing company, or in any other capacity — within a thirty (30) mile radius of Bethesda, Maryland. This clause applies regardless of how the Contractor markets or brands such services.</p>
+
+    <p style="margin-bottom:6px"><strong>9. GENERAL</strong></p>
+    <p style="margin-bottom:4px"><em>9.1 Entire Agreement.</em> This Agreement constitutes the entire agreement between the parties with respect to its subject matter and supersedes all prior and contemporaneous proposals, discussions, representations, text messages, emails, and understandings, whether written or oral. No amendment, waiver, or modification is effective unless set out in a writing signed by both parties. No verbal statement, text message, email, custom, or course of dealing shall create any payment obligation, notice requirement, or guarantee of work not expressly stated in this Agreement.</p>
+    <p style="margin-bottom:4px"><em>9.2 No Waiver; Voluntary Payments.</em> No failure or delay by the Company in exercising any right under this Agreement operates as a waiver of that right, and a waiver on one occasion is not a waiver on any other occasion. If the Company chooses to pay the Contractor for a cancelled course or session on any occasion, that payment is a voluntary gratuity made at the Company's sole discretion. It is not an admission of any obligation, does not modify this Agreement, and does not establish a course of dealing or any entitlement to a similar payment in the future.</p>
+    <p style="margin-bottom:4px"><em>9.3 Assignment and Substitution.</em> The Contractor may not assign this Agreement or subcontract, delegate, or send any substitute or additional person to instruct a course or session without the Company's prior written approval.</p>
+    <p style="margin-bottom:4px"><em>9.4 Notices.</em> Any notice under this Agreement, including notice of cancellation, postponement, or termination, may be given by email or text message to the contact information the receiving party has most recently provided to the other, or through the Company's instructor portal, and is deemed given when sent. Notice given by any of these means constitutes written notice for all purposes under this Agreement.</p>
+    <p style="margin-bottom:4px"><em>9.5 Electronic Signature.</em> The parties agree that this Agreement may be executed electronically, including by typed name through the Company's instructor portal, and that an electronic signature has the same force and effect as an original handwritten signature.</p>
+    <p style="margin-bottom:4px"><em>9.6 Governing Law and Venue.</em> This Agreement is governed by the laws of the State of Maryland, without regard to its conflict-of-laws principles. The parties consent to the exclusive jurisdiction and venue of the state courts located in Montgomery County, Maryland, and waive any objection to that venue.</p>
+    <p style="margin-bottom:4px"><em>9.7 Severability.</em> If any provision of this Agreement is held invalid or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, or if it cannot be so modified, severed, and the remainder of this Agreement shall remain in full force and effect.</p>
+    <p style="margin-bottom:20px"><em>9.8 Survival.</em> Sections 4, 6, 7, 8, and 9 survive the expiration or termination of this Agreement.</p>
+
+    <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
+      <div>
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div>By: Lindsay Karr</div>
+        <div>Title: Owner &amp; Founder</div>
+      </div>
+      <div>
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div>Signature: <strong>${sigName}</strong></div>
+        <div>Date: <strong>${sigDate}</strong></div>
+        <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
+      </div>
+    </div>`;
+}
+
+function standardRev2026ContractHTML(sigName, sigDate){
+  sigName=escapeHtml(sigName); sigDate=escapeHtml(sigDate);
+  const rate=spellDollars(me?me.hourlyRate:50);
+  return `
+    <p style="margin-bottom:4px"><strong>INDEPENDENT CONTRACTOR AGREEMENT</strong><br><span style="font-weight:400">Mindful Beginnings LLC — Safe Sitter® Instructor</span></p>
+    <p style="margin-bottom:12px;color:var(--muted);font-size:11px">Version: August 2026</p>
+    <p style="margin-bottom:10px">This Independent Contractor Agreement (the "Agreement") is entered into as of ${sigDate} (the "Effective Date"), by and between Mindful Beginnings LLC (the "Company") and ${sigName} (the "Contractor").</p>
+
+    <p style="margin-bottom:6px"><strong>1. SERVICES PROVIDED</strong></p>
+    <p style="margin-bottom:4px">The Company engages the Contractor to serve as a Safe Sitter® instructor (the "Services"). The Contractor agrees to perform these Services with professional diligence, strictly adhering to the curriculum, safety protocols, and quality standards established by Safe Sitter® and the Company.</p>
+    <p style="margin-bottom:12px"><em>Definition of "Course."</em> For purposes of this Agreement, a "course" means the complete curriculum as scheduled, including every session within a multi-session series. A "session" means a single scheduled class meeting within a course.</p>
+
+    <p style="margin-bottom:6px"><strong>2. INDEPENDENT CONTRACTOR STATUS (1099)</strong></p>
+    <p style="margin-bottom:4px">The parties agree that the Contractor is an independent contractor and not an employee, agent, or partner of the Company.</p>
+    <p style="margin-bottom:4px"><em>Taxes:</em> The Contractor will receive an IRS Form 1099 for all compensation paid. The Contractor is solely responsible for all self-employment taxes, including federal, state, and local income taxes.</p>
+    <p style="margin-bottom:4px"><em>Benefits:</em> The Contractor is not eligible for, and shall not participate in, any Company-sponsored benefits.</p>
+    <p style="margin-bottom:12px"><em>Exclusivity of Course Offerings:</em> While the Contractor retains the right to perform other professional services for the public, the Contractor agrees that any and all Safe Sitter® courses (or other curricula provided by the Company) taught by the Contractor must be registered through, managed by, and branded as Mindful Beginnings LLC. The Contractor is strictly prohibited from teaching these specific courses independently or for a third party during the term of this Agreement.</p>
+
+    <p style="margin-bottom:6px"><strong>3. TRAINING &amp; MINIMUM COMMITMENT</strong></p>
+    <p style="margin-bottom:4px">The Company will provide necessary instructor training at no upfront cost.</p>
+    <p style="margin-bottom:4px"><em>Course Commitment:</em> The Contractor agrees to lead a minimum of four (4) courses within twelve (12) months following their training completion date.</p>
+    <p style="margin-bottom:4px"><em>Reimbursement Clause:</em> Should the Contractor fail to fulfill this four-course commitment for any reason, or if the Agreement is terminated by either party before this commitment is met, the Contractor agrees to reimburse the Company $500 immediately.</p>
+    <p style="margin-bottom:12px"><em>Courses Not Counted; Company-Side Limits:</em> A course cancelled by the Company under Section 6 does not count toward the four-course commitment. If the Company has not offered the Contractor at least four (4) course assignments during the twelve (12) month period, the reimbursement obligation in this Section shall not apply, and the twelve (12) month period shall instead be extended until the Contractor has been offered four (4) course assignments.</p>
+
+    <p style="margin-bottom:6px"><strong>4. MATERIALS, EQUIPMENT &amp; PROPRIETARY DATA</strong></p>
+    <p style="margin-bottom:4px">The Company will provide all necessary supplies (e.g., manikins, clipboards, training aids).</p>
+    <p style="margin-bottom:4px"><em>Return Policy:</em> All materials must be returned to the Company within twenty-four (24) hours of the conclusion of each course. If a course or session is cancelled after materials have been issued, all materials must be returned within twenty-four (24) hours of the Contractor's receipt of the cancellation notice.</p>
+    <p style="margin-bottom:4px"><em>Loss &amp; Damage:</em> The Contractor is financially liable for damaged or unreturned items. Fees will be deducted from compensation or invoiced: Laptop, case, and speakers ($1,200); Projector, case, and remote ($875); Manikins ($325/unit); Soft-bodied dolls ($75/unit); any power strip or cord ($50/each).</p>
+    <p style="margin-bottom:12px"><em>Ownership of Leads:</em> All participant lists, host facility contacts, and registration data acquired through the Services are the sole proprietary property of Mindful Beginnings LLC.</p>
+
+    <p style="margin-bottom:6px"><strong>5. COMPENSATION &amp; PAYMENT TERMS</strong></p>
+    <p style="margin-bottom:4px"><em>5.1 Rate.</em> The Company agrees to pay the Contractor <strong>${rate}</strong> per instructional hour actually and fully taught. A paid travel allowance of one (1) hour at the same rate will be added for each course actually instructed.</p>
+    <p style="margin-bottom:4px"><em>5.2 Compensation Is Earned by Instruction.</em> Compensation is earned only for instructional hours the Contractor actually and fully teaches. No compensation, fee, or allowance of any kind is earned in respect of a course or session that does not take place, for any reason. The travel allowance is payable only in connection with a course actually instructed.</p>
+    <p style="margin-bottom:4px"><em>5.3 Rate Adjustments.</em> The Company retains sole discretion regarding rate increases. Any changes must be in writing; no verbal agreements shall be binding.</p>
+    <p style="margin-bottom:4px"><em>5.4 Conditions for Payment.</em> Payments are processed via Zelle only after all of the following have occurred: (1) conclusion of the course, (2) physical return and verification of all equipment and materials under Section 4, and (3) receipt of at least one completed evaluation form. Payment will be remitted within ten (10) business days after the last of these three conditions is satisfied. Where compensation is payable under Section 6.4 for a course cut short, conditions (1) and (3) shall not apply, and payment will be remitted within ten (10) business days after return and verification of all equipment and materials.</p>
+    <p style="margin-bottom:12px"><em>5.5 Payment Method.</em> Remittance will be made electronically via Zelle.</p>
+
+    <p style="margin-bottom:6px"><strong>6. SCHEDULING, CANCELLATION &amp; POSTPONEMENT</strong></p>
+    <p style="margin-bottom:4px"><em>6.1 No Guarantee of Work.</em> This Agreement does not guarantee the Contractor any minimum number of courses, sessions, or hours, and does not obligate the Company to offer, or the Contractor to accept, any particular assignment. A scheduled assignment is an offer of work for a specific date and is not a guarantee that the course or session will take place.</p>
+    <p style="margin-bottom:4px"><em>6.2 Cancellation by the Company.</em> The Company may cancel, postpone, reschedule, relocate, or shorten any scheduled course or session at any time, for any reason or for no reason, and with no minimum advance notice. Such reasons include but are not limited to: insufficient enrollment; cancellation, rescheduling, non-payment, or breach by the client, host family, school, camp, organization, or facility; loss or unavailability of the venue; weather or hazardous conditions; illness or emergency; or any other business, safety, or operational reason. The Company will use reasonable efforts to notify the Contractor as far in advance as is practicable, but the amount of notice actually given shall not affect the parties' rights or obligations under this Agreement, and no failure to provide any particular amount of notice shall entitle the Contractor to any compensation or damages.</p>
+    <p style="margin-bottom:4px"><em>6.3 No Compensation for Cancelled Work.</em> The Contractor shall not be entitled to any compensation, cancellation fee, kill fee, minimum or guaranteed payment, travel allowance, mileage, expense reimbursement, preparation time, lost-opportunity or lost-income payment, or damages of any kind on account of any course or session that is cancelled, postponed, rescheduled, relocated, or shortened for any reason. This applies whether or not the Contractor had reserved the date, declined other work, arranged childcare or travel, or spent time preparing.</p>
+    <p style="margin-bottom:4px"><em>6.4 Sessions Already Taught.</em> If a multi-session course is cancelled or discontinued after it has begun, the Contractor will be paid at the rate in Section 5.1 for the instructional hours actually and fully taught before the cancellation, plus any travel allowance attributable to sessions actually instructed. No compensation is owed for any session not taught. This Section 6.4 states the Contractor's sole and exclusive remedy in the event of a cancellation.</p>
+    <p style="margin-bottom:4px"><em>6.5 Postponement and Rescheduling.</em> A course or session that is postponed, rescheduled, or relocated is a continuation of the same assignment and does not create a new or additional assignment or any additional compensation. If the Contractor is unavailable for the rescheduled date or new location, the Contractor may decline it without penalty, and no compensation is owed for either the original or the rescheduled date.</p>
+    <p style="margin-bottom:4px"><em>6.6 Force Majeure.</em> Neither party shall be liable for any failure or delay in performance caused by circumstances beyond its reasonable control, including weather, natural disaster, fire, public health emergency, government or school closure order, loss of utilities, or unavailability of the facility. No compensation is owed for any course or session not delivered for such reasons.</p>
+    <p style="margin-bottom:4px"><em>6.7 Cancellation by the Contractor.</em> The Contractor shall notify the Company as soon as the Contractor becomes aware of any inability to instruct a course or session the Contractor has accepted, and in no event less than fourteen (14) days before the scheduled date except in the case of documented illness or emergency. Repeated or late cancellations by the Contractor may result in termination under Section 8. No compensation is owed for any session the Contractor does not instruct.</p>
+    <p style="margin-bottom:12px"><em>6.8 Acknowledgment of Risk.</em> The Contractor acknowledges that scheduled course dates depend on clients, host facilities, enrollment, and other third parties outside the Company's control, and accepts the risk that scheduled work may not occur. The Contractor is responsible for the Contractor's own business and scheduling decisions made in reliance on a scheduled date.</p>
+
+    <p style="margin-bottom:6px"><strong>7. INSURANCE &amp; LIABILITY</strong></p>
+    <p style="margin-bottom:4px"><em>7.1 Indemnification.</em> The Contractor agrees to indemnify and hold Mindful Beginnings LLC harmless from any claims, damages, or legal fees arising from the Contractor's gross negligence or willful misconduct during the performance of Services.</p>
+    <p style="margin-bottom:12px"><em>7.2 Limitation of Liability.</em> In no event shall the Company be liable to the Contractor for lost profits, lost opportunities, or any consequential, incidental, indirect, special, or punitive damages. The Company's total aggregate liability to the Contractor under this Agreement, on any theory of liability, shall not exceed the compensation earned by the Contractor under Section 5 for instruction actually delivered.</p>
+
+    <p style="margin-bottom:6px"><strong>8. TERM &amp; TERMINATION</strong></p>
+    <p style="margin-bottom:4px"><em>Termination for Convenience:</em> Either party may terminate this Agreement at any time, for any reason or no reason, effective immediately upon written notice. Upon termination, the Contractor must immediately return all Company property. If termination occurs before the four-course commitment (Section 3) is satisfied, the $500 training fee becomes due immediately, subject to the limits stated in Section 3.</p>
+    <p style="margin-bottom:4px"><em>Payment on Termination:</em> If this Agreement terminates while a course is in progress, compensation is owed only for instructional hours actually and fully taught, calculated as provided in Section 6.4.</p>
+    <p style="margin-bottom:6px"><em>Non-Solicitation:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to solicit, contact, or provide Safe Sitter® instruction or similar safety instruction services directly to any client, host family, referral, or lead introduced to or through Mindful Beginnings LLC during the term of this Agreement. This includes, but is not limited to, families who registered for a course, host families who provided a venue, and any individual or organization whose contact information was obtained through the performance of Services.</p>
+    <p style="margin-bottom:12px"><em>Geographic Non-Compete:</em> For a period of twelve (12) months following the termination of this Agreement, the Contractor agrees not to offer, provide, or facilitate Safe Sitter® courses or substantially similar child safety instruction services — whether independently, through a competing company, or in any other capacity — within a thirty (30) mile radius of Bethesda, Maryland. This clause applies regardless of how the Contractor markets or brands such services.</p>
+
+    <p style="margin-bottom:6px"><strong>9. GENERAL</strong></p>
+    <p style="margin-bottom:4px"><em>9.1 Entire Agreement.</em> This Agreement constitutes the entire agreement between the parties with respect to its subject matter and supersedes all prior and contemporaneous proposals, discussions, representations, text messages, emails, and understandings, whether written or oral. No amendment, waiver, or modification is effective unless set out in a writing signed by both parties. No verbal statement, text message, email, custom, or course of dealing shall create any payment obligation, notice requirement, or guarantee of work not expressly stated in this Agreement.</p>
+    <p style="margin-bottom:4px"><em>9.2 No Waiver; Voluntary Payments.</em> No failure or delay by the Company in exercising any right under this Agreement operates as a waiver of that right, and a waiver on one occasion is not a waiver on any other occasion. If the Company chooses to pay the Contractor for a cancelled course or session on any occasion, that payment is a voluntary gratuity made at the Company's sole discretion. It is not an admission of any obligation, does not modify this Agreement, and does not establish a course of dealing or any entitlement to a similar payment in the future.</p>
+    <p style="margin-bottom:4px"><em>9.3 Assignment and Substitution.</em> The Contractor may not assign this Agreement or subcontract, delegate, or send any substitute or additional person to instruct a course or session without the Company's prior written approval.</p>
+    <p style="margin-bottom:4px"><em>9.4 Notices.</em> Any notice under this Agreement, including notice of cancellation, postponement, or termination, may be given by email or text message to the contact information the receiving party has most recently provided to the other, or through the Company's instructor portal, and is deemed given when sent. Notice given by any of these means constitutes written notice for all purposes under this Agreement.</p>
+    <p style="margin-bottom:4px"><em>9.5 Electronic Signature.</em> The parties agree that this Agreement may be executed electronically, including by typed name through the Company's instructor portal, and that an electronic signature has the same force and effect as an original handwritten signature.</p>
+    <p style="margin-bottom:4px"><em>9.6 Governing Law and Venue.</em> This Agreement is governed by the laws of the State of Maryland, without regard to its conflict-of-laws principles. The parties consent to the exclusive jurisdiction and venue of the state courts located in Montgomery County, Maryland, and waive any objection to that venue.</p>
+    <p style="margin-bottom:4px"><em>9.7 Severability.</em> If any provision of this Agreement is held invalid or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, or if it cannot be so modified, severed, and the remainder of this Agreement shall remain in full force and effect.</p>
+    <p style="margin-bottom:20px"><em>9.8 Survival.</em> Sections 3, 4, 6, 7, 8, and 9 survive the expiration or termination of this Agreement.</p>
+
+    <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
+      <div>
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div>By: Lindsay Karr</div>
+        <div>Title: Owner &amp; Founder</div>
+      </div>
+      <div>
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div>Signature: <strong>${sigName}</strong></div>
+        <div>Date: <strong>${sigDate}</strong></div>
+        <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
+      </div>
+    </div>`;
 }
 
 // FROZEN — original MB Courses agreement, superseded by mbCourses2026ContractHTML.
@@ -2165,6 +2437,56 @@ function renderGuide(){
         <a href="${GUIDE_VIEW_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">📖 Open instructor FAQs</a>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:10px">Opens in a new tab. The folder always shows the latest materials — open any file to read it online or download a copy.</div>
+    </div>`;
+}
+
+// ─── COURSE MATERIALS ────────────────────────────────────────
+// The Resource Center Google Doc is the master index. The direct folder links
+// below are the same destinations, surfaced here so instructors don't need two
+// hops to reach the course they're teaching. If a folder ID changes, update it
+// in BOTH places: here and in the Google Doc.
+const RESOURCE_CENTER_URL='https://docs.google.com/document/d/1m359Y7nsMsipYLtlBffdcZFqxttIPh6t8SgQvaGPylI/edit?usp=sharing';
+const SAFE_SITTER_DOWNLOADS_URL='https://safesitter.org/digital-presentation-download/';
+
+const COURSE_FOLDERS=[
+  {name:'All Kids Welcome',      sub:'Inclusive caregiving skills',           url:'https://drive.google.com/drive/folders/18gshpb_HJIwadlmSd3fEgHCaJQOWNtpM?usp=drive_link'},
+  {name:'Campus Ready™',         sub:'Safety skills for college life',        url:'https://drive.google.com/drive/folders/1uJ1WI6NDg6GDphmX2fXWN9_-_fzZ9Y3j?usp=drive_link'},
+  {name:'Grandparents Workshop', sub:'1 hour condensed format',               url:'https://drive.google.com/drive/folders/1zLe9iHVgTVQPhYdz_JeTwROpmKQHZ0z5?usp=drive_link'},
+  {name:"My First Babysitter's Club", sub:'Intro series for younger students',url:'https://drive.google.com/drive/folders/17pyFSwZBcmm_2XPeXiqIQbU6foKqp16q?usp=drive_link'},
+  {name:'Safe@Home — Virtual',   sub:'1 hour virtual, grades 3–5',            url:'https://drive.google.com/drive/folders/1cleKQLXu5XUbiWxMxco1orb3jvpY-YcZ?usp=drive_link'},
+  {name:'Safe@Home — 8 Week',    sub:'After-school series, grades 3–5',       url:'https://drive.google.com/drive/folders/1QGY6WNBXSeRhlvtAleJsZFz3mR4zvuHO?usp=drive_link'},
+  {name:'Stay Ready',            sub:'Course materials',                      url:'https://drive.google.com/drive/folders/1lpyaT-Tb7Ay-V8_6KA-ZL63d31pSJxw1?usp=drive_link'},
+  {name:'Steady and Ready',      sub:'Neurodivergent-affirming course',       url:'https://drive.google.com/drive/folders/1-PEdtFV8rITqciqUIw_sC5n3U5tIyJZ9?usp=drive_link'}
+];
+
+function renderMaterials(){
+  const el=document.getElementById('materials-content');
+  const cards=COURSE_FOLDERS.map(c=>`
+    <a href="${c.url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;background:white;transition:border-color .15s" onmouseover="this.style.borderColor='var(--sky)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">${escapeHtml(c.name)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${escapeHtml(c.sub)}</div>
+      <div style="font-size:11px;color:var(--sky);font-weight:500">Open folder →</div>
+    </a>`).join('');
+
+  el.innerHTML=`
+    <div class="info-card">
+      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Instructor resource center</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px">The master index of every course folder, the Safe Sitter® download portal, and who to contact for what. Start here if you are not sure where something lives.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <a href="${RESOURCE_CENTER_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">📚 Open resource center</a>
+        <a href="${SAFE_SITTER_DOWNLOADS_URL}" target="_blank" rel="noopener" class="btn" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">🔗 Safe Sitter® downloads</a>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px">Opens in a new tab. Safe Sitter® digital instructor manuals require a separate YUDU login — contact Lindsay if you need access.</div>
+    </div>
+
+    <div class="info-card">
+      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Jump to a course folder</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">${cards}</div>
+    </div>
+
+    <div class="info-card" style="font-size:12px;color:var(--muted);line-height:1.7">
+      <strong style="color:var(--text)">Before you teach:</strong> speaker notes inside the digital presentations are a general guide only. They leave out Instructor Notes, game instructions, and the bracketed information in the manual. Your Instructor Manual or Facilitator Guide is always your primary teaching resource.<br><br>
+      <strong style="color:var(--text)">Using the PowerPoint files:</strong> download the file and open it in the PowerPoint desktop app. The web version does not support full navigation. Presenter Mode in Zoho Show is a reliable alternative.
     </div>`;
 }
 
