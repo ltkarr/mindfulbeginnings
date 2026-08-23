@@ -1170,6 +1170,16 @@ function instrIsSafeSitter(i){
   if(i.safeSitterCertified===false)return false;
   return !!i.safeSitterTrainingDate;
 }
+// Mirrors hasAnsweredSafeSitter() in instructor.html. Instructors now enter their own
+// Safe Sitter® training completion date in the portal (My profile), or tell us they
+// have not taken the training. Until they answer one way or the other, the portal
+// holds back the job board — so this is part of the onboarding lockout below.
+function instrAnsweredSafeSitter(i){
+  if(!i)return false;
+  if(i.safeSitterTrainingDate)return true;        // date on file — done
+  if(i.safeSitterCertified===false)return true;   // "not taken yet", or you marked them not certified
+  return false;                                   // includes certified-but-no-date: we still want the date
+}
 // Can this instructor see/teach this course? Mirrors the instructor portal's canTeach().
 function instrEligible(i,course){
   const c=COURSES[course]||{};
@@ -4096,6 +4106,8 @@ function renderInstructors(){
             // Satisfied by an uploaded headshot, or by the legacy "marked complete"
             // flag for instructors who finished this step under the old process.
             if(!(i.headshotPath||i.headshotCompleted))missing.push('headshot');
+            // Self-entered in the portal — either a training date or "not taken yet".
+            if(!instrAnsweredSafeSitter(i))missing.push('Safe Sitter® training date');
             return missing.length
               ?`<br><span style="font-size:11px;color:var(--danger)" title="This instructor cannot see the job board until every onboarding step is complete">🔒 Locked out of job board — missing: ${missing.join(', ')}</span>`
               :'<br><span style="font-size:11px;color:var(--success)" title="All 5 onboarding steps complete — this instructor can see and accept jobs">✓ Onboarding complete</span>';
@@ -4116,7 +4128,7 @@ function renderInstructors(){
         <td style="color:var(--muted);font-size:12px">${i.zelle||'—'}</td>
         <td style="font-weight:500;color:var(--success)">$${i.hourlyRate||50}/hr</td>
         <td><span class="pin-badge">${i.pin}</span></td>
-        <td style="font-size:12px">${trainDate}</td>
+        <td style="font-size:12px">${i.safeSitterTrainingDate?trainDate:(i.safeSitterCertified===false?'<span style="color:var(--muted)">Not trained</span>':'<span style="color:var(--warn);font-weight:500" title="This instructor has not entered a Safe Sitter® training date in their portal yet">⚠ Needed</span>')}</td>
         <td style="font-size:12px;color:${i.sweatshirtSize?'var(--text)':'var(--muted)'}">${i.sweatshirtSize||'—'}</td>
         <td style="font-weight:500">${myJobs.length||'—'}</td>
         <td style="color:${totalPendingAmt>0?'var(--warn)':'var(--muted)'}">${totalPendingAmt?fmt(totalPendingAmt):'—'}</td>
@@ -4201,7 +4213,7 @@ function openEditInstructor(id){
     <div class="fg"><label>Zelle</label><input type="text" id="m-izelle" value="${i.zelle||''}"></div>
     <div class="fg"><label>PIN *</label><input type="text" id="m-ipin" value="${i.pin}" maxlength="6"></div>
     <div class="fg"><label>Hourly rate ($) *</label><input type="number" id="m-irate" value="${i.hourlyRate||50}" min="1"></div>
-    <div class="fg full"><label>Safe Sitter® training completion date</label><input type="date" id="m-itraining" value="${i.safeSitterTrainingDate||''}"></div>
+    <div class="fg full"><label>Safe Sitter® training completion date</label><input type="date" id="m-itraining" value="${i.safeSitterTrainingDate||''}"><div style="font-size:11px;color:var(--muted);margin-top:4px">Instructors enter this themselves in the portal under My profile. Set or correct it here any time — whatever you save wins.</div></div>
     <div class="fg"><label>Sweatshirt size</label><select id="m-isweat" style="width:100%"><option value="">— Not selected —</option><option value="XS" ${i.sweatshirtSize==='XS'?'selected':''}>XS</option><option value="S" ${i.sweatshirtSize==='S'?'selected':''}>S</option><option value="M" ${i.sweatshirtSize==='M'?'selected':''}>M</option><option value="L" ${i.sweatshirtSize==='L'?'selected':''}>L</option><option value="XL" ${i.sweatshirtSize==='XL'?'selected':''}>XL</option><option value="2XL" ${i.sweatshirtSize==='2XL'?'selected':''}>2XL</option></select></div>
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Instructor type — controls which jobs they see</div>
@@ -4224,7 +4236,7 @@ async function saveInstructor(editId){
     Object.assign(i,{name,email:document.getElementById('m-iemail').value.trim(),phone:document.getElementById('m-iphone').value.trim(),zelle:document.getElementById('m-izelle').value.trim(),pin,hourlyRate:Number(document.getElementById('m-irate').value)||50,safeSitterTrainingDate:document.getElementById('m-itraining')?document.getElementById('m-itraining').value:i.safeSitterTrainingDate,sweatshirtSize:document.getElementById('m-isweat')?document.getElementById('m-isweat').value:i.sweatshirtSize||'',isRN:document.getElementById('m-isrn')?document.getElementById('m-isrn').checked:i.isRN||false,safeSitterCertified:document.getElementById('m-issafesitter')?document.getElementById('m-issafesitter').checked:(i.safeSitterCertified??null),contractType:document.getElementById('m-icontract')?document.getElementById('m-icontract').value:i.contractType||'standard'});
   }else{
     if(instructors.find(x=>x.pin===pin)){alert('That PIN is already in use.');return;}
-    i={id:sid(),name,email:document.getElementById('m-iemail').value.trim(),phone:document.getElementById('m-iphone').value.trim(),zelle:document.getElementById('m-izelle').value.trim(),pin,hourlyRate:Number(document.getElementById('m-irate').value)||50,isRN:document.getElementById('m-isrn')?document.getElementById('m-isrn').checked:false,safeSitterCertified:document.getElementById('m-issafesitter')?document.getElementById('m-issafesitter').checked:null,contractType:document.getElementById('m-icontract')?document.getElementById('m-icontract').value:'standard',createdAt:Date.now()};
+    i={id:sid(),name,email:document.getElementById('m-iemail').value.trim(),phone:document.getElementById('m-iphone').value.trim(),zelle:document.getElementById('m-izelle').value.trim(),pin,hourlyRate:Number(document.getElementById('m-irate').value)||50,isRN:document.getElementById('m-isrn')?document.getElementById('m-isrn').checked:false,safeSitterCertified:(document.getElementById('m-issafesitter')&&document.getElementById('m-issafesitter').checked)?true:null,contractType:document.getElementById('m-icontract')?document.getElementById('m-icontract').value:'standard',createdAt:Date.now()};
     instructors.push(i);
   }
   try{

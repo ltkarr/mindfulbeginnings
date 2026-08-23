@@ -199,7 +199,7 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
     </div>
     <div class="screen" id="tab-myprofile">
       <div class="section-title">My profile</div>
-      <div class="section-sub">Upload your documents.</div>
+      <div class="section-sub">Add your Safe Sitter® training completion date and upload your documents.</div>
       <div id="myprofile-content"></div>
     </div>
     <div class="screen" id="tab-guide">
@@ -315,7 +315,7 @@ let loadErrors={}; // last data-load failures, shown on the job boards instead o
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-08-06.1';
+const PORTAL_VERSION='v2026-08-23.1';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -762,6 +762,14 @@ async function doLogin(){
       try{const{data:ssc}=await sb.rpc('instructor_safe_sitter_certified',{p_pin:pin});if(typeof ssc==='boolean')me.safeSitterCertified=ssc;}
       catch(e){/* keep null — training-date fallback applies */}
     }
+    // Safe Sitter® training date: same story — if the deployed instructor_login
+    // predates the safe_sitter_training_date column, pull it with a helper RPC so
+    // the My profile card shows the date already on file instead of asking for it
+    // again. If that RPC does not exist, the field simply starts empty.
+    if(!me.safeSitterTrainingDate){
+      try{const{data:sst}=await sb.rpc('instructor_safe_sitter_training_date',{p_pin:pin});if(sst)me.safeSitterTrainingDate=String(sst).slice(0,10);}
+      catch(e){/* leave empty — the instructor can enter it */}
+    }
     // RN credential: the deployed instructor_login function may predate the
     // is_rn column and not return it, which made every instructor look like a
     // non-RN in the portal (RN missing from "Credentials on file", RN-only jobs
@@ -910,7 +918,18 @@ function showTab(name,el){
 // board retroactively. It is also set alongside the path on every new upload, so the
 // admin's own onboarding check keeps working with no change.
 function isOnboardingComplete(){
-  return !!(me.contractSigned && me.w9Submitted && me.cprCertPath && me.licensePath && (me.headshotPath || me.headshotCompleted));
+  return !!(me.contractSigned && me.w9Submitted && me.cprCertPath && me.licensePath && (me.headshotPath || me.headshotCompleted) && hasAnsweredSafeSitter());
+}
+// Safe Sitter® instructor training. The instructor answers this themselves in My
+// profile — either a completion date, or "I have not taken this training yet".
+// EITHER answer clears the onboarding step, so an RN or curriculum hire who never
+// took Safe Sitter® training is never locked out of the board. Only an actual date
+// makes them Safe Sitter® certified, which is what unlocks Safe Sitter® course jobs.
+function hasAnsweredSafeSitter(){
+  if(!me)return false;
+  if(me.safeSitterTrainingDate)return true;        // date on file — done
+  if(me.safeSitterCertified===false)return true;   // "not taken yet", or Lindsay marked them not certified
+  return false;                                    // includes certified-but-no-date: we still want the date
 }
 // ── COURSE ELIGIBILITY ──────────────────────────────────────
 // Which jobs an instructor can see and accept, by credential tier:
@@ -959,6 +978,7 @@ function renderOnboardingGate(el){
     {label:'Upload your CPR certification',done:!!me.cprCertPath,tab:'myprofile'},
     {label:'Upload your driver\'s license / ID',done:!!me.licensePath,tab:'myprofile'},
     {label:'Upload your headshot photo for the website',done:!!(me.headshotPath||me.headshotCompleted),tab:'myprofile'},
+    {label:'Enter your Safe Sitter® training completion date',done:hasAnsweredSafeSitter(),tab:'myprofile'},
   ];
   const list=steps.map(s=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--border)">
@@ -1271,6 +1291,8 @@ async function renderMyProfile(){
   ]);
 
   el.innerHTML=`
+    ${safeSitterCardHTML()}
+
     <!-- Documents section -->
     <div class="info-card">
       <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Documents</div>
@@ -1331,6 +1353,83 @@ async function renderMyProfile(){
       </div>
     </div>
   `;
+}
+
+// ─── SAFE SITTER® TRAINING DATE (self-entered) ───────────────
+// Lives at the top of My profile. Saving a date sets safe_sitter_certified = true,
+// which immediately unlocks Safe Sitter® and Grandparents job posts on the Open jobs
+// board. Saving "not taken yet" sets it false, which clears the onboarding step
+// without granting those jobs. Lindsay can still override either answer in admin.
+function safeSitterCardHTML(){
+  const dateOnFile=me.safeSitterTrainingDate||'';
+  const pretty=dateOnFile?new Date(dateOnFile+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
+  const declined=!dateOnFile&&me.safeSitterCertified===false;
+  const today=new Date().toISOString().slice(0,10);
+  const banner=dateOnFile
+    ?`<div class="alert success" style="margin-bottom:12px">✓ &nbsp;Training completion date on file: <strong>${escapeHtml(pretty)}</strong>. Safe Sitter® course jobs are unlocked on your Open jobs board.</div>`
+    :me.safeSitterCertified===true
+      ?`<div class="alert success" style="margin-bottom:12px">✓ &nbsp;You are marked as Safe Sitter® certified, so those jobs are already unlocked. Please add your completion date below for our records.</div>`
+    :declined
+      ?`<div class="alert info" style="margin-bottom:12px">You told us you have not completed Safe Sitter® instructor training yet. Safe Sitter® and Grandparents jobs stay hidden until you add a completion date here.</div>`
+      :`<div class="alert warn" style="margin-bottom:12px">⚠️ &nbsp;<strong>We need your Safe Sitter® training completion date.</strong> Add it below to get full access to the job board.</div>`;
+  return`
+    <div class="info-card">
+      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">🧒 Safe Sitter® instructor training</div>
+      ${banner}
+      <div style="font-size:13px;color:var(--text);margin-bottom:12px;line-height:1.6">Enter the date you completed your Safe Sitter® instructor training. As soon as it is saved, Safe Sitter® and Grandparents job posts appear on your Open jobs board.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="date" id="ss-training-date" max="${today}" value="${escapeHtml(dateOnFile)}" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--sky)'" onblur="this.style.borderColor='var(--border)'">
+        <button class="btn primary" onclick="submitSafeSitterDate()">${dateOnFile?'Update date':'Save date'}</button>
+      </div>
+      ${dateOnFile?'':`<div style="margin-top:12px"><button class="btn" style="font-size:12px;padding:6px 12px" onclick="declineSafeSitterTraining()">I have not taken this training yet</button></div>`}
+      <div style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6">Not sure of the exact day? Use the date printed on your Safe Sitter® instructor certificate. If anything looks wrong, contact Lindsay.</div>
+    </div>`;
+}
+
+async function submitSafeSitterDate(){
+  const input=document.getElementById('ss-training-date');
+  const val=input?input.value:'';
+  if(!val){showToast('Please pick your training completion date first.');return;}
+  const picked=new Date(val+'T12:00:00');
+  const endOfToday=new Date();endOfToday.setHours(23,59,59,999);
+  if(isNaN(picked)){showToast('That date does not look right — please pick it again.');return;}
+  if(picked>endOfToday){showToast('Your training date cannot be in the future.');return;}
+  if(picked.getFullYear()<2000){showToast('Please double-check that year — it looks too far back.');return;}
+  await saveSafeSitterTraining(val);
+}
+
+async function declineSafeSitterTraining(){
+  if(!confirm('Confirm that you have not completed Safe Sitter® instructor training yet.\n\nYou will still see every other job on the board, and you can add your date here any time once you finish the training.'))return;
+  await saveSafeSitterTraining(null);
+}
+
+// dateVal is a 'YYYY-MM-DD' string, or null for "not taken yet".
+async function saveSafeSitterTraining(dateVal){
+  let saveError=null;
+  try{
+    const{error}=await sb.rpc('instructor_set_safe_sitter_training',{p_pin:me.pin,p_date:dateVal});
+    if(error)saveError=error;
+  }catch(e){saveError=e;}
+  // Fallback for a database where the dedicated function has not been created yet —
+  // works only if instructor_update_self already allows these two columns.
+  if(saveError){
+    console.warn('instructor_set_safe_sitter_training failed, trying instructor_update_self:',saveError);
+    try{
+      const{error}=await sb.rpc('instructor_update_self',{p_pin:me.pin,p_changes:{safe_sitter_training_date:dateVal,safe_sitter_certified:!!dateVal}});
+      if(!error)saveError=null;
+    }catch(e){/* keep the original error */}
+  }
+  if(saveError){
+    console.error('Could not save Safe Sitter® training date:',saveError);
+    showToast('⚠ Could not save that — please try again, or text Lindsay.');
+    return;
+  }
+  me.safeSitterTrainingDate=dateVal||'';
+  me.safeSitterCertified=!!dateVal;
+  showToast(dateVal?'✓ Training date saved — your jobs are unlocked!':'✓ Saved. You can add your date here later.');
+  renderMyProfile();
+  checkAndNotifyOnboardingComplete();
+  refreshJobViews();
 }
 
 function triggerUpload(type){
