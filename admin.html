@@ -7370,7 +7370,7 @@ function printSessionReport(){
   const reportTitle=labelMap[filter];
 
   function sessionRows(list,showStatus){
-    if(!list.length)return'<tr><td colspan="8" style="text-align:center;padding:16px;color:#aaa;font-style:italic">No sessions</td></tr>';
+    if(!list.length)return'<tr><td colspan="9" style="text-align:center;padding:16px;color:#aaa;font-style:italic">No sessions</td></tr>';
     return list.map((s,i)=>{
       const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
       const regs=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist');
@@ -7388,13 +7388,14 @@ function printSessionReport(){
         <td>${instr}</td>
         <td style="text-align:center">${regs.length} / ${max}</td>
         <td style="text-align:right;font-weight:500">$${f.revenue.toFixed(2)}</td>
+        <td style="text-align:right;font-weight:600;color:${f.profit<0?'#c0392b':'#2d7a5e'}">${f.profit<0?'-$'+Math.abs(f.profit).toFixed(2):'$'+f.profit.toFixed(2)}</td>
         ${showStatus?`<td style="text-align:center;color:${statusColor};font-size:11px;font-weight:500">${statusLabel}</td>`:''}
       </tr>`;
     }).join('');
   }
 
   function sectionHTML(title,list,showStatus){
-    const cols=showStatus?8:7;
+    const cols=showStatus?9:8;
     return`
       <div style="margin-bottom:32px">
         <div style="background:#1a2744;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase">${title} (${list.length})</div>
@@ -7407,6 +7408,7 @@ function printSessionReport(){
             <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #dde4ee">Instructor</th>
             <th style="padding:8px 10px;text-align:center;border-bottom:1px solid #dde4ee">Students</th>
             <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #dde4ee">Revenue</th>
+            <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #dde4ee">Profit</th>
             ${showStatus?'<th style="padding:8px 10px;text-align:center;border-bottom:1px solid #dde4ee">Status</th>':''}
           </tr></thead>
           <tbody>${sessionRows(list,showStatus)}</tbody>
@@ -7415,6 +7417,9 @@ function printSessionReport(){
   }
 
   const listRev=list.reduce((sum,s)=>sum+calcFin(s).revenue,0);
+  const listProfit=list.reduce((sum,s)=>sum+calcFin(s).profit,0);
+  const listCost=list.reduce((sum,s)=>sum+calcFin(s).totalCost,0);
+  const fmtMoney=n=>(n<0?'-$'+Math.abs(n).toFixed(2):'$'+n.toFixed(2));
   const listStudents=list.reduce((sum,s)=>sum+registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist').length,0);
 
   const html=`<!DOCTYPE html><html><head><title>${reportTitle} — Mindful Beginnings</title>
@@ -7424,10 +7429,10 @@ function printSessionReport(){
     .no-print{background:#1a2744;padding:12px 24px;display:flex;align-items:center;gap:12px}
     .pg{max-width:960px;margin:0 auto;padding:32px 28px}
     td{padding:8px 10px;border-bottom:0.5px solid #eee;vertical-align:top}
-    .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0 28px}
-    .kpi{background:#f8f9fc;border:1px solid #dde4ee;border-radius:8px;padding:12px 16px}
+    .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:20px 0 28px}
+    .kpi{background:#f8f9fc;border:1px solid #dde4ee;border-radius:8px;padding:12px 14px}
     .kpi .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#6b7a99;margin-bottom:4px;font-family:sans-serif}
-    .kpi .val{font-size:22px;font-weight:bold}
+    .kpi .val{font-size:19px;font-weight:bold;white-space:nowrap}
     .footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde4ee;font-size:10px;color:#aaa;display:flex;justify-content:space-between}
     @media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{padding:16px 0}}
   </style></head><body>
@@ -7447,7 +7452,10 @@ function printSessionReport(){
       <div class="kpi"><div class="lbl">Sessions</div><div class="val">${list.length}</div></div>
       <div class="kpi"><div class="lbl">Students</div><div class="val">${listStudents}</div></div>
       <div class="kpi"><div class="lbl">Revenue</div><div class="val">$${listRev.toFixed(2)}</div></div>
+      <div class="kpi"><div class="lbl">Costs</div><div class="val">$${listCost.toFixed(2)}</div></div>
+      <div class="kpi"><div class="lbl">Profit</div><div class="val" style="color:${listProfit<0?'#c0392b':'#2d7a5e'}">${fmtMoney(listProfit)}</div></div>
     </div>
+    <div style="font-size:11px;color:#6b7a99;margin:-18px 0 24px;font-style:italic">Revenue is net of payment processing fees. Profit subtracts instructor pay, materials, referral payouts, and any additional costs.</div>
     ${sectionHTML(reportTitle,list,filter==='all')}
     <div class="footer">
       <span>Mindful Beginnings · ${reportTitle}</span>
