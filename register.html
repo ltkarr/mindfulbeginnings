@@ -537,6 +537,23 @@ if(typeof getSessionBasePrice==='undefined'){
   // each `from` moment, so nothing already scheduled re-prices. Keep identical to the
   // LATER_PRICE_CHANGES list in config.js and admin.html.
   const LATER_PRICE_CHANGES=[
+    // PROGRAM GUIDE CUTOVER — prices taken straight from the published Program &
+    // Course Guide. Sessions created from midnight ET on Aug 27 2026 charge these,
+    // flat, in any class year. Sessions already on the calendar are untouched.
+    {from:'2026-08-27T04:00:00Z',   // midnight ET, night of Aug 26 2026
+     prices:{
+       'Safe Sitter®':225,
+       'Safe@Home':85,
+       'Safe@Home — Virtual':40,
+       'Safe@Home — Series':125,
+       'My First Babysitters Club':165,
+       'Grandparents: Getting Started':185,
+       'All Kids Welcome':25,
+       'Intro to Babysitting':40,
+       'Steady and Ready':65,
+       'Campus Ready: Safety Skills for College Life':75,
+       'Stay Ready: Choking Rescue and CPR':75
+     }},
     {from:'2026-08-12T04:00:00Z',   // midnight ET, night of Aug 11 2026
      prices:{'Safe@Home':85,'Grandparents: Getting Started':185}}
   ];

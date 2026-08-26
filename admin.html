@@ -473,7 +473,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at||Date.now(),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -492,6 +492,12 @@ let CLOSURES_COL=true;
 let INSTR_INFO_COL=true;
 function sessionToDB(s){
   const o={id:s.id,code:s.code,course:s.course,date:s.date||null,time:s.time||null,location:s.location||null,host_address:s.hostAddress||null,city:s.city||null,state:s.state||null,zip:s.zip||null,contact_name:s.contactName||null,host_phone:s.hostPhone||null,owner_taught:s.ownerTaught||false,host_taken:s.hostTaken||false,has_host:s.hasHost!==false,instructor_id:s.instructorId||null,second_instructor_id:s.secondInstructorId||null,max_students_override:s.maxStudentsOverride||null,notes:s.notes||null,additional_costs:s.additionalCosts||[],wifi_info:s.wifiInfo||null,price_override:s.priceOverride==null?null:Number(s.priceOverride),instr_pay_override:s.instrPayOverride==null?null:Number(s.instrPayOverride),is_virtual:s.isVirtual||false,zoom_link:s.zoomLink||null,is_custom_job:s.isCustomJob||false,is_hold:s.isHold||false,allow_waitlist:s.allowWaitlist!==false,reserved_seats:s.reservedSeats||null,hold_term:s.holdTerm||null,hold_payment:s.holdPayment||null,is_recurring:s.isRecurring||false,recur_pattern:s.recurPattern||null,recur_end_date:s.recurEndDate||null,bill_to_org:s.billToOrg||null,billed_headcount:s.billedHeadcount==null||s.billedHeadcount===''?null:Number(s.billedHeadcount)};
+  // created_at drives ALL pricing, so write it explicitly rather than trusting a
+  // database default to exist. A session that arrives without one is stamped with the
+  // pre-cutover sentinel, never with "now" — guessing "now" is what caused every
+  // session created before Aug 26 2026 to quietly keep charging old prices while the
+  // dashboard displayed new ones.
+  o.created_at=s.createdAt==null?LEGACY_CREATED_AT:Number(s.createdAt);
   // Only sent once the partners setup SQL has added the column, so an older
   // database keeps saving sessions normally.
   if(ORIGINATED_COL){o.originated_by=s.originatedBy||null;o.origination_note=s.originationNote||null;}
@@ -715,9 +721,31 @@ function sessionUsesNewPricing(createdAt){
 // the TOP of this list with a future date — do not edit an old one.
 // Keep this list identical in admin.html, register.html, and config.js.
 const LATER_PRICE_CHANGES=[
+  // PROGRAM GUIDE CUTOVER — every price below comes straight from the published
+  // Program & Course Guide. Sessions created from midnight ET tonight onward charge
+  // these amounts, flat, regardless of what year the class falls in. Everything
+  // already on the calendar keeps the price it was advertised at.
+  {from:'2026-08-27T04:00:00Z',   // midnight ET, night of Aug 26 2026
+   prices:{
+     'Safe Sitter®':225,
+     'Safe@Home':85,
+     'Safe@Home — Virtual':40,
+     'Safe@Home — Series':125,
+     'My First Babysitters Club':165,
+     'Grandparents: Getting Started':185,
+     'All Kids Welcome':25,
+     'Intro to Babysitting':40,
+     'Steady and Ready':65,
+     'Campus Ready: Safety Skills for College Life':75,
+     'Stay Ready: Choking Rescue and CPR':75
+   }},
   {from:'2026-08-12T04:00:00Z',   // midnight ET, night of Aug 11 2026
    prices:{'Safe@Home':85,'Grandparents: Getting Started':185}}
 ];
+// Timestamp stamped onto any session row that somehow reaches the database without a
+// creation time. Deliberately BEFORE the Aug 6 cutover so an unknown session always
+// falls back to old pricing rather than silently jumping to guide prices.
+const LEGACY_CREATED_AT=1785542400000;   // 2026-08-01T00:00:00Z, in epoch ms
 // The price from the newest change that this session was created on/after, or null.
 function laterPriceFor(course,createdAt){
   if(createdAt==null)return null;
