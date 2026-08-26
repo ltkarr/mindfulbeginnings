@@ -74,6 +74,26 @@ const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
    Keep this list identical in config.js, register.html, and admin.html.
 */
 const LATER_PRICE_CHANGES=[
+  // ── PROGRAM GUIDE CUTOVER · Aug 26 2026 ──────────────────────────────
+  // Every price below is taken straight from the published Program & Course
+  // Guide. Sessions created from midnight ET tonight onward charge these
+  // amounts, flat, no matter what year the class falls in. Everything already
+  // on the calendar keeps the price it was advertised at, and a per-session
+  // price override set in the admin still wins over all of this.
+  {from:'2026-08-27T04:00:00Z',   // midnight ET, night of Aug 26 2026
+   prices:{
+     'Safe Sitter®':225,
+     'Safe@Home':85,
+     'Safe@Home — Virtual':40,
+     'Safe@Home — Series':125,
+     'My First Babysitters Club':165,
+     'Grandparents: Getting Started':185,
+     'All Kids Welcome':25,
+     'Intro to Babysitting':40,
+     'Steady and Ready':65,
+     'Campus Ready: Safety Skills for College Life':75,
+     'Stay Ready: Choking Rescue and CPR':75
+   }},
   {from:'2026-08-12T04:00:00Z',   // midnight ET, night of Aug 11 2026
    prices:{'Safe@Home':85,'Grandparents: Getting Started':185}}
 ];
