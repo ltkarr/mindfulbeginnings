@@ -327,6 +327,24 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
   </div>
 </div>
 
+<div class="screen" id="screen-already-registered">
+  <div class="ok-card">
+    <div class="ok-circle" style="background:#eaf2fb;font-size:24px">👋</div>
+    <h2>This child is already registered</h2>
+    <p id="dup-lead">Our records show this child already has a spot in this class, so we did not create a second registration.</p>
+    <div class="conf-box" id="dup-conf-box"></div>
+    <div id="dup-pay-wrap" style="display:none;margin-top:4px">
+      <p style="font-size:13px">If you still need to send payment, you can do that now.</p>
+      <button class="btn-p" style="margin-top:8px" onclick="continueToPaymentForExisting()">Continue to payment</button>
+    </div>
+    <div style="text-align:center;margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn-o" onclick="registerAnotherChild()">Register a different child</button>
+      <button class="btn-o" onclick="goToScreen(1)">← Start over</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:16px">Something look wrong? <a href="https://mindfulbeginnings.org/contact" style="color:var(--sky)">Contact us</a> and we will sort it out.</p>
+  </div>
+</div>
+
 <div class="screen" id="screen-payment">
   <div class="sess-banner" id="banner-pay"></div>
   <div id="reg-confirmed-strip" style="display:none;background:#eaf6ef;border:1px solid #bfe3cd;border-radius:var(--r-sm);padding:14px 16px;margin-bottom:16px;color:#1d6b42;font-size:14px;line-height:1.5">
@@ -619,6 +637,98 @@ let auctionMode=false;
 let freeSession=false;
 
 function sid(){return'id_'+Math.random().toString(36).slice(2,9)}
+
+// ─── DUPLICATE REGISTRATION GUARD ────────────────────────────
+// A family can easily end up on this page twice: they register, get pulled away
+// mid-payment, come back later and fill the form out again. Nothing in the page
+// itself remembers the earlier visit, so before we reserve a seat we ask the
+// database whether this child is ALREADY registered for this session.
+//
+// The anon role cannot read the registrations table (student PII), so the lookup
+// goes through the SECURITY DEFINER function check_existing_registration(), which
+// returns only the status of the matching row, never anyone else's details.
+//
+// Names are compared case- and spacing-insensitively, so "emma  smith" matches
+// "Emma Smith". Waitlist and cancelled rows are ignored, so a family on the
+// waitlist can still register when a seat opens.
+let existingReg=null; // {registration_id, pay_status, created_at} when a match is found
+
+function normalizeStudentName(n){
+  return (n||'').toLowerCase().replace(/\s+/g,' ').trim();
+}
+function currentStudentName(){
+  const f=document.getElementById('s-first'),l=document.getElementById('s-last');
+  return ((f?f.value:'')+' '+(l?l.value:'')).replace(/\s+/g,' ').trim();
+}
+
+// Asks the database whether this child already has a seat in this session.
+// Returns the match object, or null for "no match" AND for any error — a lookup
+// failure must never block a legitimate registration. The unique index in the
+// database is the hard backstop that catches anything this check misses.
+async function findExistingRegistration(){
+  if(!sb||!currentSession)return null;
+  const name=currentStudentName();
+  if(!name)return null;
+  try{
+    const res=await sb.rpc('check_existing_registration',{p_session_id:currentSession.id,p_student_name:name});
+    if(res&&res.error){console.warn('Duplicate check unavailable:',res.error);return null;}
+    const d=res?res.data:null;
+    if(d&&d.found===true)return d;
+    return null;
+  }catch(e){
+    console.warn('Duplicate check failed:',e);
+    return null;
+  }
+}
+
+// Paints and shows the "already registered" screen.
+function showAlreadyRegistered(info){
+  existingReg=info||null;
+  const status=((info&&info.pay_status)||'').toLowerCase();
+  const paid=(status==='paid'||status==='host'||status==='in_kind');
+  const when=(info&&info.created_at)?new Date(Number(info.created_at)).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
+  const d=fmtSessDates(currentSession);
+  document.getElementById('dup-lead').textContent=paid
+    ? 'Our records show this child already has a paid spot in this class, so we did not create a second registration. Nothing further is needed.'
+    : 'Our records show this child already has a spot in this class, so we did not create a second registration.';
+  document.getElementById('dup-conf-box').innerHTML=
+    '<div class="crow"><span class="cl">Student</span><span class="cv">'+escapeHtml(currentStudentName())+'</span></div>'+
+    '<div class="crow"><span class="cl">Course</span><span class="cv">'+escapeHtml(currentSession.course)+'</span></div>'+
+    '<div class="crow"><span class="cl">Date</span><span class="cv">'+d+'</span></div>'+
+    (when?'<div class="crow"><span class="cl">Registered</span><span class="cv">'+escapeHtml(when)+'</span></div>':'')+
+    '<div class="crow"><span class="cl">Payment</span><span class="cv" style="color:'+(paid?'#1d6b42':'#b86a00')+'">'+(paid?'Received':'Awaiting payment')+'</span></div>';
+  // Only offer the payment button when the existing row is still awaiting payment.
+  document.getElementById('dup-pay-wrap').style.display=paid?'none':'block';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-already-registered').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// "Continue to payment" from the duplicate screen. Marks the seat as already
+// reserved (it is — it is in the database) so goToPayment shows the payment
+// screen WITHOUT inserting a second row.
+function continueToPaymentForExisting(){
+  try{
+    const reg=buildRegistration('pending',null);
+    if(existingReg&&existingReg.registration_id)reg.id=existingReg.registration_id;
+    reservedReg=reg;
+  }catch(e){reservedReg=null;}
+  reservedPrice=getPayablePrice();
+  reservedDone=true;
+  goToPayment();
+}
+
+// "Register a different child" — clears just the student fields and returns to
+// the form. Parent details, consents and the waiver stay filled in.
+function registerAnotherChild(){
+  existingReg=null;
+  // Start a clean reservation for the new child.
+  reservedReg=null;reservedPrice=null;reservedDone=false;
+  ['s-first','s-last'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
+  const g=document.getElementById('s-grade');if(g)g.selectedIndex=0;
+  goToScreen(2);
+  const f=document.getElementById('s-first');if(f)f.focus();
+}
 
 // Show/hide the free-text "who referred you" box when "Other / Referral" is picked.
 function toggleReferralOther(){
@@ -1061,13 +1171,25 @@ async function goToPayment(){
   }
   isHost=document.getElementById('is-host').checked;
   if(isHost&&currentSession.hostTaken){document.getElementById('is-host').checked=false;isHost=false;alert('The host spot for this session is already taken.');return;}
+  // ── DUPLICATE GUARD ─────────────────────────────────────────────────────────
+  // Before anything is saved, check whether this child already has a seat in this
+  // session. Skipped once this page has reserved the seat itself (reservedDone),
+  // because then the row we would find is our own.
+  if(!reservedDone){
+    const contBtn0=document.querySelector('#screen-info .btn-p');
+    const origLabel0=contBtn0?contBtn0.innerHTML:'';
+    if(contBtn0){contBtn0.disabled=true;contBtn0.innerHTML='Checking…';}
+    const dup=await findExistingRegistration();
+    if(contBtn0){contBtn0.disabled=false;contBtn0.innerHTML=origLabel0;}
+    if(dup){showAlreadyRegistered(dup);return;}
+  }
   // Re-check capacity before proceeding to payment
   let liveCount=0;
   try{
     const{data:cnt}=await sb.rpc('get_registration_count',{p_session_id:currentSession.id});
     liveCount=Number(cnt)||0;
   }catch(e){console.warn('Count RPC failed:',e);}
-  if(!isHost&&!compMode&&!auctionMode&&liveCount>=getMaxSpots()){goToWaitlist();return;}
+  if(!reservedDone&&!isHost&&!compMode&&!auctionMode&&liveCount>=getMaxSpots()){goToWaitlist();return;}
   setBanner('banner-pay');
   // A genuinely free session ($0 effective price, not host/comp/auction) is treated as
   // no-charge: skip every payment button and use the "confirm your spot" flow instead.
@@ -1123,8 +1245,16 @@ async function goToPayment(){
     const reg=buildRegistration('pending',null);
     const price=getPayablePrice();
     stashPending(reg,currentSession); // device-side backup in case the save is interrupted
-    const {ok,full}=await saveRegistration(reg);
+    const {ok,full,duplicateStudent}=await saveRegistration(reg);
     if(contBtn){contBtn.disabled=false;contBtn.innerHTML=origLabel;}
+    if(duplicateStudent){
+      // The database backstop caught a second registration for this child (for
+      // example two devices submitting at the same instant). Nothing was saved
+      // and nothing was charged — show the same friendly screen.
+      clearPending(reg.id);
+      showAlreadyRegistered(await findExistingRegistration());
+      return;
+    }
     if(full){
       // Last seat was claimed between page-load and reserve — do NOT overbook. Send the
       // family to the waitlist with their details prefilled. Nothing was charged.
@@ -1413,8 +1543,20 @@ function isMissingColumnError(err){
 // the localStorage retry net (and any double-tap) can never create a second row.
 function isDuplicateError(err){
   if(!err)return false;
+  if(isDuplicateStudentError(err))return false; // a different child-already-registered case
   const m=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
   return err.code==='23505'||m.includes('duplicate key')||m.includes('already exists');
+}
+
+// The database's hard backstop: a unique index that allows only one live
+// registration per student per session (index name below). Hitting it means a
+// SECOND registration for a child who already has a seat — the opposite of the
+// duplicate-row-id case above, so it must NOT be reported as a successful save.
+const DUP_STUDENT_INDEX='registrations_one_per_student_per_session';
+function isDuplicateStudentError(err){
+  if(!err)return false;
+  const m=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
+  return m.includes(DUP_STUDENT_INDEX);
 }
 // ─── DEVICE-SIDE SAFETY NET ──────────────────────────────────
 // The registration is pre-saved the instant the parent heads to payment. But on a
@@ -1447,7 +1589,9 @@ async function retryOrphanPendingRegs(){
     if(item.ts&&Date.now()-item.ts>30*24*60*60*1000){clearPending(item.reg.id);continue;}
     try{
       const res=await saveRegistration(item.reg);
-      if(res&&(res.ok||res.full))clearPending(item.reg.id);
+      // duplicateStudent means the child is already in the database — the row has
+      // done its job, so drop it rather than retrying forever.
+      if(res&&(res.ok||res.full||res.duplicateStudent))clearPending(item.reg.id);
     }catch(e){/* leave it; try again next load */}
   }
 }
@@ -1474,6 +1618,7 @@ async function saveRegistration(row){
     // database genuinely rejected the row, the legacy path hits the same error and
     // surfaces it; if the function was simply unavailable, the row still saves.
     if(res&&res.error){
+      if(isDuplicateStudentError(res.error))return{ok:false,duplicateStudent:true,error:null};
       if(isDuplicateError(res.error))return{ok:true,error:null}; // row already saved
       console.warn('Capacity RPC error, using direct insert:',res.error);
     }
@@ -1494,6 +1639,7 @@ async function saveRegistration(row){
       error=networkErr;
     }
     if(!error)return{ok:true,error:null};
+    if(isDuplicateStudentError(error))return{ok:false,duplicateStudent:true,error:null}; // child already has a seat
     if(isDuplicateError(error))return{ok:true,error:null}; // this row id already saved
     lastErr=error;
     // Self-heal: if an optional column isn't in the table yet (e.g. photo_consent
@@ -1571,13 +1717,26 @@ async function completeReg(method,txId){
   const btn=document.getElementById('host-confirm-btn');
   if(btn)btn.disabled=true;
 
+  // Duplicate guard for the no-charge paths (host, comp, auction, free), which
+  // skip the reserve-first step in goToPayment and save on this click instead.
+  if(!reservedDone){
+    const dup=await findExistingRegistration();
+    if(dup){if(btn)btn.disabled=false;showAlreadyRegistered(dup);return;}
+  }
+
   const s=currentSession;
   const price=method==='auction'?0:getPayablePrice();
   const reg=buildRegistration(method,txId);
 
   stashPending(reg,s); // survive a frozen page mid-save
-  const {ok,error,full}=await saveRegistration(reg);
+  const {ok,error,full,duplicateStudent}=await saveRegistration(reg);
   if(ok)clearPending(reg.id);
+  if(duplicateStudent){
+    clearPending(reg.id);
+    if(btn)btn.disabled=false;
+    showAlreadyRegistered(await findExistingRegistration());
+    return;
+  }
   if(full){
     // The last seat was claimed between page-load and submit. Do NOT overbook and do
     // NOT charge — send the family to the waitlist with their details prefilled.
