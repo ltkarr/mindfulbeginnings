@@ -312,7 +312,7 @@ tr:hover td{background:#fafbfd}
         <select id="ef-cat" onchange="renderExpenses()">
           <option value="">All categories</option>
           <option>Business Development</option>
-          <option>Equipment</option><option>Insurance</option><option>Supplies</option>
+          <option>Equipment</option><option>Instructor Training</option><option>Insurance</option><option>Supplies</option>
           <option>Marketing</option><option>Software</option><option>Travel</option><option>Charitable Donation</option><option>Other</option>
         </select>
         <input type="text" id="ef-year" placeholder="Filter by year e.g. 2026" oninput="renderExpenses()" style="width:180px">
@@ -473,7 +473,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -490,6 +490,11 @@ let EXTRA_DAYS_COL=true;
 // )
 let CLOSURES_COL=true;
 let INSTR_INFO_COL=true;
+// Per-job RN restriction (custom jobs). Same pattern again.
+// (Run in the Supabase SQL editor:
+//   alter table sessions add column if not exists requires_rn boolean default false;
+// instructor.html reads this column to decide whether to show the job on the board.)
+let REQUIRES_RN_COL=true;
 function sessionToDB(s){
   const o={id:s.id,code:s.code,course:s.course,date:s.date||null,time:s.time||null,location:s.location||null,host_address:s.hostAddress||null,city:s.city||null,state:s.state||null,zip:s.zip||null,contact_name:s.contactName||null,host_phone:s.hostPhone||null,owner_taught:s.ownerTaught||false,host_taken:s.hostTaken||false,has_host:s.hasHost!==false,instructor_id:s.instructorId||null,second_instructor_id:s.secondInstructorId||null,max_students_override:s.maxStudentsOverride||null,notes:s.notes||null,additional_costs:s.additionalCosts||[],wifi_info:s.wifiInfo||null,price_override:s.priceOverride==null?null:Number(s.priceOverride),instr_pay_override:s.instrPayOverride==null?null:Number(s.instrPayOverride),is_virtual:s.isVirtual||false,zoom_link:s.zoomLink||null,is_custom_job:s.isCustomJob||false,is_hold:s.isHold||false,allow_waitlist:s.allowWaitlist!==false,reserved_seats:s.reservedSeats||null,hold_term:s.holdTerm||null,hold_payment:s.holdPayment||null,is_recurring:s.isRecurring||false,recur_pattern:s.recurPattern||null,recur_end_date:s.recurEndDate||null,bill_to_org:s.billToOrg||null,billed_headcount:s.billedHeadcount==null||s.billedHeadcount===''?null:Number(s.billedHeadcount)};
   // created_at drives ALL pricing, so write it explicitly rather than trusting a
@@ -505,8 +510,25 @@ function sessionToDB(s){
   if(EXTRA_DAYS_COL)o.extra_days=(s.extraDays||[]).filter(x=>x&&x.date).map(x=>({date:x.date,time:x.time||''}));
   if(CLOSURES_COL)o.closures=(s.closures||[]).filter(x=>x&&x.date).map(x=>({date:x.date,reason:x.reason||''}));
   if(INSTR_INFO_COL)o.instructor_info=s.instructorInfo||null;
+  if(REQUIRES_RN_COL)o.requires_rn=!!s.requiresRN;
   return o;
 }
+// Upsert a session row, retrying once without requires_rn if the database has not
+// had that column added yet. Used by the custom-job save paths, which do a single
+// upsert rather than the multi-column retry loop in saveSession().
+async function upsertSessionRow(s){
+  try{
+    const{error}=await sb.from('sessions').upsert(sessionToDB(s));
+    if(error&&REQUIRES_RN_COL&&/requires_rn/i.test(error.message||'')){
+      REQUIRES_RN_COL=false;
+      const retry=await sb.from('sessions').upsert(sessionToDB(s));
+      return{error:retry.error||null,missingRnCol:true};
+    }
+    return{error:error||null,missingRnCol:false};
+  }catch(e){return{error:e,missingRnCol:false};}
+}
+const RN_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "RN instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_rn boolean default false;';
+
 function regFromDB(r){
   return{id:r.id,sessionId:r.session_id,studentName:r.student_name||'',parentName:r.parent_name||'',contact:r.contact||'',grade:r.grade||'',cprPermission:r.cpr_permission||'',emergencyAuth:r.emergency_auth||'',photoConsent:r.photo_consent||'',waiverSigned:r.waiver_signed||false,signature:r.signature||'',payStatus:r.pay_status||'unpaid',paypalTxId:r.paypal_tx_id||'',referralSource:r.referral_source||'',pricePaid:r.price_paid==null?null:Number(r.price_paid),notes:r.notes||'',createdAt:r.created_at||Date.now()};
 }
@@ -1098,7 +1120,10 @@ function calcFin(s){
   if(s.isCustomJob){
     const pay=s.instrPayOverride!=null?Number(s.instrPayOverride):0;
     const orgFee=s.priceOverride!=null?Number(s.priceOverride):0;
-    return{revenue:orgFee,matCost:0,instrFee:pay,extraCosts:0,referralBonus:0,totalCost:pay,profit:orgFee-pay,paidCount:0,totalCount:0};
+    // Materials, handbooks, facility rental etc. entered on the job come off the top
+    // so the profit shown is what the job actually earned, not just fee minus pay.
+    const extra=(s.additionalCosts||[]).reduce((sum,x)=>sum+Number(x.amount||0),0);
+    return{revenue:orgFee,grossRevenue:orgFee,procFee:0,matCost:0,instrFee:pay,extraCosts:extra,refPayout:0,referralBonus:0,totalCost:pay+extra,profit:orgFee-pay-extra,paidCount:0,totalCount:0};
   }
   const c=COURSES[s.course]||{price:0,franchise:0,booklet:0,hours:0};
   const regs=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist');
@@ -1218,6 +1243,24 @@ function instrEligible(i,course){
 // Suffix for instructor <option>s flagging an ineligible pick (dropdowns still allow it —
 // you're the admin — but you get a clear warning).
 function instrEligMark(i,course){return instrEligible(i,course)?'':' ⚠ not eligible for this course';}
+// RN restriction for one specific job. Two ways a job can be RN-only: the course
+// itself is RN-only (Stay Ready, Campus Ready), or the job was individually marked
+// "RN instructors only" — which is how custom jobs, having no course, get restricted.
+function sessionRequiresRN(s){
+  if(!s)return false;
+  return !!(s.requiresRN||(COURSES[s.course]||{}).requiresRN);
+}
+// Can this instructor see/accept this particular job? Same as instrEligible, plus the
+// per-job RN flag. Mirrors the instructor portal's canTeach().
+function instrEligibleForSession(i,s){
+  if(!s)return true;
+  if(sessionRequiresRN(s)&&!(i&&i.isRN))return false;
+  return instrEligible(i,s.course);
+}
+function instrEligMarkSession(i,s){
+  if(instrEligibleForSession(i,s))return '';
+  return (sessionRequiresRN(s)&&!(i&&i.isRN))?' ⚠ not an RN — cannot see this job':' ⚠ not eligible for this course';
+}
 // Shows an advisory inside the session modals when the selected course requires a
 // specific instructor credential (RN-only or Safe Sitter®-only courses).
 function updateRnNotice(){
@@ -1353,7 +1396,7 @@ function partnerName(id){const p=partnerById(id);return p?p.name:'';}
 function sessionOrgName(s){
   const o=(s.billToOrg||'').trim();
   if(o)return o;
-  if(s.isCustomJob)return (s.location||s.contactName||'').trim();
+  if(s.isCustomJob)return (s.location||'').trim();
   return '';
 }
 function sessionIsOrgBooking(s){return !!sessionOrgName(s);}
@@ -2602,12 +2645,12 @@ function renderSessions(){
         const payAmt=s.instrPayOverride!=null?`$${Number(s.instrPayOverride).toFixed(2)}`:'—';
         return`<tr style="background:#fdf8f0">
           <td style="white-space:nowrap">${d}${s.isRecurring?`<br><span style="font-size:11px;color:#1a5c8a">thru ${new Date(s.recurEndDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`:''}</td>
-          <td style="font-weight:600">${s.course}${matSessBadge(s)}<br><span style="background:#f5e6c8;color:#7a5c1e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px">CUSTOM JOB</span>${s.billToOrg?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${s.isRecurring?' '+recurBadge(s):''}</td>
+          <td style="font-weight:600">${s.course}${matSessBadge(s)}<br><span style="background:#f5e6c8;color:#7a5c1e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px">CUSTOM JOB</span>${s.requiresRN?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🩺 RN ONLY</span>`:''}${s.billToOrg?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${s.isRecurring?' '+recurBadge(s):''}</td>
           <td><span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy">${s.code}</span></td>
           <td style="color:var(--muted)">${s.location||'—'}</td>
           <td style="color:var(--muted)">${instrStatus}</td>
           <td style="color:var(--muted)">—</td>
-          <td style="font-weight:500;color:#7a5c1e">${payAmt}<br><span style="font-size:10px;color:var(--muted)">flat pay</span></td>
+          <td style="font-weight:500;color:#7a5c1e">${payAmt}<br><span style="font-size:10px;color:var(--muted)">flat pay</span>${f.extraCosts?`<br><span style="font-size:10px;color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}</td>
           <td style="color:${f.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(f.profit)}</td>
           <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${jdi.instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span><span style="font-size:11px;color:${jdi.instrPaid?'var(--success)':'var(--muted)'}">${jdi.instrPaid?'✓ Paid':'Unpaid'}</span></div>`:'<span style="font-size:11px;color:var(--muted)">Upcoming</span>'}</td>
           <td style="text-align:right"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage ▾</button></td></tr>`;
@@ -3023,7 +3066,7 @@ function openAddSession(){
 // post to the instructor board for someone to claim. It has a flat total pay,
 // no student registrations, and no course affiliation.
 function openAddCustomJob(){
-  _editDays=[];_editClosures=[];
+  _editDays=[];_editClosures=[];_editCosts=[];
   showModal(`<div class="modal-head"><h3>Add custom job</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Job title *</label><input type="text" id="cj-title" placeholder="e.g. Healthy Kids 5K Volunteer, Community Fair Booth"></div>
@@ -3069,6 +3112,9 @@ function openAddCustomJob(){
     <div class="fg"><label>City</label><input type="text" id="cj-city" placeholder="e.g. Bethesda"></div>
     <div class="fg"><label>State</label><input type="text" id="cj-state" placeholder="MD" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg"><label>Zip</label><input type="text" id="cj-zip" maxlength="10"></div>
+    <div class="fg"><label>On-site contact name <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="cj-cname" placeholder="e.g. Dana Rivera, site coordinator"></div>
+    <div class="fg"><label>On-site contact phone <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="cj-cphone" placeholder="e.g. 301-555-0142"></div>
+    <div class="fg full" style="margin-top:-4px;font-size:11px;color:var(--muted)">Who the instructor calls or checks in with on the day. This appears on the job details and in the instructor assignment email.</div>
     <div class="fg full"><label>Session code <span style="font-weight:400;color:var(--muted)">(leave blank to generate — recurring school clubs get e.g. MFBC-GRNW-F26, one-off jobs get e.g. GOTR-261121)</span></label>
       <input type="text" id="cj-code" placeholder="auto" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg full"><label>Total pay for this job * <span style="font-weight:400;color:var(--muted)">(flat dollar amount — this is the entire pay for the assignment)</span></label>
@@ -3087,7 +3133,23 @@ function openAddCustomJob(){
       <input type="text" id="cj-billorg" list="org-datalist" placeholder="e.g. Girls on the Run">
       ${orgDatalistHtml()}
     </div>
+    <div class="fg full" style="background:#f6f2ea;border:1px solid #e0d5c2;border-radius:var(--r-sm);padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <label style="margin-bottom:0">Costs for this job <span style="font-weight:400;color:var(--muted)">(optional — materials, student handbooks, facility rental, parking, printing)</span></label>
+        <button type="button" class="btn sm" onclick="addEditCost()">+ Add cost</button>
+      </div>
+      <div id="extra-costs-list"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">These come off the top alongside instructor pay, so the profit on this job is your true take-home.</div>
+    </div>
     ${partnerOriginFieldHtml(null)}
+    <div class="fg full" style="background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:13px;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="cj-rnonly" onchange="updateCjRnNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
+        🩺 RN instructors only
+      </label>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Restrict this job to instructors marked <strong>Registered Nurse (RN)</strong> in their profile. Leave unchecked and every instructor sees it on their board.</div>
+      <div id="cj-rn-notice" style="display:none;margin-top:8px;padding:8px 10px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:11px;line-height:1.5"></div>
+    </div>
     <div class="fg full"><label>Assign to instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
       <select id="cj-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option></select>
     </div>
@@ -3102,9 +3164,44 @@ function openAddCustomJob(){
       <input type="text" id="cj-notes" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID"></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCustomJob()">Add job</button></div>`);
-  renderEditDates();renderEditClosures();
-  const instrSel=document.getElementById('cj-instr');
-  instructors.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=i.name;instrSel.appendChild(o);});
+  renderEditDates();renderEditClosures();renderEditCosts();
+  fillCjInstrSelect('');updateCjRnNotice();
+}
+
+// Instructor picker inside the custom-job modals. Rebuilt whenever the RN-only box is
+// toggled so the "not an RN" warnings stay accurate as the setting changes.
+function fillCjInstrSelect(preferredId){
+  const sel=document.getElementById('cj-instr');if(!sel)return;
+  const keep=preferredId!==undefined?(preferredId||''):(sel.value||'');
+  const rnOnly=!!(document.getElementById('cj-rnonly')||{}).checked;
+  const placeholder=sel.options.length?sel.options[0].textContent:'— Post as open job —';
+  sel.innerHTML='';
+  const blank=document.createElement('option');blank.value='';blank.textContent=placeholder;sel.appendChild(blank);
+  instructors.forEach(i=>{
+    const o=document.createElement('option');o.value=i.id;
+    o.textContent=i.name+((rnOnly&&!i.isRN)?'  ⚠ not an RN — cannot see this job':'');
+    if(i.id===keep)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+// Warns when RN-only would hide the job from every instructor, or from the one it is
+// already assigned to. Assigning a non-RN still works — you are the admin — but the
+// job will not show up on their board.
+function updateCjRnNotice(){
+  fillCjInstrSelect();
+  const box=document.getElementById('cj-rnonly');
+  const note=document.getElementById('cj-rn-notice');
+  if(!box||!note)return;
+  if(!box.checked){note.style.display='none';note.innerHTML='';return;}
+  const rnCount=instructors.filter(i=>i.isRN).length;
+  const sel=document.getElementById('cj-instr');
+  const assigned=(sel&&sel.value)?instructors.find(i=>i.id===sel.value):null;
+  const bits=[];
+  if(rnCount===0)bits.push('No instructor is marked as a Registered Nurse right now, so <strong>nobody will see this job</strong> on the open board. Mark at least one instructor as an RN on the Instructors screen first.');
+  else bits.push(rnCount+' instructor'+(rnCount===1?'':'s')+' marked as an RN will see this job. Everyone else will not.');
+  if(assigned&&!assigned.isRN)bits.push('<strong>'+escapeHtml(assigned.name)+'</strong> is not marked as an RN — you can still assign them, but the job will not appear on their board.');
+  note.style.display='block';
+  note.innerHTML='⚠️ '+bits.join('<br>');
 }
 
 // Class days / closures as they should be written to a custom job. Shared by the add
@@ -3148,11 +3245,11 @@ async function saveCustomJob(){
   }
   const instrEl=document.getElementById('cj-instr');
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
-  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:'',hostPhone:'',code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),...customJobDayFields(date)};
+  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:_editCosts.filter(c=>c.label||c.amount),createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),...customJobDayFields(date)};
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
-  let saveFailed=false,saveErr=null;
-  try{const{error}=await sb.from('sessions').upsert(sessionToDB(s));if(error){saveFailed=true;saveErr=error;}}catch(e){saveFailed=true;saveErr=e;}
+  let saveFailed=false,saveErr=null,rnColMissing=false;
+  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;}
   if(saveFailed){
     console.error('Save custom job failed:',saveErr);
     sessions=sessions.filter(x=>x.id!==s.id);
@@ -3164,7 +3261,7 @@ async function saveCustomJob(){
   jobDataCache[s.id].instructorId=preInstrId;
   if(preInstrId)jobDataCache[s.id].waitlist=(jobDataCache[s.id].waitlist||[]).filter(id=>id!==preInstrId);
   upsertJobData(s.id);
-  showToast('Custom job added'+(preInstrId?` and assigned to ${instructors.find(x=>x.id===preInstrId)?.name||'instructor'}`:'  — posted as open job')+'.');
+  showToast(rnColMissing?RN_COL_SQL_TOAST:('Custom job added'+(preInstrId?` and assigned to ${instructors.find(x=>x.id===preInstrId)?.name||'instructor'}`:'  — posted as open job')+'.'));
 }
 
 function openEditCustomJob(id){
@@ -3172,6 +3269,7 @@ function openEditCustomJob(id){
   const jdi=jobDataCache[s.id]||{};
   _editDays=JSON.parse(JSON.stringify((s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}))));
   _editClosures=JSON.parse(JSON.stringify(s.closures||[]));
+  _editCosts=JSON.parse(JSON.stringify(s.additionalCosts||[]));
   showModal(`<div class="modal-head"><h3>Edit custom job</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Job title *</label><input type="text" id="cj-title" value="${s.course||''}"></div>
@@ -3217,6 +3315,9 @@ function openEditCustomJob(id){
     <div class="fg"><label>City</label><input type="text" id="cj-city" value="${s.city||''}"></div>
     <div class="fg"><label>State</label><input type="text" id="cj-state" value="${s.state||''}" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg"><label>Zip</label><input type="text" id="cj-zip" value="${s.zip||''}" maxlength="10"></div>
+    <div class="fg"><label>On-site contact name</label><input type="text" id="cj-cname" value="${escapeHtml(s.contactName||'')}" placeholder="e.g. Dana Rivera, site coordinator"></div>
+    <div class="fg"><label>On-site contact phone</label><input type="text" id="cj-cphone" value="${escapeHtml(s.hostPhone||'')}" placeholder="e.g. 301-555-0142"></div>
+    <div class="fg full" style="margin-top:-4px;font-size:11px;color:var(--muted)">Who the instructor calls or checks in with on the day. This appears on the job details and in the instructor assignment email.</div>
     <div class="fg full"><label>Session code <span style="font-weight:400;color:var(--muted)">(this is what parents type to register — clear it to regenerate)</span></label>
       <input type="text" id="cj-code" value="${escapeHtml(s.code||'')}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg full"><label>Total pay for this job *</label>
@@ -3235,7 +3336,23 @@ function openEditCustomJob(id){
       <input type="text" id="cj-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. Girls on the Run">
       ${orgDatalistHtml()}
     </div>
+    <div class="fg full" style="background:#f6f2ea;border:1px solid #e0d5c2;border-radius:var(--r-sm);padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <label style="margin-bottom:0">Costs for this job <span style="font-weight:400;color:var(--muted)">(materials, student handbooks, facility rental, parking, printing)</span></label>
+        <button type="button" class="btn sm" onclick="addEditCost()">+ Add cost</button>
+      </div>
+      <div id="extra-costs-list"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">These come off the top alongside instructor pay, so the profit on this job is your true take-home.</div>
+    </div>
     ${partnerOriginFieldHtml(s)}
+    <div class="fg full" style="background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:13px;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="cj-rnonly" ${s.requiresRN?'checked':''} onchange="updateCjRnNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
+        🩺 RN instructors only
+      </label>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Restrict this job to instructors marked <strong>Registered Nurse (RN)</strong> in their profile. Leave unchecked and every instructor sees it on their board.</div>
+      <div id="cj-rn-notice" style="display:none;margin-top:8px;padding:8px 10px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:11px;line-height:1.5"></div>
+    </div>
     <div class="fg full"><label>Assign to instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
       <select id="cj-instr" style="width:100%"><option value="">— Post as open job —</option></select>
     </div>
@@ -3250,10 +3367,8 @@ function openEditCustomJob(id){
       <input type="text" id="cj-notes" value="${s.notes||''}" placeholder="e.g. Wear MB shirt, check in at volunteer tent"></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveEditCustomJob('${id}')">Save changes</button></div>`);
-  renderEditDates();renderEditClosures();
-  const instrSel=document.getElementById('cj-instr');
-  const curInstrId=jdi.instructorId||s.instructorId||'';
-  instructors.forEach(i=>{const o=document.createElement('option');o.value=i.id;o.textContent=i.name;if(i.id===curInstrId)o.selected=true;instrSel.appendChild(o);});
+  renderEditDates();renderEditClosures();renderEditCosts();
+  fillCjInstrSelect(jdi.instructorId||s.instructorId||'');updateCjRnNotice();
 }
 
 async function saveEditCustomJob(id){
@@ -3283,10 +3398,10 @@ async function saveEditCustomJob(id){
     code=reissueStaleCode(id,code,_prevDate,date,uniqueCustomJobCode(date,id,title,siteName,isRecurring));
   }
   const prevSnapshot={...s};
-  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),...customJobDayFields(date)});
+  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),additionalCosts:_editCosts.filter(c=>c.label||c.amount),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),...customJobDayFields(date)});
   closeModal();renderSessions();renderDashboard();renderCodes();
-  let saveFailed=false,saveErr=null;
-  try{const{error}=await sb.from('sessions').upsert(sessionToDB(s));if(error){saveFailed=true;saveErr=error;}}catch(e){saveFailed=true;saveErr=e;}
+  let saveFailed=false,saveErr=null,rnColMissing=false;
+  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;}
   if(saveFailed){
     Object.assign(s,prevSnapshot);renderSessions();renderDashboard();renderCodes();
     showToast('⚠️ Could not save. '+(saveErr&&saveErr.message?saveErr.message:'Check your connection.'));return;
@@ -3294,7 +3409,7 @@ async function saveEditCustomJob(id){
   if(!jobDataCache[s.id])jobDataCache[s.id]={waitlist:[]};
   jobDataCache[s.id].instructorId=preInstrId;
   upsertJobData(s.id);
-  showToast('Custom job updated.');
+  showToast(rnColMissing?RN_COL_SQL_TOAST:'Custom job updated.');
 }
 
 function toggleVirtualFields(val){
@@ -3636,12 +3751,14 @@ async function saveSession(editId){
     else if(CLOSURES_COL&&/closures/i.test(_msg)){CLOSURES_COL=false;_note='detail';}
     else if(INSTR_INFO_COL&&/instructor_info/i.test(_msg)){INSTR_INFO_COL=false;_note='detail';}
     else if(ORIGINATED_COL&&/originated_by|origination_note/i.test(_msg)){ORIGINATED_COL=false;_note='partner';}
+    else if(REQUIRES_RN_COL&&/requires_rn/i.test(_msg)){REQUIRES_RN_COL=false;_note='rn';}
     else break;
     saveFailed=false;saveErr=null;
     try{
       const {error}=await sb.from('sessions').upsert(sessionToDB(s));
       if(error){saveFailed=true;saveErr=error;}
       else if(_note==='partner')showToast('⚠️ Saved, but WITHOUT the "Originated by" partner credit — run partners_setup.sql once in the Supabase SQL editor, then re-save this session.');
+      else if(_note==='rn')showToast(RN_COL_SQL_TOAST);
       else if(_note==='detail')showToast("⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;");
       else showToast("⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';");
     }catch(e){saveFailed=true;saveErr=e;}
@@ -4460,7 +4577,7 @@ function renderJobs(){
     const c=COURSES[s.course]||{};
     const instrRate=instr?(instr.hourlyRate||INSTR_RATE):INSTR_RATE;
     const instrFee=instrDisplayFee(s,instr,jdi);
-    const instrOpts=instructors.map(i=>`<option value="${i.id}" ${jdi.instructorId===i.id?'selected':''}>${i.name}${instrEligMark(i,s.course)}</option>`).join('');
+    const instrOpts=instructors.map(i=>`<option value="${i.id}" ${jdi.instructorId===i.id?'selected':''}>${i.name}${instrEligMarkSession(i,s)}</option>`).join('');
     // Co-instructor display block (shown whether you teach or a primary instructor is hired).
     const secondInstrBlock=s.secondInstructorId?(()=>{const i2=instructors.find(x=>x.id===s.secondInstructorId);if(!i2)return'';const i2Fee=secondInstrDisplayFee(s,i2,jdi);const i2Paid=jdi.secondInstrPaid;const i2PayCtrl=i2Paid?`<div class="tag paid" style="margin-top:6px">✓ Paid via Zelle${jdi.secondInstrPayDate?' · '+jdi.secondInstrPayDate:''}</div> <button class="btn sm" style="margin-top:6px" onclick="toggleSecondInstrPaid('${s.id}')">Undo</button>`:`<button class="btn sm success" style="margin-top:6px" onclick="toggleSecondInstrPaid('${s.id}')">Mark second instructor paid</button>`;return`<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)"><div style="font-size:11px;font-weight:500;color:var(--sky);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">+ ${s.ownerTaught?'Co-instructor':'Second instructor'}</div><div style="font-weight:500;font-size:13px">${i2.name}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Zelle: ${i2.zelle||'not set'} · Fee: ${fmt(i2Fee)}</div>${i2PayCtrl}</div>`;})():'';
     return`<div class="job-card">
@@ -4483,7 +4600,7 @@ function renderJobs(){
         </div>
         ${s.isCustomJob?`<div class="job-section">
           <div class="job-section-title">Job details</div>
-          <div style="font-size:12px;color:var(--muted);line-height:1.6">Flat-rate job — no materials or host evaluation required.${s.isRecurring?'<br><span style="color:#1a5c8a;font-weight:500">↻ Recurring: '+recurLabel(s)+(s.time?', '+s.time:'')+'</span>':''}${s.notes?'<br>📝 '+s.notes:''}</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6">Flat-rate job — no materials or host evaluation required.${sessionRequiresRN(s)?'<br><span style="color:#2d7a5e;font-weight:500">🩺 RN instructors only — hidden from everyone else\'s job board</span>':''}${s.isRecurring?'<br><span style="color:#1a5c8a;font-weight:500">↻ Recurring: '+recurLabel(s)+(s.time?', '+s.time:'')+'</span>':''}${s.contactName||s.hostPhone?'<br>📞 On-site: <strong style="color:var(--text)">'+escapeHtml([s.contactName,s.hostPhone].filter(Boolean).join(' · '))+'</strong>':''}${(()=>{const cs=(s.additionalCosts||[]).filter(c=>Number(c.amount||0)>0);if(!cs.length)return'';const tot=cs.reduce((a,c)=>a+Number(c.amount||0),0);return'<br>💵 Job costs: <strong style="color:#c0392b">'+fmt(tot)+'</strong> <span style="font-size:11px">('+escapeHtml(cs.map(c=>(c.label||'unlabeled')).join(', '))+')</span>';})()}${s.notes?'<br>📝 '+s.notes:''}</div>
         </div>`:`<div class="job-section">
           <div class="job-section-title">Materials delivery</div>
           <select style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px;font-family:'DM Sans',sans-serif" onchange="setMaterialsMethod('${s.id}',this.value)">
@@ -5686,7 +5803,7 @@ function downloadAllWaivers(){
 }
 
 // ─── EXPENSES ────────────────────────────────────────────────
-const EXP_CATS=['Business Development','Equipment','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Other'];
+const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Other'];
 
 function renderExpenses(){
   const catF=document.getElementById('ef-cat').value;

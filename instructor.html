@@ -261,7 +261,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -312,6 +312,10 @@ if(typeof INSTR_EXTRA_HOURS==='undefined'){window.INSTR_EXTRA_HOURS=0.5;}
 let me=null,allSessions=[],jobDataCache={},regCountMap={};
 let lastFetch=0,fetching=false; // freshness tracking for auto-refresh
 let loadErrors={}; // last data-load failures, shown on the job boards instead of a fake empty state
+// True once we know for certain whether each job carries the per-job "RN instructors
+// only" flag. Set during loadData(); false only when the requires_rn column is missing
+// from the database entirely, in which case only course-level RN rules apply.
+let RN_RESTRICTION_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
@@ -721,7 +725,7 @@ function goodToKnowHTML(s){
   const bits=[];
   if(s.instructorInfo)bits.push(escapeHtml(s.instructorInfo).replace(/\n/g,'<br>'));
   const facts=[];
-  if(c.requiresRN)facts.push('Requires an <strong>RN credential</strong>');
+  if(sessionRequiresRN(s))facts.push('Requires an <strong>RN credential</strong>');
   if(c.requiresSafeSitter)facts.push('Requires <strong>Safe Sitter® training</strong>');
   if(!s.isCustomJob){
     const cap=s.maxStudentsOverride||c.maxStudents;
@@ -810,10 +814,10 @@ async function loadData(){
   // contact_name, wifi_info and zoom_link: this table is read with the anon key, so
   // anything listed here is effectively public. Those private site details are fetched
   // per-job through the instructor_session_private RPC once a job is accepted.
-  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,extra_days,closures,instructor_info';
+  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,extra_days,closures,instructor_info,requires_rn';
   // Fallback tier: drops only the newest columns (extra_days / closures / instructor_info),
   // so a database that has not run the latest SQL still gets everything else.
-  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date';
+  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,requires_rn';
   let[s,j,r]=await Promise.all([
     sb.from('sessions').select(SESSION_COLS_FULL),
     sb.from('job_data').select('*'),
@@ -829,8 +833,10 @@ async function loadData(){
     console.warn('sessions load failed with full column list, retrying without the newest columns:',s.error);
     s=await sb.from('sessions').select(SESSION_COLS_MID);
   }
+  let rnColLost=false;
   if(s.error){
     console.error('sessions load failed again, retrying with core columns only:',s.error);
+    rnColLost=true;
     s=await sb.from('sessions').select('id,code,course,date,time,location,city,owner_taught,host_taken,instructor_id,notes,instr_pay_override,is_custom_job,is_virtual');
   }
   // Surface load failures instead of letting them masquerade as an empty job board.
@@ -846,6 +852,24 @@ async function loadData(){
   };
   // On a refresh, a failed fetch should not wipe a previously-good board.
   if(!s.error)allSessions=(s.data||[]).map(sessionFromDB);
+  // The core fallback above drops requires_rn, which would quietly un-restrict every
+  // RN-only job. Rather than fail open, re-fetch just that one column and merge it
+  // back in. If this probe also fails the column genuinely does not exist yet (the
+  // requires_rn SQL has not been run), and RN_RESTRICTION_KNOWN stays false so the
+  // portal falls back to course-level rules instead of hiding jobs at random.
+  if(rnColLost&&!s.error){
+    try{
+      const{data:rnRows,error:rnErr}=await sb.from('sessions').select('id,requires_rn');
+      if(rnErr){RN_RESTRICTION_KNOWN=false;console.warn('requires_rn unavailable — per-job RN restrictions cannot be applied. Run: alter table sessions add column if not exists requires_rn boolean default false;',rnErr);}
+      else{
+        RN_RESTRICTION_KNOWN=true;
+        const map={};(rnRows||[]).forEach(x=>{map[x.id]=!!x.requires_rn;});
+        allSessions.forEach(x=>{x.requiresRN=!!map[x.id];});
+      }
+    }catch(e){RN_RESTRICTION_KNOWN=false;console.warn('requires_rn probe failed:',e);}
+  }else if(!s.error){
+    RN_RESTRICTION_KNOWN=true;
+  }
   if(!j.error){jobDataCache={};(j.data||[]).forEach(row=>{jobDataCache[row.session_id]=jobFromDB(row);});}
   if(!r.error){regCountMap={};(r.data||[]).forEach(x=>{regCountMap[x.session_id]=Number(x.cnt)||0;});}
   lastFetch=Date.now();
@@ -950,11 +974,27 @@ function canTeach(course){
   if(c.requiresSafeSitter&&!isSafeSitterCertified())return false;
   return true;
 }
+// A single job can be RN-only two ways: its course is RN-only (Stay Ready, Campus
+// Ready), or Lindsay ticked "RN instructors only" on the job itself. The second is
+// how custom jobs get restricted — they have no course, so the course table has
+// nothing to say about them.
+function sessionRequiresRN(s){
+  if(!s)return false;
+  if(s.requiresRN)return true;
+  return !!(COURSES[s.course]||{}).requiresRN;
+}
+// Which jobs this instructor can see and accept. Use this everywhere instead of
+// canTeach(s.course) so the per-job flag is never skipped.
+function canTeachSession(s){
+  if(!s)return false;
+  if(sessionRequiresRN(s)&&!me.isRN)return false;
+  return canTeach(s.course);
+}
 // Badge shown on job cards for credential-restricted courses (only eligible
 // instructors ever see these cards, so the badge is informational).
 function credentialPill(s){
   const c=COURSES[s.course]||{};
-  if(c.requiresRN)return'<span class="pill pill-rn">🩺 RN instructors only</span>';
+  if(sessionRequiresRN(s))return'<span class="pill pill-rn">🩺 RN instructors only</span>';
   if(c.requiresSafeSitter)return'<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>';
   return'';
 }
@@ -1010,7 +1050,7 @@ function renderOpen(){
   const sessions=allSessions.filter(s=>{
     const jdi=jobDataCache[s.id]||{};
     if(s.ownerTaught||s.isHold)return false;
-    if(!canTeach(s.course))return false; // hide jobs this instructor is not credentialed for
+    if(!canTeachSession(s))return false; // hide jobs this instructor is not credentialed for
     if(new Date(s.date+'T12:00:00')<startOfToday)return false;
     // Taken by someone else and the admin turned the waitlist off: nothing to act on, hide it.
     if(jdi.instructorId&&jdi.instructorId!==me.id&&!waitlistAllowed(s))return false;
@@ -1088,7 +1128,7 @@ function renderOpen(){
 async function acceptJob(sessId){
   if(!isOnboardingComplete()){alert('Please complete your onboarding before accepting jobs.');return;}
   const sElig=allSessions.find(x=>x.id===sessId);
-  if(sElig&&!canTeach(sElig.course)){alert('This course requires a credential that is not on your profile. Please contact Lindsay if you believe this is a mistake.');refreshJobViews();return;}
+  if(sElig&&!canTeachSession(sElig)){alert('This job requires a credential that is not on your profile. Please contact Lindsay if you believe this is a mistake.');refreshJobViews();return;}
   if(jobDataCache[sessId]&&jobDataCache[sessId].instructorId&&jobDataCache[sessId].instructorId!==me.id){
     const sTaken=allSessions.find(x=>x.id===sessId);
     alert(sTaken&&!waitlistAllowed(sTaken)?'This job was just taken by another instructor.':'This job was just taken. Would you like to join the waitlist instead?');
@@ -1163,7 +1203,7 @@ async function notifyWaitlistReopened(sessId,session){
 async function joinWaitlist(sessId){
   if(!isOnboardingComplete()){alert('Please complete your onboarding before joining the waitlist.');return;}
   const sWl=allSessions.find(x=>x.id===sessId);
-  if(sWl&&!canTeach(sWl.course)){alert('This course requires a credential that is not on your profile. Please contact Lindsay if you believe this is a mistake.');refreshJobViews();return;}
+  if(sWl&&!canTeachSession(sWl)){alert('This job requires a credential that is not on your profile. Please contact Lindsay if you believe this is a mistake.');refreshJobViews();return;}
   if(sWl&&!waitlistAllowed(sWl)){showToast('The waitlist is not available for this class.');refreshJobViews();return;}
   try{
     const{data:ok,error}=await sb.rpc('instructor_join_waitlist',{p_pin:me.pin,p_session_id:sessId});
