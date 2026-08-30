@@ -721,8 +721,18 @@ const COURSES={
   'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1.5,maxStudents:8},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug 2026 program
   // guide confirmed $165 for the 8-week series, so future sessions charge $165.
-  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:10,hours:1,maxStudents:12}
+  // Material cost is $30/student — an 8-week series consumes far more supplies than a
+  // one-off class, so it does not share the $10 handbook cost of the short courses.
+  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12}
 };
+// ─── STUDENT MATERIAL COSTS ──────────────────────────────────
+// Single source of truth: every per-student material rate lives on COURSES[...].matCost
+// above. Course sessions apply it automatically in calcFin() (rate × non-host students).
+// Custom jobs have no registrations, so the picker in the costs box below lets you add
+// the same rate × a headcount you type in. Nothing here is entered by hand twice.
+function materialRateCourses(){
+  return Object.keys(COURSES).filter(k=>Number(COURSES[k].matCost||0)>0);
+}
 // ─── PROGRAM-GUIDE PRICING CUTOVER (August 2026) ─────────────
 // Sessions created on/after this moment use the new program-guide prices (priceNew columns).
 // Sessions that already existed keep the prices they were advertised at, so publishing the
@@ -2740,9 +2750,41 @@ function openSessionMenu(ev,sessId){
 
 // ─── ADDITIONAL COSTS HELPERS ────────────────────────────────
 let _editCosts=[];
+// Which modal the costs box is sitting in. 'custom' shows the student-materials picker,
+// because custom jobs have no registrations for calcFin() to price materials from.
+// Course sessions ('session') already get materials calculated automatically, so showing
+// the picker there would double-count.
+let _costsCtx='session';
+// Builds a materials cost row from a course's per-student rate × a headcount.
+function addMaterialsCost(){
+  const course=(document.getElementById('mat-course')||{}).value||'';
+  const n=Math.max(0,Math.floor(Number((document.getElementById('mat-count')||{}).value)||0));
+  if(!course||!n){alert('Pick a course and enter how many students.');return;}
+  const rate=Number(COURSES[course]?.matCost||0);
+  if(!rate){alert('That course has no per-student material cost on file.');return;}
+  const amount=Math.round(rate*n*100)/100;
+  _editCosts.push({label:course+' materials — '+n+' × $'+rate.toFixed(2),amount,datePaid:'',paymentMethod:''});
+  renderEditCosts();
+}
+function materialsPickerHtml(){
+  if(_costsCtx!=='custom')return'';
+  const opts=materialRateCourses().map(k=>`<option value="${escapeHtml(k)}">${escapeHtml(k)} — $${Number(COURSES[k].matCost).toFixed(2)}/student</option>`).join('');
+  return `<div style="background:white;border:1px dashed var(--border);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">📚 Student materials</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="mat-course" style="flex:2;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white">
+          <option value="">Choose a course rate…</option>${opts}
+        </select>
+        <input type="number" id="mat-count" placeholder="# students" min="1" step="1"
+          style="width:110px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:white">
+        <button type="button" class="btn sm" onclick="addMaterialsCost()">Add materials</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Uses the same per-student rate course sessions use, so a Babysitter's Club run as a custom job still carries its real material cost.</div>
+    </div>`;
+}
 function renderEditCosts(){
   const el=document.getElementById('extra-costs-list');if(!el)return;
-  el.innerHTML=_editCosts.length?_editCosts.map((c,i)=>`
+  el.innerHTML=materialsPickerHtml()+(_editCosts.length?_editCosts.map((c,i)=>`
     <div style="background:var(--cream);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
         <input type="text" value="${c.label||''}" placeholder="e.g. Facility rental" oninput="_editCosts[${i}].label=this.value"
@@ -2765,7 +2807,7 @@ function renderEditCosts(){
           <option value="Other" ${c.paymentMethod==='Other'?'selected':''}>Other</option>
         </select>
       </div>
-    </div>`).join(''):'<div style="font-size:12px;color:var(--muted);font-style:italic">No additional costs — click Add to include facility rental, parking, etc.</div>';
+    </div>`).join(''):'<div style="font-size:12px;color:var(--muted);font-style:italic">No additional costs — click Add to include facility rental, parking, etc.</div>');
 }
 function addEditCost(){_editCosts.push({label:'',amount:0,datePaid:'',paymentMethod:''});renderEditCosts();}
 
@@ -2896,6 +2938,7 @@ function toggleHoldMode(on){
 
 
 function openAddSession(){
+  _costsCtx='session';
   _editCosts=[];
   _editDays=[];
   _editClosures=[];
@@ -3066,6 +3109,7 @@ function openAddSession(){
 // post to the instructor board for someone to claim. It has a flat total pay,
 // no student registrations, and no course affiliation.
 function openAddCustomJob(){
+  _costsCtx='custom';
   _editDays=[];_editClosures=[];_editCosts=[];
   showModal(`<div class="modal-head"><h3>Add custom job</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
@@ -3266,6 +3310,7 @@ async function saveCustomJob(){
 
 function openEditCustomJob(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
+  _costsCtx='custom';
   const jdi=jobDataCache[s.id]||{};
   _editDays=JSON.parse(JSON.stringify((s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}))));
   _editClosures=JSON.parse(JSON.stringify(s.closures||[]));
@@ -3504,6 +3549,7 @@ function updateInstrPayPreview(){
 function openEditSession(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
   if(s.isCustomJob){openEditCustomJob(id);return;}
+  _costsCtx='session';
   _editCosts=JSON.parse(JSON.stringify(s.additionalCosts||[]));
   _editDays=JSON.parse(JSON.stringify((s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}))));
   _editClosures=JSON.parse(JSON.stringify(s.closures||[]));
@@ -7185,7 +7231,7 @@ function printYearReport(){
           </table>
           <div style="margin-top:12px;padding:10px 12px;background:#f8f9fc;border-radius:6px;font-size:11px;color:#6b7a99;line-height:1.7">
             <strong style="color:#1a2744">How these are counted:</strong><br>
-            <em>Student materials</em> — handbook and supply cost per enrolled student, built into each session ($${COURSES['Safe Sitter®']?.matCost||0} for Safe Sitter®, $${COURSES['Safe@Home']?.matCost||0} for Safe@Home, $${COURSES['Intro to Babysitting']?.matCost||0} for Intro to Babysitting).<br>
+            <em>Student materials</em> — handbook and supply cost per enrolled student, built into each session (${materialRateCourses().map(k=>'$'+Number(COURSES[k].matCost).toFixed(2)+' for '+k).join(', ')}). Custom jobs carry no registrations, so add materials there from the picker in the job's cost box.<br>
             <em>Instructor fees</em> — hourly rate × course hours, plus one paid hour of travel at the same rate (virtual courses have no travel), or a flat fee for All Kids Welcome and Stay Ready.
           </div>
         </div>
