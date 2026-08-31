@@ -261,7 +261,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -319,7 +319,7 @@ let RN_RESTRICTION_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-08-23.1';
+const PORTAL_VERSION='v2026-08-31.1';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -814,10 +814,10 @@ async function loadData(){
   // contact_name, wifi_info and zoom_link: this table is read with the anon key, so
   // anything listed here is effectively public. Those private site details are fetched
   // per-job through the instructor_session_private RPC once a job is accepted.
-  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,extra_days,closures,instructor_info,requires_rn';
+  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,is_cancelled,cancel_reason,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,extra_days,closures,instructor_info,requires_rn';
   // Fallback tier: drops only the newest columns (extra_days / closures / instructor_info),
   // so a database that has not run the latest SQL still gets everything else.
-  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,requires_rn';
+  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,is_cancelled,cancel_reason,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,requires_rn';
   let[s,j,r]=await Promise.all([
     sb.from('sessions').select(SESSION_COLS_FULL),
     sb.from('job_data').select('*'),
@@ -1050,6 +1050,7 @@ function renderOpen(){
   const sessions=allSessions.filter(s=>{
     const jdi=jobDataCache[s.id]||{};
     if(s.ownerTaught||s.isHold)return false;
+    if(s.isCancelled)return false; // cancelled by the office — nothing to accept
     if(!canTeachSession(s))return false; // hide jobs this instructor is not credentialed for
     if(new Date(s.date+'T12:00:00')<startOfToday)return false;
     // Taken by someone else and the admin turned the waitlist off: nothing to act on, hide it.
@@ -1266,12 +1267,18 @@ function renderMyJobs(){
     const fee=baseFee+bonus;
     const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
     const upcoming=new Date(lastSessDate(s)+'T12:00:00')>=startOfToday;
+    // Cancelled by the office. The card stays visible so the instructor can see what
+    // happened rather than watching a job vanish, but every action and every payment
+    // expectation is removed.
+    const cx=!!s.isCancelled;
+    const cxBanner=cx?`<div class="alert warn" style="margin-bottom:14px">🚫 &nbsp;<span><strong>This class was cancelled${s.cancelReason?' due to '+escapeHtml(s.cancelReason):''}.</strong> You do not need to attend. Lindsay has emailed you the details. Please take the date off your calendar.</span></div>`:'';
     let matHtml='';
     if(jdi.materialsMethod==='ship-host'){matHtml=jdi.materialsSent?'<span class="pill pill-mat-ready">✓ Materials shipped to host</span>':'<span class="pill pill-mat-pending">⏳ Materials being shipped to host</span>';}
     else if(jdi.materialsMethod==='pickup'){matHtml=jdi.materialsSent?'<span class="pill pill-mat-ready">✓ Materials picked up</span>':'<span class="pill pill-mat-pending">⏳ Please pick up materials from Lindsay</span>';}
     else{matHtml='<span class="pill pill-taken">Materials delivery TBD</span>';}
     let payHtml='';
-    if(jdi.payStatus==='paid'){payHtml=`<div class="alert success">✓ &nbsp;Payment sent via Zelle on ${jdi.payDate||''}. Amount: ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}</div>`;}
+    if(cx){payHtml='';}
+    else if(jdi.payStatus==='paid'){payHtml=`<div class="alert success">✓ &nbsp;Payment sent via Zelle on ${jdi.payDate||''}. Amount: ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}</div>`;}
     else if(jdi.evalReceived){payHtml=`<div class="alert info">🎉 &nbsp;Evaluation received! Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''} will be sent to your Zelle shortly.</div>`;}
     else if(!upcoming){payHtml=s.isCustomJob
       ?`<div class="alert warn">⏳ &nbsp;Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''} will be sent to your Zelle after the event.</div>`
@@ -1292,7 +1299,8 @@ function renderMyJobs(){
     const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:12px;color:var(--sky)">Directions ↗</a>`:'';
     return`<div class="job-card">
       <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>
-      <span class="pill ${upcoming?'pill-accepted':'pill-taken'}">${upcoming?'Upcoming':'Completed'}</span></div>
+      <span class="pill ${cx?'pill-taken':(upcoming?'pill-accepted':'pill-taken')}">${cx?'Cancelled':(upcoming?'Upcoming':'Completed')}</span></div>
+      ${cxBanner}
       ${upcoming?heroStripHTML(s,fee):`<div class="jc-details">
         <div class="jc-detail"><div class="jc-detail-label">Time</div><div class="jc-detail-val">${escapeHtml(sessTimeSummary(s))}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">${meetings.length>1?'Class days':'Date'}</div><div class="jc-detail-val">${meetings.length>1?meetings.length+' days'+(closedCount?' · '+closedCount+' off':''):fmtDate(s.date)}</div></div>
@@ -1312,8 +1320,8 @@ function renderMyJobs(){
       ${payHtml}
       ${jdi.notes?`<div style="font-size:12px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:var(--r-sm)">📝 ${escapeHtml(jdi.notes)}</div>`:''}
       <div class="jc-actions" style="margin-top:12px">
-        ${s.isCustomJob?'':`<button class="btn" onclick="printRoster('${s.id}')">🖨️ Print roster</button>`}
-        ${upcoming?`<button class="btn" onclick="cancelJob('${s.id}')">Cancel my acceptance</button>`:''}
+        ${(s.isCustomJob||cx)?'':`<button class="btn" onclick="printRoster('${s.id}')">🖨️ Print roster</button>`}
+        ${(upcoming&&!cx)?`<button class="btn" onclick="cancelJob('${s.id}')">Cancel my acceptance</button>`:''}
       </div>
     </div>`;
   }).join('');

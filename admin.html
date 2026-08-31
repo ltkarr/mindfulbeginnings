@@ -473,7 +473,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,isHold:r.is_hold||false,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -495,6 +495,16 @@ let INSTR_INFO_COL=true;
 //   alter table sessions add column if not exists requires_rn boolean default false;
 // instructor.html reads this column to decide whether to show the job on the board.)
 let REQUIRES_RN_COL=true;
+// Session cancellation (e.g. cancelled for low enrollment). Same graceful-degradation
+// pattern again. Run in the Supabase SQL editor, and remember the standing rule that
+// every sessions column the public pages read needs its own grant to anon:
+//   alter table sessions add column if not exists is_cancelled boolean default false;
+//   alter table sessions add column if not exists cancel_reason text;
+//   alter table sessions add column if not exists cancelled_at timestamptz;
+//   grant select (is_cancelled) on public.sessions to anon;
+//   grant select (cancel_reason) on public.sessions to anon;
+let CANCEL_COLS=true;
+const CANCEL_COL_SQL_TOAST='\u26a0\ufe0f NOT saved \u2014 the database is missing the cancellation columns. Run the cancel-session SQL in Supabase, then try again. See the console for the exact statements.';
 function sessionToDB(s){
   const o={id:s.id,code:s.code,course:s.course,date:s.date||null,time:s.time||null,location:s.location||null,host_address:s.hostAddress||null,city:s.city||null,state:s.state||null,zip:s.zip||null,contact_name:s.contactName||null,host_phone:s.hostPhone||null,owner_taught:s.ownerTaught||false,host_taken:s.hostTaken||false,has_host:s.hasHost!==false,instructor_id:s.instructorId||null,second_instructor_id:s.secondInstructorId||null,max_students_override:s.maxStudentsOverride||null,notes:s.notes||null,additional_costs:s.additionalCosts||[],wifi_info:s.wifiInfo||null,price_override:s.priceOverride==null?null:Number(s.priceOverride),instr_pay_override:s.instrPayOverride==null?null:Number(s.instrPayOverride),is_virtual:s.isVirtual||false,zoom_link:s.zoomLink||null,is_custom_job:s.isCustomJob||false,is_hold:s.isHold||false,allow_waitlist:s.allowWaitlist!==false,reserved_seats:s.reservedSeats||null,hold_term:s.holdTerm||null,hold_payment:s.holdPayment||null,is_recurring:s.isRecurring||false,recur_pattern:s.recurPattern||null,recur_end_date:s.recurEndDate||null,bill_to_org:s.billToOrg||null,billed_headcount:s.billedHeadcount==null||s.billedHeadcount===''?null:Number(s.billedHeadcount)};
   // created_at drives ALL pricing, so write it explicitly rather than trusting a
@@ -511,6 +521,7 @@ function sessionToDB(s){
   if(CLOSURES_COL)o.closures=(s.closures||[]).filter(x=>x&&x.date).map(x=>({date:x.date,reason:x.reason||''}));
   if(INSTR_INFO_COL)o.instructor_info=s.instructorInfo||null;
   if(REQUIRES_RN_COL)o.requires_rn=!!s.requiresRN;
+  if(CANCEL_COLS){o.is_cancelled=!!s.isCancelled;o.cancel_reason=s.cancelReason||null;o.cancelled_at=s.cancelledAt||null;}
   return o;
 }
 // Upsert a session row, retrying once without requires_rn if the database has not
@@ -518,7 +529,14 @@ function sessionToDB(s){
 // upsert rather than the multi-column retry loop in saveSession().
 async function upsertSessionRow(s){
   try{
-    const{error}=await sb.from('sessions').upsert(sessionToDB(s));
+    let{error}=await sb.from('sessions').upsert(sessionToDB(s));
+    // Older database without the cancellation columns: drop them and retry, so
+    // ordinary session saves keep working until the migration is run.
+    if(error&&CANCEL_COLS&&/is_cancelled|cancel_reason|cancelled_at/i.test(error.message||'')){
+      CANCEL_COLS=false;
+      const retryC=await sb.from('sessions').upsert(sessionToDB(s));
+      error=retryC.error||null;
+    }
     if(error&&REQUIRES_RN_COL&&/requires_rn/i.test(error.message||'')){
       REQUIRES_RN_COL=false;
       const retry=await sb.from('sessions').upsert(sessionToDB(s));
@@ -2488,6 +2506,7 @@ function renderDashboard(){
     const today0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
     const upcoming=sessions.filter(s=>{
       if(s.isHold)return false;
+      if(s.isCancelled)return false;
       const sd=new Date(s.date+'T12:00:00');
       const sd0=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate());
       const dayDiff=Math.round((sd0-today0)/86400000);
@@ -2546,6 +2565,7 @@ function renderDashboard(){
     const needs=sessions.filter(s=>{
       if(s.isCustomJob)return false;
       if(s.isHold)return false;
+      if(s.isCancelled)return false;
       const d=new Date(s.date+'T12:00:00');
       if(d<now)return false;
       const cap=sessionMaxStudents(s);
@@ -2633,6 +2653,10 @@ function renderSessions(){
       const wrapTotal=5;
       const wrapAllDone=wrapDone===wrapTotal;
       const wrapDots=isPast?[jdi.repNotified,jdi.parentLetterSent,instrPaid,jdi.instrFollowupSent,jdi.evalSentToHost].map(v=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${v?'var(--success)':'#dde4ee'};margin-right:2px"></span>`).join(''):'';
+      // Cancelled sessions stay on the list (roster and payments are still needed for
+      // refunds) but are visually struck through and clearly badged.
+      const cxBadge=s.isCancelled?`<br><span style="background:#fdf0ee;color:#c0392b;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:.3px">\u{1F6AB} CANCELLED</span>${s.cancelReason?`<br><span style="font-size:10px;color:var(--muted)">${escapeHtml(s.cancelReason)}</span>`:''}`:'';
+      const cxRowStyle=s.isCancelled?'opacity:.55':'';
       if(s.isHold){
         const seats=s.reservedSeats!=null?s.reservedSeats:'—';
         const when=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
@@ -2653,9 +2677,9 @@ function renderSessions(){
         const assignedInstr=instructors.find(x=>x.id===(jdi.instructorId||s.instructorId));
         const instrStatus=assignedInstr?assignedInstr.name+' has accepted the custom job':'<span style="color:#c8a96e;font-style:italic">Open — awaiting claim</span>';
         const payAmt=s.instrPayOverride!=null?`$${Number(s.instrPayOverride).toFixed(2)}`:'—';
-        return`<tr style="background:#fdf8f0">
+        return`<tr style="background:#fdf8f0;${cxRowStyle}">
           <td style="white-space:nowrap">${d}${s.isRecurring?`<br><span style="font-size:11px;color:#1a5c8a">thru ${new Date(s.recurEndDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`:''}</td>
-          <td style="font-weight:600">${s.course}${matSessBadge(s)}<br><span style="background:#f5e6c8;color:#7a5c1e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px">CUSTOM JOB</span>${s.requiresRN?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🩺 RN ONLY</span>`:''}${s.billToOrg?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${s.isRecurring?' '+recurBadge(s):''}</td>
+          <td style="font-weight:600">${s.course}${cxBadge}${matSessBadge(s)}<br><span style="background:#f5e6c8;color:#7a5c1e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px">CUSTOM JOB</span>${s.requiresRN?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🩺 RN ONLY</span>`:''}${s.billToOrg?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${s.isRecurring?' '+recurBadge(s):''}</td>
           <td><span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy">${s.code}</span></td>
           <td style="color:var(--muted)">${s.location||'—'}</td>
           <td style="color:var(--muted)">${instrStatus}</td>
@@ -2665,9 +2689,9 @@ function renderSessions(){
           <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${jdi.instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span><span style="font-size:11px;color:${jdi.instrPaid?'var(--success)':'var(--muted)'}">${jdi.instrPaid?'✓ Paid':'Unpaid'}</span></div>`:'<span style="font-size:11px;color:var(--muted)">Upcoming</span>'}</td>
           <td style="text-align:right"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage ▾</button></td></tr>`;
       }
-      return`<tr>
+      return`<tr style="${cxRowStyle}">
         <td style="white-space:nowrap">${d}</td>
-        <td style="font-weight:500">${s.course}${matSessBadge(s)}${s.billToOrg?`<br><span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}</td>
+        <td style="font-weight:500">${s.course}${cxBadge}${matSessBadge(s)}${s.billToOrg?`<br><span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}</td>
         <td><span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy">${s.code}</span></td>
         <td style="color:var(--muted)">${s.isVirtual?'<span style="background:#d6e9f5;color:#1a5c8a;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:500">🖥 Virtual</span>':s.location||'—'}</td>
         <td style="color:var(--muted)">${instr}</td>
@@ -2725,6 +2749,12 @@ function openSessionMenu(ev,sessId){
   else if(exCo)items.push({label:coUsesExisting(exCo)?'📦 Covered ✓ (using kit they already have) — view':'📦 Equipment reserved ✓ — view / edit',act:`showScreen('materials',document.getElementById('nav-materials'));openEditCheckout('${exCo.id}')`});
   else items.push({label:'📦 Check out equipment',act:`showScreen('materials',document.getElementById('nav-materials'));openCheckout('${sessId}')`});
   items.push({label:'✏️ Edit session',act:`openEditSession('${sessId}')`,sep:true});
+  if(s.isCancelled){
+    items.push({label:'📧 Re-open cancellation emails',act:`openCancellationEmails('${sessId}')`});
+    items.push({label:'↩️ Un-cancel session',act:`uncancelSession('${sessId}')`});
+  }else{
+    items.push({label:'🚫 Cancel session',act:`cancelSession('${sessId}')`,danger:true});
+  }
   items.push({label:'🗑 Delete',act:`deleteSession('${sessId}')`,danger:true});
   }
 
@@ -3868,6 +3898,210 @@ async function publishHold(id){
   showToast('Published to instructors.');
 }
 
+// ─── CANCEL A SESSION ────────────────────────────────────────
+// Cancelling is NOT deleting. The session, its roster and its payment records all stay
+// on file so refunds can be issued and the history is preserved. What changes: the job
+// comes off the instructor job board, the session drops out of the dashboard action
+// lists, it stops counting toward anyone's pending pay, and the row is badged CANCELLED.
+// The instructor and family notification emails open immediately afterward.
+async function cancelSession(id){
+  const s=sessions.find(x=>x.id===id);if(!s)return;
+  if(s.isCancelled){alert('This session is already cancelled. Use "Re-open cancellation emails" if you need to send the notices again.');return;}
+  const when=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'the scheduled date';
+  const raw=prompt('Why is this session being cancelled?\n\nThis wording goes into the instructor and family emails, so keep it short and plain.','low enrollment');
+  if(raw===null)return;
+  const reason=(raw||'').trim()||'low enrollment';
+  const regs=registrations.filter(r=>r.sessionId===id&&r.payStatus!=='waitlist');
+  const paid=regs.filter(r=>r.payStatus==='paid');
+  const instrNames=sessionInstructorList(s).map(x=>x.name).join(' and ')||'no assigned instructor';
+  // Both contractor agreements promise at least five days notice for a low-enrollment
+  // cancellation, and the family waiver promises the same. Flag it rather than block it.
+  if(s.date){
+    const today0=new Date();today0.setHours(0,0,0,0);
+    const sd=new Date(s.date+'T12:00:00');const sd0=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate());
+    const daysOut=Math.round((sd0-today0)/86400000);
+    if(daysOut>=0&&daysOut<5&&!confirm('⚠️ Heads up: this session is '+(daysOut===0?'today':'in '+daysOut+' day'+(daysOut===1?'':'s')+'')+'.\n\nBoth the contractor agreement and the family waiver promise at least five days notice for a low-enrollment cancellation. Cancelling now falls inside that window.\n\nContinue anyway?'))return;
+  }
+  if(!confirm('Cancel '+s.course+' on '+when+'?\n\nReason: '+reason+'\nInstructor: '+instrNames+'\nRegistered: '+regs.length+' ('+paid.length+' paid)\n\nNothing is deleted. The roster and payments stay on file so you can refund. The job comes off the instructor board and out of pending pay, and the notification emails open next.'))return;
+  const prev={isCancelled:s.isCancelled,cancelReason:s.cancelReason,cancelledAt:s.cancelledAt};
+  s.isCancelled=true;s.cancelReason=reason;s.cancelledAt=new Date().toISOString();
+  renderSessions();renderDashboard();
+  const{error}=await upsertSessionRow(s);
+  // upsertSessionRow silently drops the cancellation columns if the database does not
+  // have them yet, which would leave the cancellation looking saved when it is not.
+  if(!error&&!CANCEL_COLS){
+    console.error('The sessions table is missing the cancellation columns. Run this once in the Supabase SQL editor:\n\n'+
+      'alter table sessions add column if not exists is_cancelled boolean default false;\n'+
+      'alter table sessions add column if not exists cancel_reason text;\n'+
+      'alter table sessions add column if not exists cancelled_at timestamptz;\n'+
+      'grant select (is_cancelled) on public.sessions to anon;\n'+
+      'grant select (cancel_reason) on public.sessions to anon;');
+    Object.assign(s,prev);
+    renderSessions();renderDashboard();
+    showToast(CANCEL_COL_SQL_TOAST);
+    return;
+  }
+  if(error){
+    console.error('Cancel session failed:',error);
+    Object.assign(s,prev);
+    renderSessions();renderDashboard();
+    showToast('⚠️ Could not cancel. '+(error.message||'Check your connection and try again.'));
+    return;
+  }
+  showToast('Session cancelled. Opening the notification emails.');
+  openCancellationEmails(id);
+}
+
+// Put a cancelled session back on the calendar. Used when a cancellation was a mistake
+// or enrollment recovered. It reappears on the instructor board immediately.
+async function uncancelSession(id){
+  const s=sessions.find(x=>x.id===id);if(!s)return;
+  if(!confirm('Un-cancel this session and put it back on the instructor job board?\n\nAnyone you already emailed will not be told automatically — you will need to contact them yourself.'))return;
+  const prev={isCancelled:s.isCancelled,cancelReason:s.cancelReason,cancelledAt:s.cancelledAt};
+  s.isCancelled=false;s.cancelReason='';s.cancelledAt=null;
+  renderSessions();renderDashboard();
+  const{error}=await upsertSessionRow(s);
+  if(error){
+    console.error('Un-cancel failed:',error);
+    Object.assign(s,prev);
+    renderSessions();renderDashboard();
+    showToast('⚠️ Could not un-cancel. '+(error.message||'Please try again.'));
+    return;
+  }
+  showToast('Session restored. It is back on the instructor board.');
+}
+
+// ─── CANCELLATION EMAILS ─────────────────────────────────────
+// One popup with two ready-to-send emails: the instructor notice and the family notice.
+// Same send-anywhere toolbar as the other composers (Outlook, Gmail, default mail app,
+// copy). Nothing sends automatically — you review each one and hit send yourself.
+function openCancellationEmails(sessId){
+  const s=sessions.find(x=>x.id===sessId);if(!s)return;
+  const reason=s.cancelReason||'low enrollment';
+  const lowEnroll=/enroll/i.test(reason);
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'the scheduled date';
+  const where=s.isVirtual?'online':((s.location||'')+(s.city?', '+s.city:'')||'the scheduled location');
+  const timeBit=s.time?' at '+s.time:'';
+
+  // ── Instructor notice ──
+  const instrList=sessionInstructorList(s).filter(x=>x.id&&x.instr);
+  const instrAddrs=instrList.map(x=>x.instr.email).filter(Boolean);
+  const firstName=instrList.length===1?(instrList[0].name.split(' ')[0]):'there';
+  const contractLine=lowEnroll
+    ?' Per Section 6 of your contractor agreement, no compensation is due for a course cancelled under this provision, and a course cancelled by Mindful Beginnings for low enrollment does not count toward your course minimum.'
+    :'';
+  const INSTR_SUBJECT='Cancelled: '+s.course+' on '+(s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date');
+  const INSTR_BODY='Hi '+firstName+', I am writing to let you know that the '+s.course+' session scheduled for '+d+timeBit+' at '+where+' has been cancelled due to '+reason+'.'+(lowEnroll?' Enrollment did not reach the minimum required to run the course.':'')+' Please take this date off your calendar.'+contractLine+' The job has already been removed from your instructor portal, so there is nothing for you to do on your end. I will let you know as soon as another session in your area opens up. Thank you for holding the date, and I am sorry for the change. Warm regards, Lindsay Karr, Owner, Mindful Beginnings, 703-987-5979, lindsay@mindfulbeginnings.org';
+
+  // ── Family notice ──
+  const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='waitlist');
+  const famAddrs=regs.map(r=>(r.contact||'').split(' / ')[0].trim()).filter(x=>x.includes('@'));
+  const paidRegs=regs.filter(r=>r.payStatus==='paid');
+  const minLine=lowEnroll?' Mindful Beginnings requires a minimum enrollment of six students to run a course, and we did not reach that number for this date.':'';
+  const FAM_SUBJECT='Cancelled: '+s.course+' on '+(s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date');
+  const FAM_BODY='Hello, I am writing with disappointing news about the '+s.course+' class scheduled for '+d+timeBit+' at '+where+'. We have to cancel this session due to '+reason+'.'+minLine+' Every family who paid will receive a full refund, returned the same way you paid, within five business days. You do not need to do anything to request it. If you would prefer to move to a different date instead of taking the refund, simply reply to this email and I will hold a seat for you at no additional cost. Our upcoming classes are listed at mindfulbeginnings.org. I am sorry for the change to your plans, and I hope we get the chance to work with your family soon. Warm regards, Lindsay Karr, Owner, Mindful Beginnings, 703-987-5979, lindsay@mindfulbeginnings.org';
+
+  const enc=encodeURIComponent;
+  const instrTo=instrAddrs.join(';');
+  const famBcc=famAddrs.join(';');
+  const links={
+    instrOutlook:'https://outlook.office.com/mail/deeplink/compose?to='+enc(instrTo)+'&subject='+enc(INSTR_SUBJECT)+'&body='+enc(INSTR_BODY),
+    instrGmail:'https://mail.google.com/mail/?view=cm&fs=1&to='+enc(instrTo)+'&su='+enc(INSTR_SUBJECT)+'&body='+enc(INSTR_BODY),
+    instrMailto:'mailto:'+instrTo+'?subject='+enc(INSTR_SUBJECT)+'&body='+enc(INSTR_BODY),
+    famOutlook:'https://outlook.office.com/mail/deeplink/compose?bcc='+enc(famBcc)+'&subject='+enc(FAM_SUBJECT)+'&body='+enc(FAM_BODY),
+    famGmail:'https://mail.google.com/mail/?view=cm&fs=1&bcc='+enc(famBcc)+'&su='+enc(FAM_SUBJECT)+'&body='+enc(FAM_BODY),
+    famMailto:'mailto:?bcc='+enc(famBcc)+'&subject='+enc(FAM_SUBJECT)+'&body='+enc(FAM_BODY)
+  };
+  const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const refundRows=paidRegs.length
+    ?paidRegs.map(r=>`<li>${esc(r.studentName||'—')}${r.parentName?' — '+esc(r.parentName):''} · ${fmt(regEffectivePrice(r,s))}${r.contact?' · '+esc(r.contact):''}</li>`).join('')
+    :'<li style="color:#6b7a99">No paid registrations on this session.</li>';
+
+  const win=window.open('','_blank','width=820,height=820');
+  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
+  win.document.write(`<!DOCTYPE html><html><head><title>Cancellation emails — ${esc(s.course)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:14px;line-height:1.7}
+    .tabs{background:#1a2744;padding:12px 24px;display:flex;gap:8px;align-items:center;position:sticky;top:0;z-index:5}
+    .tabs button{padding:8px 16px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.12);color:white}
+    .tabs button.on{background:white;color:#1a2744}
+    .tabs .sp{flex:1}
+    .tabs .close{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.2)!important}
+    .toolbar{padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#ffffff;border-bottom:1px solid #dde4ee}
+    .toolbar button{padding:9px 16px;border-radius:6px;border:1px solid #dde4ee;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744}
+    .toolbar button.pri{background:#0f6cbd;color:white;border-color:#0f6cbd}
+    .doc{max-width:680px;margin:26px auto;padding:0 32px 64px}
+    .to-box{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#1a5c8a;word-break:break-all}
+    .warn-box{background:#fdf0ee;border:1px solid #f0c4bc;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#8c2f1e}
+    .subject-line{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:13px}
+    .email-box{background:white;border-radius:10px;border:1px solid #dde4ee;padding:26px 30px;white-space:pre-wrap;font-size:14px;line-height:1.85}
+    .refunds{background:white;border-radius:10px;border:1px solid #dde4ee;padding:18px 30px;margin-top:18px}
+    .refunds h3{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:#6b7a99;font-weight:600;margin-bottom:10px}
+    .refunds ul{margin-left:18px;font-size:13px;line-height:1.9}
+    .hidden{display:none}
+  </style></head><body>
+  <div class="tabs">
+    <button id="t1" class="on" onclick="showTab(1)">📩 Instructor notice</button>
+    <button id="t2" onclick="showTab(2)">👨‍👩‍👧 Family notice${famAddrs.length?' ('+famAddrs.length+')':''}</button>
+    <span class="sp"></span>
+    <button class="close" onclick="window.close()">Close</button>
+  </div>
+
+  <div id="p1">
+    <div class="toolbar">
+      <button class="pri" onclick="go('instrOutlook')">📧 Open in Outlook</button>
+      <button onclick="go('instrGmail')">Gmail</button>
+      <button onclick="mail('instrMailto')">Default mail app</button>
+      <button onclick="copyText(INSTR_BODY)">📋 Copy text</button>
+    </div>
+    <div class="doc">
+      ${instrAddrs.length?'<div class="to-box">To: <strong>'+esc(instrAddrs.join('; '))+'</strong></div>':'<div class="warn-box">⚠️ No instructor email address on file'+(instrList.length?' for '+esc(instrList.map(x=>x.name).join(' and ')):' — no instructor is assigned to this session')+'. Add one in the Instructors tab, or copy the text below and send it yourself.</div>'}
+      <div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>${esc(INSTR_SUBJECT)}</strong></div>
+      <div class="email-box">${esc(INSTR_BODY)}</div>
+    </div>
+  </div>
+
+  <div id="p2" class="hidden">
+    <div class="toolbar">
+      <button class="pri" onclick="go('famOutlook')">📧 Open in Outlook</button>
+      <button onclick="go('famGmail')">Gmail</button>
+      <button onclick="mail('famMailto')">Default mail app</button>
+      <button onclick="copyText(FAM_BODY)">📋 Copy text</button>
+      <button onclick="copyText(BCC_LIST)">📋 Copy BCC list</button>
+    </div>
+    <div class="doc">
+      ${famAddrs.length?'<div class="to-box">BCC (everyone is hidden from each other): <strong>'+esc(famAddrs.join('; '))+'</strong></div>':'<div class="warn-box">⚠️ No family email addresses on file for this session.</div>'}
+      <div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>${esc(FAM_SUBJECT)}</strong></div>
+      <div class="email-box">${esc(FAM_BODY)}</div>
+      <div class="refunds">
+        <h3>💸 Refunds to issue (${paidRegs.length})</h3>
+        <ul>${refundRows}</ul>
+        <div style="font-size:12px;color:#6b7a99;margin-top:10px">Refund each of these through the same method the family paid, then change their status on the Registrations tab so your books stay accurate.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const L=${JSON.stringify(links)};
+    const INSTR_BODY=${JSON.stringify(INSTR_BODY)};
+    const FAM_BODY=${JSON.stringify(FAM_BODY)};
+    const BCC_LIST=${JSON.stringify(famAddrs.join('; '))};
+    function showTab(n){
+      document.getElementById('p1').className=n===1?'':'hidden';
+      document.getElementById('p2').className=n===2?'':'hidden';
+      document.getElementById('t1').className=n===1?'on':'';
+      document.getElementById('t2').className=n===2?'on':'';
+    }
+    function go(k){window.open(L[k],'_blank');}
+    function mail(k){window.location.href=L[k];}
+    function copyText(t){navigator.clipboard.writeText(t).then(()=>alert('Copied!')).catch(()=>alert('Could not copy automatically — please select the text manually.'));}
+  <\/script>
+  </body></html>`);
+  win.document.close();
+}
+
 // ─── REGISTRATIONS ───────────────────────────────────────────
 function renderRegs(){
   const sf=document.getElementById('rf-session').value;
@@ -4252,14 +4486,14 @@ function renderInstructors(){
       const myJobs=sessions.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.instructorId===i.id;});
       const paidAmt=myJobs.filter(s=>(jobDataCache[s.id]||{}).payStatus==='paid')
         .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
-      const pendingAmt=myJobs.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.payStatus!=='paid'&&jd.instructorId===i.id;})
+      const pendingAmt=myJobs.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.payStatus!=='paid'&&jd.instructorId===i.id&&!s.isCancelled;})
         .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
       // Sessions where this person is the SECOND instructor. These add to the pay totals
       // only (not Jobs taught / detail rows), with their own separate paid status.
       const mySecondJobs=sessions.filter(s=>s.secondInstructorId===i.id);
       const secondPaidAmt=mySecondJobs.filter(s=>(jobDataCache[s.id]||{}).secondInstrPaid)
         .reduce((sum,s)=>sum+secondInstrDisplayFee(s,i,jobDataCache[s.id]||{}),0);
-      const secondPendingAmt=mySecondJobs.filter(s=>!(jobDataCache[s.id]||{}).secondInstrPaid)
+      const secondPendingAmt=mySecondJobs.filter(s=>!(jobDataCache[s.id]||{}).secondInstrPaid&&!s.isCancelled)
         .reduce((sum,s)=>sum+secondInstrDisplayFee(s,i,jobDataCache[s.id]||{}),0);
       const totalPaidAmt=paidAmt+secondPaidAmt;
       const totalPendingAmt=pendingAmt+secondPendingAmt;
