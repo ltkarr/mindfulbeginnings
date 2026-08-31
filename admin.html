@@ -239,6 +239,7 @@ tr:hover td{background:#fafbfd}
             <select id="report-filter" onchange="renderSessions()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none">
               <option value="upcoming">Upcoming sessions</option>
               <option value="completed">Completed sessions</option>
+              <option value="cancelled">Cancelled sessions</option>
               <option value="all">All sessions</option>
             </select>
             <button class="btn" onclick="printSessionReport()">📋 Print report</button>
@@ -2412,7 +2413,7 @@ function renderDashboard(){
     <div class="metric"><div class="m-label">Expenses this month</div><div class="m-val red">${fmt(mCost)}</div></div>
     <div class="metric"><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${fmtSigned(mProfit)}</div></div>
     <div class="metric"><div class="m-label">Total registrations</div><div class="m-val">${totRegs}</div><div class="m-sub">${unpaid} unpaid</div></div>
-    <div class="metric"><div class="m-label">Sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold).length}</div>${(()=>{const h=sessions.filter(s=>s.isHold).length;return h?`<div class="m-sub">${h} on hold</div>`:'';})()}</div>
+    <div class="metric"><div class="m-label">Sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled).length}</div>${(()=>{const h=sessions.filter(s=>s.isHold).length;const cx=sessions.filter(s=>s.isCancelled).length;const bits=[];if(h)bits.push(h+' on hold');if(cx)bits.push(cx+' cancelled');return bits.length?`<div class="m-sub">${bits.join(' · ')}</div>`:'';})()}</div>
   `;
   // Build a continuous 6-month window anchored on the current month: 3 months
   // back through 2 months ahead. This keeps the current month and next month
@@ -2452,7 +2453,8 @@ function renderDashboard(){
     }
     return`<div class="bar-row" title="${mo} — revenue ${fmt(b.rev)}, expenses ${fmt(b.cost)}, net ${fmtSigned(b.profit)}"><span class="bar-label">${mo}</span><div class="bar-bg" style="flex:1;display:flex">${segs}</div><span class="bar-val" style="min-width:96px">${val}</span></div>`;
   }).join('');
-  const up=sessions.filter(s=>new Date(sessionEndDate(s)+'T12:00:00')>=new Date()).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
+  // Cancelled sessions never belong on the dashboard's "what's coming up" list.
+  const up=sessions.filter(s=>!s.isCancelled&&new Date(sessionEndDate(s)+'T12:00:00')>=new Date()).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
   const upEl=document.getElementById('upcoming-list');
   upEl.innerHTML=up.length?up.map(s=>{
     const cnt=registrations.filter(r=>r.sessionId===s.id).length;
@@ -2614,14 +2616,19 @@ function toggleSessionSort(){
 function renderSessions(){
   const cf=document.getElementById('sf-course').value;
   const mf=document.getElementById('sf-month').value;
-  // The dropdown above the table (Upcoming / Completed / All) scopes which sessions show.
-  // A session is "completed" once wrap-up is fully done (not just when date is past).
+  // The dropdown above the table (Upcoming / Completed / Cancelled / All) scopes which
+  // sessions show. A session is "completed" once wrap-up is fully done (not just when the
+  // date is past). Cancelled sessions are pulled out of Upcoming and Completed entirely so
+  // they stop cluttering the working list; they live in their own Cancelled view and still
+  // appear under All (nothing is ever hidden from All).
   const scope=document.getElementById('report-filter')?.value||'upcoming';
   const now=new Date();
   let list=sessions.filter(s=>{
     if(cf&&s.course!==cf)return false;
     if(mf&&!s.date.startsWith(mf))return false;
+    if(scope==='cancelled')return !!s.isCancelled;
     if(scope!=='all'){
+      if(s.isCancelled)return false;
       const isPast=new Date(sessionEndDate(s)+'T12:00:00')<now;
       const jdi=jobDataCache[s.id]||{};
       const instrPaid=isInstructorPaymentDone(s,jdi);
@@ -2656,7 +2663,9 @@ function renderSessions(){
       // Cancelled sessions stay on the list (roster and payments are still needed for
       // refunds) but are visually struck through and clearly badged.
       const cxBadge=s.isCancelled?`<br><span style="background:#fdf0ee;color:#c0392b;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:.3px">\u{1F6AB} CANCELLED</span>${s.cancelReason?`<br><span style="font-size:10px;color:var(--muted)">${escapeHtml(s.cancelReason)}</span>`:''}`:'';
-      const cxRowStyle=s.isCancelled?'opacity:.55':'';
+      // Dimming marks a cancelled row out among live ones. In the Cancelled view every row
+      // is cancelled, so dimming there would just make the whole table hard to read.
+      const cxRowStyle=(s.isCancelled&&scope!=='cancelled')?'opacity:.55':'';
       if(s.isHold){
         const seats=s.reservedSeats!=null?s.reservedSeats:'—';
         const when=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
@@ -3902,7 +3911,9 @@ async function publishHold(id){
 // Cancelling is NOT deleting. The session, its roster and its payment records all stay
 // on file so refunds can be issued and the history is preserved. What changes: the job
 // comes off the instructor job board, the session drops out of the dashboard action
-// lists, it stops counting toward anyone's pending pay, and the row is badged CANCELLED.
+// lists and out of the Upcoming/Completed views (it moves to the "Cancelled sessions"
+// view and still shows under All), it stops counting toward anyone's pending pay, and
+// the row is badged CANCELLED.
 // The instructor and family notification emails open immediately afterward.
 async function cancelSession(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
@@ -3922,7 +3933,7 @@ async function cancelSession(id){
     const daysOut=Math.round((sd0-today0)/86400000);
     if(daysOut>=0&&daysOut<5&&!confirm('⚠️ Heads up: this session is '+(daysOut===0?'today':'in '+daysOut+' day'+(daysOut===1?'':'s')+'')+'.\n\nBoth the contractor agreement and the family waiver promise at least five days notice for a low-enrollment cancellation. Cancelling now falls inside that window.\n\nContinue anyway?'))return;
   }
-  if(!confirm('Cancel '+s.course+' on '+when+'?\n\nReason: '+reason+'\nInstructor: '+instrNames+'\nRegistered: '+regs.length+' ('+paid.length+' paid)\n\nNothing is deleted. The roster and payments stay on file so you can refund. The job comes off the instructor board and out of pending pay, and the notification emails open next.'))return;
+  if(!confirm('Cancel '+s.course+' on '+when+'?\n\nReason: '+reason+'\nInstructor: '+instrNames+'\nRegistered: '+regs.length+' ('+paid.length+' paid)\n\nNothing is deleted. The roster and payments stay on file so you can refund. The session moves to the "Cancelled sessions" view, the job comes off the instructor board and out of pending pay, and the notification emails open next.'))return;
   const prev={isCancelled:s.isCancelled,cancelReason:s.cancelReason,cancelledAt:s.cancelledAt};
   s.isCancelled=true;s.cancelReason=reason;s.cancelledAt=new Date().toISOString();
   renderSessions();renderDashboard();
@@ -3948,7 +3959,7 @@ async function cancelSession(id){
     showToast('⚠️ Could not cancel. '+(error.message||'Check your connection and try again.'));
     return;
   }
-  showToast('Session cancelled. Opening the notification emails.');
+  showToast('Session cancelled and moved to "Cancelled sessions." Opening the notification emails.');
   openCancellationEmails(id);
 }
 
@@ -3968,7 +3979,7 @@ async function uncancelSession(id){
     showToast('⚠️ Could not un-cancel. '+(error.message||'Please try again.'));
     return;
   }
-  showToast('Session restored. It is back on the instructor board.');
+  showToast('Session restored. It is back on the Upcoming list and the instructor board.');
 }
 
 // ─── CANCELLATION EMAILS ─────────────────────────────────────
@@ -6373,7 +6384,7 @@ function renderMatAlerts(){
     const t=matToday();
     const n=new Date();
     const horizon=fmtYMD(new Date(n.getFullYear(),n.getMonth(),n.getDate()+90));
-    const needy=sessions.filter(s=>!s.isHold&&s.date&&sessionEndDate(s)>=t&&s.date<=horizon&&sessionMatNeeds(s))
+    const needy=sessions.filter(s=>!s.isHold&&!s.isCancelled&&s.date&&sessionEndDate(s)>=t&&s.date<=horizon&&sessionMatNeeds(s))
       .sort((a,b)=>a.date.localeCompare(b.date));
     const fdN=s=>fmtSessDate(s,{month:'short',day:'numeric'});
     const noneRes=needy.filter(s=>!matCheckouts.some(c=>c.sessionId===s.id));
@@ -7798,13 +7809,14 @@ mindfulbeginnings.org\`;
 function printSessionReport(){
   const now=new Date();
   const filter=document.getElementById('report-filter')?.value||'upcoming';
-  const upcoming=sessions.filter(s=>new Date(s.date+'T12:00:00')>=now).sort((a,b)=>a.date.localeCompare(b.date));
-  const completed=sessions.filter(s=>new Date(s.date+'T12:00:00')<now).sort((a,b)=>b.date.localeCompare(a.date));
+  const upcoming=sessions.filter(s=>!s.isCancelled&&new Date(s.date+'T12:00:00')>=now).sort((a,b)=>a.date.localeCompare(b.date));
+  const completed=sessions.filter(s=>!s.isCancelled&&new Date(s.date+'T12:00:00')<now).sort((a,b)=>b.date.localeCompare(a.date));
+  const cancelled=sessions.filter(s=>s.isCancelled).sort((a,b)=>b.date.localeCompare(a.date));
   const all=sessions.filter(s=>!s.isHold).sort((a,b)=>a.date.localeCompare(b.date));
-  const listMap={upcoming,completed,all};
-  const labelMap={upcoming:'Upcoming Sessions',completed:'Completed Sessions',all:'All Sessions'};
-  const list=listMap[filter];
-  const reportTitle=labelMap[filter];
+  const listMap={upcoming,completed,cancelled,all};
+  const labelMap={upcoming:'Upcoming Sessions',completed:'Completed Sessions',cancelled:'Cancelled Sessions',all:'All Sessions'};
+  const list=listMap[filter]||upcoming;
+  const reportTitle=labelMap[filter]||'Upcoming Sessions';
 
   function sessionRows(list,showStatus){
     if(!list.length)return'<tr><td colspan="9" style="text-align:center;padding:16px;color:#aaa;font-style:italic">No sessions</td></tr>';
@@ -7815,8 +7827,8 @@ function printSessionReport(){
       const instr=sessionInstructorNames(s,'TBD');
       const f=calcFin(s);
       const isPast=new Date(s.date+'T12:00:00')<now;
-      const statusLabel=isPast?'Completed':'Upcoming';
-      const statusColor=isPast?'#6b7a99':'#2d7a5e';
+      const statusLabel=s.isCancelled?'Cancelled':(isPast?'Completed':'Upcoming');
+      const statusColor=s.isCancelled?'#c0392b':(isPast?'#6b7a99':'#2d7a5e');
       return`<tr style="background:${i%2===0?'white':'#f9fafb'}">
         <td>${d}</td>
         <td style="font-weight:500">${s.course}</td>
