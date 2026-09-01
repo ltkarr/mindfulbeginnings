@@ -189,7 +189,7 @@ tr:hover td{background:#fafbfd}
       <div class="nav-item" onclick="showScreen('codes',this)"><span class="nav-icon">⬡</span> Session codes</div>
       <div class="nav-item" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> Instructors</div>
       <div class="nav-item" onclick="showScreen('partners',this)"><span class="nav-icon">◈</span> Partners</div>
-      <div class="nav-item" id="nav-materials" onclick="showScreen('materials',this)"><span class="nav-icon">▣</span> Materials</div>
+      <div class="nav-item" id="nav-materials" onclick="showScreen('materials',this)"><span class="nav-icon">▣</span> Equipment</div>
       <div class="nav-item" onclick="showScreen('reports',this)"><span class="nav-icon">▦</span> Reports</div>
     </div>
     <div class="sidebar-footer">
@@ -361,7 +361,7 @@ tr:hover td{background:#fafbfd}
          renderJobs()/job-action functions below are kept but no-op without the screen. -->
     <div class="screen" id="screen-materials">
       <div class="page-header">
-        <div><div class="page-title">Materials</div><div class="page-sub">Teaching kits &amp; equipment — what's out, when it's due back, and whether you have enough</div></div>
+        <div><div class="page-title">Equipment</div><div class="page-sub">Reusable teaching kits only — manikins and AV gear: what's out, who has it, when it's due back, and whether you have enough. Handbooks and note pads are not tracked here; they live on the pre-class checklist as "Handbooks &amp; supplies".</div></div>
         <div class="btn-row">
           <button class="btn" onclick="openAddEquipment()">+ Add equipment type</button>
           <button class="btn primary" onclick="openCheckout()">📦 Check out equipment</button>
@@ -369,6 +369,7 @@ tr:hover td{background:#fafbfd}
       </div>
       <div id="mat-alerts"></div>
       <div class="mat-eq-cards" id="mat-eq-cards"></div>
+      <div id="mat-holders"></div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
           <div class="card-title" style="margin-bottom:0">Checkout calendar</div>
@@ -1050,8 +1051,20 @@ async function loadData(){
     if(co.error)console.warn('Equipment checkouts table not loaded:',co.error);
     equipment=(eq.data||[]).map(equipmentFromDB);
     matCheckouts=(co.data||[]).map(checkoutFromDB);
+    // Sessions deleted before this cleanup existed can leave equipment records pointing
+    // at nothing. They used to sit in the list as "(deleted session)" while still holding
+    // a kit as unavailable. Clear them out once, quietly, at load.
+    if(equipmentTablesReady){
+      const orphans=matCheckouts.filter(c=>c.sessionId&&!sessions.some(x=>x.id===c.sessionId));
+      if(orphans.length){
+        const ids=new Set(orphans.map(c=>c.id));
+        matCheckouts=matCheckouts.filter(c=>!ids.has(c.id));
+        orphans.forEach(c=>dbWrite(sb.from('equipment_checkouts').delete().eq('id',c.id),'Orphaned equipment record cleanup'));
+        console.log('Cleared '+orphans.length+' equipment record(s) tied to deleted sessions.');
+      }
+    }
     // An instructor may have accepted a job since the last load — let the
-    // Materials checkouts pick up the newly assigned name.
+    // equipment checkouts pick up the newly assigned name.
     if(equipmentTablesReady)syncCheckoutInstructors();
   }catch(e){
     console.error('Failed to load data:',e);
@@ -1483,19 +1496,49 @@ function regCollectedDate(r){
   return new Date(t).toISOString().slice(0,10);
 }
 
+// ─── WHEN IS THE COMMISSION ACTUALLY EARNED? ─────────────────
+// TWO things have to be true before a dollar earns commission: the money has to
+// have landed, AND the class has to have been taught. A family who registers and
+// pays on 3 September for a 15 October class does NOT put that commission on the
+// September statement — otherwise it would be paid out by 10 October, five days
+// before the class happened, and there would be nothing to claw back if the class
+// cancelled. The earned date is the LATER of the two dates, and that is what
+// decides which month's statement a booking lands on.
+function partnerSessionEndDate(s){return sessionEndDate(s)||'';}
+function partnerSessionHasEnded(s){
+  const e=partnerSessionEndDate(s);
+  return !!e&&e<=matToday();
+}
+// Stamps one raw revenue line with its dates. collectedOn is the EARNED date (what
+// the statement groups and sorts on); paidOn is when the money itself landed, kept
+// so the pending list can say which of the two conditions is still outstanding.
+function partnerEventDates(s,ev,paidOn){
+  const end=partnerSessionEndDate(s);
+  const taught=partnerSessionHasEnded(s);
+  const earned=(paidOn&&taught)?(paidOn>end?paidOn:end):'';
+  ev.collectedOn=earned;
+  ev.paidOn=paidOn||'';
+  ev.sessionEnd=end;
+  ev.moneyIn=!!paidOn;
+  ev.taught=taught;
+  ev.month=earned?earned.slice(0,7):'';
+  ev.collected=!!earned;
+  return ev;
+}
+
 // Every dollar of Collected Revenue a session produces, one entry per source.
 // amount is always NET — processing fees are already removed, per §3.D.
+// A cancelled class earns no commission at all, however much was collected for it.
 function partnerRevenueEvents(s){
   const out=[];
-  if(!s||s.isHold)return out;
+  if(!s||s.isHold||s.isCancelled)return out;
 
   // A custom job bills the organization a flat fee held in priceOverride.
   if(s.isCustomJob){
     const amt=s.priceOverride!=null?Number(s.priceOverride):0;
     if(amt>0){
       const c=sessionOrgCollectedDate(s);
-      out.push({sessionId:s.id,kind:'org',gross:amt,amount:round2(amt),fee:0,
-        collectedOn:c,month:c?c.slice(0,7):'',collected:!!c});
+      out.push(partnerEventDates(s,{sessionId:s.id,kind:'org',gross:amt,amount:round2(amt),fee:0},c));
     }
     return out;
   }
@@ -1506,9 +1549,8 @@ function partnerRevenueEvents(s){
     if(!(gross>0))return;
     const fee=processingFee(gross);
     const d=regCollectedDate(r);
-    out.push({sessionId:s.id,kind:'family',regId:r.id,gross:round2(gross),
-      amount:round2(gross-fee),fee:round2(fee),
-      collectedOn:d,month:d?d.slice(0,7):'',collected:!!d});
+    out.push(partnerEventDates(s,{sessionId:s.id,kind:'family',regId:r.id,gross:round2(gross),
+      amount:round2(gross-fee),fee:round2(fee)},d));
   });
 
   // An organization's roster headcount, invoiced at month end. No processing fee
@@ -1518,8 +1560,7 @@ function partnerRevenueEvents(s){
     const amt=Number(s.billedHeadcount)*rate;
     if(amt>0){
       const c=sessionOrgCollectedDate(s);
-      out.push({sessionId:s.id,kind:'org',gross:round2(amt),amount:round2(amt),fee:0,
-        collectedOn:c,month:c?c.slice(0,7):'',collected:!!c});
+      out.push(partnerEventDates(s,{sessionId:s.id,kind:'org',gross:round2(amt),amount:round2(amt),fee:0},c));
     }
   }
   return out;
@@ -1566,8 +1607,16 @@ function partnerStatement(partnerId,period){
     const evs=partnerRevenueEvents(s);
     const uncollected=evs.filter(e=>!e.collected);
     if(uncollected.length){
-      pending.push({session:s,amount:round2(uncollected.reduce((a,e)=>a+e.amount,0)),
-        reason:sessionIsOrgBooking(s)?'Waiting on the organization invoice to be marked paid':'Registrations not marked paid'});
+      // Say which of the two conditions is actually holding it up, so the answer to
+      // "why isn't this on the statement?" is on the screen rather than in your head.
+      const noMoney=uncollected.some(e=>!e.moneyIn);
+      const notTaught=uncollected.some(e=>e.moneyIn&&!e.taught);
+      const endLbl=fmtShortDate(partnerSessionEndDate(s))||'no date set';
+      let reason;
+      if(noMoney&&notTaught)reason='Class has not been taught yet ('+endLbl+'), and '+(sessionIsOrgBooking(s)?'the organization invoice is not marked paid':'some registrations are not marked paid');
+      else if(notTaught)reason='Paid in full — waiting on the class itself ('+endLbl+')';
+      else reason=sessionIsOrgBooking(s)?'Waiting on the organization invoice to be marked paid':'Registrations not marked paid';
+      pending.push({session:s,amount:round2(uncollected.reduce((a,e)=>a+e.amount,0)),reason,notTaught});
     }
     const inMonth=evs.filter(e=>e.collected&&e.month===period);
     if(!inMonth.length)return;
@@ -1692,7 +1741,7 @@ function partnerOriginFieldHtml(s){
   const note=s?(s.originationNote||''):'';
   return `<div class="fg full" style="background:#f5f1fa;border:1px solid #ddd0ee;border-radius:var(--r-sm);padding:12px 14px">
     <label style="margin-bottom:2px">Originated by <span style="font-weight:400;color:var(--muted)">(optional — community partner commission)</span></label>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Credit this booking to the liaison who made the first introduction. Commission is calculated on revenue you have actually collected, and only pays out once the money is in. Leave this blank for anything you sourced yourself.</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Credit this booking to the liaison who made the first introduction. Commission is earned only once the money is in <em>and</em> the class has been taught — never before the course runs, and never on a cancelled course. Leave this blank for anything you sourced yourself.</div>
     <select id="m-originby" style="width:100%">
       <option value="">— Not applicable (I sourced this myself) —</option>
       ${active.map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${escapeHtml(p.name)}${p.status==='inactive'?' (inactive)':''}</option>`).join('')}
@@ -1743,7 +1792,7 @@ function renderPartners(){
 
   ctrlEl.innerHTML=`
     <div class="alert info" style="display:block">
-      <div style="line-height:1.6">💡 &nbsp;Commission is calculated on <strong>revenue you have actually collected</strong> in the selected month — a family's payment counts the day they register and pay, and an organization's counts the day you mark its invoice paid under Finances. Per the agreement, you calculate on the prior calendar month and pay by the 10th, so this opens on last month.</div>
+      <div style="line-height:1.6">💡 &nbsp;Commission is earned when <strong>both</strong> things have happened: the money has landed <strong>and</strong> the class has been taught. A booking lands on the statement for the month of whichever came second — so a family who pays in September for an October class shows up on the October statement, never before the class runs. Per the agreement you calculate on the prior calendar month and pay by the 10th, so this opens on last month.</div>
     </div>
     <div class="card" style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between">
       <div>
@@ -1773,7 +1822,7 @@ function renderPartners(){
       <div class="metric"><div class="m-label">Collected via partners</div><div class="m-val">${fmt(monthRevenue)}</div><div class="m-sub">${periodLabel(partnerPeriod)}</div></div>
       <div class="metric"><div class="m-label">Commission owed</div><div class="m-val ${monthOwed>0?'red':''}">${fmt(monthOwed)}</div><div class="m-sub">Due by the 10th of next month</div></div>
       <div class="metric"><div class="m-label">Already paid</div><div class="m-val green">${fmt(monthPaid)}</div><div class="m-sub">This month's payouts</div></div>
-      <div class="metric"><div class="m-label">Awaiting collection</div><div class="m-val">${fmt(monthPending)}</div><div class="m-sub">Earns nothing until the money lands</div></div>
+      <div class="metric"><div class="m-label">Not payable yet</div><div class="m-val">${fmt(monthPending)}</div><div class="m-sub">Class not taught, or money not in</div></div>
     </div>`;
 
   if(!partners.length){
@@ -1863,7 +1912,7 @@ function partnerCardHtml(p,st){
     :`<div style="color:var(--muted);font-size:13px;padding:14px 0;font-style:italic">No revenue collected from this partner's introductions in ${periodLabel(st.period)}.</div>`}
 
     ${st.pending.length?`<div style="margin-top:18px">
-      <div class="card-title" style="margin-bottom:8px">Awaiting collection — no commission yet</div>
+      <div class="card-title" style="margin-bottom:8px">Not payable yet — no commission earned</div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Session</th><th>Date</th><th>Client</th><th>Amount</th><th>What's holding it up</th></tr></thead>
         <tbody>${st.pending.map(x=>`<tr>
@@ -2069,9 +2118,9 @@ function openPartnerStatement(partnerId){
           <td style="padding:8px 4px;text-align:right;font-size:15px">${fmt(st.total)}</td>
         </tr></tfoot>
       </table>`:'<div style="color:var(--muted);font-style:italic;padding:20px 0;text-align:center">No collected revenue originated in this period.</div>'}
-      ${st.pendingTotal>0?`<div style="margin-top:16px;padding:10px 12px;background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);font-size:12px;color:var(--warn)">${fmt(st.pendingTotal)} of originated revenue has not been collected yet. Per §3.D, commission is earned when the fees are actually received, so it will appear on the statement for the month the payment lands.</div>`:''}
+      ${st.pendingTotal>0?`<div style="margin-top:16px;padding:10px 12px;background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);font-size:12px;color:var(--warn)">${fmt(st.pendingTotal)} of originated revenue is not payable yet — the fees have not been received, the class has not been taught, or both. Commission is earned once the money is in hand and the course has been delivered, and appears on the statement for the month the later of those two happened.</div>`:''}
       <div style="margin-top:18px;font-size:11px;color:var(--muted);line-height:1.6">
-        Calculated under Section 3 of the Independent Contractor Agreement — Community Partnerships Liaison. Collected Revenue is net of refunds, chargebacks, discounts, taxes and third-party payment processing fees. Remitted via Zelle by the tenth day of the following month.
+        Calculated under Section 3 of the Independent Contractor Agreement — Community Partnerships Liaison. Collected Revenue is net of refunds, chargebacks, discounts, taxes and third-party payment processing fees, and is credited in the month the course was delivered or the month payment was received, whichever is later. No commission is earned on a course that has not been taught, or on a cancelled course. Remitted via Zelle by the tenth day of the following month.
       </div>
     </div>
   </div>
@@ -2110,7 +2159,7 @@ function exportPartnersCSV(){
       rows.push(['','','','','','','','','','','',b.date,'New organizational partner bonus','',b.org,'Yes','No','0.00','flat',b.amount.toFixed(2),'First paid program from a new organization (3.C)']);
     });
     st.pending.forEach(x=>{
-      rows.push(['','','','','','','','','','','','NOT YET COLLECTED',x.session.course,x.session.date||'',
+      rows.push(['','','','','','','','','','','','NOT YET PAYABLE',x.session.course,x.session.date||'',
         sessionOrgName(x.session)||x.session.contactName||'',sessionIsOrgBooking(x.session)?'Yes':'No','',x.amount.toFixed(2),'—','0.00',x.reason]);
     });
   });
@@ -2563,7 +2612,7 @@ function renderDashboard(){
           </label>${btn||''}</div>`;
         const sendBtn=(onclick,emoji,color,bg,border)=>`<button onclick="${onclick}" style="padding:3px 9px;font-size:11px;font-weight:500;border-radius:5px;border:1px solid ${border};background:${bg};color:${color};cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;flex-shrink:0">${emoji} Send</button>`;
         const items=[];
-        items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,'Put out materials',''));
+        items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,'Put out handbooks &amp; supplies',''));
         if(hasInstr)items.push(item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,'Send reminder + roster to instructor',sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee')));
         if(hasHost)items.push(item(!!jd.hostReminderSent,`toggleReminderFlag('${s.id}','hostReminderSent',this.checked)`,'Send reminder to host',sendBtn(`openHostReminder('${s.id}')`,'📬','#b86a00','#fff7e6','#f0d090')));
         items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Send reminder to the class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
@@ -3932,13 +3981,19 @@ async function saveSession(editId){
 }
 
 async function deleteSession(id){
-  if(!confirm('Delete this session and all its registrations?'))return;
+  // Equipment records tied to this class go with it. Left behind they showed up in the
+  // Equipment list as "(deleted session)" while still holding a manikin as unavailable.
+  const cos=matCheckouts.filter(c=>c.sessionId===id);
+  const eqWarn=cos.length?'\n\nIts '+cos.length+' equipment record'+(cos.length===1?'':'s')+' will be removed from Equipment as well, so the kit frees up.':'';
+  if(!confirm('Delete this session and all its registrations?'+eqWarn))return;
   sessions=sessions.filter(s=>s.id!==id);
   registrations=registrations.filter(r=>r.sessionId!==id);
-  renderSessions();renderDashboard();
+  matCheckouts=matCheckouts.filter(c=>c.sessionId!==id);
+  renderSessions();renderDashboard();renderMaterials();
   // Remove the registrations (and any waitlist rows) for this session FIRST, so the delete
   // works the same whether or not the database has a cascade rule, then delete the session.
   await dbWrite(sb.from('registrations').delete().eq('session_id',id),'Session registrations delete');
+  if(cos.length)dbWrite(sb.from('equipment_checkouts').delete().eq('session_id',id),'Session equipment records delete');
   dbWrite(sb.from('sessions').delete().eq('id',id),'Session delete');
 }
 
@@ -3994,7 +4049,7 @@ async function cancelSession(id){
     const daysOut=Math.round((sd0-today0)/86400000);
     if(daysOut>=0&&daysOut<5&&!confirm('⚠️ Heads up: this session is '+(daysOut===0?'today':'in '+daysOut+' day'+(daysOut===1?'':'s')+'')+'.\n\nBoth the contractor agreement and the family waiver promise at least five days notice for a low-enrollment cancellation. Cancelling now falls inside that window.\n\nContinue anyway?'))return;
   }
-  if(!confirm('Cancel '+s.course+' on '+when+'?\n\nReason: '+reason+'\nInstructor: '+instrNames+'\nRegistered: '+regs.length+' ('+paid.length+' paid)\n\nNothing is deleted. The roster and payments stay on file so you can refund. The session moves to the "Cancelled sessions" view, the job comes off the instructor board and out of pending pay, and the notification emails open next.'))return;
+  if(!confirm('Cancel '+s.course+' on '+when+'?\n\nReason: '+reason+'\nInstructor: '+instrNames+'\nRegistered: '+regs.length+' ('+paid.length+' paid)\n\nNothing is deleted. The roster and payments stay on file so you can refund. The session moves to the "Cancelled sessions" view, the job comes off the instructor board and out of pending pay, any equipment reserved for it is released, and the notification emails open next.'))return;
   const prev={isCancelled:s.isCancelled,cancelReason:s.cancelReason,cancelledAt:s.cancelledAt};
   s.isCancelled=true;s.cancelReason=reason;s.cancelledAt=new Date().toISOString();
   renderSessions();renderDashboard();
@@ -4020,15 +4075,47 @@ async function cancelSession(id){
     showToast('⚠️ Could not cancel. '+(error.message||'Check your connection and try again.'));
     return;
   }
+  releaseEquipmentForCancelledSession(id);
   showToast('Session cancelled and moved to "Cancelled sessions." Opening the notification emails.');
   openCancellationEmails(id);
+}
+
+// Cancelling a class cancels the need for its equipment. A reservation that has not
+// physically left the shelf yet is removed outright, so the kit frees up for someone
+// else and the class stops appearing in the equipment reminders. A kit that is ALREADY
+// out is a different matter — it still has to come back — so that record is kept, its
+// due date is pulled forward to today and it is flagged, which puts it in your return
+// list instead of sitting there as a reservation for a class that is not happening.
+function releaseEquipmentForCancelledSession(sessId){
+  const tied=matCheckouts.filter(c=>c.sessionId===sessId);
+  if(!tied.length)return;
+  const t=matToday();
+  let freed=0,toReturn=0;
+  tied.forEach(c=>{
+    const nothingOut=coNoEquipment(c)||coUsesExisting(c)||c.outDate>t||!!c.returnedDate;
+    if(nothingOut){
+      matCheckouts=matCheckouts.filter(x=>x.id!==c.id);
+      freed++;
+      dbWrite(sb.from('equipment_checkouts').delete().eq('id',c.id),'Cancelled session equipment release');
+    }else{
+      c.dueDate=t;
+      if(!/class cancelled/i.test(c.notes||''))c.notes=(c.notes?c.notes+' · ':'')+'Class cancelled — arrange return';
+      toReturn++;
+      dbWrite(sb.from('equipment_checkouts').update({due_date:c.dueDate,notes:c.notes}).eq('id',c.id),'Cancelled session equipment flagged for return');
+    }
+  });
+  renderMaterials();
+  const bits=[];
+  if(freed)bits.push(freed+' reservation'+(freed===1?'':'s')+' released');
+  if(toReturn)bits.push(toReturn+' kit'+(toReturn===1?'':'s')+' already out — flagged for return');
+  if(bits.length)showToast('📦 Equipment: '+bits.join('; ')+'.');
 }
 
 // Put a cancelled session back on the calendar. Used when a cancellation was a mistake
 // or enrollment recovered. It reappears on the instructor board immediately.
 async function uncancelSession(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
-  if(!confirm('Un-cancel this session and put it back on the instructor job board?\n\nAnyone you already emailed will not be told automatically — you will need to contact them yourself.'))return;
+  if(!confirm('Un-cancel this session and put it back on the instructor job board?\n\nAnyone you already emailed will not be told automatically — you will need to contact them yourself. Equipment released when you cancelled is not reserved again automatically; re-reserve it from Equipment.'))return;
   const prev={isCancelled:s.isCancelled,cancelReason:s.cancelReason,cancelledAt:s.cancelledAt};
   s.isCancelled=false;s.cancelReason='';s.cancelledAt=null;
   renderSessions();renderDashboard();
@@ -4396,7 +4483,7 @@ function renderFinances(){
   Object.values(buckets).forEach(b=>b.profit=b.rev-b.cost);
   const keys=Object.keys(buckets).sort().reverse();
   const t=document.getElementById('fin-table');
-  t.innerHTML=`<thead><tr><th>${finView==='monthly'?'Month':'Year'}</th><th>Sessions</th><th>Students paid</th><th>Revenue (net)</th><th title="PayPal processing fees skimmed off online payments — already deducted from net revenue, not part of expenses">Proc. fees</th><th>Materials</th><th>Instructor fees</th><th>Extra costs</th>${finView==='monthly'?'':'<th>Overhead</th>'}<th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
+  t.innerHTML=`<thead><tr><th>${finView==='monthly'?'Month':'Year'}</th><th>Sessions</th><th>Students paid</th><th>Revenue (net)</th><th title="PayPal processing fees skimmed off online payments — already deducted from net revenue, not part of expenses">Proc. fees</th><th title="Per-student handbooks and supplies consumed — not the reusable equipment on the Equipment tab">Material cost</th><th>Instructor fees</th><th>Extra costs</th>${finView==='monthly'?'':'<th>Overhead</th>'}<th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
     (keys.length?keys.map(k=>{
       const b=buckets[k];
       const label=finView==='monthly'?new Date(k+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}):k;
@@ -4892,7 +4979,7 @@ function jobStatus(s,jd){
     if(jd.evalReceived&&payDone)return{key:'paid',label:'Paid',cls:'sp-paid'};
     if(jd.evalReceived)return{key:'pay-ready',label:'Ready to pay',cls:'sp-payready'};
     if(sessDate<new Date())return{key:'eval-pending',label:'Eval pending',cls:'sp-eval'};
-    if(!jd.materialsSent)return{key:'mat',label:'Materials pending',cls:'sp-mat'};
+    if(!jd.materialsSent)return{key:'mat',label:'Handbooks pending',cls:'sp-mat'};
     return{key:'assigned',label:'Ready',cls:'sp-assigned'};
   }
   if(!jd.instructorId)return openStatus();
@@ -4900,7 +4987,7 @@ function jobStatus(s,jd){
   if(jd.payStatus==='paid'&&payDone)return{key:'paid',label:'Paid',cls:'sp-paid'};
   if(jd.evalReceived)return{key:'pay-ready',label:'Ready to pay',cls:'sp-payready'};
   if(sessDate<new Date()&&!jd.evalReceived)return{key:'eval-pending',label:'Eval pending',cls:'sp-eval'};
-  if(!jd.materialsSent)return{key:'mat',label:'Materials pending',cls:'sp-mat'};
+  if(!jd.materialsSent)return{key:'mat',label:'Handbooks pending',cls:'sp-mat'};
   return{key:'assigned',label:'Assigned',cls:'sp-assigned'};
 }
 
@@ -4954,7 +5041,7 @@ function renderJobs(){
           <div class="job-section-title">Job details</div>
           <div style="font-size:12px;color:var(--muted);line-height:1.6">Flat-rate job — no materials or host evaluation required.${sessionRequiresRN(s)?'<br><span style="color:#2d7a5e;font-weight:500">🩺 RN instructors only — hidden from everyone else\'s job board</span>':''}${sessionRequiresSafeSitter(s)?'<br><span style="color:#1a5c8a;font-weight:500">🧒 Safe Sitter® instructors only — hidden from everyone else\'s job board</span>':''}${s.isRecurring?'<br><span style="color:#1a5c8a;font-weight:500">↻ Recurring: '+recurLabel(s)+(s.time?', '+s.time:'')+'</span>':''}${s.contactName||s.hostPhone?'<br>📞 On-site: <strong style="color:var(--text)">'+escapeHtml([s.contactName,s.hostPhone].filter(Boolean).join(' · '))+'</strong>':''}${(()=>{const cs=(s.additionalCosts||[]).filter(c=>Number(c.amount||0)>0);if(!cs.length)return'';const tot=cs.reduce((a,c)=>a+Number(c.amount||0),0);return'<br>💵 Job costs: <strong style="color:#c0392b">'+fmt(tot)+'</strong> <span style="font-size:11px">('+escapeHtml(cs.map(c=>(c.label||'unlabeled')).join(', '))+')</span>';})()}${s.notes?'<br>📝 '+s.notes:''}</div>
         </div>`:`<div class="job-section">
-          <div class="job-section-title">Materials delivery</div>
+          <div class="job-section-title">Handbooks &amp; supplies delivery</div>
           <select style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px;font-family:'DM Sans',sans-serif" onchange="setMaterialsMethod('${s.id}',this.value)">
             <option value="">— Not set —</option>
             <option value="ship-host" ${jdi.materialsMethod==='ship-host'?'selected':''}>Ship to host</option>
@@ -5022,7 +5109,7 @@ function toggleMaterials(sessId,checked){
 function toggleMaterialsFromDash(sessId,checked){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   jobDataCache[sessId].materialsSent=checked;
-  showToast(checked?'Materials marked as out':'Materials marked not out');
+  showToast(checked?'Handbooks & supplies marked as out':'Handbooks & supplies marked not out');
   renderDashboard();
   if(typeof renderJobs==='function')renderJobs();
   upsertJobData(sessId);
@@ -6353,7 +6440,7 @@ function sessionMatMissing(s,extraItems,excludeId,extraPerson){
 // Small 📦 chip for the sessions table so you can see at a glance which classes
 // already have materials recorded and which still need them.
 function matSessBadge(s){
-  if(s.isHold||!s.date)return'';
+  if(s.isHold||s.isCancelled||!s.date)return'';
   const co=matCheckouts.find(c=>c.sessionId===s.id);
   if(co)
     return' <span style="background:#e8f4e8;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600;white-space:nowrap" title="'+(coNoEquipment(co)?'Marked as needing no equipment':coUsesExisting(co)?'Covered — the instructor is using equipment they already have out':'Equipment checkout recorded for this session')+'">'+(coNoEquipment(co)?'📦 none needed ✓':'📦 ✓')+'</span>';
@@ -6412,15 +6499,101 @@ function coItemsLabel(c,short){
 function coSessionLabel(c){
   if(!c.sessionId)return'';
   const s=sessions.find(x=>x.id===c.sessionId);
-  return s?s.course+' — '+fmtSessDate(s,{month:'short',day:'numeric'}):'(deleted session)';
+  if(!s)return'(deleted session)';
+  return s.course+' — '+fmtSessDate(s,{month:'short',day:'numeric'})+(s.isCancelled?' · CANCELLED':'');
 }
 
 function renderMaterials(){
+  if(!document.getElementById('mat-table'))return;
   if(matCalYM==null){const n=new Date();matCalYM=n.getFullYear()*12+n.getMonth();}
   renderMatAlerts();
+  renderMatHolders();
   renderMatCards();
   renderMatCal();
   renderMatTable();
+}
+
+// Every class an instructor is teaching between two dates. Matches on the name shown
+// in the "Who has it" box, which is how checkouts identify a person.
+function matClassesFor(name,fromD,toD,skipId){
+  const nm=(name||'').trim().toLowerCase();
+  if(!nm)return[];
+  return sessions.filter(s=>s.id!==skipId&&!s.isHold&&!s.isCancelled&&s.date&&s.date>=fromD&&s.date<=toD
+      &&sessionInstructorList(s).some(x=>(x.name||'').trim().toLowerCase()===nm))
+    .sort((a,b)=>a.date.localeCompare(b.date));
+}
+// The next class this person teaches after a given date, if any.
+function matNextClassAfter(name,afterD,skipId){
+  const nm=(name||'').trim().toLowerCase();
+  if(!nm)return null;
+  return sessions.filter(s=>s.id!==skipId&&!s.isHold&&!s.isCancelled&&s.date&&s.date>afterD
+      &&sessionInstructorList(s).some(x=>(x.name||'').trim().toLowerCase()===nm))
+    .sort((a,b)=>a.date.localeCompare(b.date))[0]||null;
+}
+function matDaysBetween(a,b){return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);}
+
+// ── WHO HAS WHAT RIGHT NOW ──
+// One line per person holding equipment today: the kit they have, when it is due back,
+// which upcoming classes that covers, and — the part that used to live only in your head
+// — whether they teach again within three days of the due date, which under the
+// contractor agreement means the kit can simply stay with them.
+function renderMatHolders(){
+  const el=document.getElementById('mat-holders');if(!el)return;
+  const t=matToday();
+  const open=matCheckouts.filter(c=>!c.returnedDate&&!coNoEquipment(c)&&!coUsesExisting(c)&&c.outDate<=t);
+  if(!open.length){el.innerHTML='';return;}
+  const by={};
+  open.forEach(c=>{const k=(c.person||'').trim()||'Not assigned to anyone yet';(by[k]=by[k]||[]).push(c);});
+  const fd=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
+  const rows=Object.keys(by).sort().map(name=>{
+    const list=by[name];
+    const kit={};
+    list.forEach(c=>(c.items||[]).forEach(it=>{if(it.equipmentId&&Number(it.qty)>0)kit[it.equipmentId]=(kit[it.equipmentId]||0)+Number(it.qty);}));
+    const kitLabel=Object.entries(kit).map(([id,q])=>{const eq=equipment.find(x=>x.id===id);return q+'× '+(eq?eq.name:'(deleted)');}).join(', ')||'—';
+    const outD=list.map(c=>c.outDate).filter(Boolean).sort()[0]||t;
+    const dueD=list.map(c=>c.dueDate).filter(Boolean).sort().reverse()[0]||t;
+    const overdue=list.some(coIsOverdue);
+    const covers=matClassesFor(name,t,dueD);
+    const nxt=matNextClassAfter(name,dueD);
+    const gap=nxt?matDaysBetween(dueD,nxt.date):null;
+    const canKeep=nxt&&gap!=null&&gap<=3&&gap>=0;
+    return `<div style="padding:11px 0;border-bottom:0.5px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline">
+        <div style="font-size:13px;font-weight:600">${escapeHtml(name)}</div>
+        <div style="font-size:11px;color:${overdue?'var(--danger)':'var(--muted)'}">out ${fd(outD)} · due back ${fd(dueD)}${overdue?' · ⏰ overdue':''}</div>
+      </div>
+      <div style="font-size:12px;margin-top:3px">📦 ${escapeHtml(kitLabel)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">${covers.length
+        ?'Covers: '+covers.map(s=>escapeHtml(s.course)+' '+fmtSessDate(s,{month:'short',day:'numeric'})).join(' · ')
+        :'No class on the books between now and the due date'}</div>
+      ${canKeep?`<div style="font-size:11px;color:#1a5c8a;background:var(--sky-l);border:1px solid #b8d8ee;border-radius:var(--r-sm);padding:7px 9px;margin-top:6px;line-height:1.6">💡 ${escapeHtml(name.split(' ')[0])} teaches ${escapeHtml(nxt.course)} on ${fmtSessDate(nxt,{month:'short',day:'numeric'})}, ${gap} day${gap===1?'':'s'} after this is due back. The agreement lets the kit stay out when the next course is within three days. <button class="btn sm" style="margin-left:4px" onclick="extendHolding('${list[0].id}','${nxt.id}')">Keep it out through that class</button></div>`:''}
+    </div>`;
+  }).join('');
+  el.innerHTML=`<div class="card"><div class="card-title">Who has what right now</div><div style="font-size:12px;color:var(--muted);margin:-6px 0 4px">Kits that are physically out today. Reservations for future classes are further down in Checkouts.</div>${rows}</div>`;
+}
+
+// Keep a kit that is already out with the same instructor for their next class instead
+// of having it come back and go straight out again. One click does both halves: it pushes
+// their due date past that class, and records the class as covered by equipment already
+// out, so it stops showing as "nothing reserved yet" without a single manikin being
+// double-counted.
+async function extendHolding(checkoutId,sessId){
+  const c=matCheckouts.find(x=>x.id===checkoutId);
+  const s=sessions.find(x=>x.id===sessId);
+  if(!c||!s)return;
+  const who=(c.person||'').trim();
+  const newDue=sessionEndDate(s)||s.date;
+  if(!confirm('Keep '+(who||'this kit')+'\'s equipment out through '+s.course+' on '+fmtSessDate(s,{month:'short',day:'numeric'})+'?\n\nDue back moves to '+newDue+', and the class is recorded as covered by what they already have — nothing extra leaves the shelf.'))return;
+  matCheckouts.filter(x=>!x.returnedDate&&!coNoEquipment(x)&&!coUsesExisting(x)
+      &&(x.person||'').trim().toLowerCase()===who.toLowerCase()&&x.dueDate&&x.dueDate<newDue)
+    .forEach(x=>{x.dueDate=newDue;dbWrite(sb.from('equipment_checkouts').update({due_date:newDue}).eq('id',x.id),'Extend checkout for next class');});
+  if(!matCheckouts.some(x=>x.sessionId===sessId)){
+    const cov={id:sid(),sessionId:sessId,person:who,items:[{usesExisting:true,qty:0}],outDate:s.date,dueDate:newDue,returnedDate:null,notes:'Covered by equipment already out',createdAt:Date.now()};
+    matCheckouts.push(cov);
+    dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(cov)),'Covered by existing kit');
+  }
+  renderMaterials();
+  showToast('↩ Kit stays with '+(who||'the instructor')+' through '+s.course+'. Nothing extra checked out.');
 }
 
 function renderMatAlerts(){
@@ -6616,7 +6789,7 @@ function buildCheckoutModal(c,presetSessId){
   // Sessions that ALREADY have a checkout recorded are hidden too — once you've
   // reserved equipment for a class it drops out of this list (edit the existing
   // checkout from the Checkouts table or the session's Manage ▾ menu instead).
-  const sessOpts=sessions.filter(s=>!s.isHold&&s.date&&(sessionEndDate(s)>=today||s.id===selId)&&(s.id===selId||!matCheckouts.some(x=>x.sessionId===s.id)))
+  const sessOpts=sessions.filter(s=>!s.isHold&&s.date&&(!s.isCancelled||s.id===selId)&&(sessionEndDate(s)>=today||s.id===selId)&&(s.id===selId||!matCheckouts.some(x=>x.sessionId===s.id)))
     .sort((a,b)=>a.date.localeCompare(b.date))
     .map(s=>`<option value="${s.id}" ${s.id===selId?'selected':''}>${escapeHtml(s.course)} — ${fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'})}</option>`).join('');
   const whoList=[...new Set(['Lindsay Karr (owner)',...instructors.map(i=>i.name)])].map(n=>`<option value="${escapeHtml(n)}">`).join('');
@@ -6655,6 +6828,7 @@ function buildCheckoutModal(c,presetSessId){
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCheckout(${c?`'${c.id}'`:'null'})">${c?'Save changes':'Check out'}</button></div>`);
   window._coEditId=c?c.id:null;
   window._coAutoWho='';
+  window._coDueNote='';
   if(!c&&selId)coSessChanged();
   else{coNeedsHint(c&&c.sessionId?sessions.find(x=>x.id===c.sessionId):null);coUpdateAvail();}
 }
@@ -6674,6 +6848,7 @@ function coSessChanged(){
     // so it doesn't silently stick to the wrong record. A hand-typed name stays.
     if(who&&who.value===window._coAutoWho)who.value='';
     window._coAutoWho='';
+    window._coDueNote='';
     coNeedsHint(null);coUpdateAvail();return;
   }
   document.getElementById('m-co-out').value=s.date;
@@ -6685,6 +6860,23 @@ function coSessChanged(){
   const list=sessionInstructorList(s);
   who.value=list.length?list[0].name:'';
   window._coAutoWho=who.value;
+  // Section 4 of the contractor agreement: materials come back within 24 hours UNLESS
+  // the instructor is teaching another course within three days. The due date used to
+  // default to this class's own end date regardless, so a kit you had deliberately left
+  // with someone for next week went ⏰ Overdue and sat in a red alert. Now, if they teach
+  // again within three days, the due date defaults to after that class and says why.
+  window._coDueNote='';
+  if(who.value){
+    const base=sessionEndDate(s)||s.date;
+    const nxt=matNextClassAfter(who.value,base,s.id);
+    if(nxt){
+      const gap=matDaysBetween(base,nxt.date);
+      if(gap>=0&&gap<=3){
+        document.getElementById('m-co-due').value=sessionEndDate(nxt)||nxt.date;
+        window._coDueNote=who.value.split(' ')[0]+' teaches '+nxt.course+' on '+fmtSessDate(nxt,{month:'short',day:'numeric'})+', '+gap+' day'+(gap===1?'':'s')+' later. Due back has been moved past that class so the kit is not flagged overdue in between — change it if you want the equipment back sooner.';
+      }
+    }
+  }
   coPrefillNeeds(s);
   coNeedsHint(s);
   coUpdateAvail();
@@ -6719,6 +6911,7 @@ function coNeedsHint(s){
     else if(s.isVirtual)msg=`<div class="alert info" style="margin:0">🖥 &nbsp;<span>This session is virtual — no equipment needed.</span></div>`;
     else if(MAT_NEEDS[s.course]===null)msg=`<div class="alert info" style="margin:0">🎒 &nbsp;<span>${escapeHtml(s.course)} uses its own materials — usually nothing to check out.</span></div>`;
   }
+  if(window._coDueNote)msg+=`<div class="alert info" style="margin:${msg?'6px':'0'} 0 0">📅 &nbsp;<span>${escapeHtml(window._coDueNote)}</span></div>`;
   el.innerHTML=msg;
   el.style.display=msg?'block':'none';
 }
