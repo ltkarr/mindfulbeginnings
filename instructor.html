@@ -261,7 +261,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -289,7 +289,9 @@ if(typeof COURSES==='undefined'){
     'Stay Ready: Choking Rescue and CPR':{hours:1.5, maxStudents:12, requiresRN:true},
     'Campus Ready: Safety Skills for College Life':{hours:1, maxStudents:12, instrFlatFee:100, requiresRN:true},
     'Steady and Ready':{hours:1.5, maxStudents:8},
-    'My First Babysitters Club':{hours:1, maxStudents:12}
+    'My First Babysitters Club':{hours:1, maxStudents:12},
+    'My First Babysitters Club — Single Session':{hours:2.5, maxStudents:12},
+    'Ready. Period.':{hours:1.5, maxStudents:12, requiresRN:true}
   };
   console.warn('config-instructor.js did not define COURSES — using built-in fallback. Check that /config-instructor.js is deploying correctly.');
 }
@@ -299,7 +301,7 @@ if(typeof COURSES==='undefined'){
 // to a stale config. Name matching is intentionally loose so renamed variants (e.g.
 // "Safe Sitter® Babysitting") stay covered.
 Object.keys(COURSES).forEach(c=>{
-  if(/stay ready|campus ready/i.test(c))COURSES[c].requiresRN=true;          // RN instructors only
+  if(/stay ready|campus ready|ready\. ?period/i.test(c))COURSES[c].requiresRN=true;  // RN instructors only
   if(/safe sitter|grandparent/i.test(c))COURSES[c].requiresSafeSitter=true;  // Safe Sitter® trained only
 });
 if(typeof INSTR_RATE==='undefined'){window.INSTR_RATE=50;}
@@ -316,10 +318,15 @@ let loadErrors={}; // last data-load failures, shown on the job boards instead o
 // only" flag. Set during loadData(); false only when the requires_rn column is missing
 // from the database entirely, in which case only course-level RN rules apply.
 let RN_RESTRICTION_KNOWN=false;
+// True once we know for certain whether each job has been cancelled by the office.
+// False means the is_cancelled column could not be read, in which case a cancelled
+// class could still be sitting on a board looking live — so the boards say so out loud
+// rather than quietly showing a class that is not happening.
+let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-08-31.1';
+const PORTAL_VERSION='v2026-09-02.1';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -852,23 +859,54 @@ async function loadData(){
   };
   // On a refresh, a failed fetch should not wipe a previously-good board.
   if(!s.error)allSessions=(s.data||[]).map(sessionFromDB);
-  // The core fallback above drops requires_rn, which would quietly un-restrict every
-  // RN-only job. Rather than fail open, re-fetch just that one column and merge it
-  // back in. If this probe also fails the column genuinely does not exist yet (the
-  // requires_rn SQL has not been run), and RN_RESTRICTION_KNOWN stays false so the
-  // portal falls back to course-level rules instead of hiding jobs at random.
-  if(rnColLost&&!s.error){
+  // ── CRITICAL FLAGS ─────────────────────────────────────────
+  // requires_rn, requires_safe_sitter, is_cancelled and cancel_reason decide who may
+  // SEE a job and whether it is still happening. Getting them wrong is not cosmetic:
+  // losing requires_rn shows RN-only jobs to everyone, and losing is_cancelled leaves
+  // cancelled classes sitting on instructors' boards as though they were still on.
+  //
+  // The tiered fallback above can drop all four at once, because Postgres refuses the
+  // ENTIRE query when the anon role lacks a grant on any single requested column. So
+  // these four are ALSO fetched here, in their own small query, and merged over
+  // whatever the main query returned. A narrow query fails only if one of these four
+  // is genuinely missing — and it degrades one column at a time instead of all of them.
+  const flagTiers=[
+    'id,requires_rn,requires_safe_sitter,is_cancelled,cancel_reason',
+    'id,requires_rn,is_cancelled,cancel_reason',
+    'id,requires_rn,is_cancelled',
+    'id,is_cancelled',
+    'id,requires_rn'
+  ];
+  let flagRows=null,flagCols='',flagErr=null;
+  for(const cols of flagTiers){
     try{
-      const{data:rnRows,error:rnErr}=await sb.from('sessions').select('id,requires_rn');
-      if(rnErr){RN_RESTRICTION_KNOWN=false;console.warn('requires_rn unavailable — per-job RN restrictions cannot be applied. Run: alter table sessions add column if not exists requires_rn boolean default false;',rnErr);}
-      else{
-        RN_RESTRICTION_KNOWN=true;
-        const map={};(rnRows||[]).forEach(x=>{map[x.id]=!!x.requires_rn;});
-        allSessions.forEach(x=>{x.requiresRN=!!map[x.id];});
-      }
-    }catch(e){RN_RESTRICTION_KNOWN=false;console.warn('requires_rn probe failed:',e);}
-  }else if(!s.error){
-    RN_RESTRICTION_KNOWN=true;
+      const{data,error}=await sb.from('sessions').select(cols);
+      if(!error){flagRows=data||[];flagCols=cols;flagErr=null;break;}
+      flagErr=error;
+    }catch(e){flagErr=e;}
+  }
+  if(flagRows){
+    const map={};flagRows.forEach(x=>{map[x.id]=x;});
+    allSessions.forEach(x=>{
+      const f=map[x.id];if(!f)return;
+      if('requires_rn' in f)x.requiresRN=!!f.requires_rn;
+      if('requires_safe_sitter' in f)x.requiresSS=!!f.requires_safe_sitter;
+      if('is_cancelled' in f)x.isCancelled=!!f.is_cancelled;
+      if('cancel_reason' in f)x.cancelReason=f.cancel_reason||'';
+    });
+    RN_RESTRICTION_KNOWN=/requires_rn/.test(flagCols);
+    CANCEL_STATE_KNOWN=/is_cancelled/.test(flagCols);
+    if(!RN_RESTRICTION_KNOWN||!CANCEL_STATE_KNOWN){
+      console.warn('Portal is running on a reduced flag set ('+flagCols+'). Missing columns need: grant select (<column>) on public.sessions to anon;');
+    }
+  }else{
+    RN_RESTRICTION_KNOWN=false;CANCEL_STATE_KNOWN=false;
+    console.error('Could not read requires_rn / is_cancelled at all. Run in Supabase:\n'+
+      'grant select (requires_rn) on public.sessions to anon;\n'+
+      'grant select (requires_safe_sitter) on public.sessions to anon;\n'+
+      'grant select (is_cancelled) on public.sessions to anon;\n'+
+      'grant select (cancel_reason) on public.sessions to anon;',flagErr);
+    loadErrors.flags=(flagErr&&flagErr.message)||'restriction/cancellation columns unavailable';
   }
   if(!j.error){jobDataCache={};(j.data||[]).forEach(row=>{jobDataCache[row.session_id]=jobFromDB(row);});}
   if(!r.error){regCountMap={};(r.data||[]).forEach(x=>{regCountMap[x.session_id]=Number(x.cnt)||0;});}
@@ -878,6 +916,19 @@ async function loadData(){
 // which turns "everything disappeared!!" into an exact error message for debugging.
 function loadErrorCard(detail){
   return`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-msg">We could not load the job board</div><div class="empty-sub">This is a connection or account issue on our side — your jobs are NOT gone. Please tap Refresh above to try again, and if this message stays, take a screenshot of this screen and text it to Lindsay.<br><br><span style="font-family:monospace;font-size:11px;color:var(--muted)">${escapeHtml(detail||'unknown error')} · ${PORTAL_VERSION}</span></div></div>`;
+}
+
+// Shown at the top of both boards when the portal could not read the columns that
+// say whether a job is credential-restricted or cancelled. Without this the boards
+// would look completely normal while quietly showing jobs that should be hidden and
+// classes that are no longer happening — the failure mode that made an RN-only custom
+// job show up on a non-RN board.
+function flagWarningCard(){
+  if(RN_RESTRICTION_KNOWN&&CANCEL_STATE_KNOWN)return'';
+  const bits=[];
+  if(!CANCEL_STATE_KNOWN)bits.push('a class that has been cancelled may still appear here as though it is going ahead');
+  if(!RN_RESTRICTION_KNOWN)bits.push('some restricted jobs are being held back until this is fixed');
+  return`<div class="alert warn" style="margin-bottom:14px">⚠️ &nbsp;<span><strong>This board is not fully up to date.</strong> We cannot read some job settings right now, so ${bits.join(', and ')}. Please check with Lindsay before acting on anything here, and text her a screenshot of this message.<br><span style="font-family:monospace;font-size:11px;color:var(--muted)">${PORTAL_VERSION} · sessions flag columns unreadable</span></span></div>`;
 }
 
 // Re-fetch job data from the server, then re-render both boards.
@@ -983,19 +1034,32 @@ function sessionRequiresRN(s){
   if(s.requiresRN)return true;
   return !!(COURSES[s.course]||{}).requiresRN;
 }
+// Same idea for the per-job "Safe Sitter® instructors only" tick in admin.
+function sessionRequiresSafeSitter(s){
+  if(!s)return false;
+  if(s.requiresSS)return true;
+  return !!(COURSES[s.course]||{}).requiresSafeSitter;
+}
 // Which jobs this instructor can see and accept. Use this everywhere instead of
 // canTeach(s.course) so the per-job flag is never skipped.
+//
+// FAIL CLOSED: a custom job has no course, so its restriction lives ENTIRELY in the
+// per-job flag. If that flag could not be read, we cannot tell a general custom job
+// apart from an RN-only one — and showing an RN-only job to the wrong instructor is a
+// worse outcome than briefly hiding an open one. So when the flags are unknown, custom
+// jobs are withheld from anyone who is not an RN, and the board explains why.
 function canTeachSession(s){
   if(!s)return false;
   if(sessionRequiresRN(s)&&!me.isRN)return false;
+  if(sessionRequiresSafeSitter(s)&&!isSafeSitterCertified())return false;
+  if(!RN_RESTRICTION_KNOWN&&s.isCustomJob&&!me.isRN)return false;
   return canTeach(s.course);
 }
 // Badge shown on job cards for credential-restricted courses (only eligible
 // instructors ever see these cards, so the badge is informational).
 function credentialPill(s){
-  const c=COURSES[s.course]||{};
   if(sessionRequiresRN(s))return'<span class="pill pill-rn">🩺 RN instructors only</span>';
-  if(c.requiresSafeSitter)return'<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>';
+  if(sessionRequiresSafeSitter(s))return'<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>';
   return'';
 }
 // Per-session waitlist toggle, set by the admin in the session / custom job form
@@ -1071,7 +1135,7 @@ function renderOpen(){
   // Built once per render: every meeting of every job this instructor already holds,
   // so each card can be checked for double-booking without rescanning the list.
   const idx=myMeetingIndex();
-  el.innerHTML=sessions.map(s=>{
+  el.innerHTML=flagWarningCard()+sessions.map(s=>{
     const jdi=jobDataCache[s.id]||{};
     const isOnWaitlist=(jdi.waitlist||[]).includes(me.id);
     const isTakenByOther=jdi.instructorId&&jdi.instructorId!==me.id;
@@ -1260,7 +1324,7 @@ function renderMyJobs(){
     return;
   }
   const idx=myMeetingIndex();
-  el.innerHTML=myJobs.map(s=>{
+  el.innerHTML=flagWarningCard()+myJobs.map(s=>{
     const jdi=jobDataCache[s.id]||{};
     const baseFee=instrFeeForJob(s,jdi);
     const bonus=jdi.referralBonus||0;

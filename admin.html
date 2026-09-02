@@ -251,7 +251,7 @@ tr:hover td{background:#fafbfd}
       <div class="filter-row">
         <select id="sf-course" onchange="renderSessions()">
           <option value="">All courses</option>
-          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option>
+          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option>
         </select>
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
@@ -495,7 +495,13 @@ let INSTR_INFO_COL=true;
 // Per-job RN restriction (custom jobs). Same pattern again.
 // (Run in the Supabase SQL editor:
 //   alter table sessions add column if not exists requires_rn boolean default false;
-// instructor.html reads this column to decide whether to show the job on the board.)
+//   grant select (requires_rn) on public.sessions to anon;
+// instructor.html reads this column to decide whether to show the job on the board.
+// THE GRANT IS NOT OPTIONAL. Without it Postgres refuses the portal's whole sessions
+// query — not just this column — so the portal falls back to a reduced column list that
+// has no requires_rn AND no is_cancelled, and every RN-only job becomes visible to
+// everyone while cancelled classes stay on the boards. Standing rule: every sessions
+// column a public page reads needs its own grant in the same migration.)
 let REQUIRES_RN_COL=true;
 // Per-job Safe Sitter® restriction (custom jobs). Exact same pattern as requires_rn.
 // (Run in the Supabase SQL editor:
@@ -562,7 +568,7 @@ async function upsertSessionRow(s){
   }catch(e){return{error:e,missingRnCol:false,missingSsCol:false};}
 }
 const SS_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "Safe Sitter® instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_safe_sitter boolean default false; grant select (requires_safe_sitter) on public.sessions to anon;';
-const RN_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "RN instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_rn boolean default false;';
+const RN_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "RN instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_rn boolean default false; grant select (requires_rn) on public.sessions to anon;';
 
 function regFromDB(r){
   return{id:r.id,sessionId:r.session_id,studentName:r.student_name||'',parentName:r.parent_name||'',contact:r.contact||'',grade:r.grade||'',cprPermission:r.cpr_permission||'',emergencyAuth:r.emergency_auth||'',photoConsent:r.photo_consent||'',waiverSigned:r.waiver_signed||false,signature:r.signature||'',payStatus:r.pay_status||'unpaid',paypalTxId:r.paypal_tx_id||'',referralSource:r.referral_source||'',pricePaid:r.price_paid==null?null:Number(r.price_paid),notes:r.notes||'',createdAt:r.created_at||Date.now()};
@@ -758,7 +764,15 @@ const COURSES={
   // guide confirmed $165 for the 8-week series, so future sessions charge $165.
   // Material cost is $30/student — an 8-week series consumes far more supplies than a
   // one-off class, so it does not share the $10 handbook cost of the short courses.
-  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12}
+  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12},
+  // My First Babysitters Club — Single Session: the one-off 2.5-hour version, $95.
+  // Deliberately a SEPARATE course from the 8-week series above so the series keeps its
+  // own $165 price and $30 material rate. Any instructor may teach it (no credential flag).
+  'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:10,hours:2.5,maxStudents:12},
+  // Ready. Period. — 90-minute puberty-prep workshop, $75/participant.
+  // RN instructors only, taught the same way Stay Ready is: no flat fee, so the
+  // instructor is paid 1.5 teaching hours + 1 travel hour + the standard extra 30 min.
+  'Ready. Period.':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true}
 };
 // ─── STUDENT MATERIAL COSTS ──────────────────────────────────
 // Single source of truth: every per-student material rate lives on COURSES[...].matCost
@@ -3059,7 +3073,7 @@ function openAddSession(){
   showModal(`<div class="modal-head"><h3>Add new session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Course *</label>
-      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option></select>
+      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option></select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:12.5px;margin-top:6px"></div></div>
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
@@ -3716,6 +3730,8 @@ function openEditSession(id){
         <option ${s.course==='Campus Ready: Safety Skills for College Life'?'selected':''}>Campus Ready: Safety Skills for College Life</option>
         <option ${s.course==='Steady and Ready'?'selected':''}>Steady and Ready</option>
         <option ${s.course==='My First Babysitters Club'?'selected':''}>My First Babysitters Club</option>
+        <option ${s.course==='My First Babysitters Club — Single Session'?'selected':''}>My First Babysitters Club — Single Session</option>
+        <option ${s.course==='Ready. Period.'?'selected':''}>Ready. Period.</option>
       </select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:12.5px;margin-top:6px"></div></div>
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
