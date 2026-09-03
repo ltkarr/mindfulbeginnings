@@ -113,6 +113,7 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .hero-v{font-family:'DM Serif Display',serif;font-size:20px;line-height:1.15;color:var(--navy)}
 .hero-l{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-top:3px}
 .hero-s{font-size:11px;color:var(--muted);margin-top:2px}
+.hero-cell.loc .hero-v{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;line-height:1.3;word-break:break-word}
 /* ── Fit checks: reasons to say yes, and any blockers ── */
 .fit{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:14px}
 .fit-row{display:flex;gap:9px;align-items:flex-start;padding:9px 12px;font-size:13px;line-height:1.5;background:white}
@@ -260,7 +261,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     <div class="tab active" onclick="showTab('open',this)">Open jobs</div>
     <div class="tab" onclick="showTab('myjobs',this)">My jobs</div>
     <div class="tab" onclick="showTab('guide',this)">📖 Instructor FAQs</div>
-    <div class="tab" onclick="showTab('materials',this)">📚 Course materials</div>
+    <div class="tab" onclick="showTab('materials',this)">📚 Instructor Resources</div>
     <div class="tab" onclick="showTab('myprofile',this)">My profile</div>
     <div class="tab" onclick="showTab('contract',this)">📋 Contract</div>
     <div class="tab" onclick="showTab('w9',this)">📄 W-9</div>
@@ -297,8 +298,8 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
       <div id="guide-content"></div>
     </div>
     <div class="screen" id="tab-materials">
-      <div class="section-title">Course materials</div>
-      <div class="section-sub">Presentations, facilitator guides, handbooks, and certificates for every course you teach. Open the Resource Center for the full index, or jump straight to a course folder below.</div>
+      <div class="section-title">Instructor Resources</div>
+      <div class="section-sub">Presentations, facilitator guides, handbooks, and certificates for every course you teach.</div>
       <div id="materials-content"></div>
     </div>
     <div class="screen" id="tab-contract">
@@ -415,7 +416,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-02.2m';
+const PORTAL_VERSION='v2026-09-03.1';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -684,8 +685,14 @@ function heroStripHTML(s,fee){
       return fmtHours(hours/meetings.length)+(lens.size===1?' each':' average');
     })()}
   ].filter(Boolean);
+  // Fourth cell: where the class happens. This also fills what used to be an empty
+  // square in the 2-across mobile grid. Venue name only — the street address stays
+  // private until the job is accepted.
+  cells.push(s.isVirtual
+    ?{v:'Virtual',l:'Location',sub:'Zoom — teach from home',loc:true}
+    :{v:escapeHtml(s.location||'TBD'),l:'Location',sub:[s.city,s.state].filter(Boolean).join(', '),loc:true});
   return`<div class="hero-strip">${cells.map(c=>`
-    <div class="hero-cell"><div class="hero-v">${c.v}</div><div class="hero-l">${c.l}</div>${c.sub?`<div class="hero-s">${escapeHtml(c.sub)}</div>`:''}</div>`).join('')}</div>`;
+    <div class="hero-cell${c.loc?' loc':''}"><div class="hero-v">${c.v}</div><div class="hero-l">${c.l}</div>${c.sub?`<div class="hero-s">${escapeHtml(c.sub)}</div>`:''}</div>`).join('')}</div>`;
 }
 
 // The "should I take this?" checklist. Green means a reason to say yes, amber is a
@@ -2741,47 +2748,20 @@ function renderGuide(){
 }
 
 // ─── COURSE MATERIALS ────────────────────────────────────────
-// The Resource Center Google Doc is the master index. The direct folder links
-// below are the same destinations, surfaced here so instructors don't need two
-// hops to reach the course they're teaching. If a folder ID changes, update it
-// in BOTH places: here and in the Google Doc.
+// One destination only: the Instructor Resource Center Google Doc. It is the master
+// index of every course folder, the Safe Sitter® download portal, and who to contact
+// for what. Individual folder links are maintained inside that doc, not here, so
+// there is only ever one place to update when something moves.
 const RESOURCE_CENTER_URL='https://docs.google.com/document/d/1m359Y7nsMsipYLtlBffdcZFqxttIPh6t8SgQvaGPylI/edit?usp=sharing';
-const SAFE_SITTER_DOWNLOADS_URL='https://safesitter.org/digital-presentation-download/';
-
-const COURSE_FOLDERS=[
-  {name:'All Kids Welcome',      sub:'Inclusive caregiving skills',           url:'https://drive.google.com/drive/folders/18gshpb_HJIwadlmSd3fEgHCaJQOWNtpM?usp=drive_link'},
-  {name:'Campus Ready™',         sub:'Safety skills for college life',        url:'https://drive.google.com/drive/folders/1uJ1WI6NDg6GDphmX2fXWN9_-_fzZ9Y3j?usp=drive_link'},
-  {name:'Grandparents Workshop', sub:'1 hour condensed format',               url:'https://drive.google.com/drive/folders/1zLe9iHVgTVQPhYdz_JeTwROpmKQHZ0z5?usp=drive_link'},
-  {name:"My First Babysitter's Club", sub:'Intro series for younger students',url:'https://drive.google.com/drive/folders/17pyFSwZBcmm_2XPeXiqIQbU6foKqp16q?usp=drive_link'},
-  {name:'Safe@Home — Virtual',   sub:'1 hour virtual, grades 3–5',            url:'https://drive.google.com/drive/folders/1cleKQLXu5XUbiWxMxco1orb3jvpY-YcZ?usp=drive_link'},
-  {name:'Safe@Home — 8 Week',    sub:'After-school series, grades 3–5',       url:'https://drive.google.com/drive/folders/1QGY6WNBXSeRhlvtAleJsZFz3mR4zvuHO?usp=drive_link'},
-  {name:'Stay Ready',            sub:'Course materials',                      url:'https://drive.google.com/drive/folders/1lpyaT-Tb7Ay-V8_6KA-ZL63d31pSJxw1?usp=drive_link'},
-  {name:'Steady and Ready',      sub:'Neurodivergent-affirming course',       url:'https://drive.google.com/drive/folders/1-PEdtFV8rITqciqUIw_sC5n3U5tIyJZ9?usp=drive_link'}
-];
 
 function renderMaterials(){
   const el=document.getElementById('materials-content');
-  const cards=COURSE_FOLDERS.map(c=>`
-    <a href="${c.url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;background:white;transition:border-color .15s" onmouseover="this.style.borderColor='var(--sky)'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">${escapeHtml(c.name)}</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${escapeHtml(c.sub)}</div>
-      <div style="font-size:11px;color:var(--sky);font-weight:500">Open folder →</div>
-    </a>`).join('');
-
   el.innerHTML=`
     <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Instructor resource center</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:18px">The master index of every course folder, the Safe Sitter® download portal, and who to contact for what. Start here if you are not sure where something lives.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px">
-        <a href="${RESOURCE_CENTER_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">📚 Open resource center</a>
-        <a href="${SAFE_SITTER_DOWNLOADS_URL}" target="_blank" rel="noopener" class="btn" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">🔗 Safe Sitter® downloads</a>
-      </div>
+      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Instructor resources</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px">Everything you need to teach lives in the Instructor Resource Center: course folders, presentations, manuals, printables, and who to contact for what. Start here.</div>
+      <a href="${RESOURCE_CENTER_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">📚 Open Instructor Resources</a>
       <div style="font-size:11px;color:var(--muted);margin-top:10px">Opens in a new tab. Safe Sitter® digital instructor manuals require a separate YUDU login — contact Lindsay if you need access.</div>
-    </div>
-
-    <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Jump to a course folder</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">${cards}</div>
     </div>
 
     <div class="info-card" style="font-size:12px;color:var(--muted);line-height:1.7">
