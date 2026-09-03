@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a2744">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MB Instructor">
 <title>Instructor Portal — Mindful Beginnings</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
@@ -141,8 +146,92 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .notes-box{font-size:13px;line-height:1.65;background:var(--sky-l);border:1px solid #b8d8ee;border-radius:var(--r-sm);padding:11px 13px;color:#1a5c8a;white-space:normal;overflow-wrap:anywhere}
 
 .info-label{color:var(--muted)}
-@media(max-width:520px){
-  main{padding:20px 14px 48px}.jc-details{grid-template-columns:1fr 1fr}header{padding:14px 16px}
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE LAYER
+   Layout only. No class name, id, onclick or markup that the portal's
+   JavaScript reads has been changed, so every existing function, query
+   and render path behaves exactly as it did before.
+   ══════════════════════════════════════════════════════════════════ */
+
+html{-webkit-text-size-adjust:100%}
+button,.tab,.btn,.chip,summary{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+img,iframe,video,canvas{max-width:100%}
+.job-card,.info-card,.alert,.notes-box,.empty,.info-row{overflow-wrap:anywhere}
+header{padding-top:calc(16px + env(safe-area-inset-top))}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+
+/* ── Phones ─────────────────────────────────────────────────────── */
+@media(max-width:640px){
+  body{font-size:15px}
+
+  /* Header scrolls away, tab strip pins to the top of the screen */
+  header{padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));gap:12px}
+  .h-brand{font-size:16px}
+  .h-logout{padding:9px 14px;min-height:40px;display:inline-flex;align-items:center}
+
+  /* Tabs become a pinned, swipeable pill strip. The half-visible pill at
+     the right edge is what tells a phone user there is more to swipe to. */
+  .tabs{position:sticky;top:0;z-index:60;gap:7px;padding:9px 14px;
+        box-shadow:0 8px 16px -14px rgba(26,39,68,.55);
+        scroll-snap-type:x proximity;scroll-padding:0 14px}
+  .tab{flex:0 0 auto;height:40px;padding:0 15px;display:inline-flex;align-items:center;
+       border:1px solid var(--border);border-radius:100px;background:var(--cream);
+       font-size:13px;scroll-snap-align:center}
+  .tab.active{background:var(--navy);color:white;border-color:var(--navy)}
+  .tab:hover{color:var(--muted)}
+  .tab.active:hover{color:white}
+
+  main{padding:18px 15px calc(72px + env(safe-area-inset-bottom))}
+  .section-title{font-size:20px}
+  .section-sub{font-size:13px;margin-bottom:18px}
+
+  /* Cards: tighter padding, no hover shadow (a phone has no hover) */
+  .job-card{padding:16px 15px}
+  .job-card:hover{box-shadow:none}
+  .jc-course{font-size:16px}
+  .jc-details{grid-template-columns:1fr 1fr;gap:7px}
+  .jc-detail{padding:9px 11px}
+  .hero-strip{grid-template-columns:1fr 1fr}
+  .hero-v{font-size:19px}
+
+  /* Every button becomes a real thumb target */
+  .btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+  .jc-actions{gap:8px}
+  .jc-actions .btn{flex:1 1 46%}
+  .wh summary{padding:13px 14px}
+  .sched-row{padding:9px 11px}
+
+  /* Label above value, instead of two columns squeezed onto one line */
+  .info-row{flex-direction:column;align-items:flex-start;gap:2px;padding:10px 0}
+  .info-label{font-size:12px}
+
+  /* 16px stops iOS zooming the whole page when a field is tapped */
+  input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px!important;max-width:100%}
+  input[type=text],input[type=date],input[type=password],select,textarea{width:100%;min-height:46px}
+  input[type=checkbox]{width:20px!important;height:20px!important}
+  input[type=file]{width:100%}
+
+  /* Signature blocks and paired form fields stack instead of halving */
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+
+  #login-screen{padding:24px 16px;
+                padding-top:calc(24px + env(safe-area-inset-top));
+                padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+  .login-box{padding:32px 22px}
+  .empty{padding:38px 14px}
+}
+
+/* ── Small phones (iPhone SE, mini, older Androids) ─────────────── */
+@media(max-width:390px){
+  .jc-details{grid-template-columns:1fr}
+  .jc-actions .btn{flex:1 1 100%}
+  .tab{padding:0 13px;font-size:12.5px}
+  main{padding-left:12px;padding-right:12px}
+  .job-card{padding:15px 13px}
 }
 </style>
 </head>
@@ -326,7 +415,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-02.1';
+const PORTAL_VERSION='v2026-09-02.2m';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -2926,7 +3015,7 @@ function sendJobCancelledNotification(session){
 // ─── TOAST ───────────────────────────────────────────────────
 function showToast(msg){
   const t=document.createElement('div');
-  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;padding:10px 22px;border-radius:100px;font-size:13px;z-index:999;white-space:nowrap';
+  t.style.cssText='position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--navy);color:white;padding:11px 22px;border-radius:22px;font-size:13px;line-height:1.45;text-align:center;z-index:999;max-width:calc(100vw - 40px);box-shadow:0 6px 22px rgba(26,39,68,.32)';
   t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);
 }
 
@@ -2958,6 +3047,31 @@ function clearEmailErrors() {
   localStorage.removeItem('mb_email_errors');
   console.log('Email error log cleared');
 }
+</script>
+
+<script>
+/* Mobile navigation polish. Keeps the selected tab visible inside the
+   swipeable tab strip and returns to the top of the page on every tab
+   change, so a phone user never lands halfway down a screen. This wraps
+   showTab rather than editing it, so the original function is untouched. */
+(function(){
+  if(typeof window.showTab!=='function')return;
+  var original=window.showTab;
+  window.showTab=function(name,el){
+    original.apply(this,arguments);
+    try{
+      var active=el||document.querySelector('.tab.active');
+      if(active&&active.scrollIntoView)active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+      window.scrollTo({top:0,behavior:'smooth'});
+    }catch(e){}
+  };
+})();
+window.addEventListener('load',function(){
+  try{
+    var a=document.querySelector('.tab.active');
+    if(a&&a.scrollIntoView)a.scrollIntoView({block:'nearest',inline:'start'});
+  }catch(e){}
+});
 </script>
 </body>
 </html>
