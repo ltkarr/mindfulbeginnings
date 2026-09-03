@@ -56,6 +56,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .card-title{font-size:16px;font-weight:500;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.7px}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* A wide table's own scrollbar sits at the very bottom of the table, which on a long
+   list is hundreds of rows out of reach. This mirrors it as a slim always-visible bar
+   pinned to the top of the card, so sideways scrolling is available from any row. */
+.tbl-scroller{overflow-x:auto;overflow-y:hidden;position:sticky;top:0;z-index:6;height:15px;background:white;border-bottom:0.5px solid var(--border);border-top-left-radius:var(--r);border-top-right-radius:var(--r)}
+.tbl-scroller>div{height:1px}
+.tbl-scroller{scrollbar-width:thin;scrollbar-color:#b8c2d4 #eef1f6}
+.tbl-scroller::-webkit-scrollbar{height:11px;-webkit-appearance:none}
+.tbl-scroller::-webkit-scrollbar-track{background:#eef1f6;border-radius:6px}
+.tbl-scroller::-webkit-scrollbar-thumb{background:#b8c2d4;border-radius:6px;border:2px solid #eef1f6}
+/* Keeps the Course and Location columns from stretching the table off screen. */
+#sessions-table td:nth-child(2){max-width:250px}
+#sessions-table td:nth-child(4){max-width:210px}
+#sessions-table td:nth-child(1){max-width:190px}
+@media(max-width:1400px){#sessions-table td:nth-child(2){max-width:210px}#sessions-table td:nth-child(4){max-width:175px}}
 table{width:100%;border-collapse:collapse;font-size:16px}
 th{text-align:left;font-weight:500;font-size:14px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
 td{padding:10px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle}
@@ -1344,10 +1358,29 @@ function fmtSessDate(s,opts){
 // Small "+ Sep 16" lines shown under the main date in tables/lists for multi-day classes.
 function extraDatesHtml(s){
   const days=(s&&s.extraDays&&s.extraDays.length)?s.extraDays:((s&&s.extraDates)||[]).filter(Boolean).map(x=>({date:x,time:''}));
-  return days.filter(x=>x&&x.date).map(x=>{
+  const rows=days.filter(x=>x&&x.date).map(x=>{
     const d=new Date(x.date+'T12:00:00');
-    return isNaN(d)?'':`<br><span style="font-size:14px;color:#1a5c8a;font-weight:500">+ ${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}${x.time?' · '+x.time:''}</span>`;
-  }).join('');
+    return isNaN(d)?null:`+ ${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}${x.time?' \u00b7 '+x.time:''}`;
+  }).filter(Boolean);
+  if(!rows.length)return'';
+  const line=t=>`<br><span style="font-size:14px;color:#1a5c8a;font-weight:500;white-space:nowrap">${escapeHtml(t)}</span>`;
+  // A 10-week series used to print all ten dates in the Date cell, which stretched the
+  // column so far that the right-hand columns fell off screen. Past the first extra date
+  // the rest collapse behind a toggle; nothing is lost, it just starts folded.
+  if(rows.length<=1)return rows.map(line).join('');
+  const id='xd'+Math.random().toString(36).slice(2,9);
+  const label=`+ ${rows.length} more dates`;
+  return `<br><button type="button" id="${id}-btn" data-more="${label}" onclick="toggleExtraDates(event,'${id}')" style="background:none;border:none;padding:0;margin-top:2px;font-family:'DM Sans',sans-serif;font-size:14px;color:#1a5c8a;font-weight:500;cursor:pointer;text-decoration:underline;white-space:nowrap">${label}</button>`
+    +`<span id="${id}" style="display:none">${rows.map(line).join('')}</span>`;
+}
+function toggleExtraDates(ev,id){
+  if(ev)ev.stopPropagation();
+  const box=document.getElementById(id),btn=document.getElementById(id+'-btn');
+  if(!box||!btn)return;
+  const open=box.style.display!=='none';
+  box.style.display=open?'none':'inline';
+  btn.textContent=open?(btn.dataset.more||'more dates'):'\u2212 hide dates';
+  syncTableScrollers();
 }
 // Capacity respecting any per-session override (used by Sessions table, Registrations dropdown, Host letter, Report)
 function sessionMaxStudents(s){
@@ -2801,7 +2834,7 @@ function renderSessions(){
   t.innerHTML=`<thead><tr><th>Date</th><th>Course</th><th>Code</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Profit</th><th>Wrap-up</th><th></th></tr></thead><tbody>`+
     (list.length?list.map(s=>{
       const f=calcFin(s);
-      const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+extraDatesHtml(s);
+      const d='<span style="white-space:nowrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s);
       const jdi=jobDataCache[s.id]||{};
       const instr=(()=>{
         if(s.ownerTaught)return'You (owner)';
@@ -2845,7 +2878,7 @@ function renderSessions(){
         const instrStatus=assignedInstr?escapeHtml(assignedInstr.name)+'<br><span style="font-size:13px;color:var(--success)">✓ accepted</span>':'<span style="color:#c8a96e;font-style:italic">Open — awaiting claim</span>';
         const payAmt=s.instrPayOverride!=null?`$${Number(s.instrPayOverride).toFixed(2)}`:'—';
         return`<tr style="background:#fdf8f0;${cxRowStyle}">
-          <td style="white-space:nowrap">${d}${s.isRecurring?`<br><span style="font-size:14px;color:#1a5c8a">thru ${new Date(s.recurEndDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`:''}</td>
+          <td style="white-space:normal">${d}${s.isRecurring?`<br><span style="font-size:14px;color:#1a5c8a">thru ${new Date(s.recurEndDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`:''}</td>
           <td style="font-weight:600">${s.course}${cxBadge}${matSessBadge(s)}<br><span style="background:#f5e6c8;color:#7a5c1e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">CUSTOM JOB</span>${s.requiresRN?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🩺 RN ONLY</span>`:''}${s.requiresSS?` <span style="background:#e6eff7;color:#1a5c8a;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🧒 SAFE SITTER® ONLY</span>`:''}${s.billToOrg?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${s.isRecurring?' '+recurBadge(s):''}</td>
           <td><span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy">${s.code}</span></td>
           <td style="color:var(--muted)">${s.location||'—'}</td>
@@ -2857,7 +2890,7 @@ function renderSessions(){
           <td style="text-align:right"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage ▾</button></td></tr>`;
       }
       return`<tr style="${cxRowStyle}">
-        <td style="white-space:nowrap">${d}</td>
+        <td style="white-space:normal">${d}</td>
         <td style="font-weight:500">${s.course}${cxBadge}${matSessBadge(s)}${s.billToOrg?`<br><span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}</td>
         <td><span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy">${s.code}</span></td>
         <td style="color:var(--muted)">${s.isVirtual?'<span style="background:#d6e9f5;color:#1a5c8a;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500">🖥 Virtual</span>':s.location||'—'}</td>
@@ -8565,6 +8598,41 @@ function clearEmailErrors() {
   localStorage.removeItem('mb_email_errors');
   console.log('Email error log cleared');
 }
+
+// ─── SIDEWAYS SCROLLING FOR WIDE TABLES ──────────────────────
+// Every table already scrolls sideways, but the scrollbar lives at the bottom of the
+// table, so on a long list it is hundreds of rows down and effectively unreachable.
+// This mirrors it into a slim bar pinned to the top of the card. It only appears when
+// a table is actually wider than the screen, and it never changes what is shown.
+function syncTableScrollers(){
+  document.querySelectorAll('.tbl-wrap').forEach(w=>{
+    let bar=w.previousElementSibling;
+    if(!bar||!bar.classList.contains('tbl-scroller')){
+      bar=document.createElement('div');
+      bar.className='tbl-scroller';
+      bar.appendChild(document.createElement('div'));
+      w.parentNode.insertBefore(bar,w);
+      let lock=false;
+      bar.addEventListener('scroll',()=>{if(lock)return;lock=true;w.scrollLeft=bar.scrollLeft;lock=false;});
+      w.addEventListener('scroll',()=>{if(lock)return;lock=true;bar.scrollLeft=w.scrollLeft;lock=false;});
+    }
+    const needed=w.scrollWidth>w.clientWidth+2;
+    bar.style.display=needed?'block':'none';
+    bar.firstElementChild.style.width=w.scrollWidth+'px';
+    if(needed)bar.scrollLeft=w.scrollLeft;
+  });
+}
+let _tblScrollTimer=null;
+function scheduleTableScrollerSync(){clearTimeout(_tblScrollTimer);_tblScrollTimer=setTimeout(syncTableScrollers,120);}
+function initTableScrollers(){
+  syncTableScrollers();
+  window.addEventListener('resize',scheduleTableScrollerSync);
+  try{
+    new MutationObserver(scheduleTableScrollerSync).observe(document.body,{childList:true,subtree:true});
+  }catch(e){console.warn('table scroller observer unavailable',e);}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initTableScrollers);
+else initTableScrollers();
 </script>
 </body>
 </html>
