@@ -66,10 +66,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .tbl-scroller::-webkit-scrollbar-track{background:#eef1f6;border-radius:6px}
 .tbl-scroller::-webkit-scrollbar-thumb{background:#b8c2d4;border-radius:6px;border:2px solid #eef1f6}
 /* Keeps the Course and Location columns from stretching the table off screen. */
+#sessions-table td:nth-child(1){max-width:170px}
 #sessions-table td:nth-child(2){max-width:250px}
-#sessions-table td:nth-child(4){max-width:210px}
-#sessions-table td:nth-child(1){max-width:190px}
-@media(max-width:1400px){#sessions-table td:nth-child(2){max-width:210px}#sessions-table td:nth-child(4){max-width:175px}}
+#sessions-table td:nth-child(3){max-width:165px}
+#sessions-table td:nth-child(4){max-width:140px}
+@media(max-width:1400px){#sessions-table td:nth-child(2){max-width:215px}#sessions-table td:nth-child(3){max-width:140px}#sessions-table td:nth-child(4){max-width:125px}}
+/* The Manage button is the whole point of the row, so it stays pinned to the right edge
+   even when the rest of the table has to scroll. */
+#sessions-table .mgr-cell{position:sticky;right:0;z-index:2}
+.tbl-wrap.scrollable #sessions-table .mgr-cell{box-shadow:-7px 0 9px -7px rgba(26,39,68,.16)}
+#sessions-table .code-badge{font-size:13.5px;padding:1px 8px}
 table{width:100%;border-collapse:collapse;font-size:16px}
 th{text-align:left;font-weight:500;font-size:14px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
 td{padding:10px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle}
@@ -2831,7 +2837,13 @@ function renderSessions(){
     return true;
   }).sort((a,b)=>sessionSortAsc?a.date.localeCompare(b.date):b.date.localeCompare(a.date));
   const t=document.getElementById('sessions-table');
-  t.innerHTML=`<thead><tr><th>Date</th><th>Course</th><th>Code</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Profit</th><th>Wrap-up</th><th></th></tr></thead><tbody>`+
+  // Column count matters more than column width here: on a 13" laptop ten columns could
+  // not fit no matter how they were squeezed. Code now rides under the course name and
+  // Profit rides under Revenue, which drops the table to eight columns without losing
+  // anything. The Manage cell is pinned to the right edge so it is always clickable.
+  const codeLine=c=>`<br><span class="code-badge" style="margin-top:3px" onclick="copyCode('${c}')" title="Click to copy">${c}</span>`;
+  const netLine=v=>`<br><span style="font-size:13px;white-space:nowrap;color:${v>=0?'var(--success)':'var(--danger)'}">Net ${fmtSigned(v)}</span>`;
+  t.innerHTML=`<thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Wrap-up</th><th class="mgr-cell" style="background:white"></th></tr></thead><tbody>`+
     (list.length?list.map(s=>{
       const f=calcFin(s);
       const d='<span style="white-space:nowrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s);
@@ -2857,21 +2869,20 @@ function renderSessions(){
       // Dimming marks a cancelled row out among live ones. In the Cancelled view every row
       // is cancelled, so dimming there would just make the whole table hard to read.
       const cxRowStyle=(s.isCancelled&&scope!=='cancelled')?'opacity:.55':'';
+      const mgr=bg=>`<td class="mgr-cell" style="text-align:right;background:${bg}"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage \u25be</button></td>`;
       if(s.isHold){
         const seats=s.reservedSeats!=null?s.reservedSeats:'—';
         const when=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
         const payCell=s.holdPayment?escapeHtml(s.holdPayment):'—';
         return`<tr style="background:#f6f4fb">
           <td style="white-space:nowrap">${escapeHtml(when)}</td>
-          <td style="font-weight:600">${s.course}<br><span style="background:#e7e0f5;color:#5b4a8a;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">ON HOLD</span></td>
-          <td><span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy">${s.code}</span></td>
+          <td style="font-weight:600">${s.course}<br><span style="background:#e7e0f5;color:#5b4a8a;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">ON HOLD</span>${codeLine(s.code)}</td>
           <td style="color:var(--muted)">${s.isVirtual?'🖥 Virtual':(escapeHtml(s.location)||'—')}</td>
           <td style="color:var(--muted)">—</td>
           <td>${seats}<span style="font-size:14px;color:var(--muted)"> reserved</span></td>
           <td style="font-size:15px;color:var(--muted)">${payCell}</td>
-          <td style="color:var(--muted)">—</td>
           <td><span style="font-size:14px;color:#5b4a8a;font-weight:500">Hold</span></td>
-          <td style="text-align:right"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage ▾</button></td></tr>`;
+          ${mgr('#f6f4fb')}</tr>`;
       }
       if(s.isCustomJob){
         const assignedInstr=instructors.find(x=>x.id===(jdi.instructorId||s.instructorId));
@@ -2879,27 +2890,24 @@ function renderSessions(){
         const payAmt=s.instrPayOverride!=null?`$${Number(s.instrPayOverride).toFixed(2)}`:'—';
         return`<tr style="background:#fdf8f0;${cxRowStyle}">
           <td style="white-space:normal">${d}${s.isRecurring?`<br><span style="font-size:14px;color:#1a5c8a">thru ${new Date(s.recurEndDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`:''}</td>
-          <td style="font-weight:600">${s.course}${cxBadge}${matSessBadge(s)}<br><span style="background:#f5e6c8;color:#7a5c1e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">CUSTOM JOB</span>${s.requiresRN?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🩺 RN ONLY</span>`:''}${s.requiresSS?` <span style="background:#e6eff7;color:#1a5c8a;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🧒 SAFE SITTER® ONLY</span>`:''}${s.billToOrg?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${s.isRecurring?' '+recurBadge(s):''}</td>
-          <td><span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy">${s.code}</span></td>
+          <td style="font-weight:600">${s.course}${cxBadge}${matSessBadge(s)}<br><span style="background:#f5e6c8;color:#7a5c1e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">CUSTOM JOB</span>${s.requiresRN?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🩺 RN ONLY</span>`:''}${s.requiresSS?` <span style="background:#e6eff7;color:#1a5c8a;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🧒 SAFE SITTER® ONLY</span>`:''}${s.billToOrg?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${s.isRecurring?' '+recurBadge(s):''}${codeLine(s.code)}</td>
           <td style="color:var(--muted)">${s.location||'—'}</td>
           <td style="color:var(--muted)">${instrStatus}</td>
           <td style="color:var(--muted)">—</td>
-          <td style="font-weight:500;color:#7a5c1e">${payAmt}<br><span style="font-size:13px;color:var(--muted)">flat pay</span>${f.extraCosts?`<br><span style="font-size:13px;color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}</td>
-          <td style="color:${f.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(f.profit)}</td>
+          <td style="font-weight:500;color:#7a5c1e">${payAmt}<br><span style="font-size:13px;color:var(--muted)">flat pay</span>${f.extraCosts?`<br><span style="font-size:13px;color:#c0392b;white-space:nowrap">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit)}</td>
           <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${jdi.instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span><span style="font-size:14px;color:${jdi.instrPaid?'var(--success)':'var(--muted)'}">${jdi.instrPaid?'✓ Paid':'Unpaid'}</span></div>`:'<span style="font-size:14px;color:var(--muted)">Upcoming</span>'}</td>
-          <td style="text-align:right"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage ▾</button></td></tr>`;
+          ${mgr('#fdf8f0')}</tr>`;
       }
       return`<tr style="${cxRowStyle}">
         <td style="white-space:normal">${d}</td>
-        <td style="font-weight:500">${s.course}${cxBadge}${matSessBadge(s)}${s.billToOrg?`<br><span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}</td>
-        <td><span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy">${s.code}</span></td>
+        <td style="font-weight:500">${s.course}${cxBadge}${matSessBadge(s)}${s.billToOrg?`<br><span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${codeLine(s.code)}</td>
         <td style="color:var(--muted)">${s.isVirtual?'<span style="background:#d6e9f5;color:#1a5c8a;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500">🖥 Virtual</span>':s.location||'—'}</td>
         <td style="color:var(--muted)">${instr}</td>
-        <td>${f.totalCount}<span style="font-size:14px;color:var(--muted)"> /${sessionMaxStudents(s)}${(()=>{const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;return wl?' · '+wl+' waitlist':''})()}</span></td><td>${fmt(f.revenue)}${s.priceOverride!=null?`<br><span style="font-size:13px;color:var(--warn);white-space:nowrap">⚠ $${s.priceOverride}/student</span>`:''}</td>
-        <td style="color:${f.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(f.profit)}</td>
+        <td>${f.totalCount}<span style="font-size:14px;color:var(--muted)"> /${sessionMaxStudents(s)}${(()=>{const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;return wl?' · '+wl+' waitlist':''})()}</span></td>
+        <td>${fmt(f.revenue)}${s.priceOverride!=null?`<br><span style="font-size:13px;color:var(--warn);white-space:nowrap">⚠ $${s.priceOverride}/student</span>`:''}${netLine(f.profit)}</td>
         <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px">${wrapDots}<span style="font-size:14px;color:${wrapAllDone?'var(--success)':'var(--muted)'};">${wrapAllDone?'✓ Done':wrapDone+'/'+wrapTotal}</span></div>`:'<span style="font-size:14px;color:var(--muted)">Upcoming</span>'}</td>
-        <td style="text-align:right"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage ▾</button></td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="10">No sessions found.</td></tr>`)+'</tbody>';
+        ${mgr('white')}</tr>`;
+    }).join(''):`<tr class="empty-row"><td colspan="8">No sessions found.</td></tr>`)+'</tbody>';
 }
 
 // ─── PER-ROW ACTIONS MENU ────────────────────────────────────
@@ -8617,6 +8625,7 @@ function syncTableScrollers(){
       w.addEventListener('scroll',()=>{if(lock)return;lock=true;bar.scrollLeft=w.scrollLeft;lock=false;});
     }
     const needed=w.scrollWidth>w.clientWidth+2;
+    w.classList.toggle('scrollable',needed);
     bar.style.display=needed?'block':'none';
     bar.firstElementChild.style.width=w.scrollWidth+'px';
     if(needed)bar.scrollLeft=w.scrollLeft;
