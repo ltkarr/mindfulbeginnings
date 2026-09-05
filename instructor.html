@@ -249,6 +249,23 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
   </div>
 </div>
 
+<div id="pinchange-screen" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--navy);padding:20px">
+  <div class="login-box" style="width:400px;text-align:left">
+    <div class="login-logo" style="text-align:center">Mindful Beginnings</div>
+    <div class="login-sub" style="text-align:center;margin-bottom:18px">Choose a new PIN</div>
+    <div style="font-size:13px;line-height:1.6;color:var(--text);background:var(--cream);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:18px">
+      On the advice of our legal counsel, every instructor PIN is moving from four digits to six. Your old PIN will stop working as soon as you set the new one, so please write the new PIN somewhere safe before you continue.
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">New PIN (6 digits)</div>
+    <input type="password" class="pin-input" id="newpin-1" placeholder="••••••" maxlength="6" inputmode="numeric" autocomplete="new-password">
+    <div style="font-size:12px;color:var(--muted);margin:10px 0 6px">Confirm new PIN</div>
+    <input type="password" class="pin-input" id="newpin-2" placeholder="••••••" maxlength="6" inputmode="numeric" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitNewPin()">
+    <div class="login-err" id="newpin-err"></div>
+    <button class="login-btn" id="newpin-btn" onclick="submitNewPin()">Save my new PIN</button>
+    <div style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.5">Avoid anything guessable such as a birthday, six of the same digit, or 123456. If you get stuck, call or text Lindsay at 703-987-5979.</div>
+  </div>
+</div>
+
 <div id="app">
   <header>
     <div>
@@ -416,7 +433,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-05.1';
+const PORTAL_VERSION='v2026-09-05.2';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -859,7 +876,14 @@ async function doLogin(){
       btn.disabled=false;btn.textContent='Sign in';return;
     }
     // Keep the PIN client-side so we can authorize subsequent operations. It is also the password the user just typed; we are not learning anything they don't already know.
-    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||''};
+    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||'',pinChangeRequired:(profile.pin_change_required===undefined||profile.pin_change_required===null)?null:!!profile.pin_change_required};
+    // PIN change flag: instructor_login may predate the pin_change_required column,
+    // so fall back to a small helper RPC the same way the other credentials do. If
+    // neither is available, nobody is prompted and the portal behaves as before.
+    if(me.pinChangeRequired===null){
+      try{const{data:pc}=await sb.rpc('instructor_pin_change_required',{p_pin:pin});me.pinChangeRequired=(typeof pc==='boolean')?pc:false;}
+      catch(e){me.pinChangeRequired=false;}
+    }
     // Safe Sitter® credential: if the instructor_login function predates the
     // safe_sitter_certified column and did not return it, fetch it via a small
     // helper RPC (created by the setup SQL). If that RPC does not exist either,
@@ -896,15 +920,66 @@ async function doLogin(){
     }
     // Load sessions, job data, and registration counts. Sessions and job_data are readable by anon (used for the available-jobs board). Registration counts come from a function that does not expose PII.
     await loadData();
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').style.display='block';
-    document.getElementById('h-name').textContent='Welcome, '+me.name;
-    renderOpen();
-    updateRefreshBar();
+    // Anyone still on an old PIN is stopped here and made to set a six-digit one
+    // before the portal opens. Nothing else in the app is reachable until they do.
+    if(me.pinChangeRequired){
+      document.getElementById('login-screen').style.display='none';
+      document.getElementById('pinchange-screen').style.display='flex';
+      setTimeout(()=>document.getElementById('newpin-1').focus(),50);
+      return;
+    }
+    enterApp();
   }catch(e){
     console.error(e);err.textContent='Connection error. Please try again.';
     btn.disabled=false;btn.textContent='Sign in';
   }
+}
+
+// Reveal the portal itself. Split out of doLogin so the forced PIN change can run
+// in between: sign in, set a new PIN, then land here.
+function enterApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('pinchange-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('h-name').textContent='Welcome, '+me.name;
+  renderOpen();
+  updateRefreshBar();
+}
+
+// Obvious patterns a determined guesser tries first. Rejecting these client-side keeps
+// the prompt from being satisfied with 111111 or 123456.
+function weakPin(p){
+  if(/^(\d)\1{5}$/.test(p))return 'Please do not use the same digit six times.';
+  if('0123456789'.includes(p)||'9876543210'.includes(p))return 'Please do not use six digits in a row.';
+  if(p===me.pin)return 'Your new PIN must be different from your old one.';
+  return '';
+}
+
+async function submitNewPin(){
+  const a=document.getElementById('newpin-1').value.trim();
+  const b=document.getElementById('newpin-2').value.trim();
+  const err=document.getElementById('newpin-err');
+  const btn=document.getElementById('newpin-btn');
+  err.textContent='';
+  if(!/^[0-9]{6}$/.test(a)){err.textContent='Your PIN must be exactly 6 digits.';return;}
+  if(a!==b){err.textContent='The two PINs do not match.';return;}
+  const weak=weakPin(a);
+  if(weak){err.textContent=weak;return;}
+  btn.disabled=true;btn.textContent='Saving...';
+  try{
+    const{data:res,error}=await sb.rpc('instructor_change_pin',{p_pin:me.pin,p_new_pin:a});
+    if(error){err.textContent='Could not save. Please try again or call Lindsay.';btn.disabled=false;btn.textContent='Save my new PIN';return;}
+    // The function returns 'ok', 'taken' (someone else already has that PIN) or 'invalid'.
+    if(res==='taken'){err.textContent='That PIN is already in use. Please choose a different one.';btn.disabled=false;btn.textContent='Save my new PIN';return;}
+    if(res!=='ok'){err.textContent='That PIN was not accepted. Please choose 6 digits.';btn.disabled=false;btn.textContent='Save my new PIN';return;}
+  }catch(e){console.error(e);err.textContent='Connection error. Please try again.';btn.disabled=false;btn.textContent='Save my new PIN';return;}
+  // Every later call authorizes with me.pin, so it has to move to the new value.
+  me.pin=a;
+  me.pinChangeRequired=false;
+  document.getElementById('newpin-1').value='';
+  document.getElementById('newpin-2').value='';
+  enterApp();
+  showToast('✓ New PIN saved. Use it the next time you sign in.');
 }
 
 // ─── DATA LOADING / AUTO-REFRESH ─────────────────────────────
@@ -1058,6 +1133,7 @@ setInterval(()=>{if(document.visibilityState==='visible')refreshData(false);},5*
 function doLogout(){
   me=null;allSessions=[];jobDataCache={};regCountMap={};lastFetch=0;loadErrors={};
   document.getElementById('app').style.display='none';
+  document.getElementById('pinchange-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('pin-input').value='';
   document.getElementById('login-err').textContent='';

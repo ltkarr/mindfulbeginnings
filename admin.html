@@ -655,7 +655,7 @@ function instructorFromDB(r){
   // safeSitterCertified is tri-state: true/false when the safe_sitter_certified column
   // exists in the database, null when it does not (setup SQL not run yet). While null,
   // the UI falls back to "has a Safe Sitter® training date on file" as the credential.
-  return{id:r.id,name:r.name,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,createdAt:r.created_at||Date.now()};
+  return{id:r.id,name:r.name,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,pinChangeRequired:!!r.pin_change_required,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,createdAt:r.created_at||Date.now()};
 }
 // headshot_path is deliberately absent below: only the instructor portal writes it,
 // and including it here would break saving an instructor on databases that have not
@@ -3290,12 +3290,9 @@ function openAddSession(){
         <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
-    <div class="fg full"><label>Notes <span style="font-weight:400;color:var(--muted)">(shown to instructors on the job board)</span></label>
-      <textarea id="m-notes" rows="3" placeholder="Optional — e.g. the week-by-week dates of a series" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
-    <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px">
-      <label style="margin-bottom:6px">Job details for instructors <span style="font-weight:400;color:var(--muted)">(optional — shown on the job board)</span></label>
-      <textarea id="m-instrinfo" rows="3" placeholder="e.g. Park in the north lot and check in at the front desk. Room 204. Tables and a projector are provided; bring your own laptop. Dress: business casual." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Parking, check-in, room, what the venue provides, dress code — anything an instructor needs to decide and prepare. Visible before they accept, so leave host phone numbers out.</div>
+    <div class="fg full"><label>Notes for instructors <span style="font-weight:400;color:var(--muted)">(shown on the job board)</span></label>
+      <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Anything an instructor needs in order to decide and prepare. Visible before they accept, so leave host phone numbers out — those are shared automatically once the job is claimed.</div>
     </div>
     <div class="fg full">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -3681,7 +3678,7 @@ function openEditCustomJob(id){
       <div style="font-size:14px;color:var(--muted);margin-top:4px">When unchecked: once an instructor claims this job it disappears from everyone else's Open jobs board — no "Taken" card and no waitlist button.</div>
     </div>
     <div class="fg full"><label>Notes / job description</label>
-      <input type="text" id="cj-notes" value="${s.notes||''}" placeholder="e.g. Wear MB shirt, check in at volunteer tent"></div>
+      <input type="text" id="cj-notes" value="${escapeHtml(s.notes||'')}" placeholder="e.g. Wear MB shirt, check in at volunteer tent"></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveEditCustomJob('${id}')">Save changes</button></div>`);
   renderEditDates();renderEditClosures();renderEditCosts();
@@ -3949,12 +3946,15 @@ function openEditSession(id){
         <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
-    <div class="fg full"><label>Notes <span style="font-weight:400;color:var(--muted)">(shown to instructors on the job board)</span></label>
-      <textarea id="m-notes" rows="3" placeholder="Optional — e.g. the week-by-week dates of a series" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${(s.notes||'').replace(/</g,'&lt;')}</textarea></div>
-    <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px">
-      <label style="margin-bottom:6px">Job details for instructors <span style="font-weight:400;color:var(--muted)">(optional — shown on the job board)</span></label>
-      <textarea id="m-instrinfo" rows="3" placeholder="e.g. Park in the north lot and check in at the front desk. Room 204. Tables and a projector are provided; bring your own laptop." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${(s.instructorInfo||'').replace(/</g,'&lt;')}</textarea>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Parking, check-in, room, what the venue provides, dress code — anything an instructor needs to decide and prepare. Visible before they accept, so leave host phone numbers out.</div>
+    <div class="fg full"><label>Notes for instructors <span style="font-weight:400;color:var(--muted)">(shown on the job board)</span></label>
+      <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${(()=>{
+        // Notes and the old "Job details for instructors" box both displayed on the same
+        // job board, so they are one field now. Any legacy instructor_info text is folded
+        // into this textarea; saving writes it back as Notes and clears the old column.
+        const _n=(s.notes||'').trim(), _i=(s.instructorInfo||'').trim();
+        return (_n&&_i?_n+'\n\n'+_i:_n||_i).replace(/</g,'&lt;');
+      })()}</textarea>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Anything an instructor needs in order to decide and prepare. Visible before they accept, so leave host phone numbers out — those are shared automatically once the job is claimed.</div>
     </div>
     <div class="fg full">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -4040,7 +4040,10 @@ async function saveSession(editId){
     .filter(x=>x&&x.date&&!_seenClosures.has(x.date)&&!!_seenClosures.add(x.date))
     .map(x=>({date:x.date,reason:(x.reason||'').trim()}))
     .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
-  const instructorInfo=(document.getElementById('m-instrinfo')?.value||'').trim();
+  // The "Job details for instructors" box is retired — it and Notes both showed on the
+  // same job board. The edit form pre-fills Notes with both, so saving folds any legacy
+  // text into notes and blanks the old column. Nothing is lost; it just moves.
+  const instructorInfo='';
   let s, prevSnapshot=null;
   if(editId){
     s=sessions.find(x=>x.id===editId);
@@ -4411,7 +4414,7 @@ function renderRegs(){
       const d=s?fmtSessDate(s,{month:'short',day:'numeric'}):'—';
       return`<tr>
         <td style="font-weight:500">${escapeHtml(r.studentName)}</td>
-        <td style="color:var(--muted)">${r.grade||'—'}</td>
+        <td style="color:var(--muted)">${escapeHtml(r.grade)||'—'}</td>
         <td style="color:var(--muted)">${escapeHtml(r.parentName)||'—'}</td>
         <td style="color:var(--muted);font-size:15px">${escapeHtml(r.contact)||'—'}</td>
         <td style="font-size:15px">${s?s.course+' '+d:'—'}</td>
@@ -4838,7 +4841,7 @@ function renderInstructors(){
         <td style="color:var(--muted);font-size:15px">${i.phone||'—'}</td>
         <td style="color:var(--muted);font-size:15px">${i.zelle||'—'}</td>
         <td style="font-weight:500;color:var(--success)">$${i.hourlyRate||50}/hr</td>
-        <td><span class="pin-badge">${i.pin}</span></td>
+        <td><span class="pin-badge">${i.pin}</span>${i.pinChangeRequired?'<div style="font-size:13px;color:var(--warn);margin-top:3px">⏳ PIN change pending</div>':''}</td>
         <td style="font-size:15px">${i.safeSitterTrainingDate?trainDate:(i.safeSitterCertified===false?'<span style="color:var(--muted)">Not trained</span>':'<span style="color:var(--warn);font-weight:500" title="This instructor has not entered a Safe Sitter® training date in their portal yet">⚠ Needed</span>')}</td>
         <td style="font-size:15px;color:${i.sweatshirtSize?'var(--text)':'var(--muted)'}">${i.sweatshirtSize||'—'}</td>
         <td style="font-weight:500">${myJobs.length||'—'}</td>
@@ -4901,7 +4904,7 @@ function openAddInstructor(){
     <div class="fg"><label>Email</label><input type="email" id="m-iemail" placeholder="email@example.com"></div>
     <div class="fg"><label>Phone</label><input type="tel" id="m-iphone" placeholder="(555) 555-5555"></div>
     <div class="fg"><label>Zelle (phone or email)</label><input type="text" id="m-izelle" placeholder="Zelle handle"></div>
-    <div class="fg"><label>PIN (4–6 digits) *</label><input type="text" id="m-ipin" placeholder="e.g. 4821" maxlength="6" pattern="[0-9]*" inputmode="numeric"></div>
+    <div class="fg"><label>PIN (6 digits) *</label><input type="text" id="m-ipin" placeholder="e.g. 748213" maxlength="6" minlength="6" pattern="[0-9]{6}" inputmode="numeric"></div>
     <div class="fg"><label>Hourly rate ($) *</label><input type="number" id="m-irate" placeholder="50" min="1" value="50"></div>
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Instructor type — controls which jobs they see</div>
@@ -4922,7 +4925,7 @@ function openEditInstructor(id){
     <div class="fg"><label>Email</label><input type="email" id="m-iemail" value="${i.email||''}"></div>
     <div class="fg"><label>Phone</label><input type="tel" id="m-iphone" value="${i.phone||''}"></div>
     <div class="fg"><label>Zelle</label><input type="text" id="m-izelle" value="${i.zelle||''}"></div>
-    <div class="fg"><label>PIN *</label><input type="text" id="m-ipin" value="${i.pin}" maxlength="6"></div>
+    <div class="fg"><label>PIN <span style="font-weight:400;color:var(--muted)">(6 digits for any change)</span> *</label><input type="text" id="m-ipin" value="${escapeHtml(i.pin||'')}" maxlength="6" inputmode="numeric"></div>
     <div class="fg"><label>Hourly rate ($) *</label><input type="number" id="m-irate" value="${i.hourlyRate||50}" min="1"></div>
     <div class="fg full"><label>Safe Sitter® training completion date</label><input type="date" id="m-itraining" value="${i.safeSitterTrainingDate||''}"><div style="font-size:14px;color:var(--muted);margin-top:4px">Instructors enter this themselves in the portal under My profile. Set or correct it here any time — whatever you save wins.</div></div>
     <div class="fg"><label>Sweatshirt size</label><select id="m-isweat" style="width:100%"><option value="">— Not selected —</option><option value="XS" ${i.sweatshirtSize==='XS'?'selected':''}>XS</option><option value="S" ${i.sweatshirtSize==='S'?'selected':''}>S</option><option value="M" ${i.sweatshirtSize==='M'?'selected':''}>M</option><option value="L" ${i.sweatshirtSize==='L'?'selected':''}>L</option><option value="XL" ${i.sweatshirtSize==='XL'?'selected':''}>XL</option><option value="2XL" ${i.sweatshirtSize==='2XL'?'selected':''}>2XL</option></select></div>
@@ -4941,6 +4944,12 @@ async function saveInstructor(editId){
   const name=document.getElementById('m-iname').value.trim();
   const pin=document.getElementById('m-ipin').value.trim();
   if(!name||!pin){alert('Name and PIN are required.');return;}
+  // Six digits is required for any NEW or CHANGED PIN. An instructor still holding a
+  // legacy 4-digit PIN can be edited normally — they are prompted to set a 6-digit one
+  // themselves at their next portal sign-in, and blocking her from fixing their phone
+  // number in the meantime would help nobody.
+  const _existingPin=editId?(instructors.find(x=>x.id===editId)||{}).pin:null;
+  if(pin!==_existingPin&&!/^[0-9]{6}$/.test(pin)){alert('PIN must be exactly 6 digits.');return;}
   let i;
   if(editId){
     i=instructors.find(x=>x.id===editId);
@@ -4965,6 +4974,15 @@ async function saveInstructor(editId){
       }
     }
     if(error)throw new Error(error.message||error.code||JSON.stringify(error));
+    // If she set a 6-digit PIN by hand (e.g. an instructor called and could not manage
+    // the portal prompt), that satisfies the change — clear the pending flag so the
+    // person drops off the chase list. Done as its own update so a database that has
+    // not run the pin_change_required migration still saves everything else.
+    if(/^[0-9]{6}$/.test(pin)&&i.pinChangeRequired){
+      const{error:pcErr}=await sb.from('instructors').update({pin_change_required:false}).eq('id',i.id);
+      if(!pcErr)i.pinChangeRequired=false;
+      else console.warn('Could not clear pin_change_required:',pcErr.message||pcErr);
+    }
     closeModal();renderInstructors();
     showToast(ssColumnMissing?'⚠ Saved, but the Safe Sitter® checkbox is NOT stored yet — please run the one-time setup SQL in Supabase.':(editId?'✓ Instructor updated!':'✓ Instructor added!'));
   }catch(e){
