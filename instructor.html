@@ -416,7 +416,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-03.1';
+const PORTAL_VERSION='v2026-09-05.1';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -1329,26 +1329,41 @@ async function cancelJob(sessId){
   const s=allSessions.find(x=>x.id===sessId);if(s)s.instructorId=null;
   // Notify Lindsay by email
   if(sessSnapshot)sendJobCancelledNotification(sessSnapshot);
-  // Notify everyone on the waitlist that the job reopened and they have first priority.
-  if(sessSnapshot)notifyWaitlistReopened(sessId,sessSnapshot);
   // Refresh every job board so the change shows wherever the instructor is looking.
   refreshJobViews();
-  showToast('Cancellation noted. Lindsay and the waitlist have been emailed.');
+  // Notify everyone on the waitlist that the job reopened and they have first priority.
+  // The toast reports what actually happened: this returns 0 when the EmailJS template
+  // has not been set up yet, or when nobody was on the waitlist. Do not promise an email
+  // that was never sent.
+  let notified=0;
+  if(sessSnapshot)notified=await notifyWaitlistReopened(sessId,sessSnapshot);
+  showToast(notified>0
+    ?'Cancellation noted. Lindsay and '+notified+' waitlisted instructor'+(notified===1?'':'s')+' have been emailed.'
+    :'Cancellation noted. Lindsay has been notified.');
 }
 
 // Emails every instructor currently on the waitlist for a reopened session. Their contact
 // details come from a SECURITY DEFINER function that returns ONLY the name/email of people
 // waitlisted on this one session (never the whole roster), so no extra PII is exposed.
+// Returns the number of instructors it emailed, so the caller can tell the truth in
+// its toast. Returns 0 — and logs why — when the template is not configured yet, when
+// the contact lookup is missing from the database, or when nobody is waitlisted.
 async function notifyWaitlistReopened(sessId,session){
-  if(!TPL_WAITLIST_REOPENED||TPL_WAITLIST_REOPENED.includes('REPLACE_WITH'))return;
+  if(!TPL_WAITLIST_REOPENED||TPL_WAITLIST_REOPENED.includes('REPLACE_WITH')){
+    console.warn('Waitlist reopen email skipped: TPL_WAITLIST_REOPENED is still a placeholder. Create the template in EmailJS and paste its ID into instructor.html.');
+    return 0;
+  }
   let contacts=[];
   try{
     const{data,error}=await sb.rpc('get_waitlist_contacts',{p_pin:me.pin,p_session_id:sessId});
-    if(error||!Array.isArray(data))return;
+    if(error){console.warn('Waitlist reopen email skipped: get_waitlist_contacts failed —',error.message||error);return 0;}
+    if(!Array.isArray(data))return 0;
     contacts=data;
-  }catch(e){console.warn('Waitlist lookup failed:',e);return;}
+  }catch(e){console.warn('Waitlist lookup failed:',e);return 0;}
+  let sent=0;
   contacts.forEach(c=>{
     if(!c||!c.email)return;
+    sent++;
     emailjs.send('service_delt0r4',TPL_WAITLIST_REOPENED,{
       instructor_name:c.name||'there',
       instructor_email:c.email,
@@ -1359,6 +1374,7 @@ async function notifyWaitlistReopened(sessId,session){
       message:`A ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''} just reopened. Because you are on the waitlist, you have first priority to accept it for the next 24 hours. Log in to your instructor portal to claim it before it opens to everyone.`
     }).catch(err=>console.warn('Waitlist notification failed:',err));
   });
+  return sent;
 }
 
 async function joinWaitlist(sessId){
@@ -2927,9 +2943,14 @@ function checkAndNotifyOnboardingComplete(){
 const TPL_LINDSAY_JOB_NOTIFY='template_iqkujzi';
 const TPL_INSTRUCTOR_JOB_CONFIRM='template_bd5icd7';
 const TPL_LINDSAY_JOB_CANCEL='template_c94yuzm';
-// TPL_WAITLIST_REOPENED → new template emailed to each waitlisted instructor when a job
-// reopens. Its "To" field must be {{instructor_email}}. Replace the placeholder below with
-// the real template ID once you create it in EmailJS; until then waitlist emails are skipped.
+// TPL_WAITLIST_REOPENED → template emailed to each waitlisted instructor when a job
+// reopens, telling them they have 24 hours of first priority to claim it.
+//
+//   *** THIS IS THE ONLY LINE THAT STILL NEEDS EDITING. ***
+//   Create the template in EmailJS, set its "To" field to {{instructor_email}} (without
+//   that, every one of these emails goes to Lindsay instead of the instructor), then
+//   paste the template ID below in place of the placeholder. It looks like template_a1b2c3d.
+//   Until that is done, waitlist emails are skipped and the cancel toast says so honestly.
 const TPL_WAITLIST_REOPENED='REPLACE_WITH_WAITLIST_TEMPLATE_ID';
 
 function sendJobAcceptedNotification(session){
