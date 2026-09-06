@@ -252,6 +252,24 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
         <p><strong>Release and indemnification.</strong> In exchange for participation, I, the undersigned (the participant if eighteen years of age or older, or the parent or legal guardian if the participant is under eighteen), release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this class or to any later use of or reliance on anything learned in it, except to the extent caused by gross negligence or willful misconduct.</p>
         <p><strong>Emergency care.</strong> I authorize the instructor and Mindful Beginnings LLC to arrange emergency medical care for the participant if it becomes necessary during the class, and I accept financial responsibility for that care.</p>
       </div>
+      <!-- Season Ready clauses (RN-taught, educational only, no certification, no nutrition advice) -->
+      <div id="terms-season-ready" style="display:none">
+        <p><strong>What this workshop is.</strong> Season Ready is a brief, hands-on safety, fueling, and injury-prevention workshop taught by a registered nurse. It is educational only. It is not a certification course and does not certify, license, or qualify the participant in cardiopulmonary resuscitation (CPR), automated external defibrillator (AED) use, first aid, or any other medical or emergency procedure. Any skill shown or practiced is introductory only, and completing the workshop does not make the participant a trained, certified, or professional responder.</p>
+        <p><strong>General information, not medical or nutrition advice.</strong> The information given about fueling, hydration, sleep, warmups, and injury is general education for a group. It is not individualized medical, nutrition, or athletic-training advice, it is not a diagnosis or treatment plan, and it is not a substitute for the guidance of the participant's own physician, dietitian, athletic trainer, or coach. The workshop does not involve calorie counting, weigh-ins, or any assessment of an individual participant's body or diet. Families should consult the participant's own healthcare provider about that participant's individual needs.</p>
+        <p><strong>Assumption of risk.</strong> I understand that the hands-on activities in this workshop, including chest-compression practice on a manikin and demonstration of movement and positioning, carry a risk of injury, and I voluntarily accept all such risks, whether known or unknown.</p>
+        <p><strong>No duty to act.</strong> This workshop creates no obligation for the participant to act in any situation. Any decision to help, or to use anything learned in this workshop, in a real emergency is the participant's alone and is made voluntarily and at the participant's own risk. The participant should always call 911 and defer to professional responders. Mindful Beginnings LLC is not responsible for anything the participant does or does not do, or for any outcome.</p>
+        <p><strong>Release and indemnification.</strong> In exchange for participation, I, the undersigned (the participant if eighteen years of age or older, or the parent or legal guardian if the participant is under eighteen), release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this workshop or to any later use of or reliance on anything learned in it, except to the extent caused by gross negligence or willful misconduct.</p>
+        <p><strong>Emergency care.</strong> I authorize the instructor and Mindful Beginnings LLC to arrange emergency medical care for the participant if it becomes necessary during the workshop, and I accept financial responsibility for that care.</p>
+      </div>
+      <!-- Ready. Period. clauses (RN-taught health education plus a craft activity, no manikins) -->
+      <div id="terms-ready-period" style="display:none">
+        <p><strong>What this workshop is.</strong> Ready. Period. is a puberty and period preparation workshop taught by a registered nurse, paired with a craft activity in which participants decorate and stock a personal supply pouch. It is general health education for a group. It is not a medical appointment, it is not a diagnosis or treatment plan, and it is not a substitute for the guidance of the participant's own physician. Families should consult the participant's own healthcare provider about that participant's individual health.</p>
+        <p><strong>Course content.</strong> I understand that this workshop openly discusses puberty, menstruation, body changes, hygiene, and emotional changes, and that I have chosen to enroll the participant with that understanding.</p>
+        <p><strong>Assumption of risk.</strong> I acknowledge that there may be a risk of injury involved in workshop activities, including the use of craft supplies, and I voluntarily accept all such risks. I certify that to the best of my knowledge the participant is able to safely participate.</p>
+        <p><strong>Supplies provided.</strong> Any product samples or supplies provided in this workshop are furnished as a convenience. Mindful Beginnings LLC does not manufacture them and makes no warranty regarding them, and any question about an individual participant's suitability for a given product should be directed to that participant's healthcare provider.</p>
+        <p><strong>Release and indemnification.</strong> In exchange for participation, I, the undersigned parent or legal guardian, release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this workshop, except to the extent caused by gross negligence or willful misconduct.</p>
+        <p><strong>Emergency care.</strong> I authorize the instructor and Mindful Beginnings LLC to arrange emergency medical care for the participant if it becomes necessary during the workshop, and I accept financial responsibility for that care.</p>
+      </div>
       <!-- Refund / cancellation applies to everyone -->
       <p class="policy-sep"><strong>Refund and transfer policy.</strong> All sales are final. If a participant is unable to attend, you may transfer the registration to another student. Please email lindsay@mindfulbeginnings.org with the new participant's name. Any payment settlement for the spot must be handled directly between the involved parties.</p>
       <p><strong>Course cancellations.</strong> Mindful Beginnings reserves the right to cancel any course that does not meet its minimum enrollment requirement. If a course is canceled due to low enrollment, registered families will be notified at least five (5) days before the scheduled date and will receive a full refund.</p>
@@ -544,12 +562,12 @@ const sb = createClient ? createClient(
 // NEW_PRICING_EFFECTIVE identical to the value in admin.html.
 if(typeof getSessionBasePrice==='undefined'){
   // Prices for sessions that existed BEFORE the Aug 2026 program-guide update.
-  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40};
-  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50};
+  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
   // Program-guide prices for sessions created on/after the cutover. (Steady and Ready
   // stays $65 — the guide's $50 is a confirmed typo. 2027 keeps the planned step-ups.)
-  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165};
-  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165};
+  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
   const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
   // Prices raised after the Aug 6 cutover — applied only to sessions CREATED on/after
   // each `from` moment, so nothing already scheduled re-prices. Keep identical to the
@@ -595,7 +613,7 @@ if(typeof getSessionBasePrice==='undefined'){
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':8,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':8,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12};
+  window.MAX_STUDENTS={'Safe Sitter®':8,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':8,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -938,8 +956,14 @@ function setBanner(id){
   const isGP=s.course==='Grandparents: Getting Started';
   // Any Safe@Home variant (single session, Virtual, or Series) counts as Safe@Home here.
   const isSafeAtHome=/^Safe@Home/.test(s.course||'');
-  const isNoCPR=s.course==='Intro to Babysitting'||isSafeAtHome||s.course==='All Kids Welcome';
+  const isNoCPR=s.course==='Intro to Babysitting'||isSafeAtHome||s.course==='All Kids Welcome'||s.course==='Ready. Period.';
   const isCampusReady=s.course==='Campus Ready: Safety Skills for College Life';
+  // Season Ready and Ready. Period. are Mindful Beginnings workshops, not Safe Sitter®
+  // courses, so each one shows its own release instead of the standard babysitting terms.
+  // Season Ready DOES use an adult manikin (hands-only CPR, AED); Ready. Period. uses none.
+  const isSeasonReady=s.course==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes';
+  const isPeriod=s.course==='Ready. Period.';
+  const isOwnRelease=isCampusReady||isSeasonReady||isPeriod;
   // Stay Ready: Choking Rescue and CPR DOES use manikins — intentionally excluded from isNoCPR
   const noHost=s.hasHost===false;
 
@@ -950,7 +974,7 @@ function setBanner(id){
   // so show a short, course-appropriate note there instead.
   const accomNotice=document.getElementById('accom-notice');
   if(accomNotice){
-    accomNotice.innerHTML=isCampusReady
+    accomNotice.innerHTML=isOwnRelease
       ?'We want every participant to succeed. If the participant needs any accommodations, please let the instructor know as soon as possible, and note anything that will help below.'
       :'A great deal of information is presented in a short period of time during the Safe Sitter\u00ae course. We want every child to succeed, and we will work with you to make alternate plans if your child has difficulty keeping up. Please let us know if there is anything we should know to help your child succeed. If your child needs accommodations, please let the Instructor or Site Coordinator know as soon as possible. <strong>Please note:</strong> Safe Sitter\u00ae does not provide CPR certification, release the names of graduates, or act as a referral source of babysitters.';
   }
@@ -972,6 +996,10 @@ function setBanner(id){
     const isStayReady=s.course==='Stay Ready: Choking Rescue and CPR';
     gradeSel.innerHTML=isCampusReady
       ?'<option value="">Select grade...</option><option>11th grade</option><option>12th grade</option><option>College student</option>'
+      :isSeasonReady
+      ?'<option value="">Select grade...</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>'
+      :isPeriod
+      ?'<option value="">Select grade...</option><option>5th grade</option><option>6th grade</option><option>7th grade</option>'
       :is39
       ?GRADES_3_9
       :isStayReady
@@ -1002,7 +1030,9 @@ function setBanner(id){
     }else{
       cprNotice.style.display='';
       const isStayReady=s.course==='Stay Ready: Choking Rescue and CPR';
-      cprNotice.innerHTML=isCampusReady
+      cprNotice.innerHTML=isSeasonReady
+        ?'<strong>📋 Please note:</strong> This workshop is taught by a registered nurse and includes hands-on practice of hands-only CPR on a manikin and practice with an AED trainer. <strong>This workshop is educational only and does not certify the participant in CPR, AED use, or first aid.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
+        :isCampusReady
         ?'<strong>📋 Please note:</strong> This class is taught by a registered nurse and includes hands-on practice of CPR and rescue skills on manikins. <strong>This course is educational only and does not certify the participant in CPR, first aid, or naloxone (Narcan) administration.</strong> It is designed to build the confidence and basic skills to help a friend in an emergency.'
         :isStayReady
         ?'<strong>📋 Please note:</strong> This session includes hands-on practice of choking rescue and CPR on manikins. <strong>This session does not provide CPR certification.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
@@ -1018,6 +1048,8 @@ function setBanner(id){
     permSec.querySelector('.perm-title').textContent=isGP?'CPR manikin practice':'CPR manikin practice';
     permSec.querySelectorAll('.perm-desc')[0].textContent=isGP
       ?'This course includes hands-on practice of rescue skills on CPR manikins. Do you give permission to participate?'
+      :isSeasonReady
+        ?'This workshop includes hands-on practice of hands-only CPR on a manikin. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikin?'
       :isCampusReady
         ?'This class includes hands-on practice of CPR and rescue skills on manikins. Manikins require strict standards for controlling infection. Do you give permission for the participant to practice on the manikins?'
       :(s.course==='Stay Ready: Choking Rescue and CPR'
@@ -1035,14 +1067,18 @@ function setBanner(id){
   }
 
   // Waiver — swap between child and adult clause text inside the agreement box
-  document.getElementById('terms-standard').style.display=(isGP||isCampusReady)?'none':'';
+  document.getElementById('terms-standard').style.display=(isGP||isOwnRelease)?'none':'';
   document.getElementById('terms-grandparent').style.display=isGP?'':'none';
   const crTerms=document.getElementById('terms-campus-ready');
   if(crTerms)crTerms.style.display=isCampusReady?'':'none';
   // The Campus Ready acknowledgment sits at the very end of the waiver box (after the
   // shared refund/cancellation terms), so it is toggled separately from the clause block.
   const crAck=document.getElementById('terms-campus-ready-ack');
-  if(crAck)crAck.style.display=isCampusReady?'':'none';
+  if(crAck)crAck.style.display=isOwnRelease?'':'none';
+  const srTerms=document.getElementById('terms-season-ready');
+  if(srTerms)srTerms.style.display=isSeasonReady?'':'none';
+  const rpTerms=document.getElementById('terms-ready-period');
+  if(rpTerms)rpTerms.style.display=isPeriod?'':'none';
   // Show Stay Ready prerequisite clause only for that course
   const srPrereq=document.getElementById('terms-stay-ready');
   if(srPrereq)srPrereq.style.display=(s.course==='Stay Ready: Choking Rescue and CPR'&&!isGP)?'':'none';

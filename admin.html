@@ -316,7 +316,7 @@ tr:hover td{background:#fafbfd}
       <div class="filter-row">
         <select id="sf-course" onchange="renderSessions()">
           <option value="">All courses</option>
-          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option>
+          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option>
         </select>
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
@@ -862,7 +862,13 @@ const COURSES={
   // Ready. Period. — 90-minute puberty-prep workshop, $75/participant.
   // RN instructors only, taught the same way Stay Ready is: no flat fee, so the
   // instructor is paid 1.5 teaching hours + 1 travel hour + the standard extra 30 min.
-  'Ready. Period.':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true}
+  'Ready. Period.':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:18,requiresRN:true},
+  // Season Ready — 60-minute safety, fueling, and injury-prevention workshop for
+  // middle and high school athletes, $25/participant, up to 20 in a class.
+  // RN instructors only (hands-only CPR, AED trainers, heat-illness and concussion
+  // response). No flat fee, so the instructor is paid 1 teaching hour + 1 travel
+  // hour + the standard extra 30 minutes.
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true}
 };
 // ─── STUDENT MATERIAL COSTS ──────────────────────────────────
 // Single source of truth: every per-student material rate lives on COURSES[...].matCost
@@ -997,7 +1003,12 @@ const COURSE_ABBR={
   'Grandparents: Getting Started':'GP','All Kids Welcome':'AKW',
   'Stay Ready: Choking Rescue and CPR':'SR',
   'Campus Ready: Safety Skills for College Life':'CR',
-  'Steady and Ready':'STR','My First Babysitters Club':'MFBC'
+  'Steady and Ready':'STR','My First Babysitters Club':'MFBC',
+  'My First Babysitters Club — Single Session':'MFBC1',
+  'Ready. Period.':'RP',
+  // SEAR, not SR — SR already belongs to Stay Ready, and two classes on the same
+  // day would otherwise generate the same registration code.
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':'SEAR'
 };
 // Custom-job titles are free text ("My First Babysitter's Club — Greenwood
 // Elementary — 10 week series"), so match the program out of the words.
@@ -3184,7 +3195,7 @@ function openAddSession(){
   showModal(`<div class="modal-head"><h3>Add new session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Course *</label>
-      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option></select>
+      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option></select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div></div>
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
@@ -3840,6 +3851,7 @@ function openEditSession(id){
         <option ${s.course==='My First Babysitters Club'?'selected':''}>My First Babysitters Club</option>
         <option ${s.course==='My First Babysitters Club — Single Session'?'selected':''}>My First Babysitters Club — Single Session</option>
         <option ${s.course==='Ready. Period.'?'selected':''}>Ready. Period.</option>
+        <option ${s.course==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes'?'selected':''}>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option>
       </select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div></div>
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
@@ -4909,7 +4921,7 @@ function openAddInstructor(){
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Instructor type — controls which jobs they see</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-issafesitter" style="width:auto;margin:0"> Safe Sitter® certified — sees Safe Sitter® Babysitting &amp; Grandparents jobs</label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready &amp; Campus Ready jobs</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready, Campus Ready, Ready. Period. &amp; Season Ready jobs</label>
       <div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">Courses open to everyone (All Kids Welcome, Steady and Ready, My First Babysitters Club, Safe@Home, Safe@Home — Virtual, Safe@Home — Series, Intro to Babysitting) are always visible. Check both boxes if the instructor holds both credentials.</div>
     </div>
     <div class="fg full"><label>Contractor agreement version</label><select id="m-icontract" style="width:100%"><option value="standard" selected>Safe Sitter® instructor agreement</option><option value="proprietary">RN agreement (Campus Ready / Stay Ready)</option><option value="mb_courses_2026">MB Courses instructor agreement (Safe@Home, Intro, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready)</option><option value="curriculum">Curriculum Specialist agreement (content development, not teaching)</option></select><div style="font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5">Controls which agreement this person sees and signs on the instructor portal. Pick it when you hire them, before sharing their PIN.</div></div>
@@ -4932,7 +4944,7 @@ function openEditInstructor(id){
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Instructor type — controls which jobs they see</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-issafesitter" ${instrIsSafeSitter(i)?'checked':''} style="width:auto;margin:0"> Safe Sitter® certified — sees Safe Sitter® Babysitting &amp; Grandparents jobs</label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" ${i.isRN?'checked':''} style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready &amp; Campus Ready jobs</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" ${i.isRN?'checked':''} style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready, Campus Ready, Ready. Period. &amp; Season Ready jobs</label>
       <div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">Courses open to everyone (All Kids Welcome, Steady and Ready, My First Babysitters Club, Safe@Home, Safe@Home — Virtual, Safe@Home — Series, Intro to Babysitting) are always visible. Check both boxes if the instructor holds both credentials.</div>
     </div>
     <div class="fg full"><label>Contractor agreement version</label><select id="m-icontract" style="width:100%"><option value="standard" ${(i.contractType||'standard')==='standard'?'selected':''}>Safe Sitter® instructor agreement</option><option value="proprietary" ${i.contractType==='proprietary'?'selected':''}>RN agreement (Campus Ready / Stay Ready)</option><option value="mb_courses_2026" ${i.contractType==='mb_courses_2026'?'selected':''}>MB Courses instructor agreement (Safe@Home, Intro, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready)</option>${i.contractType==='mb_courses'?'<option value="mb_courses" selected>MB Courses instructor agreement — 2025 version (retired, already signed)</option>':''}<option value="curriculum" ${i.contractType==='curriculum'?'selected':''}>Curriculum Specialist agreement (content development, not teaching)</option></select><div style="font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5">Controls which agreement this person sees and signs on the instructor portal. Changing this does not un-sign an agreement that was already signed.${i.contractType==='mb_courses'?' This person signed the retired 2025 MB Courses agreement — switching them to the current version will make the portal show the new terms as already signed, so only do it after they have actually signed the new one.':''}</div></div>
@@ -6234,6 +6246,33 @@ function waiverAgreementClauses(course){
   // The language below is written to make clear the course is educational only,
   // confers no certification, and releases Mindful Beginnings LLC from liability
   // both for the class itself and for any later decision to use the skills.
+  // ── Season Ready and Ready. Period. each carry their own release too. Neither is
+  // a Safe Sitter® course, so neither may use the default text below (which talks
+  // about deciding whether a child is mature enough to babysit and names Safe
+  // Sitter, Inc.). Keep the wording here word for word identical to the
+  // terms-season-ready and terms-ready-period blocks in register.html.
+  if(/^Season Ready/i.test(course||'')){
+    return `
+    <p><strong>What this workshop is.</strong> Season Ready is a brief, hands-on safety, fueling, and injury-prevention workshop taught by a registered nurse. It is educational only. It is not a certification course and does not certify, license, or qualify the participant in cardiopulmonary resuscitation (CPR), automated external defibrillator (AED) use, first aid, or any other medical or emergency procedure. Any skill shown or practiced is introductory only, and completing the workshop does not make the participant a trained, certified, or professional responder.</p>
+    <p><strong>General information, not medical or nutrition advice.</strong> The information given about fueling, hydration, sleep, warmups, and injury is general education for a group. It is not individualized medical, nutrition, or athletic-training advice, it is not a diagnosis or treatment plan, and it is not a substitute for the guidance of the participant's own physician, dietitian, athletic trainer, or coach. The workshop does not involve calorie counting, weigh-ins, or any assessment of an individual participant's body or diet. Families should consult the participant's own healthcare provider about that participant's individual needs.</p>
+    <p><strong>Assumption of risk.</strong> I understand that the hands-on activities in this workshop, including chest-compression practice on a manikin and demonstration of movement and positioning, carry a risk of injury, and I voluntarily accept all such risks, whether known or unknown.</p>
+    <p><strong>No duty to act.</strong> This workshop creates no obligation for the participant to act in any situation. Any decision to help, or to use anything learned in this workshop, in a real emergency is the participant's alone and is made voluntarily and at the participant's own risk. The participant should always call 911 and defer to professional responders. Mindful Beginnings LLC is not responsible for anything the participant does or does not do, or for any outcome.</p>
+    <p><strong>Release and indemnification.</strong> In exchange for participation, I, the undersigned (the participant if eighteen years of age or older, or the parent or legal guardian if the participant is under eighteen), release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this workshop or to any later use of or reliance on anything learned in it, except to the extent caused by gross negligence or willful misconduct.</p>
+    <p><strong>Emergency care.</strong> I authorize the instructor and Mindful Beginnings LLC to arrange emergency medical care for the participant if it becomes necessary during the workshop, and I accept financial responsibility for that care.</p>
+    <p>I have read this release and understand all of its terms. I execute it voluntarily and with full knowledge of its meaning and significance, and by submitting this registration form I provide my signature as proof of acceptance.</p>
+    <p><strong>Refund and Cancellation Policy.</strong> If you cannot attend, you may transfer your spot to another participant by emailing lindsay@mindfulbeginnings.org with the new participant's name and settling payment directly with them. Mindful Beginnings reserves the right to cancel any course that does not meet a minimum enrollment of six (6) students. If a course is canceled by Mindful Beginnings due to low enrollment, registered families will be notified at least five (5) days before the scheduled course date and will receive a full refund.</p>`;
+  }
+  if(/^Ready\. ?Period/i.test(course||'')){
+    return `
+    <p><strong>What this workshop is.</strong> Ready. Period. is a puberty and period preparation workshop taught by a registered nurse, paired with a craft activity in which participants decorate and stock a personal supply pouch. It is general health education for a group. It is not a medical appointment, it is not a diagnosis or treatment plan, and it is not a substitute for the guidance of the participant's own physician. Families should consult the participant's own healthcare provider about that participant's individual health.</p>
+    <p><strong>Course content.</strong> I understand that this workshop openly discusses puberty, menstruation, body changes, hygiene, and emotional changes, and that I have chosen to enroll the participant with that understanding.</p>
+    <p><strong>Assumption of risk.</strong> I acknowledge that there may be a risk of injury involved in workshop activities, including the use of craft supplies, and I voluntarily accept all such risks. I certify that to the best of my knowledge the participant is able to safely participate.</p>
+    <p><strong>Supplies provided.</strong> Any product samples or supplies provided in this workshop are furnished as a convenience. Mindful Beginnings LLC does not manufacture them and makes no warranty regarding them, and any question about an individual participant's suitability for a given product should be directed to that participant's healthcare provider.</p>
+    <p><strong>Release and indemnification.</strong> In exchange for participation, I, the undersigned parent or legal guardian, release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this workshop, except to the extent caused by gross negligence or willful misconduct.</p>
+    <p><strong>Emergency care.</strong> I authorize the instructor and Mindful Beginnings LLC to arrange emergency medical care for the participant if it becomes necessary during the workshop, and I accept financial responsibility for that care.</p>
+    <p>I have read this release and understand all of its terms. I execute it voluntarily and with full knowledge of its meaning and significance, and by submitting this registration form I provide my signature as proof of acceptance.</p>
+    <p><strong>Refund and Cancellation Policy.</strong> If you cannot attend, you may transfer your spot to another participant by emailing lindsay@mindfulbeginnings.org with the new participant's name and settling payment directly with them. Mindful Beginnings reserves the right to cancel any course that does not meet a minimum enrollment of six (6) students. If a course is canceled by Mindful Beginnings due to low enrollment, registered families will be notified at least five (5) days before the scheduled course date and will receive a full refund.</p>`;
+  }
   if(/Campus Ready/i.test(course||'')){
     return `
     <p><strong>Nature and limits of this course.</strong> Campus Ready: Safety Skills for College Life is a brief, educational, hands-on safety class. It is intended only to build the participant's awareness and confidence so that the participant may choose to help a friend in an emergency. It is not a certification course and does not certify, license, or qualify the participant in cardiopulmonary resuscitation (CPR), first aid, automated external defibrillator (AED) use, opioid overdose reversal or the administration of naloxone (Narcan), or any other medical, nursing, or emergency procedure.</p>
@@ -6541,7 +6580,11 @@ const MAT_NEEDS={
   'Stay Ready: Choking Rescue and CPR':{infant:1,child:1,adult:1,av:1},
   'Safe@Home':{av:1},
   'All Kids Welcome':{av:1},   // in-person only — virtual All Kids Welcome needs nothing
-  'Intro to Babysitting':null  // the club has its own materials
+  'Intro to Babysitting':null,  // the club has its own materials
+  // Season Ready practices hands-only CPR and AED use, so it needs an adult
+  // manikin and the AV kit. Ready. Period. brings its own craft supplies and
+  // pulls nothing off the equipment shelf.
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{adult:1,av:1}
 };
 const MAT_KIND_RX={infant:/infant/i,child:/child/i,adult:/adult/i,av:/\bav\b|laptop|projector/i};
 function matEqOfKind(kind){const rx=MAT_KIND_RX[kind];return rx?equipment.find(e=>rx.test(e.name)):null;}

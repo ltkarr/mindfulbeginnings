@@ -2,6 +2,8 @@
    MINDFUL BEGINNINGS — SHARED CONFIG (config.js)
    Updated August 2026 · program-guide pricing + Safe@Home — Series
    Aug 17 2026 · Safe Sitter® and Grandparents caps raised 8 → 16 to match admin.html
+   Sep  6 2026 · Added My First Babysitters Club — Single Session, Ready. Period.,
+                 and Season Ready; corrected My First Babysitters Club matCost to $30
    ════════════════════════════════════════════════════════════════════════
 
    Loaded by register.html and instructor.html. This file is the single
@@ -54,7 +56,24 @@ const COURSES={
   'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1.5,maxStudents:8},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug
   // 2026 program guide confirmed $165 for the 8-week series.
-  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:10,hours:1,maxStudents:12}
+  // Material cost is $30/student — an 8-week series consumes far more supplies
+  // than a one-off class, so it does not share the $10 handbook cost of the
+  // short courses. (Corrected from $10, Aug 30 2026, to match admin.html.)
+  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12},
+  // My First Babysitters Club — Single Session: the one-off 2.5-hour version, $95.
+  // Deliberately a SEPARATE course from the 8-week series above so the series keeps
+  // its own $165 price and $30 material rate. Any instructor may teach it.
+  'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:10,hours:2.5,maxStudents:12},
+  // Ready. Period. — 90-minute puberty-prep workshop, $75/participant, up to 18.
+  // RN instructors only. No flat fee, so the instructor is paid 1.5 teaching
+  // hours + 1 travel hour + the standard extra 30 minutes.
+  'Ready. Period.':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:18,requiresRN:true},
+  // Season Ready — 60-minute safety, fueling, and injury-prevention workshop for
+  // middle and high school athletes, $25/participant, up to 20 in a class.
+  // RN instructors only (hands-only CPR, AED trainers, heat-illness and concussion
+  // response). No flat fee, so the instructor is paid 1 teaching hour + 1 travel
+  // hour + the standard extra 30 minutes.
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true}
 };
 
 
@@ -151,7 +170,10 @@ const MAX_STUDENTS={
   'Stay Ready: Choking Rescue and CPR':12,
   'Campus Ready: Safety Skills for College Life':12,
   'Steady and Ready':8,
-  'My First Babysitters Club':12
+  'My First Babysitters Club':12,
+  'My First Babysitters Club — Single Session':12,
+  'Ready. Period.':18,
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20
 };
 
 
