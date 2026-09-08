@@ -2625,13 +2625,30 @@ function ensureInKindTag(r){
 }
 // Once a family is marked paid, the "awaiting payment" / "confirm payment" reservation
 // tags are stale, so strip them while leaving the family's own notes and any other tags
-// (promo, auction, prerequisite) intact.
+// (promo, auction, prerequisite) intact. Keep in sync with lib/payment-utils.js.
 function clearPendingPaymentNotes(notes){
   return (notes||'')
     .replace(/\[Registered\s*[—-]\s*awaiting payment\]\s*/gi,'')
     .replace(/\[Family marked [^\]]*\]\s*/gi,'')
     .replace(/\s{2,}/g,' ')
     .trim();
+}
+function hasPaidIndicatorNote(notes){
+  return /\[(Paid via |Registered\s*[—-]\s*paid\]|FREE registration|AUCTION|Re-registration)/i.test(notes||'');
+}
+// Display notes that match payStatus so a green "paid" badge never sits next to
+// "[Registered — awaiting payment]". Pending / unpaid keep the reservation tag.
+function notesForPaymentStatus(payStatus, notes){
+  const raw=notes||'';
+  const status=String(payStatus||'').toLowerCase();
+  const paidLike=status==='paid'||status==='host'||status==='in_kind';
+  if(!paidLike)return raw;
+  const hadAwaiting=/\[Registered\s*[—-]\s*awaiting payment\]/i.test(raw);
+  const cleaned=clearPendingPaymentNotes(raw);
+  if(status==='paid'&&hadAwaiting&&!hasPaidIndicatorNote(cleaned)){
+    return ('[Registered — paid]'+(cleaned?' '+cleaned:'')).trim();
+  }
+  return cleaned;
 }
 
 // Registrations within the selected year (waitlist entries excluded — they never paid).
@@ -4684,7 +4701,7 @@ function renderRegs(){
         <td><span class="tag ${r.payStatus}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span></td>
         <td>${amt}</td>
         <td style="text-align:center">${r.photoConsent==='yes'?'<span style="color:var(--success)">✓ Yes</span>':r.photoConsent==='no'?'<span style="color:var(--muted)">✗ No</span>':'<span style="color:var(--muted)">—</span>'}</td>
-        <td style="color:var(--muted);font-size:15px;max-width:120px">${escapeHtml(r.notes)||'—'}</td>
+        <td style="color:var(--muted);font-size:15px;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,r.notes))||'—'}</td>
         <td><div class="btn-row">
           ${r.payStatus==='in_kind'?'':`<button class="btn sm ${r.payStatus==='paid'?'':'success'}" onclick="togglePaid('${r.id}')">${r.payStatus==='paid'?'Mark unpaid':'Mark paid'}</button>`}
           <button class="btn sm" onclick="openWaiverDoc('${r.id}')">📄 Waiver</button>
@@ -4765,7 +4782,7 @@ async function togglePaid(id){
   r.payStatus=r.payStatus==='paid'?'unpaid':'paid';
   const update={pay_status:r.payStatus};
   if(r.payStatus==='paid'){
-    const cleaned=clearPendingPaymentNotes(r.notes);
+    const cleaned=notesForPaymentStatus(r.payStatus,r.notes);
     if(cleaned!==(r.notes||'')){r.notes=cleaned;update.notes=r.notes;}
   }
   renderRegs();renderDashboard();
@@ -4816,7 +4833,7 @@ async function saveEditReg(id){
   r.pricePaid=pr===''?null:Number(pr);
   r.notes=document.getElementById('m-enotes').value.trim();
   ensureInKindTag(r);
-  if(r.payStatus==='paid')r.notes=clearPendingPaymentNotes(r.notes);
+  r.notes=notesForPaymentStatus(r.payStatus,r.notes);
   closeModal();renderRegs();renderDashboard();
   dbWrite(sb.from('registrations').update({
     student_name:r.studentName,grade:r.grade,parent_name:r.parentName,
@@ -7858,7 +7875,7 @@ function openRoster(sessId){
       <td style="text-align:center">${r.waiverSigned?'✓':'✗'}</td>
       <td style="text-align:center">${r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—'}</td>
       <td><span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500;background:${r.payStatus==='paid'?'#eaf5f0':r.payStatus==='host'?'#d6e9f5':r.payStatus==='in_kind'?'#f3e8fb':'#fff7e6'};color:${r.payStatus==='paid'?'#2d7a5e':r.payStatus==='host'?'#1a5c8a':r.payStatus==='in_kind'?'#6D1ED4':'#b86a00'}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span></td>
-      <td style="font-size:14px;color:#888;max-width:120px">${escapeHtml(r.notes)||''}</td>
+      <td style="font-size:14px;color:#888;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,r.notes))||''}</td>
     </tr>`).join('')
     :'<tr><td colspan="11" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No students registered yet</td></tr>';
 

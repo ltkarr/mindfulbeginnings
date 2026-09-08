@@ -11,7 +11,9 @@ const {
   buildPaymentMemo,
   paypalDescription,
   extractCaptureFromOrder,
-  paidNotesLine
+  paidNotesLine,
+  clearPendingPaymentNotes,
+  notesForPaymentStatus
 } = require('../lib/payment-utils');
 
 test('parseMoney and formatMoney round to cents', () => {
@@ -83,6 +85,49 @@ test('extractCaptureFromOrder reads custom_id, amount, and capture id', () => {
 test('paidNotesLine is idempotent for the same capture id', () => {
   const first = paidNotesLine({ captureId: 'CAP99', amount: 175, existingNotes: '[Registered — awaiting payment]' });
   assert.match(first, /Paid via PayPal TX CAP99 — \$175\.00/);
+  assert.doesNotMatch(first, /awaiting payment/);
   const second = paidNotesLine({ captureId: 'CAP99', amount: 175, existingNotes: first });
   assert.equal(second, first);
+});
+
+test('clearPendingPaymentNotes strips reservation tags only', () => {
+  assert.equal(
+    clearPendingPaymentNotes('[Registered — awaiting payment] Nut allergy'),
+    'Nut allergy'
+  );
+  assert.equal(
+    clearPendingPaymentNotes('[Family marked VENMO sent — confirm in Venmo app] [Promo SAVE10 applied: −$10 off 185 → 175]'),
+    '[Promo SAVE10 applied: −$10 off 185 → 175]'
+  );
+});
+
+test('notesForPaymentStatus matches pay_status so paid rows never say awaiting payment', () => {
+  assert.equal(
+    notesForPaymentStatus('pending', '[Registered — awaiting payment]'),
+    '[Registered — awaiting payment]'
+  );
+  assert.equal(
+    notesForPaymentStatus('unpaid', '[Registered — awaiting payment]'),
+    '[Registered — awaiting payment]'
+  );
+  assert.equal(
+    notesForPaymentStatus('paid', '[Registered — awaiting payment]'),
+    '[Registered — paid]'
+  );
+  assert.equal(
+    notesForPaymentStatus('paid', '[Registered — awaiting payment] Nut allergy'),
+    '[Registered — paid] Nut allergy'
+  );
+  assert.equal(
+    notesForPaymentStatus('paid', '[Paid via PayPal TX CAP99 — $65.00] [Registered — awaiting payment]'),
+    '[Paid via PayPal TX CAP99 — $65.00]'
+  );
+  assert.equal(
+    notesForPaymentStatus('host', '[Registered — awaiting payment]'),
+    ''
+  );
+  assert.equal(
+    notesForPaymentStatus('in_kind', '[AUCTION — IN-KIND DONATION: $185] [Registered — awaiting payment]'),
+    '[AUCTION — IN-KIND DONATION: $185]'
+  );
 });
