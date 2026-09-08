@@ -1950,6 +1950,20 @@ function currentCalendarMonth(){
   const d=new Date();d.setHours(12,0,0,0);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 }
+function shiftCalendarMonth(period,delta){
+  const [y,m]=String(period||currentCalendarMonth()).split('-').map(Number);
+  const d=new Date(y,(m-1)+(Number(delta)||0),1);
+  d.setHours(12,0,0,0);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+// The next `count` calendar months after this month (Oct–Dec when now is September).
+function partnerLookaheadMonths(count){
+  const n=Math.max(0,Number(count)||0);
+  const cur=currentCalendarMonth();
+  const out=[];
+  for(let i=1;i<=n;i++)out.push(shiftCalendarMonth(cur,i));
+  return out;
+}
 function partnerPeriodKind(period){
   const last=defaultPartnerPeriod();
   const cur=currentCalendarMonth();
@@ -2036,7 +2050,8 @@ function renderPartners(){
   const cfg=partnerSettings();
   const statements=partners.map(p=>partnerStatement(p.id,partnerPeriod));
 
-  const forward=new Set([lastMonth,thisMonth]);
+  const lookahead=partnerLookaheadMonths(3);
+  const forward=new Set([lastMonth,thisMonth,...lookahead]);
   statements.forEach(st=>(st.pending||[]).forEach(x=>{
     if(x.projectedMonth&&x.projectedMonth>=lastMonth)forward.add(x.projectedMonth);
   }));
@@ -2047,6 +2062,9 @@ function renderPartners(){
   const monthPaid=round2(statements.reduce((a,s)=>a+(s.payout&&s.payout.paidDate?s.payout.amount:0),0));
   const monthPending=round2(statements.reduce((a,s)=>a+s.pendingTotal,0));
   const upcomingByMonth={};
+  [thisMonth,...lookahead].forEach(m=>{
+    upcomingByMonth[m]={period:m,revenue:0,potential:0,count:0,partners:0};
+  });
   statements.forEach(st=>(st.projectedPayouts||[]).forEach(row=>{
     const cur=upcomingByMonth[row.period]||{period:row.period,revenue:0,potential:0,count:0,partners:0};
     cur.revenue=round2(cur.revenue+row.revenue);
@@ -2116,7 +2134,7 @@ function renderPartners(){
     </div>
     ${upcomingMonths.length?`<div class="card">
       <div class="card-title" style="margin-bottom:8px">Projected payouts — not payable yet</div>
-      <div style="font-size:15px;color:var(--muted);margin-bottom:12px;line-height:1.5">What partners are estimated to be owed as pending bookings clear, in the month each one is expected to land. These figures are not owed until the money is in and the class has been taught.</div>
+      <div style="font-size:15px;color:var(--muted);margin-bottom:12px;line-height:1.5">What partners are estimated to be owed as pending bookings clear, in the month each one is expected to land. The next three calendar months always appear, even at $0. These figures are not owed until the money is in and the class has been taught.</div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Month</th><th>Bookings</th><th>Pending revenue</th><th>Projected commission</th><th></th></tr></thead>
         <tbody>${upcomingMonths.map(row=>`<tr style="${row.period===partnerPeriod?'background:var(--warn-bg)':''}">
