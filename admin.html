@@ -949,6 +949,16 @@ function regEffectivePrice(r, s){
   if(!s)return 0;
   return s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
 }
+function sessionListPrice(s){
+  if(!s)return 0;
+  return s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
+}
+// True only when price_paid differs from the session's advertised price (promo, scholarship, etc.).
+function isCustomStudentPrice(r,s){
+  if(!r||r.pricePaid==null)return false;
+  if(!s)return true;
+  return Number(r.pricePaid)!==Number(sessionListPrice(s));
+}
 const INSTR_RATE=50,INSTR_TRAVEL=50;
 // Extra paid time added to every instructor job (flat-fee and hourly), in hours.
 // 0.5 = 30 minutes of pay at the instructor's own hourly rate.
@@ -4663,7 +4673,7 @@ function renderRegs(){
     (list.length?list.map(r=>{
       const s=sessions.find(x=>x.id===r.sessionId);
       const c=s?COURSES[s.course]:null;
-      const amt=r.payStatus==='paid'?(s?fmt(regEffectivePrice(r,s)):'—')+(r.pricePaid!=null?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':''):r.payStatus==='host'?'Free':r.payStatus==='in_kind'?'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>':(r.pricePaid!=null?fmt(regEffectivePrice(r,s))+'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>':'—');
+      const amt=r.payStatus==='paid'?(s?fmt(regEffectivePrice(r,s)):'—')+(isCustomStudentPrice(r,s)?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':''):r.payStatus==='host'?'Free':r.payStatus==='in_kind'?'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>':(r.pricePaid!=null?fmt(regEffectivePrice(r,s))+'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>':'—');
       const d=s?fmtSessDate(s,{month:'short',day:'numeric'}):'—';
       return`<tr>
         <td style="font-weight:500">${escapeHtml(r.studentName)}</td>
