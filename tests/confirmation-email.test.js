@@ -65,18 +65,25 @@ test('shouldShowPayNow is false when already paid or amount is $0', () => {
   assert.equal(shouldShowPayNow({ payStatus: 'pending', amount: 0 }), false);
 });
 
-test('unpaid CTA exposes a non-empty absolute pay_url and Outlook-safe <a href>', () => {
+test('unpaid CTA exposes a non-empty absolute pay_url and a Gmail-safe bulletproof button', () => {
   const cta = buildPayCta(dueOpts);
+  const escapedUrl = cta.pay_url.replace(/&/g, '&amp;');
   assert.equal(cta.show_pay_now, true);
   assert.match(cta.pay_url, /^https:\/\/mindfulbeginnings\.vercel\.app\/register\.html\?/);
   assert.equal(cta.pay_link, cta.pay_url);
   assert.equal(cta.payment_url, cta.pay_url);
   assert.equal(cta.pay_now_url, cta.pay_url);
   assert.equal(cta.pay_note, '');
+  assert.equal(cta.pay_cta, cta.pay_button);
   assert.doesNotMatch(cta.pay_button, /href=""/);
   assert.doesNotMatch(cta.pay_button, /href=''/);
-  assert.match(cta.pay_button, new RegExp('<a href="' + cta.pay_url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/&/g, '&amp;') + '"'));
-  assert.match(cta.pay_button, /Pay now →/);
+  assert.match(cta.pay_button, /<table[^>]*role="presentation"/);
+  assert.match(cta.pay_button, /<td[^>]*bgcolor="#3f63ad"/);
+  assert.match(cta.pay_button, new RegExp('<a href="' + escapedUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"'));
+  assert.match(cta.pay_button, />Pay now</);
+  assert.doesNotMatch(cta.pay_button, /→|&rarr;|&#8594;/);
+  assert.match(cta.pay_button, /If the button does not open, use this link:/);
+  assert.match(cta.pay_button, new RegExp('<a href="' + escapedUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"[^>]*>' + escapedUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</a>'));
   assert.doesNotMatch(cta.pay_button, /onclick=/i);
 });
 
@@ -103,8 +110,23 @@ test('buildPayNowButtonHtml refuses empty or non-https hrefs', () => {
   assert.equal(buildPayNowButtonHtml(''), '');
   assert.equal(buildPayNowButtonHtml('javascript:alert(1)'), '');
   assert.equal(buildPayNowButtonHtml('/pay.html'), '');
-  const html = buildPayNowButtonHtml('https://mindfulbeginnings.vercel.app/pay.html?amt=40');
-  assert.match(html, /^<a href="https:\/\/mindfulbeginnings\.vercel\.app\/pay\.html\?amt=40"/);
+  assert.equal(buildPayNowButtonHtml('http://mindfulbeginnings.vercel.app/pay.html'), '');
+});
+
+test('buildPayNowButtonHtml is a Gmail-safe table button with a plain-text fallback', () => {
+  const url = 'https://mindfulbeginnings.vercel.app/pay.html?amt=40&reg=id_1';
+  const html = buildPayNowButtonHtml(url);
+  const escaped = url.replace(/&/g, '&amp;');
+  assert.match(html, /^<table role="presentation" border="0" cellspacing="0" cellpadding="0"/);
+  assert.match(html, /bgcolor="#3f63ad"/);
+  assert.match(html, /<a href="https:\/\/mindfulbeginnings\.vercel\.app\/pay\.html\?amt=40&amp;reg=id_1"/);
+  assert.match(html, />Pay now<\/a>/);
+  assert.doesNotMatch(html, /→|&rarr;|&#8594;/);
+  assert.match(html, /If the button does not open, use this link:/);
+  assert.match(html, new RegExp('<a href="' + escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"[^>]*>' + escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</a>'));
+  assert.doesNotMatch(html, /href=""/);
+  assert.doesNotMatch(html, /onclick=/i);
+  assert.equal((html.match(/<a /g) || []).length, 2);
 });
 
 test('amount line can carry the pay URL as a text fallback', () => {

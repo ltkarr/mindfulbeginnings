@@ -1,18 +1,20 @@
 /* ════════════════════════════════════════════════════════════════════════
    Confirmation-email helpers (register.html + tests)
 
-   Live EmailJS template `template_c3yfejb` renders a Pay now button as:
-     <a href="{{pay_url}}" ...>Pay now →</a>
-   plus a gray note line: {{pay_note}}
+   Live EmailJS template `template_c3yfejb` interpolates Pay now fields.
+   Gmail often drops padding/background on a lone styled <a>, so pay_button
+   / pay_cta are a table-based ("bulletproof") button plus a plain-text
+   fallback link. Inject unescaped HTML in the EmailJS editor:
 
-   sendConfirmationEmail used to omit those fields, so recipients got href="".
-   This module builds the pay URL and the paid/unpaid copy that EmailJS
-   interpolates. Wrap the button in the EmailJS editor with:
+     {{#pay_url}}
+     {{{pay_button}}}
+     {{/pay_url}}
+     {{^pay_url}}
+     <p style="margin: 0; color: #52606d;">{{pay_note}}</p>
+     {{/pay_url}}
 
-     {{#pay_url}}<a href="{{pay_url}}" ...>Pay now →</a>{{/pay_url}}
-     {{^pay_url}}{{pay_note}}{{/pay_url}}
-
-   so paid / $0 emails omit the button instead of leaving an empty href.
+   Do not wrap {{pay_url}} in a lone <a href> if {{{pay_button}}} is used —
+   that would duplicate the CTA. Paid / $0 emails omit the button (no href="").
    ════════════════════════════════════════════════════════════════════════ */
 (function (root, factory) {
   var api = factory();
@@ -24,7 +26,11 @@
   var PUBLIC_ORIGIN = 'https://mindfulbeginnings.vercel.app';
   var PAID_NOTE = 'Payment received. You\'re all set — no further payment is needed.';
   var ZERO_NOTE = 'No payment is needed for this registration.';
-  var PAY_BUTTON_STYLE = 'display: inline-block; padding: 12px 22px; background: #3f63ad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 700;';
+  var PAY_BUTTON_BG = '#3f63ad';
+  var PAY_BUTTON_A_STYLE = 'display:inline-block;padding:12px 22px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:20px;font-weight:700;color:#ffffff;text-decoration:none;border:1px solid #3f63ad;border-radius:6px;';
+  var PAY_BUTTON_TD_STYLE = 'background-color:#3f63ad;border-radius:6px;text-align:center;';
+  var PAY_FALLBACK_P_STYLE = 'margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#52606d;';
+  var PAY_FALLBACK_A_STYLE = 'color:#3f63ad;word-break:break-all;';
 
   var TERMINAL_PAID = { paid: 1, host: 1, in_kind: 1, comp: 1, free: 1 };
   var PAID_METHODS = { paid: 1, host: 1, free: 1 };
@@ -122,10 +128,26 @@
     return origin + '/pay.html?' + query;
   }
 
+  /**
+   * Gmail-safe bulletproof Pay now button: table + td bgcolor + nested <a>,
+   * plus a plain-text fallback link. Never emits href="".
+   */
   function buildPayNowButtonHtml(url) {
     var href = String(url || '').trim();
     if (!href || !/^https:\/\//i.test(href)) return '';
-    return '<a href="' + escapeAttr(href) + '" style="' + PAY_BUTTON_STYLE + '">Pay now →</a>';
+    var safe = escapeAttr(href);
+    return (
+      '<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">' +
+        '<tr>' +
+          '<td align="center" bgcolor="' + PAY_BUTTON_BG + '" style="' + PAY_BUTTON_TD_STYLE + '">' +
+            '<a href="' + safe + '" style="' + PAY_BUTTON_A_STYLE + '">Pay now</a>' +
+          '</td>' +
+        '</tr>' +
+      '</table>' +
+      '<p style="' + PAY_FALLBACK_P_STYLE + '">If the button does not open, use this link: ' +
+        '<a href="' + safe + '" style="' + PAY_FALLBACK_A_STYLE + '">' + safe + '</a>' +
+      '</p>'
+    );
   }
 
   function payNoteFor(opts, showPay) {
