@@ -1,0 +1,11 @@
+{
+  "name": "mindfulbeginnings",
+  "private": true,
+  "description": "Mindful Beginnings registration and payment pages (static site + Vercel PayPal API).",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

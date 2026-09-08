@@ -6,6 +6,7 @@
 <title>Make a Payment — Mindful Beginnings</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<script src="/js/payments.js"></script>
 
 <!--
   ════════════════════════════════════════════════════════════════
@@ -13,9 +14,12 @@
   Works with no link parameters at all (the payer types the amount),
   or you can pre-fill it:
       pay.html?amt=185&for=Babysitting%20Course&name=Emma%20Smith
+      pay.html?amt=175&reg=id_abc1234&name=Emma%20Smith&for=Safe%20Sitter
+  Card/PayPal uses the same Orders API path as register.html (see PAYMENTS.md).
+  Passing reg= marks that registrations row paid after a successful capture.
   ────────────────────────────────────────────────────────────────
-  To change your payment info, edit the CONFIG block in the script
-  near the bottom of this file. Nothing else needs to change.
+  To change Venmo/Zelle/contact info, edit the CONFIG block in the script
+  near the bottom of this file.
   ════════════════════════════════════════════════════════════════
 -->
 
@@ -66,6 +70,7 @@ label.fld{display:block;font-size:13px;color:var(--muted);font-weight:500;margin
 .pay-btn:hover{filter:brightness(.94)}
 .pay-btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
 .pay-btn + .pay-btn{margin-top:12px}
+#paypal-button-container{min-height:50px;margin-bottom:6px}
 .venmo{background:#3D95CE}
 .paypal{background:#0070ba}
 .zelle{background:#fff;color:#6D1ED4;border:2px solid #6D1ED4;padding:13px}
@@ -145,15 +150,14 @@ label.fld{display:block;font-size:13px;color:var(--muted);font-weight:500;margin
 
     <div class="divider">CHOOSE HOW TO PAY</div>
 
-    <button class="pay-btn venmo" id="btn-venmo" onclick="payVenmo()">
+    <div id="paypal-button-container"></div>
+    <div class="method-note" id="paypal-note">Secure checkout — pay by credit or debit card, no account needed. The amount charged is exactly what you entered above.</div>
+    <p id="paypal-unavailable-note" class="method-note" style="display:none;color:#7a5a00;background:#fff7e6;border:1px solid #f0d878;border-radius:8px;padding:10px 12px;margin-top:8px">Card/PayPal checkout is not configured on this site yet. Please use Venmo or Zelle.</p>
+
+    <button class="pay-btn venmo" id="btn-venmo" onclick="payVenmo()" style="margin-top:12px">
       <span class="vmark">V</span> Pay with Venmo
     </button>
     <div class="method-note">Opens Venmo with your amount and note filled in</div>
-
-    <button class="pay-btn paypal" id="btn-paypal" onclick="payPayPal()" style="margin-top:12px;display:none">
-      Pay with Card or PayPal
-    </button>
-    <div class="method-note" id="paypal-note" style="display:none">Secure checkout — pay by credit or debit card, no account needed</div>
 
     <button class="pay-btn zelle" id="btn-zelle" onclick="payZelle()" style="margin-top:12px">
       Pay with Zelle
@@ -162,7 +166,7 @@ label.fld{display:block;font-size:13px;color:var(--muted);font-weight:500;margin
 
     <div class="reassure">
       <span>✓</span>
-      <div>Once you send your payment, Mindful Beginnings matches it on our end and confirms, usually within 24 hours. There is nothing else you need to do.</div>
+      <div>Card/PayPal marks a linked registration paid automatically. Venmo and Zelle include a registration id in the memo when we have one, so matching is easy.</div>
     </div>
   </div>
 
@@ -192,7 +196,7 @@ label.fld{display:block;font-size:13px;color:var(--muted);font-weight:500;margin
       <div style="min-width:0"><div style="font-size:11px;color:var(--muted);margin-bottom:2px">MEMO / NOTE</div><div class="v" id="z-memo"></div></div>
       <button class="copy-btn" onclick="copyVal('z-memo',this)">Copy</button>
     </div>
-    <div class="reassure" style="margin-top:16px"><span>✓</span><div>After you send it in your bank app, you are all set. Mindful Beginnings will confirm receipt, usually within 24 hours.</div></div>
+    <div class="reassure" style="margin-top:16px"><span>✓</span><div>After you send it in your bank app, you are all set. Include the memo above so we can match it. Mindful Beginnings will confirm receipt, usually within 24 hours.</div></div>
     <button class="pay-btn" style="background:var(--navy);margin-top:16px" onclick="closeZelle();toast('Thank you! We will confirm your Zelle payment shortly.')">Done</button>
   </div>
 </div>
@@ -206,10 +210,6 @@ label.fld{display:block;font-size:13px;color:var(--muted);font-weight:500;margin
 const CONFIG = {
   venmoUser:   'mindfulbeginnings',                  // your Venmo @username (no @)
   zelleEmail:  'lindsay@mindfulbeginnings.org',      // your Zelle email or phone
-  // OPTIONAL card/PayPal for ANY amount. Set up a free PayPal.Me link at
-  // paypal.me, then paste it here (e.g. 'https://paypal.me/MindfulBeginnings').
-  // Leave it as '' to hide the card/PayPal button entirely.
-  paypalMe:    '',
   businessPhone: '703-987-5979',
   businessEmail: 'lindsay@mindfulbeginnings.org',
   presets:     [],                                   // quick-pick amount buttons (none)
@@ -219,16 +219,13 @@ const CONFIG = {
 
 const $ = id => document.getElementById(id);
 let currentAmount = 0;
+let linkedRegId = '';
 
-// ── Footer + PayPal visibility ──────────────────────────────────
+// ── Footer ──────────────────────────────────────────────────────
 $('foot-phone').textContent = CONFIG.businessPhone;
 $('foot-phone').href = 'tel:' + CONFIG.businessPhone.replace(/[^0-9]/g,'');
 $('foot-email').textContent = CONFIG.businessEmail;
 $('foot-email').href = 'mailto:' + CONFIG.businessEmail;
-if (CONFIG.paypalMe && CONFIG.paypalMe.trim()) {
-  $('btn-paypal').style.display = 'flex';
-  $('paypal-note').style.display = 'block';
-}
 
 // ── Preset chips ────────────────────────────────────────────────
 const presetsWrap = $('presets');
@@ -285,30 +282,76 @@ function validate(){
 
 // ── Build the payment note/memo ─────────────────────────────────
 function buildNote(){
+  const MB = window.MBPayments;
+  if (MB && typeof MB.buildPaymentMemo === 'function') {
+    return MB.buildPaymentMemo({
+      registrationId: linkedRegId,
+      studentName: $('payer-name').value.trim(),
+      course: $('for-what').value.trim(),
+      fallback: CONFIG.defaultNote
+    });
+  }
   const forWhat = $('for-what').value.trim();
   const name = $('payer-name').value.trim();
-  const parts = [forWhat, name].filter(Boolean);
-  return parts.length ? parts.join(' — ') : CONFIG.defaultNote;
+  const parts = [];
+  if (linkedRegId) parts.push('Reg ' + linkedRegId);
+  const whoWhat = [name, forWhat].filter(Boolean).join(' — ');
+  if (whoWhat) parts.push(whoWhat);
+  return parts.join(' | ') || CONFIG.defaultNote;
+}
+
+function payContext(){
+  return {
+    registrationId: linkedRegId,
+    studentName: $('payer-name').value.trim(),
+    course: $('for-what').value.trim(),
+    description: buildNote()
+  };
+}
+
+function remountPayPal(){
+  const MB = window.MBPayments;
+  const wrap = $('paypal-button-container');
+  if (!MB || !wrap) return;
+  MB.mountCardButtons({
+    container: wrap,
+    getAmount: function(){
+      if (!validate()) throw new Error('Please enter the amount, course, and your name first.');
+      return currentAmount;
+    },
+    getContext: payContext,
+    onPaid: function(result){
+      const amt = (result && result.amount != null) ? result.amount : currentAmount;
+      const marked = result && result.markedPaid;
+      toast(marked
+        ? ('Payment received — this registration is now marked paid ($' + Number(amt).toFixed(2) + ').')
+        : ('Payment received — thank you! $' + Number(amt).toFixed(2) + ' charged.'));
+    },
+    onError: function(msg){ toast(msg || 'PayPal checkout could not be completed.'); },
+    onUnavailable: function(){
+      $('paypal-unavailable-note').style.display = 'block';
+      $('paypal-note').style.display = 'none';
+    }
+  }).then(function(info){
+    if (info && info.configured) {
+      $('paypal-unavailable-note').style.display = 'none';
+      $('paypal-note').style.display = 'block';
+    }
+  });
 }
 
 // ── Venmo ───────────────────────────────────────────────────────
 function payVenmo(){
   if (!validate()) return;
-  const url = 'https://venmo.com/?txn=pay&audience=private'
-    + '&recipients=' + encodeURIComponent(CONFIG.venmoUser)
-    + '&amount=' + encodeURIComponent(currentAmount.toFixed(2))
-    + '&note=' + encodeURIComponent(buildNote());
+  const MB = window.MBPayments;
+  const url = (MB && typeof MB.venmoUrl === 'function')
+    ? MB.venmoUrl({ amount: currentAmount, memo: buildNote() })
+    : ('https://venmo.com/?txn=pay&audience=private'
+      + '&recipients=' + encodeURIComponent(CONFIG.venmoUser)
+      + '&amount=' + encodeURIComponent(currentAmount.toFixed(2))
+      + '&note=' + encodeURIComponent(buildNote()));
   window.open(url, '_blank', 'noopener');
   toast('Opening Venmo… thank you!');
-}
-
-// ── PayPal (PayPal.Me — supports any amount + card) ──────────────
-function payPayPal(){
-  if (!validate()) return;
-  let base = CONFIG.paypalMe.trim().replace(/\/+$/,'');
-  const url = base + '/' + currentAmount.toFixed(2) + 'USD';
-  window.open(url, '_blank', 'noopener');
-  toast('Opening PayPal checkout… thank you!');
 }
 
 // ── Zelle (no deeplink standard — show copyable instructions) ────
@@ -348,7 +391,7 @@ function toast(msg){
   toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
 }
 
-// ── URL prefill: ?amt=185&for=Course&name=Emma%20Smith ──────────
+// ── URL prefill: ?amt=185&for=Course&name=Emma%20Smith&reg=id_abc1234 ──
 (function prefill(){
   const p = new URLSearchParams(location.search);
   const amt = p.get('amt');
@@ -359,6 +402,20 @@ function toast(msg){
   }
   if (p.get('for'))  $('for-what').value = p.get('for');
   if (p.get('name')) $('payer-name').value = p.get('name');
+  linkedRegId = (p.get('reg') || '').trim();
+  remountPayPal();
+  const MB = window.MBPayments;
+  if (MB && typeof MB.captureReturnedOrder === 'function') {
+    MB.captureReturnedOrder().then(function(result){
+      if (!result) return;
+      const amt = (result.amount != null) ? result.amount : currentAmount;
+      toast(result.markedPaid
+        ? ('Payment received — this registration is now marked paid ($' + Number(amt).toFixed(2) + ').')
+        : ('Payment received — thank you! $' + Number(amt).toFixed(2) + ' charged.'));
+    }).catch(function(err){
+      toast((err && err.message) || 'Could not confirm the PayPal payment automatically.');
+    });
+  }
 })();
 
 // Close modal on Escape.
