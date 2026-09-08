@@ -12,6 +12,7 @@
 <script src="/config.js"></script>
 <!-- Shared Venmo/Zelle memos + dynamic PayPal/card checkout (amount comes from the order total). -->
 <script src="/js/payments.js"></script>
+<script src="/js/confirmation-email.js"></script>
 
 <!--
   ════════════════════════════════════════════════════════
@@ -2031,7 +2032,15 @@ function showSaveFailureRecovery(reg,s,price,method,txId){
       address:'',
       instructor_contact:reg.contact||'',
       amount:`$${price} via ${method} — TX ${txId||'n/a'} — ⚠ AUTO-SAVE FAILED, please add this registration manually`,
-      reply_to:reg.contact||'lindsay@mindfulbeginnings.org'
+      reply_to:reg.contact||'lindsay@mindfulbeginnings.org',
+      pay_url:'',
+      pay_link:'',
+      payment_url:'',
+      pay_now_url:'',
+      pay_note:'Payment received. No further payment is needed.',
+      payment_note:'Payment received. No further payment is needed.',
+      pay_button:'',
+      pay_cta:'Payment received. No further payment is needed.'
     },{publicKey:'FKuVu4SN8eXJ1cOYM'}).catch(err=>console.warn('Owner alert email failed:',err));
   }catch(e){console.warn('Owner alert email error:',e);}
   goToScreen(4);
@@ -2193,7 +2202,7 @@ function getPaymentMessage(method, price, promoCode, promoDiscount) {
   const messages = {
     'host': 'Complimentary (host)',
     'free': 'Free — no payment required.',
-    'paid': '$'+price,
+    'paid': '$'+price+' — payment received. No further payment is needed.',
     'awaiting': '$'+price+' — your spot is RESERVED. To finish, pay by card/PayPal (the amount on screen, including any discount), Venmo (@mindfulbeginnings), or Zelle (lindsay@mindfulbeginnings.org). Include your registration id in the Venmo/Zelle memo. You do not need to return to the registration page.',
     'venmo': '$'+price+' — PENDING. Please send via Venmo to @mindfulbeginnings to complete registration.',
     'paypal': '$'+price+' — PENDING. Please finish your PayPal checkout to complete registration.',
@@ -2226,7 +2235,21 @@ function sendConfirmationEmail(reg,session,price){
     :'703-987-5979';
   // Use consolidated payment detection
   const paymentMethod = detectPaymentMethod(reg, isHost);
-  const amountLine = getPaymentMessage(paymentMethod, price, promoApplied ? PROMO_CODE : null, promoApplied ? PROMO_DISCOUNT : null);
+  let amountLine = getPaymentMessage(paymentMethod, price, promoApplied ? PROMO_CODE : null, promoApplied ? PROMO_DISCOUNT : null);
+  const CE=window.MBConfirmationEmail;
+  const payCta=CE&&typeof CE.buildPayCta==='function'?CE.buildPayCta({
+    payStatus:reg.pay_status,
+    paymentMethod:paymentMethod,
+    amount:price,
+    registrationId:reg.id,
+    studentName:reg.student_name,
+    course:session.course,
+    sessionCode:session.code,
+    origin:(typeof location!=='undefined'&&location.protocol==='https:')?location.origin:''
+  }):{pay_url:'',pay_link:'',payment_url:'',pay_now_url:'',pay_note:'',payment_note:'',pay_button:'',pay_cta:''};
+  if(CE&&typeof CE.withPayUrlInAmount==='function'&&payCta.pay_url){
+    amountLine=CE.withPayUrlInAmount(amountLine,payCta.pay_url);
+  }
   
   emailjs.send(
     'service_delt0r4',
@@ -2242,7 +2265,15 @@ function sendConfirmationEmail(reg,session,price){
       address: fullAddress,
       instructor_contact: instrContact,
       amount: amountLine,
-      reply_to: 'lindsay@mindfulbeginnings.org'
+      reply_to: 'lindsay@mindfulbeginnings.org',
+      pay_url: payCta.pay_url||'',
+      pay_link: payCta.pay_link||'',
+      payment_url: payCta.payment_url||'',
+      pay_now_url: payCta.pay_now_url||'',
+      pay_note: payCta.pay_note||'',
+      payment_note: payCta.payment_note||'',
+      pay_button: payCta.pay_button||'',
+      pay_cta: payCta.pay_cta||''
     },
     {publicKey:'FKuVu4SN8eXJ1cOYM'}
   ).then(response => {
