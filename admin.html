@@ -410,7 +410,7 @@ tr:hover td{background:#fafbfd}
 
     <div class="screen" id="screen-partners">
       <div class="page-header">
-        <div><div class="page-title">Community partners</div><div class="page-sub">Commission owed to your Community Partnerships Liaisons, calculated from the revenue you have actually collected</div></div>
+        <div><div class="page-title">Community partners</div><div class="page-sub">Last month’s payable commission, plus projected payouts as pending bookings clear</div></div>
         <div class="btn-row">
           <button class="btn" onclick="exportPartnersCSV()">⬇ Download statement (CSV)</button>
           <button class="btn primary" onclick="openAddPartner()">+ Add partner</button>
@@ -1762,7 +1762,7 @@ function partnerStatement(partnerId,period){
   const mine=(sessions||[]).filter(s=>s.originatedBy===partnerId&&!s.isHold);
   const firstPaid=partyFirstPaidIndex();
 
-  const rows=[],pending=[];
+  const rowsByMonth={},pending=[];
   mine.forEach(s=>{
     const evs=partnerRevenueEvents(s);
     const uncollected=evs.filter(e=>!e.collected);
@@ -1778,6 +1778,7 @@ function partnerStatement(partnerId,period){
       else reason=sessionIsOrgBooking(s)?'Waiting on the organization invoice to be marked paid':'Registrations not marked paid';
       const key=bookingPartyKey(s);
       const first=firstPaid[key];
+      const projectedDate=partnerPendingProjectedDate(s,uncollected);
       pending.push({
         session:s,sessionId:s.id,
         amount:round2(uncollected.reduce((a,e)=>a+e.amount,0)),
@@ -1787,26 +1788,31 @@ function partnerStatement(partnerId,period){
         reason,notTaught,
         isOrg:sessionIsOrgBooking(s),org:sessionOrgName(s),
         isRepeat:!!(first&&first.sessionId!==s.id),
-        partyKey:key,estBonus:0
+        partyKey:key,estBonus:0,
+        projectedDate,projectedMonth:(projectedDate||'').slice(0,7)
       });
     }
-    const inMonth=evs.filter(e=>e.collected&&e.month===period);
-    if(!inMonth.length)return;
+    const collected=evs.filter(e=>e.collected&&e.month);
+    if(!collected.length)return;
     const key=bookingPartyKey(s);
     const first=firstPaid[key];
-    // A repeat is a booking for a party that had already paid before this booking's
-    // own first collection — the same party's second engagement onward.
-    const earliest=inMonth.map(e=>e.collectedOn).sort()[0];
-    const isRepeat=!!(first&&first.sessionId!==s.id);
-    rows.push({
-      session:s,sessionId:s.id,collected:round2(inMonth.reduce((a,e)=>a+e.amount,0)),
-      gross:round2(inMonth.reduce((a,e)=>a+e.gross,0)),
-      fees:round2(inMonth.reduce((a,e)=>a+(e.fee||0),0)),
-      familyCount:inMonth.filter(e=>e.kind==='family').length,
-      isOrg:sessionIsOrgBooking(s),org:sessionOrgName(s),
-      isRepeat,firstCollectedOn:earliest,partyKey:key,accelerated:false
+    const byMonth={};
+    collected.forEach(e=>{(byMonth[e.month]=byMonth[e.month]||[]).push(e);});
+    Object.keys(byMonth).forEach(m=>{
+      const inMonth=byMonth[m];
+      const earliest=inMonth.map(e=>e.collectedOn).sort()[0];
+      const isRepeat=!!(first&&first.sessionId!==s.id);
+      (rowsByMonth[m]=rowsByMonth[m]||[]).push({
+        session:s,sessionId:s.id,collected:round2(inMonth.reduce((a,r)=>a+r.amount,0)),
+        gross:round2(inMonth.reduce((a,r)=>a+r.gross,0)),
+        fees:round2(inMonth.reduce((a,r)=>a+(r.fee||0),0)),
+        familyCount:inMonth.filter(e=>e.kind==='family').length,
+        isOrg:sessionIsOrgBooking(s),org:sessionOrgName(s),
+        isRepeat,firstCollectedOn:earliest,partyKey:key,accelerated:false
+      });
     });
   });
+  const rows=rowsByMonth[period]||[];
 
   // §3.A — the tier is set by the month's TOTAL originated collected revenue, and
   // then applies to every dollar of it.
@@ -1831,22 +1837,32 @@ function partnerStatement(partnerId,period){
   const bonusTotal=round2(bonuses.reduce((a,b)=>a+b.amount,0));
   const total=round2(commission+bonusTotal);
 
-  // Pending (money not in and/or class not taught) is NOT owed. Estimate what
-  // those bookings would earn if they cleared in this period, using the same
-  // §3 rates — collected volume plus pending volume sets the ballpark tier.
-  const pendingTotal=round2(pending.reduce((a,p)=>a+p.amount,0));
-  const potentialVolume=round2(monthTotal+pendingTotal);
-  const pendingRateRows=pending.map(p=>({
-    sessionId:p.sessionId,collected:p.amount,isOrg:p.isOrg,org:p.org,isRepeat:p.isRepeat
-  }));
-  applyPartnerRowRates([
-    ...rows.map(r=>({sessionId:r.sessionId,collected:r.collected,isOrg:r.isOrg,org:r.org,isRepeat:r.isRepeat})),
-    ...pendingRateRows
-  ],potentialVolume,cfg);
-  pending.forEach((p,i)=>{
-    const rr=pendingRateRows[i];
-    p.estRate=rr.rate;p.estReason=rr.reason;p.estCommission=rr.commission;
-    p.accelerated=!!rr.accelerated;
+  // Pending is NOT owed. Estimate each booking as if it cleared in the month it
+  // is projected to land (later of money in and class taught), using that month's
+  // collected volume plus that month's pending for the §3 tier — not last month's.
+  pending.sort((a,b)=>String(a.projectedDate||'').localeCompare(String(b.projectedDate||''))||String(a.session.date||'').localeCompare(String(b.session.date||'')));
+  const pendingGroups={};
+  pending.forEach(p=>{
+    const m=p.projectedMonth||period;
+    (pendingGroups[m]=pendingGroups[m]||[]).push(p);
+  });
+  Object.keys(pendingGroups).forEach(m=>{
+    const group=pendingGroups[m];
+    const earned=rowsByMonth[m]||[];
+    const collectedForM=round2(earned.reduce((a,r)=>a+r.collected,0));
+    const pendingAmt=round2(group.reduce((a,p)=>a+p.amount,0));
+    const pendingRateRows=group.map(p=>({
+      sessionId:p.sessionId,collected:p.amount,isOrg:p.isOrg,org:p.org,isRepeat:p.isRepeat
+    }));
+    applyPartnerRowRates([
+      ...earned.map(r=>({sessionId:r.sessionId,collected:r.collected,isOrg:r.isOrg,org:r.org,isRepeat:r.isRepeat})),
+      ...pendingRateRows
+    ],round2(collectedForM+pendingAmt),cfg);
+    group.forEach((p,i)=>{
+      const rr=pendingRateRows[i];
+      p.estRate=rr.rate;p.estReason=rr.reason;p.estCommission=rr.commission;
+      p.accelerated=!!rr.accelerated;
+    });
   });
   const claimedNewOrg={};
   pending.forEach(p=>{
@@ -1854,16 +1870,27 @@ function partnerStatement(partnerId,period){
     claimedNewOrg[p.partyKey]=true;
     p.estBonus=PARTNER_NEW_ORG_BONUS;
   });
+  const pendingTotal=round2(pending.reduce((a,p)=>a+p.amount,0));
   const pendingCommission=round2(pending.reduce((a,p)=>a+(p.estCommission||0),0));
   const pendingBonusTotal=round2(pending.reduce((a,p)=>a+(p.estBonus||0),0));
   const pendingPotential=round2(pendingCommission+pendingBonusTotal);
+  const lastMo=defaultPartnerPeriod();
+  const pendingThisPeriod=pending.filter(p=>p.projectedMonth===period);
+  const projectedPayouts=Object.keys(pendingGroups).filter(m=>m>lastMo).sort().map(m=>{
+    const group=pendingGroups[m];
+    const commission=round2(group.reduce((a,p)=>a+(p.estCommission||0),0));
+    const bonus=round2(group.reduce((a,p)=>a+(p.estBonus||0),0));
+    return{period:m,revenue:round2(group.reduce((a,p)=>a+p.amount,0)),
+      commission,bonus,potential:round2(commission+bonus),count:group.length};
+  });
 
   const payout=(partnerPayouts||[]).find(p=>p.partnerId===partnerId&&p.period===period)||null;
 
   rows.sort((a,b)=>String(a.firstCollectedOn).localeCompare(String(b.firstCollectedOn)));
   return{partnerId,period,rows,pending,monthTotal,tier,nextTier:next,toNextTier:toNext,
     commission,bonuses,bonusTotal,total,payout,
-    pendingTotal,pendingCommission,pendingBonusTotal,pendingPotential};
+    pendingTotal,pendingCommission,pendingBonusTotal,pendingPotential,
+    pendingThisPeriod,projectedPayouts};
 }
 
 // Plain dollar string usable inside the engine without depending on render code.
@@ -1883,19 +1910,18 @@ function partnerPeriods(partnerId){
   return[...set].sort().reverse();
 }
 
-// The last `count` calendar months, newest first — including quiet months with
-// no collected commission, so the Partners picker is always a trailing year.
-function trailingCalendarMonths(count){
-  const n=Math.max(0,Number(count)||0);
-  const out=[];
-  const d=new Date();
-  d.setDate(1);
-  d.setHours(12,0,0,0);
-  for(let i=0;i<n;i++){
-    out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
-    d.setMonth(d.getMonth()-1);
-  }
-  return out;
+// Earliest date a pending booking would become payable if the remaining
+// condition(s) were met today. Prepaid classes land when taught; taught-but-unpaid
+// work lands in the current month if the invoice were marked paid today.
+function partnerPendingProjectedDate(s,uncollected){
+  const end=partnerSessionEndDate(s)||'';
+  const today=matToday();
+  const moneyIn=(uncollected||[]).some(e=>e.moneyIn);
+  const taught=partnerSessionHasEnded(s);
+  if(moneyIn&&!taught)return end||today;
+  if(!moneyIn&&taught)return today;
+  if(end&&end>today)return end;
+  return today;
 }
 
 // Lifetime figures for the roster row.
@@ -1920,9 +1946,35 @@ function defaultPartnerPeriod(){
   const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 }
+function currentCalendarMonth(){
+  const d=new Date();d.setHours(12,0,0,0);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function partnerPeriodKind(period){
+  const last=defaultPartnerPeriod();
+  const cur=currentCalendarMonth();
+  if(!period)return 'payable';
+  if(period<last)return 'past';
+  if(period===last)return 'payable';
+  if(period===cur)return 'current';
+  return 'projected';
+}
 function periodLabel(p){
   if(!p)return '';
   return new Date(p+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'});
+}
+function periodOptionLabel(p){
+  const name=periodLabel(p);
+  const kind=partnerPeriodKind(p);
+  if(kind==='payable')return name+' — pay by the 10th';
+  if(kind==='current')return name+' — in progress';
+  if(kind==='projected')return name+' — projected';
+  return name;
+}
+function selectPartnerPeriod(period){
+  if(!period)return;
+  partnerPeriod=period;
+  renderPartners();
 }
 
 // ─── COMMUNITY PARTNERS: SESSION ATTRIBUTION FIELD ───────────
@@ -1972,32 +2024,71 @@ function renderPartners(){
   }
   setupEl.innerHTML='';
 
-  // Month picker: always the last 12 calendar months (newest first), plus any
-  // older months that still have collected commission or a recorded payout so
-  // historical statements stay reachable even when they fall off the year window.
-  const allPeriods=new Set(trailingCalendarMonths(12));
-  partners.forEach(p=>partnerPeriods(p.id).forEach(x=>allPeriods.add(x)));
-  const periods=[...allPeriods].sort().reverse();
-  if(!partnerPeriod||!periods.includes(partnerPeriod))partnerPeriod=periods.includes(defaultPartnerPeriod())?defaultPartnerPeriod():periods[0];
+  const lastMonth=defaultPartnerPeriod();
+  const thisMonth=currentCalendarMonth();
+  if(!partnerPeriod)partnerPeriod=lastMonth;
+  const pastSet=new Set();
+  partners.forEach(p=>partnerPeriods(p.id).forEach(m=>{if(m<lastMonth)pastSet.add(m);}));
+  const pastPeriods=[...pastSet].sort().reverse();
+  if(partnerPeriodKind(partnerPeriod)==='past'&&!pastPeriods.includes(partnerPeriod))partnerPeriod=lastMonth;
+  const kind=partnerPeriodKind(partnerPeriod);
 
   const cfg=partnerSettings();
   const statements=partners.map(p=>partnerStatement(p.id,partnerPeriod));
+
+  const forward=new Set([lastMonth,thisMonth]);
+  statements.forEach(st=>(st.pending||[]).forEach(x=>{
+    if(x.projectedMonth&&x.projectedMonth>=lastMonth)forward.add(x.projectedMonth);
+  }));
+  const periods=[...forward].sort();
+
   const monthRevenue=round2(statements.reduce((a,s)=>a+s.monthTotal,0));
   const monthOwed=round2(statements.reduce((a,s)=>a+(s.payout&&s.payout.paidDate?0:s.total),0));
   const monthPaid=round2(statements.reduce((a,s)=>a+(s.payout&&s.payout.paidDate?s.payout.amount:0),0));
   const monthPending=round2(statements.reduce((a,s)=>a+s.pendingTotal,0));
-  const monthPendingPotential=round2(statements.reduce((a,s)=>a+(s.pendingPotential||0),0));
+  const upcomingByMonth={};
+  statements.forEach(st=>(st.projectedPayouts||[]).forEach(row=>{
+    const cur=upcomingByMonth[row.period]||{period:row.period,revenue:0,potential:0,count:0,partners:0};
+    cur.revenue=round2(cur.revenue+row.revenue);
+    cur.potential=round2(cur.potential+row.potential);
+    cur.count+=row.count;
+    cur.partners+=1;
+    upcomingByMonth[row.period]=cur;
+  }));
+  const upcomingMonths=Object.keys(upcomingByMonth).sort().map(m=>upcomingByMonth[m]);
+  const upcomingPotential=round2(upcomingMonths.reduce((a,r)=>a+r.potential,0));
+  const periodPending=statements.reduce((a,s)=>{
+    const list=(kind==='payable'||kind==='past')?(s.pending||[]):(s.pendingThisPeriod||[]);
+    return round2(a+list.reduce((b,p)=>b+(p.estCommission||0)+(p.estBonus||0),0));
+  },0);
+  const payableLabel=kind==='payable'?'Due by the 10th of next month'
+    :kind==='current'?'In progress — payable after this month closes'
+    :kind==='projected'?'Projected — not payable yet'
+    :'Past period';
 
+  const payableOpts=periods.filter(p=>p===lastMonth);
+  const forwardOpts=periods.filter(p=>p>lastMonth);
   ctrlEl.innerHTML=`
     <div class="alert info" style="display:block">
-      <div style="line-height:1.6">💡 &nbsp;Commission is earned when <strong>both</strong> things have happened: the money has landed <strong>and</strong> the class has been taught. A booking lands on the statement for the month of whichever came second — so a family who pays in September for an October class shows up on the October statement, never before the class runs. Per the agreement you calculate on the prior calendar month and pay by the 10th, so this opens on last month.</div>
+      <div style="line-height:1.6">💡 &nbsp;This screen opens on <strong>last month</strong> — the period you pay by the 10th. Commission is earned when the money has landed <strong>and</strong> the class has been taught. Bookings that have not cleared yet show as <strong>projected payouts</strong> in the month they are expected to land. They are not owed until then.</div>
     </div>
     <div class="card" style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between">
-      <div>
-        <label style="font-size:14px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px">Commission month</label>
-        <select onchange="partnerPeriod=this.value;renderPartners()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:17px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);outline:none">
-          ${periods.map(p=>`<option value="${p}" ${p===partnerPeriod?'selected':''}>${periodLabel(p)}</option>`).join('')}
-        </select>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
+        <div>
+          <label style="font-size:14px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px">Commission month</label>
+          <select onchange="selectPartnerPeriod(this.value)" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:17px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);outline:none">
+            ${payableOpts.length?`<optgroup label="Payable now">${payableOpts.map(p=>`<option value="${p}" ${p===partnerPeriod?'selected':''}>${periodOptionLabel(p)}</option>`).join('')}</optgroup>`:''}
+            ${forwardOpts.length?`<optgroup label="In progress &amp; projected">${forwardOpts.map(p=>`<option value="${p}" ${p===partnerPeriod?'selected':''}>${periodOptionLabel(p)}</option>`).join('')}</optgroup>`:''}
+            ${kind==='past'?`<optgroup label="Past statement"><option value="${partnerPeriod}" selected>${periodLabel(partnerPeriod)} — past</option></optgroup>`:''}
+          </select>
+        </div>
+        ${pastPeriods.length?`<div>
+          <label style="font-size:14px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px">Past statements</label>
+          <select onchange="if(this.value)selectPartnerPeriod(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif;background:white;color:var(--muted);outline:none">
+            <option value="${kind==='past'?lastMonth:''}">${kind==='past'?'Back to last month…':'Open a past statement…'}</option>
+            ${pastPeriods.map(p=>`<option value="${p}" ${p===partnerPeriod?'selected':''}>${periodLabel(p)}</option>`).join('')}
+          </select>
+        </div>`:''}
       </div>
       <div style="flex:1;min-width:280px;display:flex;gap:16px;flex-wrap:wrap;justify-content:flex-end">
         <div>
@@ -2016,12 +2107,34 @@ function renderPartners(){
         </div>
       </div>
     </div>
+    ${kind==='past'?`<div class="alert warn" style="display:block">Viewing a <strong>past</strong> statement (${periodLabel(partnerPeriod)}). <a href="#" onclick="selectPartnerPeriod('${lastMonth}');return false" style="color:var(--warn);font-weight:500">Return to ${periodLabel(lastMonth)} (payable now)</a></div>`:''}
     <div class="metrics">
       <div class="metric"><div class="m-label">Collected via partners</div><div class="m-val">${fmt(monthRevenue)}</div><div class="m-sub">${periodLabel(partnerPeriod)}</div></div>
-      <div class="metric"><div class="m-label">Commission owed</div><div class="m-val ${monthOwed>0?'red':''}">${fmt(monthOwed)}</div><div class="m-sub">Due by the 10th of next month</div></div>
-      <div class="metric"><div class="m-label">Already paid</div><div class="m-val green">${fmt(monthPaid)}</div><div class="m-sub">This month's payouts</div></div>
-      <div class="metric"><div class="m-label">Not payable yet</div><div class="m-val" style="color:var(--warn)">${fmt(monthPendingPotential)}</div><div class="m-sub">${monthPending>0?'Potential commission on '+fmt(monthPending)+' pending revenue · not earned until money in + class taught':'Class not taught, or money not in'}</div></div>
-    </div>`;
+      <div class="metric"><div class="m-label">${kind==='projected'?'Earned this month':'Commission owed'}</div><div class="m-val ${monthOwed>0&&kind!=='projected'?'red':''}">${fmt(monthOwed)}</div><div class="m-sub">${payableLabel}</div></div>
+      <div class="metric"><div class="m-label">Already paid</div><div class="m-val green">${fmt(monthPaid)}</div><div class="m-sub">${kind==='payable'?"Last month's payouts":periodLabel(partnerPeriod)}</div></div>
+      <div class="metric"><div class="m-label">${kind==='payable'||kind==='past'?'Projected upcoming':'Projected this month'}</div><div class="m-val" style="color:var(--warn)">${fmt(kind==='payable'||kind==='past'?upcomingPotential:periodPending)}</div><div class="m-sub">${(kind==='payable'||kind==='past'?(upcomingPotential>0||monthPending>0):(periodPending>0))?'Not payable yet — money in + class taught':'No pending bookings'}</div></div>
+    </div>
+    ${upcomingMonths.length?`<div class="card">
+      <div class="card-title" style="margin-bottom:8px">Projected payouts — not payable yet</div>
+      <div style="font-size:15px;color:var(--muted);margin-bottom:12px;line-height:1.5">What partners are estimated to be owed as pending bookings clear, in the month each one is expected to land. These figures are not owed until the money is in and the class has been taught.</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Month</th><th>Bookings</th><th>Pending revenue</th><th>Projected commission</th><th></th></tr></thead>
+        <tbody>${upcomingMonths.map(row=>`<tr style="${row.period===partnerPeriod?'background:var(--warn-bg)':''}">
+          <td style="font-weight:500">${periodLabel(row.period)}${row.period===thisMonth?' <span class="tag pending">in progress</span>':' <span class="tag waitlist">projected</span>'}</td>
+          <td>${row.count}</td>
+          <td>${fmt(row.revenue)}</td>
+          <td style="font-weight:500;color:var(--warn)">${fmt(row.potential)}</td>
+          <td><button class="btn sm" onclick="selectPartnerPeriod('${row.period}')">${row.period===partnerPeriod?'Viewing':'View month'}</button></td>
+        </tr>`).join('')}
+        <tr style="background:var(--warn-bg);font-weight:500">
+          <td>Upcoming total — not payable yet</td>
+          <td>${upcomingMonths.reduce((a,r)=>a+r.count,0)}</td>
+          <td>${fmt(upcomingMonths.reduce((a,r)=>round2(a+r.revenue),0))}</td>
+          <td style="color:var(--warn)">${fmt(upcomingPotential)}</td>
+          <td></td>
+        </tr>
+      </tbody></table></div>
+    </div>`:''}`;
 
   if(!partners.length){
     bodyEl.innerHTML=`<div class="card" style="text-align:center;padding:44px 22px">
@@ -2039,6 +2152,14 @@ function partnerCardHtml(p,st){
   const paid=!!(st.payout&&st.payout.paidDate);
   const lt=partnerLifetime(p.id);
   const pct=st.nextTier?Math.max(0,Math.min(100,(st.monthTotal/st.nextTier.min)*100)):100;
+  const kind=partnerPeriodKind(st.period);
+  const pendingRows=(kind==='payable'||kind==='past')?(st.pending||[]):(st.pendingThisPeriod||st.pending||[]);
+  const pendingRev=round2(pendingRows.reduce((a,x)=>a+x.amount,0));
+  const pendingPot=round2(pendingRows.reduce((a,x)=>a+(x.estCommission||0)+(x.estBonus||0),0));
+  const dueSub=paid?'Sent '+fmtShortDate(st.payout.paidDate)+' via '+(st.payout.method||'Zelle')
+    :kind==='projected'?'Projected — not payable yet'
+    :kind==='current'?'Payable after this month closes'
+    :'By the 10th of next month';
 
   const onboarding=[];
   if(!p.contractSigned)onboarding.push('signed agreement');
@@ -2063,7 +2184,7 @@ function partnerCardHtml(p,st){
       <div class="btn-row">
         ${paid
           ?`<button class="btn sm" onclick="undoPartnerPayout('${p.id}')">Undo paid</button>`
-          :`<button class="btn sm success" onclick="markPartnerPaid('${p.id}')" ${st.total>0?'':'disabled title="Nothing owed for this month"'}>Mark ${fmt(st.total)} paid</button>`}
+          :`<button class="btn sm success" onclick="markPartnerPaid('${p.id}')" ${st.total>0&&kind!=='projected'?'':'disabled title="'+(kind==='projected'?'Projected amounts are not payable yet':'Nothing owed for this month')+'"'}>Mark ${fmt(st.total)} paid</button>`}
         <button class="btn sm primary" onclick="openPartnerStatement('${p.id}')">🧾 Statement</button>
         <button class="btn sm" onclick="openEditPartner('${p.id}')">Edit</button>
         <button class="btn sm danger" onclick="deletePartner('${p.id}')">Remove</button>
@@ -2077,12 +2198,12 @@ function partnerCardHtml(p,st){
         <div style="height:5px;background:var(--border);border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--sky)"></div></div>
         <div class="m-sub">${st.nextTier?'more would lift the whole month to '+Math.round(st.nextTier.rate*100)+'%':'Premier Partner — 25%'}</div></div>
       <div class="metric"><div class="m-label">Commission</div><div class="m-val">${fmt(st.commission)}</div><div class="m-sub">${st.bonusTotal?'+ '+fmt(st.bonusTotal)+' in bonuses':'No bonuses this month'}</div></div>
-      <div class="metric"><div class="m-label">${paid?'Paid':'Total due'}</div><div class="m-val ${paid?'green':''}">${fmt(paid?st.payout.amount:st.total)}</div><div class="m-sub">${paid?'Sent '+fmtShortDate(st.payout.paidDate)+' via '+(st.payout.method||'Zelle'):'By the 10th of next month'}</div></div>
+      <div class="metric"><div class="m-label">${paid?'Paid':'Total due'}</div><div class="m-val ${paid?'green':''}">${fmt(paid?st.payout.amount:st.total)}</div><div class="m-sub">${dueSub}</div></div>
     </div>
 
     ${paid&&Math.abs(st.payout.amount-st.total)>0.01?`<div class="alert warn" style="display:block">The figures behind this month have changed since you paid it. You sent <strong>${fmt(st.payout.amount)}</strong>; the same month now calculates to <strong>${fmt(st.total)}</strong>. The paid amount is what counts — undo and re-mark it only if you intend to settle the difference.</div>`:''}
 
-    ${st.pending.length?`<div class="alert warn" style="display:block">Not payable yet: <strong>${fmt(st.pendingPotential)}</strong> potential commission on <strong>${fmt(st.pendingTotal)}</strong> originated revenue. This is an estimate using the same Section 3 rates, as if these bookings cleared with this month's volume. It is <em>not</em> owed — commission is earned only once the money is in <em>and</em> the class has been taught.</div>`:''}
+    ${pendingRows.length?`<div class="alert warn" style="display:block">Not payable yet: <strong>${fmt(pendingPot)}</strong> projected commission on <strong>${fmt(pendingRev)}</strong> originated revenue${kind==='payable'||kind==='past'?' across upcoming months':(' expected in '+periodLabel(st.period))}. Estimate uses the same Section 3 rates for the month each booking is expected to land. It is <em>not</em> owed until the money is in <em>and</em> the class has been taught.</div>`:''}
 
     ${st.rows.length?`<div class="tbl-wrap"><table>
       <thead><tr><th>Collected</th><th>Course</th><th>Client</th><th>Collected revenue</th><th>Rate</th><th>Commission</th><th>Why this rate</th></tr></thead>
@@ -2104,18 +2225,19 @@ function partnerCardHtml(p,st){
         <td style="font-size:14px;color:var(--muted)">First paid program from a brand-new organization (§3.C)</td>
       </tr>`).join('')}
       <tr style="background:var(--cream);font-weight:500">
-        <td colspan="3">${periodLabel(st.period)} total</td>
+        <td colspan="3">${periodLabel(st.period)} total (payable)</td>
         <td>${fmt(st.monthTotal)}</td><td></td>
         <td style="color:var(--success)">${fmt(st.total)}</td><td></td>
       </tr>
       </tbody></table></div>`
-    :`<div style="color:var(--muted);font-size:16px;padding:14px 0;font-style:italic">No revenue collected from this partner's introductions in ${periodLabel(st.period)}.</div>`}
+    :`<div style="color:var(--muted);font-size:16px;padding:14px 0;font-style:italic">${kind==='projected'||kind==='current'?'Nothing collected yet in '+periodLabel(st.period)+' — projected bookings are below.':'No revenue collected from this partner\'s introductions in '+periodLabel(st.period)+'.'}</div>`}
 
-    ${st.pending.length?`<div style="margin-top:18px">
-      <div class="card-title" style="margin-bottom:8px">Not payable yet — potential commission (not earned)</div>
+    ${pendingRows.length?`<div style="margin-top:18px">
+      <div class="card-title" style="margin-bottom:8px">${kind==='payable'||kind==='past'?'Projected payouts — not payable yet':'Projected for '+periodLabel(st.period)+' — not payable yet'}</div>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Session</th><th>Date</th><th>Client</th><th>Pending revenue</th><th>Est. rate</th><th>Potential commission</th><th>What's holding it up</th></tr></thead>
-        <tbody>${st.pending.map(x=>`<tr>
+        <thead><tr><th>Expected</th><th>Session</th><th>Date</th><th>Client</th><th>Pending revenue</th><th>Est. rate</th><th>Potential commission</th><th>What's holding it up</th></tr></thead>
+        <tbody>${pendingRows.map(x=>`<tr>
+          <td style="font-size:15px;white-space:nowrap">${x.projectedMonth?periodLabel(x.projectedMonth):'—'}</td>
           <td style="font-size:15px">${escapeHtml(x.session.course)}${x.isRepeat?'<br><span class="tag pending" style="margin-top:3px">Repeat</span>':''}</td>
           <td style="font-size:15px">${fmtShortDate(x.session.date)}</td>
           <td style="font-size:15px">${escapeHtml(x.org||x.session.contactName||'—')}</td>
@@ -2125,9 +2247,9 @@ function partnerCardHtml(p,st){
           <td style="font-size:14px;color:var(--muted)">${escapeHtml(x.reason)}</td>
         </tr>`).join('')}
         <tr style="background:var(--warn-bg);font-weight:500">
-          <td colspan="3">Not payable yet — estimate only</td>
-          <td>${fmt(st.pendingTotal)}</td><td></td>
-          <td style="color:var(--warn)">${fmt(st.pendingPotential)}</td><td></td>
+          <td colspan="4">Not payable yet — estimate only</td>
+          <td>${fmt(pendingRev)}</td><td></td>
+          <td style="color:var(--warn)">${fmt(pendingPot)}</td><td></td>
         </tr>
         </tbody></table></div>
     </div>`:''}
@@ -2243,6 +2365,7 @@ async function deletePartner(id){
 // Marking a month paid freezes the whole calculation. A refund, a price edit or a
 // late invoice afterwards can then never quietly rewrite what you already sent.
 async function markPartnerPaid(partnerId){
+  if(partnerPeriodKind(partnerPeriod)==='projected')return;
   const st=partnerStatement(partnerId,partnerPeriod);
   const p=partnerById(partnerId);
   if(!p||st.total<=0)return;
@@ -2312,7 +2435,7 @@ function openPartnerStatement(partnerId){
           ${p.zelle?`<div style="color:var(--muted);font-size:15px">Zelle: ${escapeHtml(p.zelle)}</div>`:''}</div>
         <div style="text-align:right"><div style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px">Period</div>
           <div style="font-weight:500">${periodLabel(st.period)}</div>
-          <div style="color:var(--muted);font-size:15px">${paid?'Paid '+fmtShortDate(st.payout.paidDate):'Payable by the 10th of the following month'}</div></div>
+          <div style="color:var(--muted);font-size:15px">${paid?'Paid '+fmtShortDate(st.payout.paidDate):partnerPeriodKind(st.period)==='projected'?'Projected — not payable yet':partnerPeriodKind(st.period)==='current'?'In progress — payable after this month closes':'Payable by the 10th of the following month'}</div></div>
       </div>
       ${st.rows.length||st.bonuses.length?`<table style="width:100%;border-collapse:collapse;font-size:15px">
         <thead><tr style="border-bottom:1px solid var(--border);text-align:left">
@@ -2326,23 +2449,24 @@ function openPartnerStatement(partnerId){
           <td style="padding:8px 4px;text-align:right;font-size:18px">${fmt(st.total)}</td>
         </tr></tfoot>
       </table>`:'<div style="color:var(--muted);font-style:italic;padding:20px 0;text-align:center">No collected revenue originated in this period.</div>'}
-      ${st.pendingTotal>0?`<div style="margin-top:16px;padding:10px 12px;background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);font-size:15px;color:var(--warn)">
-        <div style="font-weight:500;margin-bottom:6px">Not payable yet — ${fmt(st.pendingPotential)} potential commission (estimate)</div>
-        <div>${fmt(st.pendingTotal)} of originated revenue has not earned commission: the fees have not been received, the class has not been taught, or both. The potential figure uses the same Section 3 rates as if these bookings cleared with this month's volume. It is <em>not</em> included in the total above and is not owed until the money is in hand and the course has been delivered.</div>
+      ${st.pending.length?`<div style="margin-top:16px;padding:10px 12px;background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);font-size:15px;color:var(--warn)">
+        <div style="font-weight:500;margin-bottom:6px">Not payable yet — ${fmt(st.pendingPotential)} projected commission (estimate)</div>
+        <div>${fmt(st.pendingTotal)} of originated revenue has not earned commission: the fees have not been received, the class has not been taught, or both. Each booking is projected onto the month it is expected to land. These figures are <em>not</em> included in the total above and are not owed until the money is in hand and the course has been delivered.</div>
         ${st.pending.length?`<table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:10px;color:var(--text)">
           <thead><tr style="border-bottom:1px solid #f0d8a8;text-align:left">
-            <th style="padding:4px 4px">Program</th><th style="padding:4px 4px">Client</th>
+            <th style="padding:4px 4px">Expected</th><th style="padding:4px 4px">Program</th><th style="padding:4px 4px">Client</th>
             <th style="padding:4px 4px;text-align:right">Pending revenue</th><th style="padding:4px 4px;text-align:right">Est. rate</th>
             <th style="padding:4px 4px;text-align:right">Potential commission</th>
           </tr></thead>
           <tbody>${st.pending.map(x=>`<tr>
+            <td style="padding:4px">${x.projectedMonth?periodLabel(x.projectedMonth):'—'}</td>
             <td style="padding:4px">${escapeHtml(x.session.course)}</td>
             <td style="padding:4px">${escapeHtml(x.org||x.session.contactName||'—')}</td>
             <td style="padding:4px;text-align:right">${fmt(x.amount)}</td>
             <td style="padding:4px;text-align:right">${x.estRate!=null?Math.round(x.estRate*100)+'%':'—'}</td>
             <td style="padding:4px;text-align:right">${fmt(x.estCommission||0)}${x.estBonus?' + '+fmt(x.estBonus)+' bonus':''}</td>
           </tr>`).join('')}
-          <tr style="font-weight:500"><td colspan="4" style="padding:6px 4px 2px">Potential if these clear — not payable</td>
+          <tr style="font-weight:500"><td colspan="5" style="padding:6px 4px 2px">Projected if these clear — not payable</td>
             <td style="padding:6px 4px 2px;text-align:right">${fmt(st.pendingPotential)}</td></tr>
           </tbody></table>`:''}
       </div>`:''}
@@ -2386,10 +2510,10 @@ function exportPartnersCSV(){
       rows.push(['','','','','','','','','','','',b.date,'New organizational partner bonus','',b.org,'Yes','No','0.00','flat',b.amount.toFixed(2),'First paid program from a new organization (3.C)']);
     });
     st.pending.forEach(x=>{
-      rows.push(['','','','','','','','','','','','NOT YET PAYABLE',x.session.course,x.session.date||'',
+      rows.push(['','','','','','','','','','','','NOT YET PAYABLE'+(x.projectedMonth?' → '+x.projectedMonth:''),x.session.course,x.session.date||'',
         x.org||x.session.contactName||'',x.isOrg?'Yes':'No',x.isRepeat?'Yes':'No',
         x.amount.toFixed(2),x.estRate!=null?Math.round(x.estRate*100)+'%':'—',
-        (x.estCommission||0).toFixed(2),'NOT PAYABLE YET (estimate): '+(x.estReason||x.reason)]);
+        (x.estCommission||0).toFixed(2),'NOT PAYABLE YET (estimate, expected '+periodLabel(x.projectedMonth||'')+'): '+(x.estReason||x.reason)]);
       if(x.estBonus){
         rows.push(['','','','','','','','','','','','NOT YET PAYABLE','New organizational partner bonus (estimate)','',
           x.org||'','Yes','No','0.00','flat',x.estBonus.toFixed(2),'NOT PAYABLE YET — first paid program from a new organization (3.C), contingent on money in + class taught']);
