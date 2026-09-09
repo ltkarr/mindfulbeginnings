@@ -1526,27 +1526,29 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 // number below is derived from data you already enter for a session — the only
 // new field you fill in is "Originated by" on the session form.
 //
-//  §3.A  Monthly tiered commission on Collected Revenue originated that month.
-//        Reaching a higher tier applies that rate to ALL of the month's revenue,
-//        retroactively — not just the dollars above the threshold.
-//  §3.B  Large-scale organizational accelerator: a single organizational booking
-//        collecting $3,000+ earns at least 20%, whatever the monthly tier is.
-//  §3.C  New organizational partner bonus: a flat $50 the first time a new
-//        school / PTA / troop / rec center / faith community pays for a program.
+//  §3.A  A flat 20% of NET Originated Revenue. Net means Collected Revenue for a
+//        booking, less the direct cost of delivering it: instructor pay, materials
+//        and any job costs entered on that session. Company overhead is NOT
+//        deducted — only costs attached to the booking itself.
+//  §3.B  Retired. There is no volume ladder and no accelerator to sit on top of.
+//  §3.C  Retired. There is no new-organization bonus. Commission is the whole
+//        of the compensation.
 //  §3.D  "Collected Revenue" = fees ACTUALLY RECEIVED, net of refunds, discounts,
 //        taxes and payment-processing fees. Money not yet collected earns nothing,
 //        so uninvoiced and unpaid work sits in "Awaiting collection" until it lands.
 //  §3.F  Repeat and renewal bookings — see PARTNER_SETTINGS.repeatPolicy.
 
+// Amended Section 3, effective with the revised liaison agreement: one flat rate
+// on NET revenue. The monthly volume ladder, and the organizational accelerator
+// that sat on top of it, are both retired. The single-entry list below keeps the
+// rest of the engine and every screen working unchanged.
+const PARTNER_FLAT_RATE=0.20;      // §3.A — 20% of Net Originated Revenue
 const PARTNER_TIERS=[
-  {min:0,     max:2499.99,  rate:0.10, name:'Tier 1', label:'Standard'},
-  {min:2500,  max:4999.99,  rate:0.15, name:'Tier 2', label:'Growth'},
-  {min:5000,  max:9999.99,  rate:0.20, name:'Tier 3', label:'High Performer'},
-  {min:10000, max:Infinity, rate:0.25, name:'Tier 4', label:'Premier Partner'}
+  {min:0, max:Infinity, rate:PARTNER_FLAT_RATE, name:'Flat rate', label:'20% of net'}
 ];
-const PARTNER_ACCEL_MIN=3000;      // §3.B threshold, per organizational contract
-const PARTNER_ACCEL_RATE=0.20;     // §3.B floor rate
-const PARTNER_NEW_ORG_BONUS=50;    // §3.C flat bonus
+const PARTNER_ACCEL_MIN=Infinity;  // §3.B retired — no volume accelerator
+const PARTNER_ACCEL_RATE=PARTNER_FLAT_RATE;
+const PARTNER_NEW_ORG_BONUS=0;     // §3.C retired — no new-organization bonus
 
 // Two judgment calls the contract leaves open. Both are switchable from the
 // Partners screen, and both are saved in this browser so they stick.
@@ -1684,6 +1686,33 @@ function partnerEventDates(s,ev,paidOn){
   return ev;
 }
 
+// ─── DIRECT COST OF A BOOKING (for §3.A net) ─────────────────
+// What it costs to deliver one session: instructor pay, participant materials and
+// any job costs you entered on it. Payment processing fees are NOT included here,
+// because revenue is already reported net of them and counting them twice would
+// understate her commission.
+//
+// Company overhead (insurance, software, the website) is deliberately excluded.
+// Those are costs of being in business, not costs of her booking, and charging
+// them against her commission would make her pay move with decisions she has no
+// part in.
+function partnerDirectCosts(s){
+  if(!s)return 0;
+  const f=calcFin(s);
+  return round2(Math.max(0,(f.instrFee||0)+(f.matCost||0)+(f.extraCosts||0)));
+}
+// Spreads that cost across the session's revenue lines in proportion to size, so a
+// booking where only half the families have paid carries only half the cost so far.
+function partnerAttachCosts(s,events){
+  const costs=partnerDirectCosts(s);
+  const total=events.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  events.forEach(x=>{
+    x.cost=total>0?round2(costs*((Number(x.amount)||0)/total)):0;
+    x.net=round2((Number(x.amount)||0)-x.cost);
+  });
+  return events;
+}
+
 // Every dollar of Collected Revenue a session produces, one entry per source.
 // amount is always NET — processing fees are already removed, per §3.D.
 // A cancelled class earns no commission at all, however much was collected for it.
@@ -1698,7 +1727,7 @@ function partnerRevenueEvents(s){
       const c=sessionOrgCollectedDate(s);
       out.push(partnerEventDates(s,{sessionId:s.id,kind:'org',gross:amt,amount:round2(amt),fee:0},c));
     }
-    return out;
+    return partnerAttachCosts(s,out);
   }
 
   // Individual families who have paid.
@@ -1721,7 +1750,7 @@ function partnerRevenueEvents(s){
       out.push(partnerEventDates(s,{sessionId:s.id,kind:'org',gross:round2(amt),amount:round2(amt),fee:0},c));
     }
   }
-  return out;
+  return partnerAttachCosts(s,out);
 }
 
 // First time each client party ever paid Mindful Beginnings anything, looking at
@@ -1774,7 +1803,12 @@ function applyPartnerRowRates(rows,monthTotal,cfg){
       rate=PARTNER_ACCEL_RATE;r.accelerated=true;
       reason=`Large-scale organizational accelerator — ${fmtPlain(gt)} contract earns 20% (§3.B)`;
     }
-    r.rate=rate;r.reason=reason;r.commission=round2((Number(r.collected)||0)*rate);
+    // §3.A — the rate applies to NET, not to collected revenue. A booking that
+    // cost more to deliver than it brought in pays no commission rather than a
+    // negative one; she is never charged for a job that lost money.
+    const base=Math.max(0,Number(r.net!=null?r.net:r.collected)||0);
+    r.rate=rate;r.commission=round2(base*rate);
+    r.reason=`${Math.round(rate*100)}% of ${fmtPlain(base)} net (${fmtPlain(Number(r.collected)||0)} collected less ${fmtPlain(Number(r.costs)||0)} direct costs)`;
   });
 }
 
@@ -1808,6 +1842,8 @@ function partnerStatement(partnerId,period){
         amount:round2(uncollected.reduce((a,e)=>a+e.amount,0)),
         gross:round2(uncollected.reduce((a,e)=>a+e.gross,0)),
         fees:round2(uncollected.reduce((a,e)=>a+(e.fee||0),0)),
+        costs:round2(uncollected.reduce((a,e)=>a+(e.cost||0),0)),
+        net:round2(uncollected.reduce((a,e)=>a+(e.net||0),0)),
         familyCount:uncollected.filter(e=>e.kind==='family').length,
         reason,notTaught,
         isOrg:sessionIsOrgBooking(s),org:sessionOrgName(s),
@@ -1830,6 +1866,8 @@ function partnerStatement(partnerId,period){
         session:s,sessionId:s.id,collected:round2(inMonth.reduce((a,r)=>a+r.amount,0)),
         gross:round2(inMonth.reduce((a,r)=>a+r.gross,0)),
         fees:round2(inMonth.reduce((a,r)=>a+(r.fee||0),0)),
+        costs:round2(inMonth.reduce((a,r)=>a+(r.cost||0),0)),
+        net:round2(inMonth.reduce((a,r)=>a+(r.net||0),0)),
         familyCount:inMonth.filter(e=>e.kind==='family').length,
         isOrg:sessionIsOrgBooking(s),org:sessionOrgName(s),
         isRepeat,firstCollectedOn:earliest,partyKey:key,accelerated:false
@@ -1848,10 +1886,12 @@ function partnerStatement(partnerId,period){
 
   const commission=round2(rows.reduce((a,r)=>a+r.commission,0));
 
-  // §3.C — $50 the first time a brand-new organization pays, credited in the month
-  // that first payment landed, and only on the booking that earned it.
+  // §3.C is retired, so no bonuses are credited. The loop and the bonuses array
+  // stay in place so every screen, export and statement keeps working unchanged;
+  // set PARTNER_NEW_ORG_BONUS above if a bonus is ever reintroduced.
   const bonuses=[];
   rows.forEach(r=>{
+    if(PARTNER_NEW_ORG_BONUS<=0)return;
     if(!r.isOrg)return;
     const f=firstPaid[r.partyKey];
     if(f&&f.sessionId===r.sessionId&&String(f.date).slice(0,7)===period){
@@ -1876,7 +1916,8 @@ function partnerStatement(partnerId,period){
     const collectedForM=round2(earned.reduce((a,r)=>a+r.collected,0));
     const pendingAmt=round2(group.reduce((a,p)=>a+p.amount,0));
     const pendingRateRows=group.map(p=>({
-      sessionId:p.sessionId,collected:p.amount,isOrg:p.isOrg,org:p.org,isRepeat:p.isRepeat
+      sessionId:p.sessionId,collected:p.amount,costs:p.costs||0,
+      net:p.net!=null?p.net:p.amount,isOrg:p.isOrg,org:p.org,isRepeat:p.isRepeat
     }));
     applyPartnerRowRates([
       ...earned.map(r=>({sessionId:r.sessionId,collected:r.collected,isOrg:r.isOrg,org:r.org,isRepeat:r.isRepeat})),
@@ -1892,7 +1933,7 @@ function partnerStatement(partnerId,period){
   pending.forEach(p=>{
     if(!p.isOrg||firstPaid[p.partyKey]||claimedNewOrg[p.partyKey])return;
     claimedNewOrg[p.partyKey]=true;
-    p.estBonus=PARTNER_NEW_ORG_BONUS;
+    p.estBonus=PARTNER_NEW_ORG_BONUS;   // zero while §3.C is retired
   });
   const pendingTotal=round2(pending.reduce((a,p)=>a+p.amount,0));
   const pendingCommission=round2(pending.reduce((a,p)=>a+(p.estCommission||0),0));
@@ -2341,13 +2382,15 @@ function partnerPortalPeriods(partnerId){
 function portalRow(r){
   return{date:(r.session&&r.session.date)||'',course:(r.session&&r.session.course)||'',
     client:r.org||(r.session&&r.session.contactName)||'',isOrg:!!r.isOrg,
-    familyCount:r.familyCount||0,collected:r.collected||0,rate:r.rate||0,
+    familyCount:r.familyCount||0,collected:r.collected||0,
+    costs:r.costs||0,net:r.net!=null?r.net:(r.collected||0),rate:r.rate||0,
     reason:r.reason||'',commission:r.commission||0,accelerated:!!r.accelerated};
 }
 function portalPending(x){
   return{date:(x.session&&x.session.date)||'',course:(x.session&&x.session.course)||'',
     client:x.org||(x.session&&x.session.contactName)||'',isOrg:!!x.isOrg,
-    amount:x.amount||0,reason:x.reason||'',estRate:x.estRate==null?null:x.estRate,
+    amount:x.amount||0,costs:x.costs||0,net:x.net!=null?x.net:(x.amount||0),
+    reason:x.reason||'',estRate:x.estRate==null?null:x.estRate,
     estCommission:x.estCommission||0,estBonus:x.estBonus||0,
     projectedMonth:x.projectedMonth||''};
 }
@@ -2364,6 +2407,8 @@ function buildPartnerPortalPayload(p){
     return{
       period:per,label:periodLabel(per),kind:partnerPeriodKind(per),
       monthTotal:st.monthTotal,
+      monthNet:round2((st.rows||[]).reduce((a,r)=>a+(r.net!=null?r.net:r.collected||0),0)),
+      monthCosts:round2((st.rows||[]).reduce((a,r)=>a+(r.costs||0),0)),
       tier:{name:st.tier.name,label:st.tier.label,rate:st.tier.rate},
       nextTier:st.nextTier?{name:st.nextTier.name,label:st.nextTier.label,rate:st.nextTier.rate,min:st.nextTier.min}:null,
       toNextTier:st.toNextTier||0,
@@ -2386,7 +2431,7 @@ function buildPartnerPortalPayload(p){
     settings:{repeatPolicy:cfg.repeatPolicy,accelGrouping:cfg.accelGrouping},
     tiers:PARTNER_TIERS.map(t=>({name:t.name,label:t.label,rate:t.rate,min:t.min,
       max:t.max===Infinity?null:t.max})),
-    accelMin:PARTNER_ACCEL_MIN,accelRate:PARTNER_ACCEL_RATE,newOrgBonus:PARTNER_NEW_ORG_BONUS,
+    flatRate:PARTNER_FLAT_RATE,newOrgBonus:PARTNER_NEW_ORG_BONUS,
     lifetime:{revenue:lt.revenue,earned:lt.earned,paid:lt.paid,unpaid:lt.unpaid},
     months,
     pending:(live.pending||[]).map(portalPending),

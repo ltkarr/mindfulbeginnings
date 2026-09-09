@@ -332,7 +332,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="screen" id="tab-partner">
       <div class="section-title">Partnerships</div>
-      <div class="section-sub" id="partner-sub">Your commission, your tier, and what is still on its way.</div>
+      <div class="section-sub" id="partner-sub">Your commission, how it was calculated, and what is still on its way.</div>
       <div id="partner-content"></div>
     </div>
     <div class="screen" id="tab-myinfo">
@@ -442,7 +442,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-09.1';
+const PORTAL_VERSION='v2026-09-09.3';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -1257,39 +1257,23 @@ function renderPartner(){
     </div>`;
 }
 
-// The tier ladder. This is the part partners ask about most, so it shows all four
-// rates, which one is live for the month on screen, and the gap to the next one.
+// Under the amended Section 3 there is no ladder to show. What a partner actually
+// needs to see is the arithmetic: what came in, what it cost to deliver, and the
+// 20% taken from the difference.
 function partnerTierCardHtml(d,cur){
-  const tiers=d.tiers||[];
-  const active=cur&&cur.tier?cur.tier.name:'';
-  const total=cur?cur.monthTotal:0;
-  const next=cur?cur.nextTier:null;
+  const rate=Math.round((d.flatRate||0.20)*100);
+  const gross=cur?cur.monthTotal:0;
+  const costs=cur?(cur.monthCosts||0):0;
+  const net=cur?(cur.monthNet!=null?cur.monthNet:gross-costs):0;
   return `<div class="info-card">
-    <div style="font-weight:500;font-size:15px;margin-bottom:4px">Commission tiers</div>
-    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">Your rate is set by the total revenue you originate in a calendar month. Reaching a tier applies that rate to <strong>every dollar</strong> of the month, not just the dollars above the line.</div>
-    <div class="sched">
-      ${tiers.map(t=>{
-        const on=t.name===active;
-        return `<div class="sched-row" style="${on?'background:var(--sky-l)':''}">
-          <div class="sched-n" style="${on?'background:var(--navy);color:white':''}">${Math.round(t.rate*100)}</div>
-          <div class="sched-d">
-            <div style="font-weight:500;font-size:13px">${escapeHtml(t.label)} — ${Math.round(t.rate*100)}%${on?' <span class="pill pill-accepted" style="margin-left:6px">Your rate</span>':''}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">${t.max==null?fmt(t.min)+' and above':fmt(t.min)+' to '+fmt(t.max)} in a month</div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-    ${cur?`<div style="margin-top:14px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
-        <span>${pMonthLabel(cur.period)} revenue originated: <strong style="color:var(--text)">${fmt(total)}</strong></span>
-        ${next?`<span>${fmt(cur.toNextTier)} to ${Math.round(next.rate*100)}%</span>`:'<span>Top tier</span>'}
-      </div>
-      <div style="height:8px;border-radius:100px;background:var(--cream);overflow:hidden">
-        <div style="height:100%;width:${next?pctOf(total,next.min):100}%;background:var(--sky)"></div>
-      </div>
-    </div>`:''}
+    <div style="font-weight:500;font-size:15px;margin-bottom:4px">How you are paid</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">A flat ${rate}% of the net revenue on every booking you originate. No tiers and no monthly thresholds, so a quiet month is never penalized and a busy one is never capped.</div>
+    ${cur?`<div class="info-row"><span>Collected revenue, ${pMonthLabel(cur.period)}</span><span>${fmt(gross)}</span></div>
+    <div class="info-row"><span>Less direct costs of delivery</span><span>${costs?'−'+fmt(costs):fmt(0)}</span></div>
+    <div class="info-row" style="font-weight:500"><span>Net revenue</span><span>${fmt(net)}</span></div>
+    <div class="info-row" style="font-weight:500;font-size:16px"><span>Your ${rate}%</span><span>${fmt(cur.commission)}</span></div>`:''}
     <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:14px;padding-top:12px;border-top:.5px solid var(--border)">
-      Two things sit on top of the ladder. A single organizational booking that collects ${fmt(d.accelMin||3000)} or more earns at least ${Math.round((d.accelRate||0.2)*100)}%, whatever the month's tier is. And the first time a brand-new organization pays for a program you brought in, you earn a flat ${fmt(d.newOrgBonus||50)} on top.
+      Direct costs mean what it took to deliver your booking: instructor pay, participant materials, and any costs entered on that specific job. Company overhead is not deducted, so insurance, software and the website never touch your number.
     </div>
   </div>`;
 }
@@ -1307,9 +1291,10 @@ function partnerStatementBodyHtml(cur){
           <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(r.client||'—')} · ${pShortDate(r.date)}${r.familyCount?' · '+r.familyCount+' registration'+(r.familyCount===1?'':'s'):''}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:3px">${escapeHtml(r.reason||'')}</div>
         </div>
-        <div style="text-align:right;min-width:104px">
+        <div style="text-align:right;min-width:118px">
           <div style="font-weight:500;font-size:13px">${fmt(r.commission)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${pRate(r.rate)} of ${fmt(r.collected)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${pRate(r.rate)} of ${fmt(r.net!=null?r.net:r.collected)} net</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${fmt(r.collected)} in, ${fmt(r.costs||0)} costs</div>
         </div>
       </div>`).join('')}
       ${(cur.bonuses||[]).map(b=>`<div class="sched-row" style="align-items:flex-start">
@@ -1340,8 +1325,8 @@ function partnerPendingHtml(d){
           <div style="font-size:11px;color:var(--warn);margin-top:3px">${escapeHtml(x.reason||'')}</div>
         </div>
         <div style="text-align:right;min-width:104px">
-          <div style="font-weight:500;font-size:13px;color:var(--warn)">${fmt((x.estCommission||0)+(x.estBonus||0))}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">est. ${pRate(x.estRate)} of ${fmt(x.amount)}</div>
+          <div style="font-weight:500;font-size:13px;color:var(--warn)">${fmt(x.estCommission||0)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">est. ${pRate(x.estRate)} of ${fmt(x.net!=null?x.net:x.amount)} net</div>
           ${x.projectedMonth?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${pMonthLabel(x.projectedMonth)}</div>`:''}
         </div>
       </div>`).join('')}
@@ -1368,16 +1353,16 @@ function partnerProjectedHtml(d){
 }
 
 function partnerRulesHtml(d){
-  const repeat=(d.settings||{}).repeatPolicy==='flat10'
-    ?'Repeat and renewal bookings earn the 10% baseline, though they still count toward the month\'s volume for your tier.'
-    :'Repeat and renewal bookings earn the month\'s tier rate, the same as new business.';
+  const rate=Math.round((d.flatRate||0.20)*100);
   return `<div class="info-card">
     <div style="font-weight:500;font-size:15px;margin-bottom:10px">How this is calculated</div>
     <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--muted);line-height:1.9">
-      <li>Commission is earned when two things are true: the money has been collected, <strong>and</strong> the class has been taught. A booking lands on the statement for whichever comes second.</li>
-      <li>Collected revenue is what actually arrived, after refunds, discounts and payment-processing fees.</li>
+      <li>You earn ${rate}% of net revenue on every booking you originate, new or repeat, with no tiers, no monthly minimum and no cap. The commission is the whole of the compensation.</li>
+      <li>Net revenue means what was collected for the booking, less the direct cost of delivering it. Collected revenue is already net of refunds, discounts and payment-processing fees.</li>
+      <li>Direct costs are instructor pay, participant materials, and costs entered on that job. Company overhead is not deducted.</li>
+      <li>Commission is earned when the money has been collected <strong>and</strong> the class has been taught. A booking lands on the statement for whichever comes second.</li>
+      <li>A booking that costs more to deliver than it collects pays no commission. It never counts against you.</li>
       <li>A cancelled class earns no commission, however much was collected for it.</li>
-      <li>${escapeHtml(repeat)}</li>
       <li>Statements close at the end of each calendar month and are paid by the 10th of the following month.</li>
     </ul>
   </div>`;
