@@ -412,6 +412,7 @@ tr:hover td{background:#fafbfd}
       <div class="page-header">
         <div><div class="page-title">Community partners</div><div class="page-sub">Last month’s payable commission, plus projected payouts as pending bookings clear</div></div>
         <div class="btn-row">
+          <button class="btn" onclick="publishPartnerPortalsNow()" title="Partners see these numbers when they sign in to the portal">⇪ Update partner portals</button>
           <button class="btn" onclick="exportPartnersCSV()">⬇ Download statement (CSV)</button>
           <button class="btn primary" onclick="openAddPartner()">+ Add partner</button>
         </div>
@@ -970,6 +971,10 @@ let equipment=[],matCheckouts=[],equipmentTablesReady=true,matCalYM=null;
 // partnersTableReady goes false when the setup SQL has not been run yet, and the
 // Partners screen shows the instructions instead of an empty table.
 let partners=[],partnerPayouts=[],partnersTableReady=true,partnerPeriod=null;
+// Set false when the database predates partner_portal_setup.sql, so the app keeps
+// working and simply does not publish anything to the partner portal yet.
+let PARTNER_INSTRUCTOR_COL=true, PARTNER_PORTAL_ON=true;
+const _portalSigs={};
 // Set to false automatically if the database is missing sessions.originated_by,
 // so a session still saves (minus its attribution) instead of failing outright.
 let ORIGINATED_COL=true;
@@ -1153,6 +1158,8 @@ async function loadData(){
     partnersTableReady=!pt.error;
     if(pt.error)console.warn('Partners table not loaded (run partners_setup.sql if you haven\'t):',pt.error);
     if(pp.error)console.warn('Partner payouts table not loaded:',pp.error);
+    // If the loaded rows have no instructor_id, the setup SQL has not been run.
+    if((pt.data||[]).length&&!('instructor_id' in pt.data[0]))PARTNER_INSTRUCTOR_COL=false;
     partners=(pt.data||[]).map(partnerFromDB);
     partnerPayouts=(pp.data||[]).map(payoutFromDB);
     // Supabase returns errors on the result object instead of throwing. If any table
@@ -1576,17 +1583,23 @@ function round2(n){return Math.round((Number(n)||0)*100)/100;}
 // ─── PARTNER RECORD MAPPING ──────────────────────────────────
 function partnerFromDB(r){
   return{id:r.id,name:r.name||'',email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',
-    pin:r.pin||'',status:r.status||'active',startDate:r.start_date||'',endDate:r.end_date||'',
+    pin:r.pin||'',instructorId:r.instructor_id||null,
+    status:r.status||'active',startDate:r.start_date||'',endDate:r.end_date||'',
     contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',
     contractSignature:r.contract_signature||'',w9Submitted:r.w9_submitted||false,
     notes:r.notes||'',createdAt:r.created_at||Date.now()};
 }
 function partnerToDB(p){
-  return{id:p.id,name:p.name,email:p.email||null,phone:p.phone||null,zelle:p.zelle||null,
+  const row={id:p.id,name:p.name,email:p.email||null,phone:p.phone||null,zelle:p.zelle||null,
     pin:p.pin||null,status:p.status||'active',start_date:p.startDate||null,end_date:p.endDate||null,
     contract_signed:p.contractSigned||false,contract_signed_date:p.contractSignedDate||null,
     contract_signature:p.contractSignature||null,w9_submitted:p.w9Submitted||false,
     notes:p.notes||null};
+  // instructor_id arrives with partner_portal_setup.sql. Until that has been run,
+  // sending it would fail the whole upsert, so it is only included once the column
+  // has actually been seen coming back from the database.
+  if(PARTNER_INSTRUCTOR_COL)row.instructor_id=p.instructorId||null;
+  return row;
 }
 function payoutFromDB(r){
   return{id:r.id,partnerId:r.partner_id,period:r.period,amount:Number(r.amount)||0,
@@ -2174,6 +2187,9 @@ function renderPartners(){
   }
 
   bodyEl.innerHTML=partners.map((p,i)=>partnerCardHtml(p,statements[i])).join('');
+  // Push the current numbers out to the partner portal. Fire and forget — a
+  // failure here never blocks the screen.
+  publishAllPartnerPortals(false);
 }
 
 function partnerCardHtml(p,st){
@@ -2207,6 +2223,13 @@ function partnerCardHtml(p,st){
           ${onboarding.length
             ?`<span style="color:var(--warn)">⚠ Missing: ${onboarding.join(', ')}</span>`
             :'<span style="color:var(--success)">✓ Agreement signed · W-9 on file</span>'}
+        </div>
+        <div style="font-size:14px;margin-top:5px;color:var(--muted)">
+          ${p.instructorId&&(instructors||[]).find(x=>x.id===p.instructorId)
+            ?`Portal: signs in with their instructor PIN as ${escapeHtml(((instructors||[]).find(x=>x.id===p.instructorId)||{}).name||'')}`
+            :p.pin
+              ?`Portal PIN: <strong style="color:var(--text);font-family:monospace;letter-spacing:1px">${escapeHtml(p.pin)}</strong>`
+              :'<span style="color:var(--warn)">No portal access yet — add a 6-digit PIN under Edit</span>'}
         </div>
       </div>
       <div class="btn-row">
@@ -2296,7 +2319,150 @@ function fmtShortDate(d){
   return isNaN(dt)?String(d):dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 }
 
+// ─── PUBLISHING TO THE PARTNER PORTAL ────────────────────────
+// Partners sign in to the same portal the instructors use and see their own
+// statement. They do NOT read sessions, registrations or invoices — this code
+// builds a finished statement here, in the admin, and writes it to one row in
+// partner_portal. Two consequences worth knowing:
+//   · no family data ever reaches the partner portal, and
+//   · what a partner sees is exactly what you saw when it was published.
+// Publishing happens automatically every time you open this screen, so in normal
+// use there is nothing to remember. The button is for when you want to be sure.
+
+function partnerPortalPeriods(partnerId){
+  const set=new Set(partnerPeriods(partnerId));
+  set.add(defaultPartnerPeriod());
+  set.add(currentCalendarMonth());
+  return [...set].sort().reverse();
+}
+
+// One statement row, stripped down to what a partner is entitled to see.
+function portalRow(r){
+  return{date:(r.session&&r.session.date)||'',course:(r.session&&r.session.course)||'',
+    client:r.org||(r.session&&r.session.contactName)||'',isOrg:!!r.isOrg,
+    familyCount:r.familyCount||0,collected:r.collected||0,rate:r.rate||0,
+    reason:r.reason||'',commission:r.commission||0,accelerated:!!r.accelerated};
+}
+function portalPending(x){
+  return{date:(x.session&&x.session.date)||'',course:(x.session&&x.session.course)||'',
+    client:x.org||(x.session&&x.session.contactName)||'',isOrg:!!x.isOrg,
+    amount:x.amount||0,reason:x.reason||'',estRate:x.estRate==null?null:x.estRate,
+    estCommission:x.estCommission||0,estBonus:x.estBonus||0,
+    projectedMonth:x.projectedMonth||''};
+}
+
+function buildPartnerPortalPayload(p){
+  const cfg=partnerSettings();
+  const lastMonth=defaultPartnerPeriod();
+  const thisMonth=currentCalendarMonth();
+  const live=partnerStatement(p.id,lastMonth);   // pending + projections are period-independent
+  const months=partnerPortalPeriods(p.id).map(per=>{
+    const st=partnerStatement(p.id,per);
+    const paidOut=!!(st.payout&&st.payout.paidDate);
+    if(!st.rows.length&&!paidOut&&per!==lastMonth&&per!==thisMonth)return null;
+    return{
+      period:per,label:periodLabel(per),kind:partnerPeriodKind(per),
+      monthTotal:st.monthTotal,
+      tier:{name:st.tier.name,label:st.tier.label,rate:st.tier.rate},
+      nextTier:st.nextTier?{name:st.nextTier.name,label:st.nextTier.label,rate:st.nextTier.rate,min:st.nextTier.min}:null,
+      toNextTier:st.toNextTier||0,
+      rows:st.rows.map(portalRow),
+      bonuses:(st.bonuses||[]).map(b=>({org:b.org||'',amount:b.amount||0,date:b.date||''})),
+      commission:st.commission,bonusTotal:st.bonusTotal,total:st.total,
+      payout:paidOut?{amount:st.payout.amount,paidDate:st.payout.paidDate,method:st.payout.method||'Zelle'}:null
+    };
+  }).filter(Boolean);
+
+  const lt=partnerLifetime(p.id);
+  return{
+    version:1,
+    partnerId:p.id,partnerName:p.name||'',
+    zelle:p.zelle||'',status:p.status||'active',
+    startDate:p.startDate||'',endDate:p.endDate||'',
+    contractSigned:!!p.contractSigned,w9Submitted:!!p.w9Submitted,
+    publishedAt:new Date().toISOString(),
+    payableMonth:lastMonth,currentMonth:thisMonth,
+    settings:{repeatPolicy:cfg.repeatPolicy,accelGrouping:cfg.accelGrouping},
+    tiers:PARTNER_TIERS.map(t=>({name:t.name,label:t.label,rate:t.rate,min:t.min,
+      max:t.max===Infinity?null:t.max})),
+    accelMin:PARTNER_ACCEL_MIN,accelRate:PARTNER_ACCEL_RATE,newOrgBonus:PARTNER_NEW_ORG_BONUS,
+    lifetime:{revenue:lt.revenue,earned:lt.earned,paid:lt.paid,unpaid:lt.unpaid},
+    months,
+    pending:(live.pending||[]).map(portalPending),
+    pendingPotential:live.pendingPotential||0,
+    projected:(live.projectedPayouts||[]).map(r=>({period:r.period,label:periodLabel(r.period),
+      revenue:r.revenue,commission:r.commission,bonus:r.bonus,potential:r.potential,count:r.count}))
+  };
+}
+
+// Writes one partner's snapshot. Skips the write when nothing has changed since
+// the last publish, so opening this screen repeatedly costs nothing.
+async function publishPartnerPortal(partnerId,force){
+  if(!partnersTableReady||!PARTNER_PORTAL_ON)return false;
+  const p=partnerById(partnerId);
+  if(!p)return false;
+  const payload=buildPartnerPortalPayload(p);
+  const sig=JSON.stringify([payload.months,payload.pending,payload.projected,payload.lifetime,payload.tiers]);
+  if(!force&&_portalSigs[partnerId]===sig)return true;
+  const{error}=await sb.from('partner_portal').upsert({partner_id:partnerId,payload,
+    published_at:new Date().toISOString()});
+  if(error){
+    // Almost always "table does not exist" — the setup SQL has not been run yet.
+    // Stop trying on every render; the Update button turns it back on.
+    console.warn('Partner portal not published (run partner_portal_setup.sql):',error);
+    PARTNER_PORTAL_ON=false;
+    return false;
+  }
+  _portalSigs[partnerId]=sig;
+  return true;
+}
+
+async function publishAllPartnerPortals(force){
+  if(!partnersTableReady||(!PARTNER_PORTAL_ON&&!force))return 0;
+  if(force)PARTNER_PORTAL_ON=true;
+  let n=0;
+  for(const p of partners){
+    if(await publishPartnerPortal(p.id,force))n++;
+    if(!PARTNER_PORTAL_ON)break;
+  }
+  return n;
+}
+
+// The button. Forces a publish for everyone and says plainly what happened.
+async function publishPartnerPortalsNow(){
+  const n=await publishAllPartnerPortals(true);
+  if(!PARTNER_PORTAL_ON){
+    showToast('Could not reach the partner portal table. Run partner_portal_setup.sql in Supabase, then try again.');
+    return;
+  }
+  showToast(n===1?'1 partner portal updated.':n+' partner portals updated.');
+  renderPartners();
+}
+
 // ─── PARTNER RECORDS ─────────────────────────────────────────
+// Portal access, shown on both the add and the edit form. A partner who also
+// teaches (Katy Greenberg) is linked to their instructor record instead of being
+// given a second PIN — they sign in once and the Partnerships tab appears next to
+// their jobs. A partner who does not teach gets their own 6-digit PIN and sees
+// only the Partnerships tab.
+function partnerPortalFieldsHtml(p){
+  const linked=p?(p.instructorId||''):'';
+  const pin=p?(p.pin||''):'';
+  const list=(instructors||[]).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  return `<div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
+    <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Partner portal access</div>
+    <label style="font-weight:400;font-size:15px">Also one of my instructors</label>
+    <select id="m-plinked" style="width:100%">
+      <option value="">No — this partner does not teach</option>
+      ${list.map(i=>`<option value="${i.id}" ${i.id===linked?'selected':''}>${escapeHtml(i.name)}</option>`).join('')}
+    </select>
+    <div style="font-size:14px;color:var(--muted);margin:4px 0 10px">Link them and they sign in with their existing instructor PIN. The Partnerships tab appears alongside their jobs.</div>
+    <label style="font-weight:400;font-size:15px">Portal PIN (6 digits)</label>
+    <input type="text" id="m-ppin" inputmode="numeric" maxlength="6" value="${escapeHtml(pin)}" placeholder="Leave blank if they sign in as an instructor">
+    <div style="font-size:14px;color:var(--muted);margin-top:4px">Only needed for a partner who does not teach. Same portal address as the instructors use.</div>
+  </div>`;
+}
+
 function openAddPartner(){
   showModal(`<div class="modal-head"><h3>Add community partner</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
@@ -2306,6 +2472,7 @@ function openAddPartner(){
     <div class="fg full"><label>Zelle (mobile or email) *</label><input type="text" id="m-pzelle" placeholder="Where commission gets sent"><div style="font-size:14px;color:var(--muted);margin-top:4px">Copy this from the bottom of their signed agreement — it's how commission is remitted under §3.E.</div></div>
     <div class="fg"><label>Agreement effective date</label><input type="date" id="m-pstart"></div>
     <div class="fg"><label>Status</label><select id="m-pstatus" style="width:100%"><option value="active" selected>Active</option><option value="inactive">Inactive (agreement ended)</option></select></div>
+    ${partnerPortalFieldsHtml(null)}
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Paperwork</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-pcontract" style="width:auto;margin:0"> Signed Community Partnerships Liaison agreement on file</label>
@@ -2327,6 +2494,7 @@ function openEditPartner(id){
     <div class="fg"><label>Agreement effective date</label><input type="date" id="m-pstart" value="${p.startDate||''}"></div>
     <div class="fg"><label>Status</label><select id="m-pstatus" style="width:100%"><option value="active" ${p.status!=='inactive'?'selected':''}>Active</option><option value="inactive" ${p.status==='inactive'?'selected':''}>Inactive (agreement ended)</option></select></div>
     <div class="fg full"><label>Termination date <span style="font-weight:400;color:var(--muted)">(only if the agreement ended)</span></label><input type="date" id="m-pend" value="${p.endDate||''}"><div style="font-size:14px;color:var(--muted);margin-top:4px">After termination, commission is only payable on courses delivered or already scheduled as of this date (§7). Bookings made later earn nothing, so leave "Originated by" blank on those.</div></div>
+    ${partnerPortalFieldsHtml(p)}
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Paperwork</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-pcontract" ${p.contractSigned?'checked':''} style="width:auto;margin:0"> Signed Community Partnerships Liaison agreement on file</label>
@@ -2352,8 +2520,17 @@ async function savePartner(editId){
     status:document.getElementById('m-pstatus')?.value||'active',
     contractSigned,
     w9Submitted:!!document.getElementById('m-pw9')?.checked,
-    notes:(document.getElementById('m-pnotes').value||'').trim()
+    notes:(document.getElementById('m-pnotes').value||'').trim(),
+    instructorId:(document.getElementById('m-plinked')?.value||'')||null,
+    pin:(document.getElementById('m-ppin')?.value||'').trim()
   };
+  if(data.pin&&!/^\d{4,6}$/.test(data.pin)){showToast('A portal PIN must be 4 to 6 digits.');return;}
+  // Two people cannot share a PIN, or the portal cannot tell them apart.
+  if(data.pin){
+    const clashP=partners.find(x=>x.pin===data.pin&&x.id!==editId);
+    const clashI=(instructors||[]).find(x=>x.pin===data.pin);
+    if(clashP||clashI){showToast('That PIN is already in use by '+((clashP||clashI).name||'someone else')+'. Please pick another.');return;}
+  }
   let p;
   if(editId){
     p=partnerById(editId);if(!p)return;
@@ -2367,8 +2544,18 @@ async function savePartner(editId){
   if(!contractSigned)p.contractSignedDate='';
   partners.sort((a,b)=>a.name.localeCompare(b.name));
   closeModal();renderPartners();
-  const ok=await dbWrite(sb.from('partners').upsert(partnerToDB(p)),'Partner');
-  if(ok){showToast(editId?'Partner updated.':'Partner added. Pick them under "Originated by" on any session they bring you.');}
+  let ok=await dbWrite(sb.from('partners').upsert(partnerToDB(p)),'Partner');
+  // If instructor_id has not been added to the database yet, retry without it so
+  // the rest of the partner record still saves.
+  if(!ok&&PARTNER_INSTRUCTOR_COL){
+    PARTNER_INSTRUCTOR_COL=false;
+    ok=await dbWrite(sb.from('partners').upsert(partnerToDB(p)),'Partner');
+    if(ok)showToast('Saved, but the instructor link needs partner_portal_setup.sql to be run first.');
+  }
+  if(ok){
+    publishPartnerPortal(p.id,true);
+    showToast(editId?'Partner updated.':'Partner added. Pick them under "Originated by" on any session they bring you.');
+  }
   else{await loadData();renderPartners();}
 }
 
@@ -2413,7 +2600,7 @@ async function markPartnerPaid(partnerId){
   if(!existing)partnerPayouts.push(row);
   renderPartners();
   const ok=await dbWrite(sb.from('partner_payouts').upsert(payoutToDB(row),{onConflict:'partner_id,period'}),'Partner payout');
-  if(ok)showToast('Recorded '+fmt(st.total)+' paid to '+p.name+' for '+periodLabel(partnerPeriod)+'.');
+  if(ok){publishPartnerPortal(partnerId,true);showToast('Recorded '+fmt(st.total)+' paid to '+p.name+' for '+periodLabel(partnerPeriod)+'.');}
   else{await loadData();renderPartners();}
 }
 

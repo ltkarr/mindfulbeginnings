@@ -277,6 +277,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
   <div class="tabs">
     <div class="tab active" onclick="showTab('open',this)">Open jobs</div>
     <div class="tab" onclick="showTab('myjobs',this)">My jobs</div>
+    <div class="tab" id="tab-btn-partner" style="display:none" onclick="showTab('partner',this)">Partnerships</div>
     <div class="tab" onclick="showTab('guide',this)">📖 Instructor FAQs</div>
     <div class="tab" onclick="showTab('materials',this)">📚 Instructor Resources</div>
     <div class="tab" onclick="showTab('myprofile',this)">My profile</div>
@@ -328,6 +329,11 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
       <div class="section-title">W-9 Form</div>
       <div class="section-sub">Download, complete, sign, and email your W-9 to Lindsay. This is required before you can access job posts.</div>
       <div id="w9-content"></div>
+    </div>
+    <div class="screen" id="tab-partner">
+      <div class="section-title">Partnerships</div>
+      <div class="section-sub" id="partner-sub">Your commission, your tier, and what is still on its way.</div>
+      <div id="partner-content"></div>
     </div>
     <div class="screen" id="tab-myinfo">
       <div class="section-title">My info</div>
@@ -419,6 +425,9 @@ if(typeof INSTR_TRAVEL==='undefined'){window.INSTR_TRAVEL=50;}
 if(typeof INSTR_EXTRA_HOURS==='undefined'){window.INSTR_EXTRA_HOURS=0.5;}
 
 let me=null,allSessions=[],jobDataCache={},regCountMap={};
+// Community partner statement, published from the admin. Null for anyone who is
+// not a partner, which is almost everyone.
+let partnerData=null,partnerOnly=false,partnerMonth=null;
 let lastFetch=0,fetching=false; // freshness tracking for auto-refresh
 let loadErrors={}; // last data-load failures, shown on the job boards instead of a fake empty state
 // True once we know for certain whether each job carries the per-job "RN instructors
@@ -433,7 +442,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-05.2';
+const PORTAL_VERSION='v2026-09-09.1';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -871,6 +880,16 @@ async function doLogin(){
     // Validate the PIN server-side. The database function returns the instructor's profile (without exposing the PIN itself) when the PIN matches, otherwise null.
     const{data:profile,error}=await sb.rpc('instructor_login',{p_pin:pin});
     if(error||!profile){
+      // Not an instructor PIN. It may still belong to a community partner who does
+      // not teach — the Partnerships portal lives on this same page.
+      const partner=await loadPartnerData(pin);
+      if(partner){
+        me={id:partner.partnerId||'partner',name:partner.partnerName||'Partner',pin:pin,
+          email:'',phone:'',zelle:partner.zelle||''};
+        partnerOnly=true;
+        enterApp();
+        return;
+      }
       err.textContent='PIN not recognized. Please contact us for help.';
       document.getElementById('pin-input').classList.add('err');
       btn.disabled=false;btn.textContent='Sign in';return;
@@ -918,6 +937,11 @@ async function doLogin(){
       try{const{data:ct}=await sb.rpc('instructor_contract_type',{p_pin:pin});me.contractType=ct||'standard';}
       catch(e){me.contractType='standard';}
     }
+    // Some instructors also bring in business (Katy Greenberg teaches and is a
+    // Community Partnerships Liaison). If their instructor record is linked to a
+    // partner record, their statement comes back here and the Partnerships tab
+    // appears next to their jobs. Everyone else gets null and sees no change.
+    await loadPartnerData(pin);
     // Load sessions, job data, and registration counts. Sessions and job_data are readable by anon (used for the available-jobs board). Registration counts come from a function that does not expose PII.
     await loadData();
     // Anyone still on an old PIN is stopped here and made to set a six-digit one
@@ -942,8 +966,40 @@ function enterApp(){
   document.getElementById('pinchange-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('h-name').textContent='Welcome, '+me.name;
+  applyPartnerAccess();
+  if(partnerOnly){
+    showTab('partner',document.getElementById('tab-btn-partner'));
+    return;
+  }
   renderOpen();
   updateRefreshBar();
+}
+
+// ─── PARTNERSHIPS ────────────────────────────────────────────
+// A partner never reads sessions or registrations. Lindsay's admin publishes a
+// finished statement to one row, and this portal reads only that row through a
+// function that takes a PIN. So the numbers here are exactly the numbers she
+// signed off on, and no family data is anywhere near this page.
+async function loadPartnerData(pin){
+  try{
+    const{data,error}=await sb.rpc('partner_portal_data',{p_pin:pin});
+    if(error||!data||!data.partnerId)return null;
+    partnerData=data;
+    return data;
+  }catch(e){return null;}
+}
+
+// Show the Partnerships tab only for partners. A partner who does not teach sees
+// nothing else — the job board, contract and resources tabs are hidden.
+function applyPartnerAccess(){
+  const btn=document.getElementById('tab-btn-partner');
+  if(btn)btn.style.display=partnerData?'':'none';
+  if(partnerOnly){
+    document.querySelectorAll('.tabs .tab').forEach(t=>{
+      if(t.id!=='tab-btn-partner')t.style.display='none';
+    });
+    document.getElementById('h-name').textContent='Welcome, '+me.name+' — partner portal';
+  }
 }
 
 // Obvious patterns a determined guesser tries first. Rejecting these client-side keeps
@@ -1107,7 +1163,7 @@ function flagWarningCard(){
 // triggers) skips if the data is less than a minute old, so tab-hopping
 // doesn't hammer the database.
 async function refreshData(force){
-  if(!me||fetching)return;
+  if(!me||partnerOnly||fetching)return;
   if(!force&&Date.now()-lastFetch<60*1000)return;
   fetching=true;updateRefreshBar('Checking for new jobs…');
   try{await loadData();refreshJobViews();}
@@ -1130,8 +1186,207 @@ window.addEventListener('pageshow',ev=>{if(ev.persisted)refreshData(true);});
 // Belt and suspenders: while the portal is open on screen, check every 5 minutes.
 setInterval(()=>{if(document.visibilityState==='visible')refreshData(false);},5*60*1000);
 
+
+// ─── PARTNERSHIPS SCREEN ─────────────────────────────────────
+function pctOf(n,d){const v=(Number(d)||0)>0?(Number(n)||0)/Number(d)*100:0;return Math.max(0,Math.min(100,v));}
+function pMonthLabel(m){
+  if(!m)return '';
+  const [y,mo]=String(m).split('-').map(Number);
+  if(!y||!mo)return String(m);
+  return new Date(y,mo-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+}
+function pShortDate(d){
+  if(!d)return '—';
+  const dt=new Date(String(d).slice(0,10)+'T12:00:00');
+  return isNaN(dt)?String(d):dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+function pRate(r){return r==null?'—':Math.round(Number(r)*100)+'%';}
+
+function selectPartnerMonth(m){partnerMonth=m;renderPartner();}
+
+function renderPartner(){
+  const el=document.getElementById('partner-content');
+  if(!el)return;
+  const d=partnerData;
+  if(!d||!Array.isArray(d.months)){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📄</div><div class="empty-msg">Nothing published yet</div><div class="empty-sub">Your statement appears here as soon as Lindsay opens the Partners screen. If you expected to see numbers, text her at 703-987-5979.</div></div>`;
+    return;
+  }
+  const months=d.months||[];
+  const payable=months.find(m=>m.period===d.payableMonth)||months[0]||null;
+  if(!partnerMonth||!months.some(m=>m.period===partnerMonth))partnerMonth=payable?payable.period:null;
+  const cur=months.find(m=>m.period===partnerMonth)||payable;
+
+  const lt=d.lifetime||{};
+  const thisMo=months.find(m=>m.period===d.currentMonth);
+  const paidNote=cur&&cur.payout?('Sent '+pShortDate(cur.payout.paidDate)+' via '+(cur.payout.method||'Zelle'))
+    :cur&&cur.period===d.payableMonth?'Due by the 10th of this month'
+    :cur&&cur.period===d.currentMonth?'Still open — payable after the month closes'
+    :'Statement closed';
+
+  el.innerHTML=`
+    <div class="hero-strip">
+      <div class="hero-cell"><div class="hero-v">${fmt(payable?payable.total:0)}</div><div class="hero-l">${payable?pMonthLabel(payable.period):'Last month'}</div><div class="hero-s">${payable&&payable.payout?'Paid':'Owed to you'}</div></div>
+      <div class="hero-cell"><div class="hero-v">${fmt(thisMo?thisMo.total:0)}</div><div class="hero-l">This month so far</div><div class="hero-s">${thisMo?pMonthLabel(thisMo.period):''}</div></div>
+      <div class="hero-cell"><div class="hero-v">${fmt(d.pendingPotential||0)}</div><div class="hero-l">On the way</div><div class="hero-s">Not payable yet</div></div>
+      <div class="hero-cell"><div class="hero-v">${fmt(lt.paid||0)}</div><div class="hero-l">Paid to date</div><div class="hero-s">${fmt(lt.revenue||0)} revenue brought in</div></div>
+    </div>
+
+    ${partnerTierCardHtml(d,cur)}
+
+    <div class="info-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <div style="font-weight:500;font-size:15px">Statement</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">${escapeHtml(paidNote)}</div>
+        </div>
+        ${months.length>1?`<select onchange="selectPartnerMonth(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:13px;background:white;color:var(--text);outline:none">
+          ${months.map(m=>`<option value="${m.period}" ${m.period===partnerMonth?'selected':''}>${pMonthLabel(m.period)}${m.payout?' — paid':''}</option>`).join('')}
+        </select>`:''}
+      </div>
+      ${partnerStatementBodyHtml(cur)}
+    </div>
+
+    ${partnerPendingHtml(d)}
+    ${partnerProjectedHtml(d)}
+    ${partnerRulesHtml(d)}
+
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin:18px 0 6px;line-height:1.6">
+      Figures published ${d.publishedAt?new Date(d.publishedAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}):'—'}.
+      Questions about any line on this page go to Lindsay at 703-987-5979.
+    </div>`;
+}
+
+// The tier ladder. This is the part partners ask about most, so it shows all four
+// rates, which one is live for the month on screen, and the gap to the next one.
+function partnerTierCardHtml(d,cur){
+  const tiers=d.tiers||[];
+  const active=cur&&cur.tier?cur.tier.name:'';
+  const total=cur?cur.monthTotal:0;
+  const next=cur?cur.nextTier:null;
+  return `<div class="info-card">
+    <div style="font-weight:500;font-size:15px;margin-bottom:4px">Commission tiers</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">Your rate is set by the total revenue you originate in a calendar month. Reaching a tier applies that rate to <strong>every dollar</strong> of the month, not just the dollars above the line.</div>
+    <div class="sched">
+      ${tiers.map(t=>{
+        const on=t.name===active;
+        return `<div class="sched-row" style="${on?'background:var(--sky-l)':''}">
+          <div class="sched-n" style="${on?'background:var(--navy);color:white':''}">${Math.round(t.rate*100)}</div>
+          <div class="sched-d">
+            <div style="font-weight:500;font-size:13px">${escapeHtml(t.label)} — ${Math.round(t.rate*100)}%${on?' <span class="pill pill-accepted" style="margin-left:6px">Your rate</span>':''}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">${t.max==null?fmt(t.min)+' and above':fmt(t.min)+' to '+fmt(t.max)} in a month</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${cur?`<div style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
+        <span>${pMonthLabel(cur.period)} revenue originated: <strong style="color:var(--text)">${fmt(total)}</strong></span>
+        ${next?`<span>${fmt(cur.toNextTier)} to ${Math.round(next.rate*100)}%</span>`:'<span>Top tier</span>'}
+      </div>
+      <div style="height:8px;border-radius:100px;background:var(--cream);overflow:hidden">
+        <div style="height:100%;width:${next?pctOf(total,next.min):100}%;background:var(--sky)"></div>
+      </div>
+    </div>`:''}
+    <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:14px;padding-top:12px;border-top:.5px solid var(--border)">
+      Two things sit on top of the ladder. A single organizational booking that collects ${fmt(d.accelMin||3000)} or more earns at least ${Math.round((d.accelRate||0.2)*100)}%, whatever the month's tier is. And the first time a brand-new organization pays for a program you brought in, you earn a flat ${fmt(d.newOrgBonus||50)} on top.
+    </div>
+  </div>`;
+}
+
+function partnerStatementBodyHtml(cur){
+  if(!cur)return `<div style="font-size:13px;color:var(--muted)">No statement for this month yet.</div>`;
+  if(!cur.rows.length&&!(cur.bonuses||[]).length){
+    return `<div style="font-size:13px;color:var(--muted);line-height:1.6">Nothing has cleared for ${pMonthLabel(cur.period)} yet. A booking lands on a statement once the money has arrived <strong>and</strong> the class has been taught — anything still waiting on one of those is listed further down.</div>`;
+  }
+  return `
+    <div class="sched">
+      ${cur.rows.map(r=>`<div class="sched-row" style="align-items:flex-start;flex-wrap:wrap">
+        <div class="sched-d">
+          <div style="font-weight:500;font-size:13px">${escapeHtml(r.course||'Course')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(r.client||'—')} · ${pShortDate(r.date)}${r.familyCount?' · '+r.familyCount+' registration'+(r.familyCount===1?'':'s'):''}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">${escapeHtml(r.reason||'')}</div>
+        </div>
+        <div style="text-align:right;min-width:104px">
+          <div style="font-weight:500;font-size:13px">${fmt(r.commission)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${pRate(r.rate)} of ${fmt(r.collected)}</div>
+        </div>
+      </div>`).join('')}
+      ${(cur.bonuses||[]).map(b=>`<div class="sched-row" style="align-items:flex-start">
+        <div class="sched-d">
+          <div style="font-weight:500;font-size:13px">New organization bonus</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(b.org||'')} · first payment ${pShortDate(b.date)}</div>
+        </div>
+        <div style="text-align:right;min-width:104px"><div style="font-weight:500;font-size:13px">${fmt(b.amount)}</div></div>
+      </div>`).join('')}
+    </div>
+    <div class="info-row" style="margin-top:12px;font-weight:500"><span>Commission</span><span>${fmt(cur.commission)}</span></div>
+    ${cur.bonusTotal?`<div class="info-row"><span>Bonuses</span><span>${fmt(cur.bonusTotal)}</span></div>`:''}
+    <div class="info-row" style="font-weight:500;font-size:16px"><span>${pMonthLabel(cur.period)} total</span><span>${fmt(cur.total)}</span></div>
+    ${cur.payout?`<div class="alert success" style="margin:12px 0 0">✓ &nbsp;<span>${fmt(cur.payout.amount)} sent ${pShortDate(cur.payout.paidDate)} via ${escapeHtml(cur.payout.method||'Zelle')}. This statement is now frozen.</span></div>`:''}`;
+}
+
+function partnerPendingHtml(d){
+  const list=d.pending||[];
+  if(!list.length)return '';
+  return `<div class="info-card">
+    <div style="font-weight:500;font-size:15px;margin-bottom:4px">Not payable yet</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">Bookings you originated that have not met both conditions yet. The amounts below are estimates and can change — they are not owed to you until the month they clear.</div>
+    <div class="sched">
+      ${list.map(x=>`<div class="sched-row" style="align-items:flex-start;background:var(--warn-bg)">
+        <div class="sched-d">
+          <div style="font-weight:500;font-size:13px">${escapeHtml(x.course||'Course')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(x.client||'—')} · ${pShortDate(x.date)}</div>
+          <div style="font-size:11px;color:var(--warn);margin-top:3px">${escapeHtml(x.reason||'')}</div>
+        </div>
+        <div style="text-align:right;min-width:104px">
+          <div style="font-weight:500;font-size:13px;color:var(--warn)">${fmt((x.estCommission||0)+(x.estBonus||0))}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">est. ${pRate(x.estRate)} of ${fmt(x.amount)}</div>
+          ${x.projectedMonth?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${pMonthLabel(x.projectedMonth)}</div>`:''}
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function partnerProjectedHtml(d){
+  const list=d.projected||[];
+  if(!list.length)return '';
+  return `<div class="info-card">
+    <div style="font-weight:500;font-size:15px;margin-bottom:4px">Expected payouts ahead</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">Where the pending bookings above are expected to land, month by month. Estimates only.</div>
+    <div class="sched">
+      ${list.map(r=>`<div class="sched-row">
+        <div class="sched-d">
+          <div style="font-weight:500;font-size:13px">${pMonthLabel(r.period)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${r.count} booking${r.count===1?'':'s'} · ${fmt(r.revenue)} revenue</div>
+        </div>
+        <div style="text-align:right;min-width:90px;font-weight:500;font-size:13px">${fmt(r.potential)}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function partnerRulesHtml(d){
+  const repeat=(d.settings||{}).repeatPolicy==='flat10'
+    ?'Repeat and renewal bookings earn the 10% baseline, though they still count toward the month\'s volume for your tier.'
+    :'Repeat and renewal bookings earn the month\'s tier rate, the same as new business.';
+  return `<div class="info-card">
+    <div style="font-weight:500;font-size:15px;margin-bottom:10px">How this is calculated</div>
+    <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--muted);line-height:1.9">
+      <li>Commission is earned when two things are true: the money has been collected, <strong>and</strong> the class has been taught. A booking lands on the statement for whichever comes second.</li>
+      <li>Collected revenue is what actually arrived, after refunds, discounts and payment-processing fees.</li>
+      <li>A cancelled class earns no commission, however much was collected for it.</li>
+      <li>${escapeHtml(repeat)}</li>
+      <li>Statements close at the end of each calendar month and are paid by the 10th of the following month.</li>
+    </ul>
+  </div>`;
+}
+
 function doLogout(){
   me=null;allSessions=[];jobDataCache={};regCountMap={};lastFetch=0;loadErrors={};
+  partnerData=null;partnerOnly=false;partnerMonth=null;
+  document.querySelectorAll('.tabs .tab').forEach(t=>{t.style.display=t.id==='tab-btn-partner'?'none':'';});
   document.getElementById('app').style.display='none';
   document.getElementById('pinchange-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -1156,6 +1411,7 @@ function showTab(name,el){
   if(name==='contract')renderContract();
   if(name==='w9')renderW9();
   if(name==='myinfo')renderMyInfo();
+  if(name==='partner')renderPartner();
 }
 
 // ─── JOB BOARDS (helpers) ────────────────────────────────────
