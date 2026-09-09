@@ -1174,6 +1174,7 @@ async function loadData(){
     sessions=(s.data||[]).map(sessionFromDB);
     registrations=(r.data||[]).map(regFromDB);
     instructors=(i.data||[]).map(instructorFromDB);
+    sortInstructors();
     jobDataCache={};
     (j.data||[]).forEach(row=>{jobDataCache[row.session_id]=jobFromDB(row);});
     expenses=(e.data||[]).map(x=>({id:x.id,description:x.description,amount:Number(x.amount),date:x.date,category:x.category||'Other',createdAt:x.created_at||Date.now()}));
@@ -2448,13 +2449,13 @@ async function publishPartnerPortalsNow(){
 function partnerPortalFieldsHtml(p){
   const linked=p?(p.instructorId||''):'';
   const pin=p?(p.pin||''):'';
-  const list=(instructors||[]).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const list=(instructors||[]).slice().sort(byInstrName);
   return `<div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
     <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Partner portal access</div>
     <label style="font-weight:400;font-size:15px">Also one of my instructors</label>
     <select id="m-plinked" style="width:100%">
       <option value="">No — this partner does not teach</option>
-      ${list.map(i=>`<option value="${i.id}" ${i.id===linked?'selected':''}>${escapeHtml(i.name)}</option>`).join('')}
+      ${list.map(i=>`<option value="${i.id}" ${i.id===linked?'selected':''}>${escapeHtml(instrSortName(i.name))}</option>`).join('')}
     </select>
     <div style="font-size:14px;color:var(--muted);margin:4px 0 10px">Link them and they sign in with their existing instructor PIN. The Partnerships tab appears alongside their jobs.</div>
     <label style="font-weight:400;font-size:15px">Portal PIN (6 digits)</label>
@@ -4356,11 +4357,11 @@ function openEditSession(id){
       <select id="m-owner" onchange="toggleInstrSelect(this.value)"><option value="no" ${!s.ownerTaught?'selected':''}>Hired instructor</option><option value="yes" ${s.ownerTaught?'selected':''}>You are teaching</option></select></div>
     <div class="fg full" id="m-instr-wrap" style="margin-top:-4px;display:${s.ownerTaught?'none':'flex'}">
       <label>Pre-assign instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
-      <select id="m-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option>${instructors.map(i=>`<option value="${i.id}" ${(jobDataCache[s.id]||{}).instructorId===i.id?'selected':''}>${i.name}${instrEligMark(i,s.course)}</option>`).join('')}</select>
+      <select id="m-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option>${instructors.slice().sort(byInstrName).map(i=>`<option value="${i.id}" ${(jobDataCache[s.id]||{}).instructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}</option>`).join('')}</select>
     </div>
     <div class="fg full" id="m-instr2-wrap" style="margin-top:-4px">
       <label id="m-instr2-label">Second instructor <span style="font-weight:400;color:var(--muted)">(optional — for large classes needing two instructors)</span></label>
-      <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option>${instructors.map(i=>`<option value="${i.id}" ${s.secondInstructorId===i.id?'selected':''}>${i.name}${instrEligMark(i,s.course)}</option>`).join('')}</select>
+      <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option>${instructors.slice().sort(byInstrName).map(i=>`<option value="${i.id}" ${s.secondInstructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}</option>`).join('')}</select>
     </div>
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
@@ -5235,10 +5236,40 @@ function showToast(msg){
 }
 
 // ─── INSTRUCTORS ─────────────────────────────────────────────
+// ─── INSTRUCTOR NAME SORTING ─────────────────────────────────
+// Everywhere you have to FIND a person — the roster, the assignment dropdowns —
+// they are listed by last name. Suffixes and credentials are not surnames, so
+// "Katy Greenberg RN" still files under G. Multi-word surnames stay together:
+// "Ana de la Cruz" files under D, not C.
+const INSTR_SUFFIXES=new Set(['jr','jr.','sr','sr.','ii','iii','iv','v','md','rn','bsn','msn','np','phd','esq','esq.']);
+const INSTR_PREFIXES=new Set(['van','von','de','del','della','di','da','du','la','le','st','st.','mac','mc','bin','al','ben','ter','ten']);
+function splitName(full){
+  const parts=String(full||'').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length)return{first:'',last:''};
+  if(parts.length===1)return{first:'',last:parts[0]};
+  // Drop trailing suffixes and credentials before deciding what the surname is.
+  let end=parts.length-1;
+  while(end>0&&INSTR_SUFFIXES.has(parts[end].toLowerCase().replace(/,$/,'')))end--;
+  // Pull in particles that belong to the surname.
+  let start=end;
+  while(start>1&&INSTR_PREFIXES.has(parts[start-1].toLowerCase()))start--;
+  const last=parts.slice(start,end+1).join(' ');
+  const first=parts.slice(0,start).concat(parts.slice(end+1)).join(' ');
+  return{first,last};
+}
+// "Greenberg, Katy" — for lists and pickers.
+function instrSortName(full){
+  const{first,last}=splitName(full);
+  return first?last+', '+first:(last||String(full||''));
+}
+function instrSortKey(full){return instrSortName(full).toLowerCase();}
+function byInstrName(a,b){return instrSortKey(a&&a.name).localeCompare(instrSortKey(b&&b.name));}
+function sortInstructors(){instructors.sort(byInstrName);}
+
 function renderInstructors(){
   const t=document.getElementById('instructors-table');
   t.innerHTML=`<thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Zelle</th><th>Rate/hr</th><th>PIN</th><th>Training date</th><th>Sweatshirt</th><th>Jobs</th><th>Pending pay</th><th>Total paid</th><th></th></tr></thead><tbody>`+
-    (instructors.length?instructors.map(i=>{
+    (instructors.length?instructors.slice().sort(byInstrName).map(i=>{
       const myJobs=sessions.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.instructorId===i.id;});
       const paidAmt=myJobs.filter(s=>(jobDataCache[s.id]||{}).payStatus==='paid')
         .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
@@ -5425,6 +5456,7 @@ async function saveInstructor(editId){
     if(instructors.find(x=>x.pin===pin)){alert('That PIN is already in use.');return;}
     i={id:sid(),name,email:document.getElementById('m-iemail').value.trim(),phone:document.getElementById('m-iphone').value.trim(),zelle:document.getElementById('m-izelle').value.trim(),pin,hourlyRate:Number(document.getElementById('m-irate').value)||50,isRN:document.getElementById('m-isrn')?document.getElementById('m-isrn').checked:false,safeSitterCertified:(document.getElementById('m-issafesitter')&&document.getElementById('m-issafesitter').checked)?true:null,contractType:document.getElementById('m-icontract')?document.getElementById('m-icontract').value:'standard',createdAt:Date.now()};
     instructors.push(i);
+    sortInstructors();
   }
   try{
     let {error}=await sb.from('instructors').upsert(instructorToDB(i));
@@ -5628,7 +5660,7 @@ function renderJobs(){
     const c=COURSES[s.course]||{};
     const instrRate=instr?(instr.hourlyRate||INSTR_RATE):INSTR_RATE;
     const instrFee=instrDisplayFee(s,instr,jdi);
-    const instrOpts=instructors.map(i=>`<option value="${i.id}" ${jdi.instructorId===i.id?'selected':''}>${i.name}${instrEligMarkSession(i,s)}</option>`).join('');
+    const instrOpts=instructors.slice().sort(byInstrName).map(i=>`<option value="${i.id}" ${jdi.instructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMarkSession(i,s)}</option>`).join('');
     // Co-instructor display block (shown whether you teach or a primary instructor is hired).
     const secondInstrBlock=s.secondInstructorId?(()=>{const i2=instructors.find(x=>x.id===s.secondInstructorId);if(!i2)return'';const i2Fee=secondInstrDisplayFee(s,i2,jdi);const i2Paid=jdi.secondInstrPaid;const i2PayCtrl=i2Paid?`<div class="tag paid" style="margin-top:6px">✓ Paid via Zelle${jdi.secondInstrPayDate?' · '+jdi.secondInstrPayDate:''}</div> <button class="btn sm" style="margin-top:6px" onclick="toggleSecondInstrPaid('${s.id}')">Undo</button>`:`<button class="btn sm success" style="margin-top:6px" onclick="toggleSecondInstrPaid('${s.id}')">Mark second instructor paid</button>`;return`<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)"><div style="font-size:14px;font-weight:500;color:var(--sky);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">+ ${s.ownerTaught?'Co-instructor':'Second instructor'}</div><div style="font-weight:500;font-size:16px">${i2.name}</div><div style="font-size:14px;color:var(--muted);margin-top:2px">Zelle: ${i2.zelle||'not set'} · Fee: ${fmt(i2Fee)}</div>${i2PayCtrl}</div>`;})():'';
     return`<div class="job-card">
