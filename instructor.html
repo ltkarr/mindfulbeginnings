@@ -442,7 +442,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-09.3';
+const PORTAL_VERSION='v2026-09-09.4';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -1266,15 +1266,11 @@ function partnerTierCardHtml(d,cur){
   const costs=cur?(cur.monthCosts||0):0;
   const net=cur?(cur.monthNet!=null?cur.monthNet:gross-costs):0;
   return `<div class="info-card">
-    <div style="font-weight:500;font-size:15px;margin-bottom:4px">How you are paid</div>
-    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">A flat ${rate}% of the net revenue on every booking you originate. No tiers and no monthly thresholds, so a quiet month is never penalized and a busy one is never capped.</div>
+    <div style="font-weight:500;font-size:15px;margin-bottom:12px">How you are paid</div>
     ${cur?`<div class="info-row"><span>Collected revenue, ${pMonthLabel(cur.period)}</span><span>${fmt(gross)}</span></div>
     <div class="info-row"><span>Less direct costs of delivery</span><span>${costs?'−'+fmt(costs):fmt(0)}</span></div>
     <div class="info-row" style="font-weight:500"><span>Net revenue</span><span>${fmt(net)}</span></div>
     <div class="info-row" style="font-weight:500;font-size:16px"><span>Your ${rate}%</span><span>${fmt(cur.commission)}</span></div>`:''}
-    <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:14px;padding-top:12px;border-top:.5px solid var(--border)">
-      Direct costs mean what it took to deliver your booking: instructor pay, participant materials, and any costs entered on that specific job. Company overhead is not deducted, so insurance, software and the website never touch your number.
-    </div>
   </div>`;
 }
 
