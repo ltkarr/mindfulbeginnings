@@ -89,6 +89,7 @@ tr:hover td{background:#fafbfd}
 .tag.pending{background:#f0f0f0;color:#555}
 .tag.waitlist{background:#fff7e6;color:#b86a00}
 .tag.in_kind{background:#f3e8fb;color:#6D1ED4}
+.tag.cancelled{background:#f2f2f2;color:#8a8a8a}
 .btn{padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:white;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;cursor:pointer;font-weight:500;transition:all .15s;white-space:nowrap}
 .btn:hover{background:var(--cream);border-color:#c0c8d8}
 .btn.primary{background:var(--navy);color:white;border-color:transparent}
@@ -336,11 +337,12 @@ tr:hover td{background:#fafbfd}
         <select id="rf-session" onchange="renderRegs()"><option value="">All sessions</option></select>
         <select id="rf-status" onchange="renderRegs()">
           <option value="">All statuses</option>
-          <option value="paid">Paid</option><option value="pending">Pending</option><option value="unpaid">Unpaid</option><option value="host">Host (free)</option><option value="in_kind">In-kind (auction)</option><option value="waitlist">Waitlist</option>
+          <option value="paid">Paid</option><option value="pending">Pending</option><option value="unpaid">Unpaid</option><option value="host">Host (free)</option><option value="in_kind">In-kind (auction)</option><option value="waitlist">Waitlist</option><option value="cancelled">Cancelled</option>
         </select>
         <input type="text" id="rf-search" placeholder="Search name..." oninput="renderRegs()" style="width:160px">
       </div>
       <div id="reg-alerts"></div>
+      <div id="reg-cancelled-note"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="regs-table"></table></div></div>
     </div>
 
@@ -1316,7 +1318,7 @@ function calcFin(s){
     return{revenue:orgFee,grossRevenue:orgFee,procFee:0,matCost:0,instrFee:pay,extraCosts:extra,refPayout:0,referralBonus:0,totalCost:pay+extra,profit:orgFee-pay-extra,paidCount:0,totalCount:0};
   }
   const c=COURSES[s.course]||{price:0,franchise:0,booklet:0,hours:0};
-  const regs=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist');
+  const regs=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r));
   const paying=regs.filter(r=>r.payStatus==='paid');
   const nonHost=regs.filter(r=>r.payStatus!=='host');
   // Per-participant price: each paying student counts at their own custom price if one
@@ -2884,11 +2886,25 @@ function notesForPaymentStatus(payStatus, notes){
   return cleaned;
 }
 
-// Registrations within the selected year (waitlist entries excluded — they never paid).
+// ─── CANCELLED REGISTRATIONS ─────────────────────────────────
+// Cancelling a registration frees the seat but keeps the record, so a family who
+// pays later can be put straight back into the class. The status it held before is
+// stamped into notes as "[Cancelled Sep 10, 2026 · was unpaid]" so re-enrolling can
+// offer the same status back. Nothing is deleted — Delete stays for junk rows only.
+// The one-live-registration-per-student index ignores cancelled rows, so a family
+// re-registering themselves on register.html is not blocked by a cancelled seat.
+const CANCEL_REG_NOTE_RE=/\[Cancelled\s+[^\]·]*(?:·\s*was\s+([a-z_]+))?[^\]]*\]\s*/i;
+// The seat test used everywhere enrollment is counted: waitlist entries never held a
+// seat, cancelled ones gave theirs back.
+function isLiveReg(r){return !!r&&r.payStatus!=='waitlist'&&r.payStatus!=='cancelled';}
+function prevStatusFromNote(r){const m=CANCEL_REG_NOTE_RE.exec((r&&r.notes)||'');return (m&&m[1])?m[1]:'unpaid';}
+function stripCancelNote(notes){return (notes||'').replace(CANCEL_REG_NOTE_RE,'').replace(/\s{2,}/g,' ').trim();}
+
+// Registrations within the selected year (waitlist and cancelled entries excluded).
 function reportRegsInScope(){
   const yr=document.getElementById('rep-year')?.value||'all';
   return registrations.filter(r=>{
-    if(r.payStatus==='waitlist')return false;
+    if(!isLiveReg(r))return false;
     if(yr==='all')return true;
     const d=new Date(r.createdAt);
     return !isNaN(d)&&d.getFullYear().toString()===yr;
@@ -3115,7 +3131,7 @@ function renderDashboard(){
     if(d.getFullYear()===y&&d.getMonth()===m){mOH+=e.amount;mCost+=e.amount;}
   });
   mProfit=mRev-mCost;
-  const totRegs=registrations.length;
+  const totRegs=registrations.filter(r=>r.payStatus!=='cancelled').length;
   const unpaid=registrations.filter(r=>r.payStatus==='unpaid').length;
   document.getElementById('dash-metrics').innerHTML=`
     <div class="metric"><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub">${fmt(yRev)} year to date</div></div>
@@ -3166,7 +3182,7 @@ function renderDashboard(){
   const up=sessions.filter(s=>!s.isCancelled&&new Date(sessionEndDate(s)+'T12:00:00')>=new Date()).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
   const upEl=document.getElementById('upcoming-list');
   upEl.innerHTML=up.length?up.map(s=>{
-    const cnt=registrations.filter(r=>r.sessionId===s.id).length;
+    const cnt=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='cancelled').length;
     const d=fmtSessDate(s,{month:'short',day:'numeric'});
     return`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:16px">
       <div><span style="font-weight:500">${s.course}</span><br><span style="color:var(--muted);font-size:14px">${d} · ${s.location}</span>${s.isRecurring?'<br><span style="color:#1a5c8a;font-size:14px;font-weight:500">↻ '+recurLabel(s)+(s.time?' · '+s.time:'')+'</span>':''}<br><span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy" style="margin-top:4px">${s.code}</span></div>
@@ -3230,7 +3246,7 @@ function renderDashboard(){
         const sd0=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate());
         const dayDiff=Math.round((sd0-today0)/86400000);
         const d=sd.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-        const cnt=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist').length;
+        const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
         const jd=jobDataCache[s.id]||{};
         const hasInstr=!s.ownerTaught&&((jd.instructorId)||s.instructorId);
         const hasHost=s.hasHost!==false;
@@ -3280,7 +3296,7 @@ function renderDashboard(){
       const d=new Date(s.date+'T12:00:00');
       if(d<now)return false;
       const cap=sessionMaxStudents(s);
-      const filled=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist').length;
+      const filled=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
       return filled<Math.max(1,cap*0.5);
     }).sort((a,b)=>a.date.localeCompare(b.date));
     if(!needs.length){needsEl.innerHTML='';}
@@ -3289,7 +3305,7 @@ function renderDashboard(){
       const rows=shown.map(s=>{
         const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
         const cap=sessionMaxStudents(s);
-        const filled=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist').length;
+        const filled=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
         const empty=filled===0;
         const pct=Math.min(100,Math.round(filled/cap*100));
         const barColor=empty?'#c0392b':'#d98c2b';
@@ -4681,7 +4697,7 @@ async function cancelSession(id){
   const raw=prompt('Why is this session being cancelled?\n\nThis wording goes into the instructor and family emails, so keep it short and plain.','low enrollment');
   if(raw===null)return;
   const reason=(raw||'').trim()||'low enrollment';
-  const regs=registrations.filter(r=>r.sessionId===id&&r.payStatus!=='waitlist');
+  const regs=registrations.filter(r=>r.sessionId===id&&isLiveReg(r));
   const paid=regs.filter(r=>r.payStatus==='paid');
   const instrNames=sessionInstructorList(s).map(x=>x.name).join(' and ')||'no assigned instructor';
   // Both contractor agreements promise at least five days notice for a low-enrollment
@@ -4796,7 +4812,7 @@ function openCancellationEmails(sessId){
   const INSTR_BODY='Hi '+firstName+', I am writing to let you know that the '+s.course+' session scheduled for '+d+timeBit+' at '+where+' has been cancelled due to '+reason+'.'+(lowEnroll?' Enrollment did not reach the minimum required to run the course.':'')+' Please take this date off your calendar.'+contractLine+' The job has already been removed from your instructor portal, so there is nothing for you to do on your end. I will let you know as soon as another session in your area opens up. Thank you for holding the date, and I am sorry for the change. Warm regards, Lindsay Karr, Owner, Mindful Beginnings, 703-987-5979, lindsay@mindfulbeginnings.org';
 
   // ── Family notice ──
-  const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='waitlist');
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const famAddrs=regs.map(r=>(r.contact||'').split(' / ')[0].trim()).filter(x=>x.includes('@'));
   const paidRegs=regs.filter(r=>r.payStatus==='paid');
   const minLine=lowEnroll?' Mindful Beginnings requires a minimum enrollment of six students to run a course, and we did not reach that number for this date.':'';
@@ -4910,11 +4926,13 @@ function renderRegs(){
   const pf=document.getElementById('rf-status').value;
   const q=(document.getElementById('rf-search').value||'').toLowerCase();
   const selEl=document.getElementById('rf-session');const cur=selEl.value;
-  selEl.innerHTML='<option value="">All sessions</option>'+sessions.filter(s=>!s.isHold).sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const cnt=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist').length;const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});return`<option value="${s.id}">${s.course} — ${d} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
+  selEl.innerHTML='<option value="">All sessions</option>'+sessions.filter(s=>!s.isHold).sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});return`<option value="${s.id}">${s.course} — ${d} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
   selEl.value=cur;
   let list=registrations.filter(r=>{
     if(sf&&r.sessionId!==sf)return false;
     if(pf&&r.payStatus!==pf)return false;
+    // Cancelled rows sit out of the way until you pick the Cancelled filter.
+    if(!pf&&r.payStatus==='cancelled')return false;
     if(q&&!r.studentName.toLowerCase().includes(q)&&!(r.parentName||'').toLowerCase().includes(q))return false;
     return true;
   }).sort((a,b)=>regCreatedTime(b)-regCreatedTime(a));
@@ -4923,7 +4941,7 @@ function renderRegs(){
     (list.length?list.map(r=>{
       const s=sessions.find(x=>x.id===r.sessionId);
       const c=s?COURSES[s.course]:null;
-      const amt=r.payStatus==='paid'?(s?fmt(regEffectivePrice(r,s)):'—')+(isCustomStudentPrice(r,s)?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':''):r.payStatus==='host'?'Free':r.payStatus==='in_kind'?'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>':(r.pricePaid!=null?fmt(regEffectivePrice(r,s))+'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>':'—');
+      const amt=r.payStatus==='cancelled'?'<span style="color:var(--muted)">—</span>':r.payStatus==='paid'?(s?fmt(regEffectivePrice(r,s)):'—')+(isCustomStudentPrice(r,s)?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':''):r.payStatus==='host'?'Free':r.payStatus==='in_kind'?'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>':(r.pricePaid!=null?fmt(regEffectivePrice(r,s))+'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>':'—');
       const d=s?fmtSessDate(s,{month:'short',day:'numeric'}):'—';
       return`<tr>
         <td style="font-weight:500">${escapeHtml(r.studentName)}</td>
@@ -4935,13 +4953,21 @@ function renderRegs(){
         <td>${amt}</td>
         <td style="text-align:center">${r.photoConsent==='yes'?'<span style="color:var(--success)">✓ Yes</span>':r.photoConsent==='no'?'<span style="color:var(--muted)">✗ No</span>':'<span style="color:var(--muted)">—</span>'}</td>
         <td style="color:var(--muted);font-size:15px;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,r.notes))||'—'}</td>
-        <td><div class="btn-row">
+        <td><div class="btn-row">${r.payStatus==='cancelled'?`
+          <button class="btn sm success" onclick="reEnrollReg('${r.id}')">↩️ Re-enroll</button>
+          <button class="btn sm" onclick="openWaiverDoc('${r.id}')">📄 Waiver</button>
+          <button class="btn sm danger" onclick="deleteReg('${r.id}')">Delete</button>`:`
           ${r.payStatus==='in_kind'?'':`<button class="btn sm ${r.payStatus==='paid'?'':'success'}" onclick="togglePaid('${r.id}')">${r.payStatus==='paid'?'Mark unpaid':'Mark paid'}</button>`}
           <button class="btn sm" onclick="openWaiverDoc('${r.id}')">📄 Waiver</button>
           <button class="btn sm" onclick="openEditReg('${r.id}')">Edit</button>
-          <button class="btn sm danger" onclick="deleteReg('${r.id}')">Remove</button>
+          <button class="btn sm danger" onclick="cancelReg('${r.id}')">Cancel</button>`}
         </div></td></tr>`;
     }).join(''):`<tr class="empty-row"><td colspan="10">No registrations found.</td></tr>`)+'</tbody>';
+  const cxEl=document.getElementById('reg-cancelled-note');
+  if(cxEl){
+    const hidden=pf?0:registrations.filter(r=>r.payStatus==='cancelled'&&(!sf||r.sessionId===sf)).length;
+    cxEl.innerHTML=hidden?`<div style="font-size:15px;color:var(--muted);margin-bottom:10px">${hidden} cancelled registration${hidden>1?'s':''} not shown. <span onclick="showCancelledRegs()" style="color:var(--sky);font-weight:500;cursor:pointer;text-decoration:underline">Show them</span></div>`:'';
+  }
   renderRegAlerts();
 }
 
@@ -4964,7 +4990,7 @@ function renderRegAlerts(){
   if(stale.length){
     html+=`<div class="card" style="padding:14px 16px;border-left:3px solid var(--warn);margin-bottom:12px">
       <div style="font-weight:600;color:var(--warn);margin-bottom:6px">⏳ ${stale.length} pending payment${stale.length>1?'s':''} older than 48 hours</div>
-      <div style="font-size:15.5px;color:var(--muted);margin-bottom:6px">These reserved a spot by Venmo or Zelle but were never confirmed paid. Confirm the payment then Mark paid, or remove the spot if it never arrived.</div>`;
+      <div style="font-size:15.5px;color:var(--muted);margin-bottom:6px">These reserved a spot by Venmo or Zelle but were never confirmed paid. Confirm the payment then Mark paid, or cancel the spot if the money never arrived — cancelling frees the seat and keeps the family on file, so you can re-enroll them if they turn up and pay.</div>`;
     stale.forEach(r=>{
       const s=sessions.find(x=>x.id===r.sessionId);
       const days=Math.floor((now-(r.createdAt||now))/DAY);
@@ -4973,7 +4999,7 @@ function renderRegAlerts(){
         <span style="font-size:14.5px;color:var(--muted)">${escapeHtml(r.contact||'')}</span></div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button class="btn sm success" onclick="togglePaid('${r.id}')">Mark paid</button>
-          <button class="btn sm danger" onclick="deleteReg('${r.id}')">Remove</button>
+          <button class="btn sm danger" onclick="cancelReg('${r.id}')">Cancel spot</button>
         </div></div>`;
     });
     html+='</div>';
@@ -5074,9 +5100,82 @@ async function saveEditReg(id){
   }).eq('id',id),'Registration edit');
 }
 
+// Jump the table to the cancelled list.
+function showCancelledRegs(){
+  const el=document.getElementById('rf-status');
+  if(!el)return;
+  el.value='cancelled';
+  renderRegs();
+}
+
+// Cancel a registration: the seat is freed immediately, the record stays.
+async function cancelReg(id){
+  const r=registrations.find(x=>x.id===id);if(!r)return;
+  if(r.payStatus==='cancelled'){showToast('That registration is already cancelled.');return;}
+  const paidLike=r.payStatus==='paid'||r.payStatus==='in_kind';
+  const reason=prompt('Cancel this registration?\n\nThe seat opens back up right away and '+(r.studentName||'the student')+' moves to your Cancelled list, so you can re-enroll them later if they pay.'+(paidLike?'\n\nHeads up: this one is marked '+(r.payStatus==='paid'?'paid':'in-kind')+', so cancelling takes it out of your revenue numbers. Refund the family separately.':'')+'\n\nShort reason (optional):','');
+  if(reason===null)return;
+  const prev={payStatus:r.payStatus,notes:r.notes};
+  const stamp=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const tag='[Cancelled '+stamp+' · was '+(r.payStatus||'unpaid')+(reason.trim()?' — '+reason.trim():'')+']';
+  r.payStatus='cancelled';
+  r.notes=(tag+' '+stripCancelNote(prev.notes)).trim();
+  renderRegs();renderDashboard();
+  const ok=await dbWrite(sb.from('registrations').update({pay_status:'cancelled',notes:r.notes}).eq('id',id),'Cancel registration');
+  if(ok===false){r.payStatus=prev.payStatus;r.notes=prev.notes;renderRegs();renderDashboard();return;}
+  showToast('Registration cancelled. Find it under the Cancelled filter if you need to re-enroll.');
+}
+
+// Put a cancelled registration back in the class, with whatever status now applies.
+function reEnrollReg(id){
+  const r=registrations.find(x=>x.id===id);if(!r)return;
+  const s=sessions.find(x=>x.id===r.sessionId);
+  const prev=prevStatusFromNote(r);
+  const filled=s?registrations.filter(x=>x.sessionId===s.id&&isLiveReg(x)).length:0;
+  const cap=s?sessionMaxStudents(s):0;
+  const warns=[];
+  if(s&&s.isCancelled)warns.push('This session is cancelled, so the class is not running. Move the student to a different session on the Edit screen instead.');
+  if(s&&cap&&filled>=cap)warns.push('This session is already full at '+filled+' of '+cap+'. Re-enrolling puts it at '+(filled+1)+' — or bring them back on the waitlist instead.');
+  const opt=(v,label)=>`<option value="${v}" ${prev===v?'selected':''}>${label}</option>`;
+  showModal(`<div class="modal-head"><h3>Re-enroll ${escapeHtml(r.studentName||'student')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">
+    <div style="font-size:16px;color:var(--muted);margin-bottom:14px">${s?escapeHtml(s.course)+' · '+fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Session not found'}${s?' · '+filled+' of '+cap+' seats filled':''}</div>
+    ${warns.map(w=>`<div class="card" style="padding:11px 13px;border-left:3px solid var(--warn);margin-bottom:12px;font-size:15.5px">⚠️ ${w}</div>`).join('')}
+    <div class="form-grid">
+      <div class="fg full"><label>Bring them back as</label><select id="m-restat" style="width:100%">
+        ${opt('paid','Paid')}
+        ${opt('unpaid','Unpaid')}
+        ${opt('pending','Pending payment')}
+        ${opt('host','Host (free)')}
+        ${opt('in_kind','In-kind donation (auction)')}
+        ${opt('waitlist','Waitlist (no seat)')}
+      </select></div>
+    </div>
+    <div style="font-size:15px;color:var(--muted);margin-top:10px">The cancellation note is cleared and the student goes back on the roster and headcount.</div>
+  </div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Never mind</button><button class="btn primary" onclick="saveReEnroll('${id}')">Re-enroll</button></div>`);
+}
+
+async function saveReEnroll(id){
+  const r=registrations.find(x=>x.id===id);if(!r)return;
+  const status=document.getElementById('m-restat').value||'unpaid';
+  const prev={payStatus:r.payStatus,notes:r.notes};
+  const stamp=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  r.payStatus=status;
+  r.notes=('[Re-enrolled '+stamp+'] '+stripCancelNote(prev.notes)).trim();
+  ensureInKindTag(r);
+  r.notes=notesForPaymentStatus(r.payStatus,r.notes);
+  closeModal();renderRegs();renderDashboard();
+  const ok=await dbWrite(sb.from('registrations').update({pay_status:r.payStatus,notes:r.notes}).eq('id',id),'Re-enroll registration');
+  if(ok===false){r.payStatus=prev.payStatus;r.notes=prev.notes;renderRegs();renderDashboard();return;}
+  showToast((r.studentName||'Student')+' is back in the class.');
+}
+
+// Hard delete. Only for junk rows — duplicates, test entries. Cancel is the reversible one.
 async function deleteReg(id){
-  if(!confirm('Remove this registration?'))return;
-  registrations=registrations.filter(r=>r.id!==id);
+  const r=registrations.find(x=>x.id===id);
+  if(!confirm('Delete this registration for good?\n\nThis erases the record, including the signed waiver. If you only want to free the seat, use Cancel instead — that keeps everything and lets you re-enroll them later.'))return;
+  registrations=registrations.filter(x=>x.id!==id);
   renderRegs();renderDashboard();
   dbWrite(sb.from('registrations').delete().eq('id',id),'Registration delete');
 }
@@ -5153,7 +5252,7 @@ function renderCodes(){
   el.innerHTML=list.map(s=>{
     const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
     const link=REG_PAGE+'?code='+s.code;
-    const cnt=registrations.filter(r=>r.sessionId===s.id).length;
+    const cnt=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='cancelled').length;
     const c=COURSES[s.course]||{};
     return`<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -5855,7 +5954,7 @@ function openWrapup(sessId){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   const jdi=jobDataCache[sessId];
   const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-  const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='waitlist');
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact);
   const emailList=emails.length?`<div style="margin-top:8px;background:var(--cream);border-radius:var(--r-sm);padding:8px 12px;font-size:14px;color:var(--muted);word-break:break-all">${emails.join('; ')}</div>`:'';
   function chk(id,checked,disabled,onchange){
@@ -6006,7 +6105,7 @@ function markOwnerTaughtFromWrap(sessId){
 // (opens a compose window in the browser) or your computer's default mail app.
 function emailClass(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
-  const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='waitlist');
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
   if(!emails.length){alert('No participant email addresses are on file for this session yet.');return;}
   const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
@@ -6149,7 +6248,7 @@ function emailOpenJobs(){
 function openPostCourseEmail(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='waitlist');
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
   const bccList=emails.join('; ')||'(no emails on file)';
 
@@ -6249,7 +6348,7 @@ function openClassReminder(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'To be confirmed';
   const dateTime=d+(s.time?', '+s.time:'');
-  const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='waitlist');
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
   const bccList=emails.join('; ')||'(no emails on file)';
 
@@ -6942,7 +7041,7 @@ function downloadAllWaivers(){
   // Honors the session filter if one is selected; otherwise includes every signed waiver.
   const sfEl=document.getElementById('rf-session');
   const sf=sfEl?sfEl.value:'';
-  let list=registrations.filter(r=>(r.signature||'').trim()&&r.waiverSigned!==false);
+  let list=registrations.filter(r=>(r.signature||'').trim()&&r.waiverSigned!==false&&r.payStatus!=='cancelled');
   if(sf)list=list.filter(r=>r.sessionId===sf);
   list.sort((a,b)=>{
     const sa=sessions.find(x=>x.id===a.sessionId),sb=sessions.find(x=>x.id===b.sessionId);
@@ -7838,7 +7937,7 @@ function invoiceLineFor(s){
     const amt=s.priceOverride!=null?Number(s.priceOverride):0;
     return{sessionId:s.id,date:s.date,desc:s.course,qty:null,rate:null,amount:amt,flat:true};
   }
-  const qty=s.billedHeadcount!=null?Number(s.billedHeadcount):registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist').length;
+  const qty=s.billedHeadcount!=null?Number(s.billedHeadcount):registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
   const rate=s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
   return{sessionId:s.id,date:s.date,desc:s.course,qty,rate,amount:qty*rate,flat:false};
 }
@@ -8122,7 +8221,7 @@ function openInvoiceDoc(id){
 
 function openRoster(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
-  const regs=registrations.filter(r=>r.sessionId===sessId).sort((a,b)=>a.studentName.localeCompare(b.studentName));
+  const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='cancelled').sort((a,b)=>a.studentName.localeCompare(b.studentName));
   const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const dFile=fmtSessDate(s,{month:'long',day:'numeric',year:'numeric'});
   const rosterTitle='Roster - '+dFile;
@@ -8797,7 +8896,7 @@ function printSessionReport(){
     if(!list.length)return'<tr><td colspan="9" style="text-align:center;padding:16px;color:#aaa;font-style:italic">No sessions</td></tr>';
     return list.map((s,i)=>{
       const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-      const regs=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist');
+      const regs=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r));
       const max=sessionMaxStudents(s);
       const instr=sessionInstructorNames(s,'TBD');
       const f=calcFin(s);
@@ -8844,7 +8943,7 @@ function printSessionReport(){
   const listProfit=list.reduce((sum,s)=>sum+calcFin(s).profit,0);
   const listCost=list.reduce((sum,s)=>sum+calcFin(s).totalCost,0);
   const fmtMoney=n=>(n<0?'-$'+Math.abs(n).toFixed(2):'$'+n.toFixed(2));
-  const listStudents=list.reduce((sum,s)=>sum+registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='waitlist').length,0);
+  const listStudents=list.reduce((sum,s)=>sum+registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length,0);
 
   const html=`<!DOCTYPE html><html><head><title>${reportTitle} — Mindful Beginnings</title>
   <style>
@@ -8900,7 +8999,7 @@ function openHostReminder(sessId){
   const dFile=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
   const rosterTitle='Roster - '+dFile;
   const instr=(()=>{const list=sessionInstructorList(s);return list.length?list.map(x=>x.name.replace(' (owner)','')).join(' and '):'your instructor';})();
-  const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='waitlist').sort((a,b)=>a.studentName.localeCompare(b.studentName));
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r)).sort((a,b)=>a.studentName.localeCompare(b.studentName));
   const studentCount=regs.length;
   const firstName=s.contactName?s.contactName.split(' ')[0]:'';
   const greeting=firstName?`Hi ${firstName},`:'Hi there,';
@@ -9021,7 +9120,7 @@ function openInstructorReminder(sessId,specificInstrId){
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
   const dFile=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
   const rosterTitle='Roster - '+dFile;
-  const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='waitlist');
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const studentCount=regs.length;
   const firstName=instr.name?instr.name.split(' ')[0]:'there';
 
