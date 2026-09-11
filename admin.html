@@ -2334,7 +2334,6 @@ function renderPartners(){
 function partnerCardHtml(p,st){
   const paid=!!(st.payout&&st.payout.paidDate);
   const lt=partnerLifetime(p.id);
-  const pct=st.nextTier?Math.max(0,Math.min(100,(st.monthTotal/st.nextTier.min)*100)):100;
   const kind=partnerPeriodKind(st.period);
   const pendingRows=(kind==='payable'||kind==='past')?(st.pending||[]):(st.pendingThisPeriod||st.pending||[]);
   const pendingRev=round2(pendingRows.reduce((a,x)=>a+x.amount,0));
@@ -2383,10 +2382,7 @@ function partnerCardHtml(p,st){
 
     <div class="metrics" style="margin-bottom:16px">
       <div class="metric"><div class="m-label">Collected revenue</div><div class="m-val">${fmt(st.monthTotal)}</div><div class="m-sub">Originated in ${periodLabel(st.period)}</div></div>
-      <div class="metric"><div class="m-label">Tier reached</div><div class="m-val" style="font-size:23px">${st.tier.name}</div><div class="m-sub">${st.tier.label} — ${Math.round(st.tier.rate*100)}% on the whole month</div></div>
-      <div class="metric"><div class="m-label">${st.nextTier?'To reach '+st.nextTier.name:'Top tier'}</div><div class="m-val" style="font-size:23px">${st.nextTier?fmt(st.toNextTier):'—'}</div>
-        <div style="height:5px;background:var(--border);border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--sky)"></div></div>
-        <div class="m-sub">${st.nextTier?'more would lift the whole month to '+Math.round(st.nextTier.rate*100)+'%':'Premier Partner — 25%'}</div></div>
+      <div class="metric"><div class="m-label">Commission rate</div><div class="m-val" style="font-size:23px">${Math.round(st.tier.rate*100)}%</div><div class="m-sub">Flat rate on net — originated or referred (§3.A)</div></div>
       <div class="metric"><div class="m-label">Commission</div><div class="m-val">${fmt(st.commission)}</div><div class="m-sub">${st.bonusTotal?'+ '+fmt(st.bonusTotal)+' in bonuses':'No bonuses this month'}</div></div>
       <div class="metric"><div class="m-label">${paid?'Paid':'Total due'}</div><div class="m-val ${paid?'green':''}">${fmt(paid?st.payout.amount:st.total)}</div><div class="m-sub">${dueSub}</div></div>
     </div>
