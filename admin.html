@@ -276,7 +276,7 @@ tr:hover td{background:#fafbfd}
       <div id="needs-regs" style="margin-bottom:16px"></div>
       <div class="two-col">
         <div class="card">
-          <div class="card-title">Revenue by month</div>
+          <div class="card-title" title="Session operating figures only — partner commission and overhead are on the Finances tab">Revenue by month</div>
           <div id="monthly-chart"></div>
           <div class="chart-legend">
             <span><span class="legend-dot" style="background:#2d7a5e"></span>Kept (profit)</span>
@@ -468,7 +468,7 @@ tr:hover td{background:#fafbfd}
 
     <div class="screen" id="screen-reports">
       <div class="page-header">
-        <div><div class="page-title">Reports</div><div class="page-sub">How families find you, referral payouts, in-kind donations, and discount code usage</div></div>
+        <div><div class="page-title">Reports</div><div class="page-sub">How families find you, partner referrals, in-kind donations, and discount code usage</div></div>
         <select id="rep-year" onchange="renderReports()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
       </div>
 
@@ -480,11 +480,13 @@ tr:hover td{background:#fafbfd}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="referral-table"></table></div></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:14px">
-        <div><div class="page-title" style="font-size:23px">Referral payouts ($25 each)</div><div class="page-sub">Families who named the person who referred them. Pay each referrer $25, then check it off.</div></div>
-        <button class="btn" onclick="exportReferralPayoutCSV()">⬇ Download CSV</button>
+        <div><div class="page-title" style="font-size:23px">Partner referrals</div><div class="page-sub">Families who named one of your community partners on the registration form. Commission is the same flat rate as an originated booking, on that child&rsquo;s revenue after processing fees, their materials and their share of instructor pay.</div></div>
+        <button class="btn" onclick="exportPartnerReferralCSV()">⬇ Download CSV</button>
       </div>
-      <div class="metrics" id="rep-payout-metrics"></div>
-      <div class="card" style="padding:0"><div class="tbl-wrap"><table id="referral-payout-table"></table></div></div>
+      <div class="metrics" id="rep-partner-ref-metrics"></div>
+      <div class="card" style="padding:0"><div class="tbl-wrap"><table id="partner-ref-table"></table></div></div>
+      <div class="card" style="padding:0;margin-top:12px"><div class="tbl-wrap"><table id="partner-ref-detail"></table></div></div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-top:10px;max-width:760px">Net is what the family paid, less the PayPal or Venmo fee, less that child&rsquo;s handbook and materials, less their share of the instructor fee and any job costs on that session. The instructor share is split across the families who have <em>paid</em>, so mark a roster up to date before you run a statement &mdash; with half the class still showing unpaid, the one child you are looking at carries more of the instructor than they should. Nothing is payable until the money has landed and the class has been taught, and commission never goes below zero.</div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:14px">
         <div><div class="page-title" style="font-size:23px">In-kind donations (auction prizes)</div><div class="page-sub">Free classes given as auction prizes, recorded at their retail value as in-kind donations</div></div>
@@ -1363,12 +1365,13 @@ function calcFin(s){
     },0);
   }
   const extraCosts=(s.additionalCosts||[]).reduce((sum,x)=>sum+Number(x.amount||0),0);
-  // Family referral payouts ($25 default each, editable; $0 = not paid out) are a real
-  // cost of whichever session the referred family registered for, so they reduce its profit.
-  const refPayout=regs.reduce((sum,r)=>sum+referralPayoutAmount(r),0);
+  // The $25 family referral payout is retired. Naming a referrer is information only
+  // — it tells you who sent the family — and costs the session nothing. refPayout stays
+  // in the return as 0 so every screen that reads it keeps working.
+  const refPayout=0;
   const referralBonus=(jobDataCache[s.id]||{}).referralBonus||0;
-  const totalCost=matCost+instrFee+extraCosts+refPayout+referralBonus;
-  return{revenue,grossRevenue,procFee,matCost,instrFee,extraCosts:extraCosts+refPayout,refPayout,referralBonus,totalCost,profit:revenue-totalCost,paidCount:paying.length,totalCount:regs.length};
+  const totalCost=matCost+instrFee+extraCosts+referralBonus;
+  return{revenue,grossRevenue,procFee,matCost,instrFee,extraCosts,refPayout,referralBonus,totalCost,profit:revenue-totalCost,paidCount:paying.length,totalCount:regs.length};
 }
 
 // ─── PER-SESSION HELPERS ─────────────────────────────────────
@@ -1544,7 +1547,12 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 // on NET revenue. The monthly volume ladder, and the organizational accelerator
 // that sat on top of it, are both retired. The single-entry list below keeps the
 // rest of the engine and every screen working unchanged.
-const PARTNER_FLAT_RATE=0.20;      // §3.A — 20% of Net Originated Revenue
+// Amended again: the same flat rate also applies to a single family the partner
+// refers into a class she did not originate. There, the 20% is taken on that one
+// registration's net — what the family paid, less the processing fee, less that
+// child's materials and their share of the instructor and job costs — not on the
+// whole room. See partnerBookingUnits().
+const PARTNER_FLAT_RATE=0.20;      // §3.A — 20% of net, originated or referred
 const PARTNER_TIERS=[
   {min:0, max:Infinity, rate:PARTNER_FLAT_RATE, name:'Flat rate', label:'20% of net'}
 ];
@@ -1755,6 +1763,50 @@ function partnerRevenueEvents(s){
   return partnerAttachCosts(s,out);
 }
 
+// ─── WHAT COUNTS AS "HERS" ────────────────────────────
+// Two ways a partner earns on a booking:
+//
+//   ORIGINATED — she brought you the whole class. You set her as "Originated by"
+//     on the session, and every dollar the session collects is hers to earn on.
+//
+//   REFERRED — she sent you one family, who found a class you were already running
+//     and named her under "how did you hear about us". Only that family's money is
+//     hers to earn on, not the rest of the room.
+//
+// Both are paid at the same flat 20% of NET (§3.A), so they run through the same
+// engine. partnerRevenueEvents has already deducted the processing fee from each
+// family's payment and spread the session's direct costs — instructor pay, per-student
+// handbooks and materials, and any job costs you entered — across its revenue lines in
+// proportion to size. So one referred child in a class of eight carries their own
+// handbook plus their share of the instructor, and the commission is 20% of what is
+// left. If a session is BOTH originated and referred, origination wins and the whole
+// session counts once — never twice.
+function partnerBookingUnits(partnerId){
+  const referredIds={};
+  (registrations||[]).forEach(r=>{
+    const q=referralPartner(r);
+    if(q&&q.id===partnerId)(referredIds[r.sessionId]=referredIds[r.sessionId]||[]).push(r.id);
+  });
+  const units=[];
+  (sessions||[]).forEach(sx=>{
+    if(sx.isHold)return;
+    if(sx.originatedBy===partnerId){
+      units.push({session:sx,events:partnerRevenueEvents(sx),isReferral:false,refNames:[]});
+      return;
+    }
+    const ids=referredIds[sx.id];
+    if(!ids||!ids.length)return;
+    const evs=partnerRevenueEvents(sx).filter(e=>e.kind==='family'&&ids.indexOf(e.regId)>=0);
+    if(!evs.length)return;
+    const names=ids.map(id=>{
+      const r=(registrations||[]).find(x=>x.id===id);
+      return r?(r.studentName||r.parentName||''):'';
+    }).filter(Boolean);
+    units.push({session:sx,events:evs,isReferral:true,refNames:names});
+  });
+  return units;
+}
+
 // First time each client party ever paid Mindful Beginnings anything, looking at
 // EVERY session in the system rather than only this partner's. That is what makes
 // the $50 bonus (§3.C) genuinely "new partner" money: an organization you were
@@ -1810,8 +1862,46 @@ function applyPartnerRowRates(rows,monthTotal,cfg){
     // negative one; she is never charged for a job that lost money.
     const base=Math.max(0,Number(r.net!=null?r.net:r.collected)||0);
     r.rate=rate;r.commission=round2(base*rate);
-    r.reason=`${Math.round(rate*100)}% of ${fmtPlain(base)} net (${fmtPlain(Number(r.collected)||0)} collected less ${fmtPlain(Number(r.costs)||0)} direct costs)`;
+    r.reason=`${Math.round(rate*100)}% of ${fmtPlain(base)} net (${fmtPlain(Number(r.collected)||0)} collected less ${fmtPlain(Number(r.costs)||0)} direct costs)`
+      +(r.isReferral?' — referred family, this registration only':'');
   });
+}
+
+// ─── COMMISSION AS AN EXPENSE ────────────────────────────────
+// Partner commission is a real cost of doing business, so the Finances tab has to
+// see it. It cannot live inside calcFin: partnerDirectCosts() calls calcFin() to
+// work out what a session costs to deliver, and commission is a percentage of what
+// is left after that. Putting it in calcFin would make the two call each other
+// forever. So it is computed here, separately, and added at the monthly roll-up.
+//
+// The month a commission lands in is the month it was EARNED — money received and
+// class taught, whichever came later — which is the same month it appears on her
+// statement and gets paid by the 10th of the month after. A month already paid out
+// is frozen at the amount actually sent.
+let _commCache=null;
+function invalidateCommissionCache(){_commCache=null;}
+function partnerCommissionByMonth(){
+  if(_commCache)return _commCache;
+  const out={};
+  (partners||[]).forEach(pt=>{
+    partnerPeriods(pt.id).forEach(per=>{
+      const st=partnerStatement(pt.id,per);
+      const amt=(st.payout&&st.payout.paidDate)?Number(st.payout.amount||0):Number(st.total||0);
+      if(amt)out[per]=round2((out[per]||0)+amt);
+    });
+  });
+  _commCache=out;
+  return out;
+}
+// Commission earned in one calendar year, month by month (index 0-11).
+function partnerCommissionMonths(year){
+  const by=partnerCommissionByMonth();
+  const arr=new Array(12).fill(0);
+  Object.keys(by).forEach(k=>{
+    const y=parseInt(k.slice(0,4),10),m=parseInt(k.slice(5,7),10)-1;
+    if(y===year&&m>=0&&m<12)arr[m]=round2(arr[m]+by[k]);
+  });
+  return arr;
 }
 
 // ─── THE STATEMENT ───────────────────────────────────────────
@@ -1819,12 +1909,15 @@ function applyPartnerRowRates(rows,monthTotal,cfg){
 // every rate shown so you can answer "why this number?" from the screen.
 function partnerStatement(partnerId,period){
   const cfg=partnerSettings();
-  const mine=(sessions||[]).filter(s=>s.originatedBy===partnerId&&!s.isHold);
+  const mine=partnerBookingUnits(partnerId);
   const firstPaid=partyFirstPaidIndex();
 
   const rowsByMonth={},pending=[];
-  mine.forEach(s=>{
-    const evs=partnerRevenueEvents(s);
+  mine.forEach(unit=>{
+    const s=unit.session;
+    const isRef=!!unit.isReferral;
+    const refLabel=unit.refNames&&unit.refNames.length?unit.refNames.join(', '):'referred family';
+    const evs=unit.events;
     const uncollected=evs.filter(e=>!e.collected);
     if(uncollected.length){
       // Say which of the two conditions is actually holding it up, so the answer to
@@ -1836,6 +1929,7 @@ function partnerStatement(partnerId,period){
       if(noMoney&&notTaught)reason='Class has not been taught yet ('+endLbl+'), and '+(sessionIsOrgBooking(s)?'the organization invoice is not marked paid':'some registrations are not marked paid');
       else if(notTaught)reason='Paid in full — waiting on the class itself ('+endLbl+')';
       else reason=sessionIsOrgBooking(s)?'Waiting on the organization invoice to be marked paid':'Registrations not marked paid';
+      if(isRef)reason='Referred family — '+reason.charAt(0).toLowerCase()+reason.slice(1);
       const key=bookingPartyKey(s);
       const first=firstPaid[key];
       const projectedDate=partnerPendingProjectedDate(s,uncollected);
@@ -1847,8 +1941,8 @@ function partnerStatement(partnerId,period){
         costs:round2(uncollected.reduce((a,e)=>a+(e.cost||0),0)),
         net:round2(uncollected.reduce((a,e)=>a+(e.net||0),0)),
         familyCount:uncollected.filter(e=>e.kind==='family').length,
-        reason,notTaught,
-        isOrg:sessionIsOrgBooking(s),org:sessionOrgName(s),
+        reason,notTaught,isReferral:isRef,refLabel,
+        isOrg:isRef?false:sessionIsOrgBooking(s),org:isRef?'':sessionOrgName(s),
         isRepeat:!!(first&&first.sessionId!==s.id),
         partyKey:key,estBonus:0,
         projectedDate,projectedMonth:(projectedDate||'').slice(0,7)
@@ -1871,7 +1965,8 @@ function partnerStatement(partnerId,period){
         costs:round2(inMonth.reduce((a,r)=>a+(r.cost||0),0)),
         net:round2(inMonth.reduce((a,r)=>a+(r.net||0),0)),
         familyCount:inMonth.filter(e=>e.kind==='family').length,
-        isOrg:sessionIsOrgBooking(s),org:sessionOrgName(s),
+        isReferral:isRef,refLabel,
+        isOrg:isRef?false:sessionIsOrgBooking(s),org:isRef?'':sessionOrgName(s),
         isRepeat,firstCollectedOn:earliest,partyKey:key,accelerated:false
       });
     });
@@ -1970,8 +2065,8 @@ function fmtPlain(n){
 // all-time totals and keeps older statements reachable from the month picker.
 function partnerPeriods(partnerId){
   const set=new Set();
-  (sessions||[]).filter(s=>s.originatedBy===partnerId&&!s.isHold).forEach(s=>{
-    partnerRevenueEvents(s).forEach(e=>{if(e.collected&&e.month)set.add(e.month);});
+  partnerBookingUnits(partnerId).forEach(u=>{
+    u.events.forEach(e=>{if(e.collected&&e.month)set.add(e.month);});
   });
   (partnerPayouts||[]).filter(p=>p.partnerId===partnerId).forEach(p=>set.add(p.period));
   return[...set].sort().reverse();
@@ -2224,7 +2319,7 @@ function renderPartners(){
   if(!partners.length){
     bodyEl.innerHTML=`<div class="card" style="text-align:center;padding:44px 22px">
       <div style="font-size:18px;font-weight:500;margin-bottom:6px">No community partners yet</div>
-      <div style="color:var(--muted);font-size:16px;max-width:460px;margin:0 auto 18px">Add your first Community Partnerships Liaison, then pick them under "Originated by" on any session they brought you. Everything on this page fills in from there.</div>
+      <div style="color:var(--muted);font-size:16px;max-width:460px;margin:0 auto 18px">Add your first Community Partnerships Liaison, then pick them under "Originated by" on any session they brought you. Families who name them on the registration form are picked up automatically. Everything on this page fills in from there.</div>
       <button class="btn primary" onclick="openAddPartner()">+ Add partner</button>
     </div>`;
     return;
@@ -2383,14 +2478,16 @@ function partnerPortalPeriods(partnerId){
 // One statement row, stripped down to what a partner is entitled to see.
 function portalRow(r){
   return{date:(r.session&&r.session.date)||'',course:(r.session&&r.session.course)||'',
-    client:r.org||(r.session&&r.session.contactName)||'',isOrg:!!r.isOrg,
+    client:r.isReferral?'Referred family':(r.org||(r.session&&r.session.contactName)||''),
+    isOrg:!!r.isOrg,isReferral:!!r.isReferral,
     familyCount:r.familyCount||0,collected:r.collected||0,
     costs:r.costs||0,net:r.net!=null?r.net:(r.collected||0),rate:r.rate||0,
     reason:r.reason||'',commission:r.commission||0,accelerated:!!r.accelerated};
 }
 function portalPending(x){
   return{date:(x.session&&x.session.date)||'',course:(x.session&&x.session.course)||'',
-    client:x.org||(x.session&&x.session.contactName)||'',isOrg:!!x.isOrg,
+    client:x.isReferral?'Referred family':(x.org||(x.session&&x.session.contactName)||''),
+    isOrg:!!x.isOrg,isReferral:!!x.isReferral,
     amount:x.amount||0,costs:x.costs||0,net:x.net!=null?x.net:(x.amount||0),
     reason:x.reason||'',estRate:x.estRate==null?null:x.estRate,
     estCommission:x.estCommission||0,estBonus:x.estBonus||0,
@@ -2610,9 +2707,11 @@ async function savePartner(editId){
 async function deletePartner(id){
   const p=partnerById(id);if(!p)return;
   const credited=sessions.filter(s=>s.originatedBy===id).length;
+  const referred=(registrations||[]).filter(r=>{const q=referralPartner(r);return q&&q.id===id;}).length;
   const paidOut=partnerPayouts.filter(x=>x.partnerId===id&&x.paidDate).length;
   let msg='Remove '+p.name+' from your partners?';
   if(credited)msg+='\n\n'+credited+' session'+(credited===1?'':'s')+' credited to them will lose that credit, and any commission history on this page will disappear with it.';
+  if(referred)msg+='\n'+referred+' registration'+(referred===1?'':'s')+' that named them will stop earning referral commission.';
   if(paidOut)msg+='\n'+paidOut+' recorded payout'+(paidOut===1?'':'s')+' will also be deleted.';
   msg+='\n\nIf the agreement simply ended, set their status to Inactive instead — that keeps the record intact.';
   if(!confirm(msg))return;
@@ -2673,7 +2772,9 @@ function openPartnerStatement(partnerId){
   const lines=st.rows.map(r=>`<tr>
       <td>${fmtShortDate(r.firstCollectedOn)}</td>
       <td>${escapeHtml(r.session.course)}</td>
-      <td>${escapeHtml(r.isOrg?r.org:(r.session.contactName?'Private home class — '+r.session.contactName:'Private home class'))}${r.isRepeat?' <span style="color:#6b7a99;font-size:14px">(repeat)</span>':''}</td>
+      <td>${r.isReferral
+        ?'<span style="color:#6b7a99;font-size:14px">Referral —</span> '+escapeHtml(r.refLabel||'referred family')
+        :escapeHtml(r.isOrg?r.org:(r.session.contactName?'Private home class — '+r.session.contactName:'Private home class'))}${r.isRepeat&&!r.isReferral?' <span style="color:#6b7a99;font-size:14px">(repeat)</span>':''}</td>
       <td style="text-align:right">${fmt(r.collected)}</td>
       <td style="text-align:right">${Math.round(r.rate*100)}%</td>
       <td style="text-align:right">${fmt(r.commission)}</td>
@@ -2724,7 +2825,7 @@ function openPartnerStatement(partnerId){
           <tbody>${st.pending.map(x=>`<tr>
             <td style="padding:4px">${x.projectedMonth?periodLabel(x.projectedMonth):'—'}</td>
             <td style="padding:4px">${escapeHtml(x.session.course)}</td>
-            <td style="padding:4px">${escapeHtml(x.org||x.session.contactName||'—')}</td>
+            <td style="padding:4px">${x.isReferral?'<span style="color:#6b7a99">Referral —</span> '+escapeHtml(x.refLabel||'referred family'):escapeHtml(x.org||x.session.contactName||'—')}</td>
             <td style="padding:4px;text-align:right">${fmt(x.amount)}</td>
             <td style="padding:4px;text-align:right">${x.estRate!=null?Math.round(x.estRate*100)+'%':'—'}</td>
             <td style="padding:4px;text-align:right">${fmt(x.estCommission||0)}${x.estBonus?' + '+fmt(x.estBonus)+' bonus':''}</td>
@@ -2734,7 +2835,7 @@ function openPartnerStatement(partnerId){
           </tbody></table>`:''}
       </div>`:''}
       <div style="margin-top:18px;font-size:14px;color:var(--muted);line-height:1.6">
-        Calculated under Section 3 of the Independent Contractor Agreement — Community Partnerships Liaison. Collected Revenue is net of refunds, chargebacks, discounts, taxes and third-party payment processing fees, and is credited in the month the course was delivered or the month payment was received, whichever is later. No commission is earned on a course that has not been taught, or on a cancelled course. Remitted via Zelle by the tenth day of the following month.
+        Calculated under Section 3 of the Independent Contractor Agreement — Community Partnerships Liaison. Rows marked <em>Referral</em> are families who named ${escapeHtml(p.name)} under “how did you hear about us” when registering for a class she did not originate; commission is earned on that registration alone, at the same rate, after that child’s share of instructor pay, materials and processing fees. Collected Revenue is net of refunds, chargebacks, discounts, taxes and third-party payment processing fees, and is credited in the month the course was delivered or the month payment was received, whichever is later. No commission is earned on a course that has not been taught, or on a cancelled course. Remitted via Zelle by the tenth day of the following month.
       </div>
     </div>
   </div>
@@ -2766,7 +2867,7 @@ function exportPartnersCSV(){
       paid?'Paid '+fmt(st.payout.amount):'Outstanding',paid?st.payout.paidDate:'','','','','','','','','','','','']);
     st.rows.forEach(r=>{
       rows.push(['','','','','','','','','','','',r.firstCollectedOn,r.session.course,r.session.date||'',
-        r.isOrg?r.org:(r.session.contactName||'Private home class'),r.isOrg?'Yes':'No',r.isRepeat?'Yes':'No',
+        r.isReferral?('Referral — '+(r.refLabel||'referred family')):(r.isOrg?r.org:(r.session.contactName||'Private home class')),r.isOrg?'Yes':'No',r.isRepeat?'Yes':'No',
         r.collected.toFixed(2),Math.round(r.rate*100)+'%',r.commission.toFixed(2),r.reason]);
     });
     st.bonuses.forEach(b=>{
@@ -2774,7 +2875,7 @@ function exportPartnersCSV(){
     });
     st.pending.forEach(x=>{
       rows.push(['','','','','','','','','','','','NOT YET PAYABLE'+(x.projectedMonth?' → '+x.projectedMonth:''),x.session.course,x.session.date||'',
-        x.org||x.session.contactName||'',x.isOrg?'Yes':'No',x.isRepeat?'Yes':'No',
+        x.isReferral?('Referral — '+(x.refLabel||'referred family')):(x.org||x.session.contactName||''),x.isOrg?'Yes':'No',x.isRepeat?'Yes':'No',
         x.amount.toFixed(2),x.estRate!=null?Math.round(x.estRate*100)+'%':'—',
         (x.estCommission||0).toFixed(2),'NOT PAYABLE YET (estimate, expected '+periodLabel(x.projectedMonth||'')+'): '+(x.estReason||x.reason)]);
       if(x.estBonus){
@@ -2810,31 +2911,78 @@ function showScreen(name,el){
 // The minus is a Unicode minus (−) in the form, so we match both − and -.
 const PROMO_NOTE_RE=/\[Promo\s+([A-Za-z0-9]+)\s+applied:\s*[−-]\s*\$?(\d+(?:\.\d+)?)/;
 
-// ─── REFERRAL PAYOUTS ($25 per named referral) ───────────────
-// A family who picks "Other / Referral" and names the person who referred them earns
-// that referrer a thank-you payout. The amount defaults to $25 but is editable per
-// referral (set to $0 for referrers you don't pay, e.g. Girl Scouts). The amount lives
-// in notes as "[REFERRAL PAYOUT: $25]" and the paid flag as "[REFERRAL PAID: 2026-06-23]".
-const REFERRAL_DEFAULT_AMT=25;
-const REFERRAL_AMT_RE=/\[REFERRAL PAYOUT:\s*\$?(\d+(?:\.\d+)?)\]/i;
-// Paid flag with date — matches the new "[REFERRAL PAID: date]" and the older "[REFERRAL $25 PAID: date]".
-const REFERRAL_PAID_RE=/\[REFERRAL (?:\$\d+(?:\.\d+)? )?PAID:?\s*([0-9-]*)\]/i;
-// Returns the referrer's name if this registration names a specific person who referred
-// them (only "Other / Referral: NAME" qualifies — generic sources have no one to pay).
+// ─── NAMED REFERRALS → COMMUNITY PARTNERS ──────────────
+// The flat $25 thank-you payout is retired. A named referrer is now information: it
+// answers "did this family come from one of my partners?" so the answer can sit next
+// to that partner's commission statement.
+//
+// Two ways a partner's name reaches a registration:
+//   1. The family picks the partner by name in the "How did you hear about us?" list.
+//   2. The family picks "Other / Referral" and types a name, which register.html saves
+//      as "Other/Referral: NAME".
+// Both are handled here.
 function referrerName(r){
-  const m=/^Other\/Referral:\s*(.+)$/i.exec((r.referralSource||'').trim());
-  return m?m[1].trim():'';
+  const raw=(r.referralSource||'').trim();
+  if(!raw)return '';
+  const m=/^Other\/Referral:\s*(.+)$/i.exec(raw);
+  if(m)return m[1].trim();
+  // A plain source only counts as a name if it matches somebody on the partner list.
+  return partnerByReferralName(raw)?raw:'';
 }
-// The payout owed to this referrer: the explicit amount if one was set, else the $25
-// default. Returns 0 when there is no named referrer (nothing to pay).
-function referralPayoutAmount(r){
-  if(!referrerName(r))return 0;
-  const m=REFERRAL_AMT_RE.exec(r.notes||'');
-  return m?(parseFloat(m[1])||0):REFERRAL_DEFAULT_AMT;
+// Lowercase, drop credentials and punctuation, squeeze spaces — so "Katy Greenberg, RN"
+// and "katy greenberg" compare equal.
+function normRefName(x){
+  return String(x||'').toLowerCase()
+    .replace(/\b(rn|bsn|msn|np|lpn|cpnp|md)\b/g,'')
+    .replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
 }
-function referralPaidDate(r){
-  const m=REFERRAL_PAID_RE.exec(r.notes||'');
-  return m?(m[1]||'paid'):null;
+// Same person? Exact match, or same surname with the same first initial — which is how
+// nicknames actually show up on a form ("Kathryn Greenberg" vs "Katy Greenberg").
+function sameishName(a,b){
+  const x=normRefName(a),y=normRefName(b);
+  if(!x||!y)return false;
+  if(x===y)return true;
+  const xs=x.split(' '),ys=y.split(' ');
+  if(xs.length<2||ys.length<2)return false;
+  return xs[xs.length-1]===ys[ys.length-1]&&xs[0][0]===ys[0][0];
+}
+// The community partner a typed or selected name belongs to, or null.
+function partnerByReferralName(name){
+  if(!name)return null;
+  return (partners||[]).find(x=>sameishName(x.name,name))||null;
+}
+// The community partner credited by this registration's referral answer, or null.
+function referralPartner(r){
+  const n=referrerName(r);
+  return n?partnerByReferralName(n):null;
+}
+// What this family actually paid, for the referral report. Unpaid, cancelled and
+// in-kind seats contribute nothing.
+function referralRegRevenue(r){
+  if(r.payStatus!=='paid')return 0;
+  const s=sessions.find(x=>x.id===r.sessionId);
+  return s?(Number(regEffectivePrice(r,s))||0):0;
+}
+// This registration's own revenue line, with the processing fee already removed and
+// its share of the session's direct costs already attached by partnerRevenueEvents.
+function referralRegEvent(r){
+  const s=sessions.find(x=>x.id===r.sessionId);
+  if(!s)return null;
+  return partnerRevenueEvents(s).find(e=>e.kind==='family'&&e.regId===r.id)||null;
+}
+// What the partner earns on one referred registration: the flat §3.A rate applied to
+// what is left after the processing fee, this child's materials and their share of
+// instructor pay and job costs. A session the partner originated is excluded — its
+// whole revenue already earns commission, and it must not be counted twice.
+function referralRegCommission(r){
+  const q=referralPartner(r);
+  if(!q)return{net:0,commission:0,earned:false,originated:false,event:null};
+  const s=sessions.find(x=>x.id===r.sessionId);
+  if(s&&s.originatedBy===q.id)return{net:0,commission:0,earned:false,originated:true,event:null};
+  const ev=referralRegEvent(r);
+  if(!ev)return{net:0,commission:0,earned:false,originated:false,event:null};
+  const net=round2(Math.max(0,Number(ev.net!=null?ev.net:ev.amount)||0));
+  return{net,commission:round2(net*PARTNER_FLAT_RATE),earned:!!ev.collected,originated:false,event:ev};
 }
 
 // ─── IN-KIND DONATIONS (auction prizes) ──────────────────────
@@ -2939,43 +3087,79 @@ function renderReports(){
       :'<tr><td colspan="3" style="color:var(--muted);padding:18px;text-align:center">No registrations in this period</td></tr>')+
     '</tbody>';
 
-  // ── Referral payouts (editable amount per named referral; $0 = not paid out) ──
+  // ── Partner referrals ──
+  // Every registration that named a person, grouped by the partner it belongs to.
+  // Names that match nobody on the partner list keep their own group, so a referral
+  // from a friend of a friend is not silently dropped. Commission here is the same
+  // §3.A flat rate the statement pays, on the same net figure, so the two agree.
   const named=regs.filter(r=>referrerName(r));
-  const payable=named.filter(r=>referralPayoutAmount(r)>0);   // only those with an amount owed
-  const payTotal=payable.reduce((s,r)=>s+referralPayoutAmount(r),0);
-  const paidList=payable.filter(r=>referralPaidDate(r));
-  const paidAmt=paidList.reduce((s,r)=>s+referralPayoutAmount(r),0);
-  const owedAmt=payTotal-paidAmt;
-  document.getElementById('rep-payout-metrics').innerHTML=`
-    <div class="metric"><div class="m-label">Referrals to pay</div><div class="m-val">${payable.length}</div><div class="m-sub">${fmt(payTotal)} total</div></div>
-    <div class="metric"><div class="m-label">Paid so far</div><div class="m-val" style="color:var(--success)">${fmt(paidAmt)}</div><div class="m-sub">${paidList.length} paid</div></div>
-    <div class="metric"><div class="m-label">Still owed</div><div class="m-val ${owedAmt>0?'red':''}">${fmt(owedAmt)}</div><div class="m-sub">${payable.length-paidList.length} outstanding</div></div>
+  const refGroupMap={};
+  named.forEach(r=>{
+    const gp=referralPartner(r);
+    const key=gp?('p:'+gp.id):('x:'+normRefName(referrerName(r)));
+    if(!refGroupMap[key])refGroupMap[key]={partner:gp,label:gp?gp.name:referrerName(r),regs:[],revenue:0,paid:0,net:0,comm:0,earnedComm:0};
+    const g=refGroupMap[key];
+    g.regs.push(r);
+    g.revenue+=referralRegRevenue(r);
+    if(r.payStatus==='paid')g.paid++;
+    const rc=referralRegCommission(r);
+    g.net+=rc.net;g.comm+=rc.commission;
+    if(rc.earned)g.earnedComm+=rc.commission;
+  });
+  const refGroups=Object.values(refGroupMap).sort((a,b)=>(b.partner?1:0)-(a.partner?1:0)||b.regs.length-a.regs.length);
+  const partnerGroups=refGroups.filter(g=>g.partner);
+  const partnerFams=partnerGroups.reduce((n,g)=>n+g.regs.length,0);
+  const partnerRev=partnerGroups.reduce((n,g)=>n+g.revenue,0);
+  const partnerComm=partnerGroups.reduce((n,g)=>n+g.comm,0);
+  document.getElementById('rep-partner-ref-metrics').innerHTML=`
+    <div class="metric"><div class="m-label">Families sent by a partner</div><div class="m-val">${partnerFams}</div><div class="m-sub">${partnerGroups.length} partner${partnerGroups.length===1?'':'s'} named</div></div>
+    <div class="metric"><div class="m-label">Revenue from those families</div><div class="m-val">${fmt(partnerRev)}</div><div class="m-sub">paid registrations only</div></div>
+    <div class="metric"><div class="m-label">Commission on referrals</div><div class="m-val">${fmt(partnerComm)}</div><div class="m-sub">${Math.round(PARTNER_FLAT_RATE*100)}% of net, incl. not-yet-payable</div></div>
   `;
-  document.getElementById('referral-payout-table').innerHTML=
-    '<thead><tr><th>Referrer</th><th>Referred family</th><th>Course / date</th><th style="text-align:center">Pay $</th><th style="text-align:center">Status</th><th></th></tr></thead><tbody>'+
+  document.getElementById('partner-ref-table').innerHTML=
+    '<thead><tr><th>Named on the form</th><th style="text-align:center">Partner?</th><th style="text-align:right">Families</th><th style="text-align:right">Paid</th><th style="text-align:right">Collected</th><th style="text-align:right">Net after costs</th><th style="text-align:right">Commission</th><th style="text-align:right">Payable now</th></tr></thead><tbody>'+
+    (refGroups.length
+      ?refGroups.map(g=>`<tr>
+          <td style="font-weight:500">${escapeHtml(g.label)}</td>
+          <td style="text-align:center">${g.partner?'<span class="tag paid">Community partner</span>':'<span class="tag" style="background:#eee;color:#777">Not a partner</span>'}</td>
+          <td style="text-align:right">${g.regs.length}</td>
+          <td style="text-align:right">${g.paid}</td>
+          <td style="text-align:right">${fmt(g.revenue)}</td>
+          <td style="text-align:right">${g.partner?fmt(g.net):'—'}</td>
+          <td style="text-align:right">${g.partner?fmt(g.comm):'—'}</td>
+          <td style="text-align:right">${g.partner?fmt(g.earnedComm):'—'}</td>
+        </tr>`).join('')
+      :'<tr><td colspan="8" style="color:var(--muted);padding:18px;text-align:center">Nobody was named as a referrer in this period</td></tr>')+
+    '</tbody>';
+  document.getElementById('partner-ref-detail').innerHTML=
+    '<thead><tr><th>Referred by</th><th>Family</th><th>Course / date</th><th style="text-align:center">Payment</th><th style="text-align:right">Collected</th><th style="text-align:right">Net</th><th style="text-align:right">Commission</th></tr></thead><tbody>'+
     (named.length
-      ?named.slice().sort((a,b)=>(referralPaidDate(a)?1:0)-(referralPaidDate(b)?1:0)||regCreatedTime(b)-regCreatedTime(a)).map(r=>{
+      ?named.slice().sort((a,b)=>regCreatedTime(b)-regCreatedTime(a)).map(r=>{
         const s=sessions.find(x=>x.id===r.sessionId);
         const d=s?fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'}):'—';
-        const amt=referralPayoutAmount(r);
-        const paidDate=referralPaidDate(r);
+        const gp=referralPartner(r);
         const who=r.parentName||r.studentName||'—';
-        const amtInput=`<input type="number" min="0" step="1" value="${amt}" ${paidDate?'disabled title="Undo the payment to change the amount"':''} onchange="setReferralPayout('${r.id}',this.value)" style="width:64px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif;text-align:right">`;
-        const status=amt<=0?'<span class="tag" style="background:#eee;color:#777">No payout</span>'
-          :paidDate?`<span class="tag paid">Paid${paidDate!=='paid'?' '+escapeHtml(paidDate):''}</span>`
-          :'<span class="tag unpaid">Not paid</span>';
-        const action=amt<=0?'<span style="color:var(--muted);font-size:15px">—</span>'
-          :`<button class="btn sm ${paidDate?'':'success'}" onclick="toggleReferralPaid('${r.id}')">${paidDate?'Undo':'Mark '+fmt(amt)+' paid'}</button>`;
+        const amt=referralRegRevenue(r);
+        const rc=referralRegCommission(r);
+        const status=r.payStatus==='paid'?'<span class="tag paid">Paid</span>'
+          :r.payStatus==='cancelled'?'<span class="tag" style="background:#eee;color:#777">Cancelled</span>'
+          :'<span class="tag unpaid">'+escapeHtml(r.payStatus||'unpaid')+'</span>';
+        const comm=!gp?'—'
+          :rc.originated?'<span style="color:var(--muted);font-size:14px">in her booking</span>'
+          :rc.commission>0?fmt(rc.commission)+(rc.earned?'':' <span style="color:var(--warn);font-size:14px">pending</span>')
+          :r.payStatus==='paid'?'<span title="This session\'s costs use up everything this registration collected. Check that the rest of the roster is marked paid.">'+fmt(0)+'</span>'
+          :'—';
         return`<tr>
-          <td style="font-weight:500">${escapeHtml(referrerName(r))}</td>
+          <td style="font-weight:500">${escapeHtml(referrerName(r))}${gp?' <span style="color:#6b7a99;font-size:14px">(partner)</span>':''}</td>
           <td style="color:var(--muted)">${escapeHtml(who)}</td>
           <td style="font-size:15px">${s?escapeHtml(s.course)+' '+d:'—'}</td>
-          <td style="text-align:center">${amtInput}</td>
           <td style="text-align:center">${status}</td>
-          <td style="text-align:right">${action}</td>
+          <td style="text-align:right">${amt>0?fmt(amt):'—'}</td>
+          <td style="text-align:right">${gp&&rc.net>0?fmt(rc.net):'—'}</td>
+          <td style="text-align:right">${comm}</td>
         </tr>`;
       }).join('')
-      :'<tr><td colspan="6" style="color:var(--muted);padding:18px;text-align:center">No named referrals in this period</td></tr>')+
+      :'<tr><td colspan="7" style="color:var(--muted);padding:18px;text-align:center">No named referrals in this period</td></tr>')+
     '</tbody>';
   const promo={};
   regs.forEach(r=>{
@@ -3037,49 +3221,21 @@ function exportPromoCSV(){
   reportDownloadCSV([['Code','Times used','Total discount']].concat(Object.entries(p).sort((a,b)=>b[1].uses-a[1].uses).map(([code,v])=>[code,v.uses,v.total.toFixed(2)])),'discount-codes');
 }
 
-// Marks a referral payout paid (stamps today's date into the registration notes) or
-// undoes it. The flag lives in notes so no schema change is needed.
-function toggleReferralPaid(id){
-  const r=registrations.find(x=>x.id===id);if(!r)return;
-  if(referralPaidDate(r)){
-    r.notes=(r.notes||'').replace(REFERRAL_PAID_RE,'').replace(/\s{2,}/g,' ').trim();
-  }else{
-    const t=new Date();
-    const today=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
-    r.notes='[REFERRAL PAID: '+today+'] '+(r.notes||'');
-  }
-  renderReports();
-  dbWrite(sb.from('registrations').update({notes:r.notes}).eq('id',id),'Referral payout');
-}
-// Sets (or clears) the dollar amount owed to a referrer. $0 means "do not pay" (e.g. Girl
-// Scouts). The amount is a real cost of the session the referred family registered for, so
-// changing it updates the finances/dashboard immediately.
-function setReferralPayout(id,val){
-  const r=registrations.find(x=>x.id===id);if(!r)return;
-  let amt=parseFloat(val);
-  if(isNaN(amt)||amt<0)amt=0;
-  amt=Math.round(amt*100)/100;
-  const tag='[REFERRAL PAYOUT: $'+amt+']';
-  if(REFERRAL_AMT_RE.test(r.notes||'')){
-    r.notes=(r.notes||'').replace(REFERRAL_AMT_RE,tag);
-  }else{
-    r.notes=(tag+' '+(r.notes||'')).trim();
-  }
-  renderReports();
-  if(typeof renderDashboard==='function')renderDashboard();
-  if(typeof renderFinances==='function')renderFinances();
-  if(typeof renderSessions==='function')renderSessions();
-  dbWrite(sb.from('registrations').update({notes:r.notes}).eq('id',id),'Referral amount');
-}
-function exportReferralPayoutCSV(){
-  const rows=[['Referrer','Referred family','Course','Date','Amount','Paid','Paid date']];
+// One row per family who named a referrer, with the partner it credits.
+function exportPartnerReferralCSV(){
+  const rows=[['Referred by','Community partner?','Family','Course','Class date','Registered','Payment status',
+    'Collected','Net after costs','Rate','Commission','Payable now']];
   reportRegsInScope().filter(r=>referrerName(r)).forEach(r=>{
     const s=sessions.find(x=>x.id===r.sessionId);
-    const pd=referralPaidDate(r);
-    const amt=referralPayoutAmount(r);
-    rows.push([referrerName(r),r.parentName||r.studentName||'',s?s.course:'',s?(s.date||''):'',amt.toFixed(2),amt<=0?'No payout':(pd?'Yes':'No'),pd&&pd!=='paid'?pd:'']);
+    const gp=referralPartner(r);
+    const t=regCreatedTime(r);
+    const rc=referralRegCommission(r);
+    rows.push([referrerName(r),gp?'Yes':'No',r.parentName||r.studentName||'',s?s.course:'',s?(s.date||''):'',
+      t?new Date(t).toISOString().slice(0,10):'',r.payStatus||'unpaid',referralRegRevenue(r).toFixed(2),
+      gp?rc.net.toFixed(2):'',gp&&!rc.originated?Math.round(PARTNER_FLAT_RATE*100)+'%':'',
+      gp?rc.commission.toFixed(2):'',rc.originated?'Counted in her originated booking':(rc.earned?'Yes':'Not yet')]);
   });
-  reportDownloadCSV(rows,'referral-payouts');
+  reportDownloadCSV(rows,'partner-referrals');
 }
 function exportInKindCSV(){
   const rows=[['Participant','Course','Class date','Registered','In-kind value']];
@@ -5196,6 +5352,7 @@ function printReport(){
   else printYearReport();
 }
 function renderFinances(){
+  invalidateCommissionCache();
   // Populate year selector
   const years=[...new Set([
     ...sessions.filter(s=>!s.isHold).map(s=>new Date(s.date+'T12:00:00').getFullYear()),
@@ -5211,7 +5368,7 @@ function renderFinances(){
     if(s.isHold)return;
     const d=new Date(s.date+'T12:00:00');
     const k=finView==='monthly'?d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0'):d.getFullYear().toString();
-    if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,overhead:0,cost:0,profit:0,sess:0,students:0};
+    if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0};
     const f=calcFin(s);buckets[k].rev+=f.revenue;buckets[k].fee+=f.procFee||0;buckets[k].mat+=f.matCost;buckets[k].instr+=f.instrFee+f.referralBonus;
     buckets[k].extra=(buckets[k].extra||0)+f.extraCosts;buckets[k].cost+=f.totalCost;buckets[k].sess++;buckets[k].students+=f.paidCount;
   });
@@ -5219,13 +5376,23 @@ function renderFinances(){
     if(finView==='monthly')return; // Overhead is reported annually only, so the monthly view shows operating costs (materials, instructor fees, extra costs).
     const d=new Date(e.date+'T12:00:00');
     const k=finView==='monthly'?d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0'):d.getFullYear().toString();
-    if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0};
+    if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0};
     buckets[k].overhead+=e.amount;buckets[k].cost+=e.amount;
+  });
+  // Partner commission, booked in the month it was earned. A month can carry
+  // commission with no session of its own — a July class paid for in June earns in
+  // July — so a bucket is created if one does not exist yet.
+  const commByMonth=partnerCommissionByMonth();
+  Object.keys(commByMonth).forEach(mk=>{
+    const k=finView==='monthly'?mk:mk.slice(0,4);
+    if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0};
+    buckets[k].comm=round2((buckets[k].comm||0)+commByMonth[mk]);
+    buckets[k].cost=round2(buckets[k].cost+commByMonth[mk]);
   });
   Object.values(buckets).forEach(b=>b.profit=b.rev-b.cost);
   const keys=Object.keys(buckets).sort().reverse();
   const t=document.getElementById('fin-table');
-  t.innerHTML=`<thead><tr><th>${finView==='monthly'?'Month':'Year'}</th><th>Sessions</th><th>Students paid</th><th>Revenue (net)</th><th title="PayPal processing fees skimmed off online payments — already deducted from net revenue, not part of expenses">Proc. fees</th><th title="Per-student handbooks and supplies consumed — not the reusable equipment on the Equipment tab">Material cost</th><th>Instructor fees</th><th>Extra costs</th>${finView==='monthly'?'':'<th>Overhead</th>'}<th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
+  t.innerHTML=`<thead><tr><th>${finView==='monthly'?'Month':'Year'}</th><th>Sessions</th><th>Students paid</th><th>Revenue (net)</th><th title="PayPal processing fees skimmed off online payments — already deducted from net revenue, not part of expenses">Proc. fees</th><th title="Per-student handbooks and supplies consumed — not the reusable equipment on the Equipment tab">Material cost</th><th>Instructor fees</th><th>Extra costs</th><th title="Community partner commission, booked in the month it was earned — money received and class taught. Do not also log these payouts on the Expenses tab or you will count them twice.">Partner commission</th>${finView==='monthly'?'':'<th>Overhead</th>'}<th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
     (keys.length?keys.map(k=>{
       const b=buckets[k];
       const label=finView==='monthly'?new Date(k+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}):k;
@@ -5235,10 +5402,11 @@ function renderFinances(){
         <td style="color:var(--danger)">${fmt(b.mat)}</td>
         <td style="color:var(--danger)">${fmt(b.instr)}</td>
         <td style="color:var(--danger)">${fmt(b.extra||0)}</td>
+        <td style="color:var(--danger)">${fmt(b.comm||0)}</td>
         ${finView==='monthly'?'':`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`}
         <td style="color:var(--danger)">${fmt(b.cost)}</td>
         <td style="font-weight:500;color:${b.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(b.profit)}</td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="${finView==='monthly'?10:11}">No financial data yet.</td></tr>`)+'</tbody>';
+    }).join(''):`<tr class="empty-row"><td colspan="${finView==='monthly'?11:12}">No financial data yet.</td></tr>`)+'</tbody>';
   renderInvoices();
 }
 
@@ -7096,6 +7264,7 @@ function openAddExpense(){
     <div class="fg"><label>Amount *</label><input type="number" id="m-eamt" placeholder="0.00" min="0" step="0.01"></div>
     <div class="fg"><label>Date *</label><input type="date" id="m-edate" value="${new Date().toISOString().slice(0,10)}"></div>
     <div class="fg full"><label>Category</label><select id="m-ecat">${catOpts}</select></div>
+    <div class="fg full" style="background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);padding:10px 12px;font-size:14px;color:var(--warn);line-height:1.5">Community partner commission does not belong here. It is already carried on the Finances tab as its own expense line, pulled from each partner&rsquo;s statement. Entering a payout here as well would count it twice.</div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveExpense()">Add expense</button></div>`);
 }
@@ -8332,7 +8501,7 @@ function printYearReport(){
   for(let m=0;m<12;m++){
     const key=year+'-'+(m+1).toString().padStart(2,'0');
     const label=new Date(year,m,1,12,0,0).toLocaleDateString('en-US',{month:'long'});
-    months.push({key,label,rev:0,fee:0,mat:0,instr:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0});
+    months.push({key,label,rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0});
   }
 
   sessions.forEach(s=>{
@@ -8350,14 +8519,19 @@ function printYearReport(){
     const mi=d.getMonth();
     months[mi].overhead+=e.amount;months[mi].cost+=e.amount;
   });
+  invalidateCommissionCache();
+  partnerCommissionMonths(year).forEach((amt,mi)=>{
+    if(!amt)return;
+    months[mi].comm+=amt;months[mi].cost+=amt;
+  });
   months.forEach(m=>m.profit=m.rev-m.cost);
 
   // Totals
   const tot=months.reduce((acc,m)=>({
     rev:acc.rev+m.rev,fee:acc.fee+m.fee,mat:acc.mat+m.mat,instr:acc.instr+m.instr,
-    ship:acc.ship+m.ship,overhead:acc.overhead+m.overhead,cost:acc.cost+m.cost,
+    comm:acc.comm+m.comm,ship:acc.ship+m.ship,overhead:acc.overhead+m.overhead,cost:acc.cost+m.cost,
     profit:acc.profit+m.profit,sess:acc.sess+m.sess,students:acc.students+m.students
-  }),{rev:0,fee:0,mat:0,instr:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0});
+  }),{rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0});
 
   // Course breakdown
   const courseBuckets={};
@@ -8388,6 +8562,7 @@ function printYearReport(){
       <td style="text-align:right;color:#c0392b">${m.mat?fmtN(m.mat):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.instr?fmtN(m.instr):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.ship?fmtN(m.ship):'—'}</td>
+      <td style="text-align:right;color:#c0392b">${m.comm?fmtN(m.comm):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.overhead?fmtN(m.overhead):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.cost?fmtN(m.cost):'—'}</td>
       <td style="text-align:right;font-weight:600;color:${profitColor(m.profit)}">${m.sess?fmtS(m.profit):'—'}</td>
@@ -8461,6 +8636,7 @@ function printYearReport(){
         <th>Month</th><th style="text-align:center">Sessions</th><th style="text-align:center">Students</th>
         <th style="text-align:right">Revenue</th><th style="text-align:right">Materials</th>
         <th style="text-align:right">Instructor</th><th style="text-align:right">Extra costs</th>
+        <th style="text-align:right">Partner comm.</th>
         <th style="text-align:right">Overhead</th><th style="text-align:right">Total exp.</th>
         <th style="text-align:right">Net profit</th>
       </tr></thead>
@@ -8473,6 +8649,7 @@ function printYearReport(){
         <td style="text-align:right;color:#c0392b">${fmtN(tot.mat)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.ship)}</td>
+        <td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.overhead)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.cost)}</td>
         <td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td>
@@ -8498,12 +8675,13 @@ function printYearReport(){
     </table>`:''}
 
     <h2>All expenses by category</h2>
-    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes per-session materials, instructor fees, and all overhead expenses.</p>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes per-session materials, instructor fees, community partner commission, and all overhead expenses.</p>
     ${(()=>{
       // Build unified expense map: session costs + overhead
       const allCats={};
       if(tot.mat>0)allCats['Student materials']=tot.mat;
       if(tot.instr>0)allCats['Instructor fees']=tot.instr;
+      if(tot.comm>0)allCats['Partner commission']=tot.comm;
       if(tot.ship>0)allCats['Extra session costs']=tot.ship;
       Object.entries(catBuckets).forEach(([k,v])=>{if(v>0)allCats[k]=(allCats[k]||0)+v;});
       const grandTotal=Object.values(allCats).reduce((s,v)=>s+v,0);
@@ -8586,7 +8764,7 @@ function printMonthReport(){
   const monthSessions=sessions.filter(s=>{if(s.isHold)return false;const d=new Date(s.date+'T12:00:00');return d.getFullYear()===year&&d.getMonth()===mi;}).sort((a,b)=>a.date.localeCompare(b.date));
   const monthExpenses=expenses.filter(e=>{const d=new Date(e.date+'T12:00:00');return d.getFullYear()===year&&d.getMonth()===mi;});
 
-  const tot={rev:0,fee:0,mat:0,instr:0,extra:0,overhead:0,cost:0,profit:0,sess:0,students:0,regs:0};
+  const tot={rev:0,fee:0,mat:0,instr:0,extra:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0,regs:0};
   const courseBuckets={};
 
   const sessRows=monthSessions.map(s=>{
@@ -8612,6 +8790,10 @@ function printMonthReport(){
   }).join('');
 
   monthExpenses.forEach(e=>{tot.overhead+=e.amount;}); // Overhead is reported annually only; excluded from the monthly net profit.
+  // Community partner commission earned this month — money received and class taught.
+  invalidateCommissionCache();
+  tot.comm=round2(partnerCommissionMonths(year)[mi]||0);
+  tot.cost=round2(tot.cost+tot.comm);
   tot.profit=tot.rev-tot.cost;
 
   // Overhead expenses by category for this month
@@ -8720,13 +8902,14 @@ function printMonthReport(){
         <tr><td>Student materials</td><td style="text-align:right;color:#c0392b">${fmtN(tot.mat)}</td></tr>
         <tr><td>Instructor fees</td><td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td></tr>
         <tr><td>Extra session costs</td><td style="text-align:right;color:#c0392b">${fmtN(tot.extra)}</td></tr>
+        ${tot.comm?`<tr><td>Community partner commission</td><td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td></tr>`:''}
         <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td></tr>
       </tbody>
     </table>
 
     <div class="footer">
       <span>Mindful Beginnings · ${monthName}</span>
-      <span>Operating figures — revenue, instructor fees, materials, and extra session costs. Overhead appears in the annual report.</span>
+      <span>Operating figures — revenue, instructor fees, materials, extra session costs, and partner commission. Overhead appears in the annual report.</span>
     </div>
   </div>
   </body></html>`;
