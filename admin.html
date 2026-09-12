@@ -322,6 +322,7 @@ tr:hover td{background:#fafbfd}
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
       </div>
+      <div id="dupe-banner"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="sessions-table"></table></div></div>
     </div>
 
@@ -3490,6 +3491,92 @@ function toggleSessionSort(){
   if(btn)btn.textContent=sessionSortAsc?'Date ↑ Oldest first':'Date ↓ Newest first';
   renderSessions();
 }
+// ─── DUPLICATE SESSION CHECK ─────────────────────────────────────────────
+// Two ways the same class ended up on the calendar twice: a save that looked
+// like it failed and got repeated, and a session typed in fresh when one
+// already existed. Both are caught the same way — same course, same date,
+// same place. Time is deliberately NOT part of the match, because a morning
+// and an afternoon class of the same course at the same site is the one
+// legitimate case, and it is easier to eyeball the times in the list than to
+// guess the rule. Cancelled sessions never count.
+function dupeNorm(t){return String(t==null?'':t).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function sessionDupeKey(s){
+  if(!s||!s.date||s.isCancelled||s.isHold)return null;
+  const place=s.isVirtual?'~virtual~':dupeNorm(s.location);
+  return dupeNorm(s.course)+'|'+s.date+'|'+place;
+}
+// Every set of 2+ sessions sharing a key, newest class first.
+function findDuplicateSessions(){
+  const groups={};
+  sessions.forEach(s=>{
+    const k=sessionDupeKey(s);
+    if(!k)return;
+    (groups[k]=groups[k]||[]).push(s);
+  });
+  return Object.keys(groups)
+    .filter(k=>groups[k].length>1)
+    .map(k=>({key:k,rows:groups[k].slice().sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)||String(a.time||'').localeCompare(String(b.time||'')))}))
+    .sort((a,b)=>b.rows[0].date.localeCompare(a.rows[0].date));
+}
+// Pairs she has already looked at and decided are fine stay hidden, per browser.
+function dupeIgnored(){
+  try{return JSON.parse(localStorage.getItem('mb_dupes_ignored')||'[]');}catch(e){return [];}
+}
+function ignoreDupe(key){
+  try{
+    const list=dupeIgnored();
+    if(!list.includes(key)){list.push(key);localStorage.setItem('mb_dupes_ignored',JSON.stringify(list));}
+  }catch(e){}
+  renderDupeBanner();
+}
+function unignoreAllDupes(){
+  try{localStorage.removeItem('mb_dupes_ignored');}catch(e){}
+  renderDupeBanner();
+}
+function seatsOnSession(id){
+  return registrations.filter(r=>r.sessionId===id&&r.payStatus!=='cancelled'&&r.payStatus!=='waitlist').length;
+}
+function openSessionForReview(id){
+  const s=sessions.find(x=>x.id===id);if(!s)return;
+  if(s.isCustomJob)openEditCustomJob(id);else openEditSession(id);
+}
+function renderDupeBanner(){
+  const el=document.getElementById('dupe-banner');if(!el)return;
+  const ignored=dupeIgnored();
+  const all=findDuplicateSessions();
+  const groups=all.filter(g=>!ignored.includes(g.key));
+  const hidden=all.length-groups.length;
+  const footNote=hidden?`<div style="margin-top:10px;font-size:14px;color:var(--muted)">${hidden} pair${hidden===1?'':'s'} marked as fine. <a href="#" onclick="unignoreAllDupes();return false;" style="color:var(--muted)">Show again</a></div>`:'';
+  if(!groups.length){
+    el.innerHTML=`<div style="margin:0 0 12px;font-size:14px;color:var(--muted)">\u2713 No duplicate sessions${hidden?` <a href="#" onclick="unignoreAllDupes();return false;" style="color:var(--muted)">(${hidden} pair${hidden===1?'':'s'} marked as fine \u2014 show again)</a>`:''}</div>`;
+    return;
+  }
+  const card=groups.map(g=>{
+    const rows=g.rows.map(s=>{
+      const seats=seatsOnSession(s.id);
+      const when=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const where=s.isVirtual?'Virtual':(escapeHtml(s.location)||'no location');
+      const made=s.createdAt?new Date(s.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      return `<tr>
+        <td style="padding:6px 10px 6px 0;white-space:nowrap">${when}${s.time?` <span style="color:var(--muted)">${escapeHtml(s.time)}</span>`:' <span style="color:var(--muted)">no time</span>'}</td>
+        <td style="padding:6px 10px 6px 0">${escapeHtml(s.course)} <span class="code-badge">${s.code}</span></td>
+        <td style="padding:6px 10px 6px 0;color:var(--muted)">${where}</td>
+        <td style="padding:6px 10px 6px 0;white-space:nowrap;font-weight:${seats?'600':'400'};color:${seats?'var(--text)':'var(--muted)'}">${seats} registered</td>
+        <td style="padding:6px 10px 6px 0;color:var(--muted);white-space:nowrap;font-size:14px">${made?'added '+made:''}</td>
+        <td style="padding:6px 0;text-align:right;white-space:nowrap"><button class="btn sm" onclick="openSessionForReview('${s.id}')">Open</button></td>
+      </tr>`;
+    }).join('');
+    return `<div style="padding:10px 0;border-top:1px solid #f0d9b0">
+      <table style="width:100%;border-collapse:collapse;font-size:15px">${rows}</table>
+      <div style="text-align:right;margin-top:4px"><a href="#" onclick="ignoreDupe('${g.key.replace(/'/g,"\\'")}');return false;" style="font-size:14px;color:var(--muted)">These are both real \u2014 stop flagging</a></div>
+    </div>`;
+  }).join('');
+  el.innerHTML=`<div class="card" style="margin-bottom:12px;background:#fff7e6;border:1px solid #f0d090">
+    <div style="font-weight:600;color:#b86a00;font-size:16px">\u26a0 ${groups.length} possible duplicate${groups.length===1?'':'s'}</div>
+    <div style="font-size:14px;color:#b86a00;margin-top:2px">Same course, same date, same location. Check the registration counts before deleting either one \u2014 delete the empty one, and move any students first if both have seats filled.</div>
+    ${card}${footNote}</div>`;
+}
+
 function renderSessions(){
   const cf=document.getElementById('sf-course').value;
   const mf=document.getElementById('sf-month').value;
@@ -3588,6 +3675,7 @@ function renderSessions(){
         <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px">${wrapDots}<span style="font-size:14px;color:${wrapAllDone?'var(--success)':'var(--muted)'};">${wrapAllDone?'✓ Done':wrapDone+'/'+wrapTotal}</span></div>`:'<span style="font-size:14px;color:var(--muted)">Upcoming</span>'}</td>
         ${mgr('white')}</tr>`;
     }).join(''):`<tr class="empty-row"><td colspan="8">No sessions found.</td></tr>`)+'</tbody>';
+  renderDupeBanner();
 }
 
 // ─── PER-ROW ACTIONS MENU ────────────────────────────────────
@@ -4230,6 +4318,9 @@ async function saveCustomJob(){
   }
   const instrEl=document.getElementById('cj-instr');
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
+  if(!confirmNotDuplicate({course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,isVirtual:false,isCancelled:false},null))return;
+  if(_savingSession)return; _savingSession=true;
+  try{
   const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:_editCosts.filter(c=>c.label||c.amount),createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),...customJobDayFields(date)};
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
@@ -4247,6 +4338,7 @@ async function saveCustomJob(){
   if(preInstrId)jobDataCache[s.id].waitlist=(jobDataCache[s.id].waitlist||[]).filter(id=>id!==preInstrId);
   upsertJobData(s.id);
   showToast(ssColMissing?SS_COL_SQL_TOAST:rnColMissing?RN_COL_SQL_TOAST:('Custom job added'+(preInstrId?` and assigned to ${instructors.find(x=>x.id===preInstrId)?.name||'instructor'}`:'  — posted as open job')+'.'));
+  }finally{_savingSession=false;}
 }
 
 function openEditCustomJob(id){
@@ -4658,6 +4750,25 @@ function openEditSession(id){
   renderSeriesWarning();
 }
 
+// Set while a save is in flight, so a second click cannot create a second row.
+let _savingSession=false;
+// Asked before a session is written. Returns false if she backs out.
+function confirmNotDuplicate(draft,excludeId){
+  const key=sessionDupeKey(draft);
+  if(!key)return true;
+  const hits=sessions.filter(x=>x.id!==excludeId&&sessionDupeKey(x)===key);
+  if(!hits.length)return true;
+  const lines=hits.map(x=>{
+    const seats=seatsOnSession(x.id);
+    return '\u2022 '+x.course+' \u2014 '+x.date+(x.time?' at '+x.time:'')+'  ('+x.code+', '+seats+' registered)';
+  }).join('\n');
+  const sameTime=hits.some(x=>dupeNorm(x.time)===dupeNorm(draft.time));
+  const head=sameTime
+    ? 'This looks like the same class twice.\n\nAlready on the calendar:'
+    : 'There is already a class like this on that date at that location:';
+  return confirm(head+'\n\n'+lines+'\n\nSave this one anyway?');
+}
+
 async function saveSession(editId){
   const date=document.getElementById('m-date').value;
   const isHold=document.getElementById('m-hold')?.checked||false;
@@ -4725,6 +4836,11 @@ async function saveSession(editId){
   // same job board. The edit form pre-fills Notes with both, so saving folds any legacy
   // text into notes and blanks the old column. Nothing is lost; it just moves.
   const instructorInfo='';
+  // Duplicate check runs while the modal is still open, so backing out leaves
+  // everything she typed exactly where it was.
+  if(!confirmNotDuplicate({course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,isVirtual,isCancelled:false},editId||null))return;
+  if(_savingSession)return; _savingSession=true;
+  try{
   let s, prevSnapshot=null;
   if(editId){
     s=sessions.find(x=>x.id===editId);
@@ -4789,6 +4905,7 @@ async function saveSession(editId){
   // If this save assigned an instructor, let any blank equipment checkout for
   // this session pick up their name.
   syncCheckoutInstructors();
+  }finally{_savingSession=false;}
 }
 
 async function deleteSession(id){
@@ -7318,11 +7435,17 @@ async function deleteExpense(id){
 function matToday(){return fmtYMD(new Date());}
 function fmtYMD(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
-// The last day a checkout occupies its items. Returned → the return date.
+// The last day a checkout occupies its items.
+// Returned → the day BEFORE the return date. The kit is physically back on the
+// shelf on the day it is handed in, so that day it is available again. (This was
+// the old bug: returning a kit today still counted it as out today, so it kept
+// reading "1 out today" and blocked a same-day reservation.) A kit that goes out
+// and comes back the same day ends up with coEnd < outDate, i.e. it blocks nothing.
 // Not returned and past due → still gone TODAY (it hasn't come back!), so overdue
 // checkouts keep blocking availability until marked returned.
+function matPrevDay(d){const x=new Date(d+'T12:00:00');x.setDate(x.getDate()-1);return fmtYMD(x);}
 function coEnd(c){
-  if(c.returnedDate)return c.returnedDate;
+  if(c.returnedDate)return matPrevDay(c.returnedDate);
   const t=matToday();
   return c.dueDate<t?t:c.dueDate;
 }
@@ -7544,7 +7667,7 @@ function renderMatHolders(){
     const canKeep=nxt&&gap!=null&&gap<=3&&gap>=0;
     return `<div style="padding:11px 0;border-bottom:0.5px solid var(--border)">
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline">
-        <div style="font-size:16px;font-weight:600">${escapeHtml(name)}</div>
+        <div style="font-size:16px;font-weight:600">${escapeHtml(name)} <button class="btn sm success" style="margin-left:6px" onclick="returnAllFor('${encodeURIComponent(name)}')" title="Mark everything this person has out as returned">✓ All back</button></div>
         <div style="font-size:14px;color:${overdue?'var(--danger)':'var(--muted)'}">out ${fd(outD)} · due back ${fd(dueD)}${overdue?' · ⏰ overdue':''}</div>
       </div>
       <div style="font-size:15px;margin-top:3px">📦 ${escapeHtml(kitLabel)}</div>
@@ -7664,7 +7787,9 @@ function renderMatCal(){
   for(let i=0;i<first.getDay();i++)html+='<div class="mat-day blank"></div>';
   for(let day=1;day<=daysInMonth;day++){
     const d=fmtYMD(new Date(y,m,day));
-    const active=matCheckouts.filter(c=>!coNoEquipment(c)&&coActiveOn(c,d));
+    // Show a chip on every day the kit was occupied, plus the day it came back
+    // (that one is green and does NOT count against availability).
+    const active=matCheckouts.filter(c=>!coNoEquipment(c)&&(coActiveOn(c,d)||c.returnedDate===d));
     const conflict=equipment.some(eq=>qtyOutOn(eq.id,d)>eq.qty);
     const chips=active.map(c=>{
       const cls=c.returnedDate?'returned':coIsOverdue(c)?'overdue':'';
@@ -8056,6 +8181,24 @@ async function markReturned(id){
   renderMaterials();
   showToast('✓ Marked returned — back on the shelf');
   dbWrite(sb.from('equipment_checkouts').update({returned_date:c.returnedDate}).eq('id',id),'Mark returned');
+}
+// Mark everything one person has out as returned in a single click, from the
+// "Who has what right now" panel. A kit is often several checkout rows (AV plus
+// manikins, or two classes in the same week), and returning them one row at a
+// time is how a record gets missed and keeps reading as still out.
+async function returnAllFor(encName){
+  const name=decodeURIComponent(encName);
+  const nm=(name==='Not assigned to anyone yet')?'':name.trim().toLowerCase();
+  const t=matToday();
+  const list=matCheckouts.filter(c=>!c.returnedDate&&!coNoEquipment(c)&&!coUsesExisting(c)&&c.outDate<=t&&(c.person||'').trim().toLowerCase()===nm);
+  if(!list.length)return;
+  if(!confirm('Mark all '+list.length+' checkout'+(list.length>1?'s':'')+' for '+name+' as returned?\n\nEverything goes back on the shelf as of today and is available to check out again.'))return;
+  list.forEach(c=>{
+    c.returnedDate=t;
+    dbWrite(sb.from('equipment_checkouts').update({returned_date:t}).eq('id',c.id),'Mark returned');
+  });
+  renderMaterials();
+  showToast('✓ '+list.length+' checkout'+(list.length>1?'s':'')+' marked returned — back on the shelf');
 }
 async function undoReturn(id){
   const c=matCheckouts.find(x=>x.id===id);if(!c)return;
