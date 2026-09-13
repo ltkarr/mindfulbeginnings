@@ -1142,23 +1142,61 @@ function toggleOrgHeadcount(){
   if(wrap)wrap.style.display=org?'block':'none';
 }
 
+// ─── PAGED TABLE LOADS ───────────────────────────────────────
+// Supabase/PostgREST caps every select at 1,000 rows by default. A plain
+// .select('*') therefore stops returning new rows once a table passes 1,000 —
+// silently, with no error. That is what froze revenue: registrations kept
+// arriving in the database, but admin.html only ever saw the first 1,000 of
+// them, so the money attached to every registration after that never reached
+// any total on screen.
+//
+// fetchAll pages through the whole table in 1,000-row windows until a short
+// page comes back, and returns the same {data,error} shape the rest of the
+// load code already expects, so nothing downstream changes.
+const PAGE_SIZE=1000;
+async function fetchAll(table,build){
+  // Paging is only reliable with a stable sort, so every query gets an id
+  // tiebreak on top of whatever ordering the caller asked for. If a table has
+  // no id column the query is retried without the tiebreak.
+  let useIdOrder=true;
+  let from=0,rows=[];
+  for(;;){
+    const run=async(withId)=>{
+      let q=sb.from(table).select('*');
+      if(build)q=build(q);
+      if(withId)q=q.order('id',{ascending:true});
+      return q.range(from,from+PAGE_SIZE-1);
+    };
+    let res=await run(useIdOrder);
+    if(res.error&&useIdOrder){useIdOrder=false;res=await run(false);}
+    if(res.error)return{data:null,error:res.error};
+    const page=res.data||[];
+    rows=rows.concat(page);
+    if(page.length<PAGE_SIZE)break;
+    from+=PAGE_SIZE;
+    // Safety stop so a misbehaving query can never spin forever.
+    if(from>200000)break;
+  }
+  return{data:rows,error:null};
+}
+
 async function loadData(){
   try{
     const [s,r,i,j,e,inv,eq,co]=await Promise.all([
-      sb.from('sessions').select('*'),
-      sb.from('registrations').select('*'),
-      sb.from('instructors').select('*'),
-      sb.from('job_data').select('*'),
-      sb.from('expenses').select('*').order('date',{ascending:false}),
-      sb.from('invoices').select('*').order('created_at',{ascending:false}),
-      sb.from('equipment').select('*').order('sort',{ascending:true}),
-      sb.from('equipment_checkouts').select('*').order('out_date',{ascending:true})
+      fetchAll('sessions'),
+      fetchAll('registrations'),
+      fetchAll('instructors'),
+      fetchAll('job_data'),
+      fetchAll('expenses',q=>q.order('date',{ascending:false})),
+      fetchAll('invoices',q=>q.order('created_at',{ascending:false})),
+      fetchAll('equipment',q=>q.order('sort',{ascending:true})),
+      fetchAll('equipment_checkouts',q=>q.order('out_date',{ascending:true}))
     ]);
     // Partner tables are newer. If the setup SQL has not been run yet the rest of
     // the app still loads and the Partners tab explains what to do.
     const [pt,pp]=await Promise.all([
-      sb.from('partners').select('*').order('name',{ascending:true}),
-      sb.from('partner_payouts').select('*')
+      fetchAll('partners',q=>q.order('name',{ascending:true})),
+      fetchAll('partner_payouts')
     ]);
     partnersTableReady=!pt.error;
     if(pt.error)console.warn('Partners table not loaded (run partners_setup.sql if you haven\'t):',pt.error);
@@ -1178,6 +1216,10 @@ async function loadData(){
     }
     sessions=(s.data||[]).map(sessionFromDB);
     registrations=(r.data||[]).map(regFromDB);
+    // Row counts, so a short load is visible instead of quietly wrong totals.
+    console.log('Loaded rows →','sessions:',(s.data||[]).length,'| registrations:',(r.data||[]).length,
+      '| job_data:',(j.data||[]).length,'| instructors:',(i.data||[]).length,
+      '| expenses:',(e.data||[]).length,'| invoices:',(inv.data||[]).length);
     instructors=(i.data||[]).map(instructorFromDB);
     sortInstructors();
     jobDataCache={};
@@ -3286,11 +3328,22 @@ function renderDashboard(){
   mProfit=mRev-mCost;
   const totRegs=registrations.filter(r=>r.payStatus!=='cancelled').length;
   const unpaid=registrations.filter(r=>r.payStatus==='unpaid').length;
+  // Registrations that have taken a seat but whose money has not been confirmed.
+  // "pending" is what a Venmo/Zelle/already-paid checkout leaves behind until you
+  // mark it paid, and it used to be invisible here — which made registrations look
+  // like they were climbing while revenue sat still. Both statuses are counted now,
+  // along with the dollars they represent.
+  const awaiting=registrations.filter(r=>r.payStatus==='pending'||r.payStatus==='unpaid');
+  const awaitingAmt=awaiting.reduce((sum,r)=>{
+    const s=sessions.find(x=>x.id===r.sessionId);
+    return sum+(s?regEffectivePrice(r,s):0);
+  },0);
+  const pendingCount=registrations.filter(r=>r.payStatus==='pending').length;
   document.getElementById('dash-metrics').innerHTML=`
     <div class="metric"><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub">${fmt(yRev)} year to date</div></div>
     <div class="metric"><div class="m-label">Expenses this month</div><div class="m-val red">${fmt(mCost)}</div></div>
     <div class="metric"><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${fmtSigned(mProfit)}</div></div>
-    <div class="metric"><div class="m-label">Total registrations</div><div class="m-val">${totRegs}</div><div class="m-sub">${unpaid} unpaid</div></div>
+    <div class="metric"><div class="m-label">Total registrations</div><div class="m-val">${totRegs}</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'all paid'}</div></div>
     <div class="metric"><div class="m-label">Sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled).length}</div>${(()=>{const h=sessions.filter(s=>s.isHold).length;const cx=sessions.filter(s=>s.isCancelled).length;const bits=[];if(h)bits.push(h+' on hold');if(cx)bits.push(cx+' cancelled');return bits.length?`<div class="m-sub">${bits.join(' · ')}</div>`:'';})()}</div>
   `;
   // Build a continuous 6-month window anchored on the current month: 3 months
