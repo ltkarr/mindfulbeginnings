@@ -242,7 +242,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
   <div class="login-box">
     <div class="login-logo">Mindful Beginnings</div>
     <div class="login-sub">Instructor portal — enter your PIN to sign in</div>
-    <input type="password" class="pin-input" id="pin-input" placeholder="••••" maxlength="6" inputmode="numeric" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="password" class="pin-input" id="pin-input" maxlength="6" inputmode="numeric" onkeydown="if(event.key==='Enter')doLogin()">
     <div class="login-err" id="login-err"></div>
     <button class="login-btn" id="login-btn" onclick="doLogin()">Sign in</button>
     <div id="login-version" style="margin-top:14px;font-size:11px;color:rgba(255,255,255,.45);text-align:center"></div>
