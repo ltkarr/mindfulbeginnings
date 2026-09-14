@@ -13,7 +13,8 @@ const {
   extractCaptureFromOrder,
   paidNotesLine,
   clearPendingPaymentNotes,
-  notesForPaymentStatus
+  notesForPaymentStatus,
+  adminTogglePaidPatch
 } = require('../lib/payment-utils');
 
 test('parseMoney and formatMoney round to cents', () => {
@@ -99,6 +100,18 @@ test('clearPendingPaymentNotes strips reservation tags only', () => {
     clearPendingPaymentNotes('[Family marked VENMO sent — confirm in Venmo app] [Promo SAVE10 applied: −$10 off 185 → 175]'),
     '[Promo SAVE10 applied: −$10 off 185 → 175]'
   );
+});
+
+test('admin Mark paid records $0 revenue and still sets paid status', () => {
+  const paid = adminTogglePaidPatch({ currentlyPaid: false, existingPricePaid: null });
+  assert.equal(paid.pay_status, 'paid');
+  assert.equal(paid.price_paid, 0);
+  const unpaidZero = adminTogglePaidPatch({ currentlyPaid: true, existingPricePaid: 0 });
+  assert.equal(unpaidZero.pay_status, 'unpaid');
+  assert.equal(unpaidZero.price_paid, null);
+  const unpaidCharged = adminTogglePaidPatch({ currentlyPaid: true, existingPricePaid: 175 });
+  assert.equal(unpaidCharged.pay_status, 'unpaid');
+  assert.equal(unpaidCharged.price_paid, undefined);
 });
 
 test('notesForPaymentStatus matches pay_status so paid rows never say awaiting payment', () => {

@@ -959,9 +959,11 @@ function sessionListPrice(s){
   if(!s)return 0;
   return s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
 }
-// True only when price_paid differs from the session's advertised price (promo, scholarship, etc.).
+// True only when price_paid is a real custom amount (promo, scholarship, etc.).
+// $0 is the admin "Mark paid" revenue amount, not a custom class fee.
 function isCustomStudentPrice(r,s){
   if(!r||r.pricePaid==null)return false;
+  if(Number(r.pricePaid)===0)return false;
   if(!s)return true;
   return Number(r.pricePaid)!==Number(sessionListPrice(s));
 }
@@ -3057,6 +3059,18 @@ function clearPendingPaymentNotes(notes){
 }
 function hasPaidIndicatorNote(notes){
   return /\[(Paid via |Registered\s*[—-]\s*paid\]|FREE registration|AUCTION|Re-registration)/i.test(notes||'');
+}
+// Host/admin "Mark paid" is a confirmation, not a collected checkout — revenue is $0.
+// PayPal/card capture writes the charged total via /api/paypal/*. Keep in sync with
+// lib/payment-utils.js adminTogglePaidPatch.
+function adminTogglePaidPatch(opts){
+  opts=opts||{};
+  if(opts.currentlyPaid){
+    const patch={pay_status:'unpaid'};
+    if(opts.existingPricePaid===0)patch.price_paid=null;
+    return patch;
+  }
+  return{pay_status:'paid',price_paid:0};
 }
 // Display notes that match payStatus so a green "paid" badge never sits next to
 // "[Registered — awaiting payment]". Pending / unpaid keep the reservation tag.
@@ -5360,8 +5374,10 @@ async function saveReg(){
 
 async function togglePaid(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
-  r.payStatus=r.payStatus==='paid'?'unpaid':'paid';
-  const update={pay_status:r.payStatus};
+  const currentlyPaid=r.payStatus==='paid';
+  const update=adminTogglePaidPatch({currentlyPaid,existingPricePaid:r.pricePaid});
+  r.payStatus=update.pay_status;
+  if(Object.prototype.hasOwnProperty.call(update,'price_paid'))r.pricePaid=update.price_paid;
   if(r.payStatus==='paid'){
     const cleaned=notesForPaymentStatus(r.payStatus,r.notes);
     if(cleaned!==(r.notes||'')){r.notes=cleaned;update.notes=r.notes;}
