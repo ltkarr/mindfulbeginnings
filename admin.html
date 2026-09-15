@@ -253,7 +253,8 @@ tr:hover td{background:#fafbfd}
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
       <div class="nav-item" title="Session codes" onclick="showScreen('codes',this)"><span class="nav-icon">⬡</span> <span class="nav-label">Session codes</span></div>
       <div class="nav-item" title="Instructors" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> <span class="nav-label">Instructors</span></div>
-      <div class="nav-item" title="Partners" onclick="showScreen('partners',this)"><span class="nav-icon">◎</span> <span class="nav-label">Partners</span></div>
+      <div class="nav-item" title="Liaisons" onclick="showScreen('partners',this)"><span class="nav-icon">◎</span> <span class="nav-label">Liaisons</span></div>
+      <div class="nav-item" title="Community partnerships" onclick="showScreen('orgpartners',this)"><span class="nav-icon">⬢</span> <span class="nav-label">Partnerships</span></div>
       <div class="nav-item" id="nav-materials" title="Equipment" onclick="showScreen('materials',this)"><span class="nav-icon">▣</span> <span class="nav-label">Equipment</span></div>
       <div class="nav-item" title="Reports" onclick="showScreen('reports',this)"><span class="nav-icon">▦</span> <span class="nav-label">Reports</span></div>
     </div>
@@ -413,7 +414,7 @@ tr:hover td{background:#fafbfd}
 
     <div class="screen" id="screen-partners">
       <div class="page-header">
-        <div><div class="page-title">Community partners</div><div class="page-sub">Last month’s payable commission, plus projected payouts as pending bookings clear</div></div>
+        <div><div class="page-title">Liaisons</div><div class="page-sub">Individual Community Partnerships Liaisons on commission. Organizations on a revenue share live under Partnerships.</div></div>
         <div class="btn-row">
           <button class="btn" onclick="publishPartnerPortalsNow()" title="Partners see these numbers when they sign in to the portal">⇪ Update partner portals</button>
           <button class="btn" onclick="exportPartnersCSV()">⬇ Download statement (CSV)</button>
@@ -423,6 +424,19 @@ tr:hover td{background:#fafbfd}
       <div id="partners-setup"></div>
       <div id="partners-controls"></div>
       <div id="partners-body"></div>
+    </div>
+
+    <div class="screen" id="screen-orgpartners">
+      <div class="page-header">
+        <div><div class="page-title">Community partnerships</div><div class="page-sub">Organizations on a 50/50 revenue share. Paid at the end of each month for every class completed by then.</div></div>
+        <div class="btn-row">
+          <button class="btn" onclick="exportOrgPartnersCSV()">⬇ Download statement (CSV)</button>
+          <button class="btn primary" onclick="openAddOrgPartner()">+ Add organization</button>
+        </div>
+      </div>
+      <div id="orgp-setup"></div>
+      <div id="orgp-controls"></div>
+      <div id="orgp-body"></div>
     </div>
 
     <!-- The "Jobs & materials" tab was removed — the per-session Wrap-up checklist
@@ -546,7 +560,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -601,6 +615,7 @@ function sessionToDB(s){
   // Only sent once the partners setup SQL has added the column, so an older
   // database keeps saving sessions normally.
   if(ORIGINATED_COL){o.originated_by=s.originatedBy||null;o.origination_note=s.originationNote||null;}
+  if(HOSTED_FOR_COL)o.hosted_for=s.hostedFor||null;
   if(EXTRA_DATES_COL)o.extra_dates=(s.extraDates||[]).filter(Boolean);
   if(EXTRA_DAYS_COL)o.extra_days=(s.extraDays||[]).filter(x=>x&&x.date).map(x=>({date:x.date,time:x.time||''}));
   if(CLOSURES_COL)o.closures=(s.closures||[]).filter(x=>x&&x.date).map(x=>({date:x.date,reason:x.reason||''}));
@@ -959,11 +974,9 @@ function sessionListPrice(s){
   if(!s)return 0;
   return s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
 }
-// True only when price_paid is a real custom amount (promo, scholarship, etc.).
-// $0 is the admin "Mark paid" revenue amount, not a custom class fee.
+// True only when price_paid differs from the session's advertised price (promo, scholarship, etc.).
 function isCustomStudentPrice(r,s){
   if(!r||r.pricePaid==null)return false;
-  if(Number(r.pricePaid)===0)return false;
   if(!s)return true;
   return Number(r.pricePaid)!==Number(sessionListPrice(s));
 }
@@ -978,6 +991,12 @@ let equipment=[],matCheckouts=[],equipmentTablesReady=true,matCalYM=null;
 // partnersTableReady goes false when the setup SQL has not been run yet, and the
 // Partners screen shows the instructions instead of an empty table.
 let partners=[],partnerPayouts=[],partnersTableReady=true,partnerPeriod=null;
+// Community Partnerships: ORGANIZATIONS on a revenue share, not individuals on
+// commission. Separate tables, separate tab, separate agreement.
+let orgPartners=[],orgPartnerPayouts=[],orgPartnersTableReady=true,orgPartnerPeriod=null;
+// Set false automatically if the database is missing sessions.hosted_for, so a
+// session still saves (minus its partnership credit) instead of failing outright.
+let HOSTED_FOR_COL=true;
 // Set false when the database predates partner_portal_setup.sql, so the app keeps
 // working and simply does not publish anything to the partner portal yet.
 let PARTNER_INSTRUCTOR_COL=true, PARTNER_PORTAL_ON=true;
@@ -1196,10 +1215,19 @@ async function loadData(){
     ]);
     // Partner tables are newer. If the setup SQL has not been run yet the rest of
     // the app still loads and the Partners tab explains what to do.
-    const [pt,pp]=await Promise.all([
+    const [pt,pp,op,opp]=await Promise.all([
       fetchAll('partners',q=>q.order('name',{ascending:true})),
-      fetchAll('partner_payouts')
+      fetchAll('partner_payouts'),
+      fetchAll('community_partners',q=>q.order('name',{ascending:true})),
+      fetchAll('community_partner_payouts')
     ]);
+    // Community Partnerships tables are newer still. Same treatment: if the setup
+    // SQL has not been run, everything else loads and that one tab explains why.
+    orgPartnersTableReady=!op.error;
+    if(op.error)console.warn('Community partnerships table not loaded (run community_partners_setup.sql):',op.error);
+    if(opp.error)console.warn('Community partnership payouts table not loaded:',opp.error);
+    orgPartners=(op.data||[]).map(orgPartnerFromDB);
+    orgPartnerPayouts=(opp.data||[]).map(orgPayoutFromDB);
     partnersTableReady=!pt.error;
     if(pt.error)console.warn('Partners table not loaded (run partners_setup.sql if you haven\'t):',pt.error);
     if(pp.error)console.warn('Partner payouts table not loaded:',pp.error);
@@ -2219,6 +2247,30 @@ function partnerOriginFieldHtml(s){
     <div style="font-size:14px;color:var(--muted);margin-top:6px">The note is your own record of the first documented introduction, which is what the agreement uses to settle any attribution question later.</div>
   </div>`;
 }
+// ─── COMMUNITY PARTNERSHIPS: SESSION ATTRIBUTION FIELD ───────
+// The organizational twin of "Originated by" above. Setting it means this class
+// is covered by a Community Partnership Agreement and the organization earns
+// 50% of its net. The two are independent: a liaison can originate a class that
+// is then hosted in partnership, and both get paid on it.
+function orgPartnerFieldHtml(s){
+  const active=orgPartners.filter(p=>p.status!=='inactive'||(s&&s.hostedFor===p.id));
+  if(!orgPartnersTableReady||!active.length)return '';
+  const cur=s?(s.hostedFor||''):'';
+  return `<div class="fg full" style="background:#eef5f1;border:1px solid #cfe3d8;border-radius:var(--r-sm);padding:12px 14px">
+    <label style="margin-bottom:2px">Hosted in partnership with <span style="font-weight:400;color:var(--muted)">(optional — 50/50 revenue share)</span></label>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Pick the organization whose Community Partnership Agreement covers this class. Their share is half of what is left after instructor pay, materials, job costs and the overhead allocation. Leave blank for anything running on your own.</div>
+    <select id="m-hostedfor" style="width:100%">
+      <option value="">— Not applicable (no partnership on this class) —</option>
+      ${active.map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${escapeHtml(p.name)}${p.isTitle1?' — Title I':''}${p.status==='inactive'?' (inactive)':''}</option>`).join('')}
+    </select>
+    <div style="font-size:14px;color:var(--muted);margin-top:6px">A Title I partner is billed at cost and generates no share, so nothing is owed on it. Marking the class here still keeps it on their record.</div>
+  </div>`;
+}
+function readHostedFor(){
+  const el=document.getElementById('m-hostedfor');
+  return el&&el.value?el.value:null;
+}
+
 function readOriginatedBy(){
   const el=document.getElementById('m-originby');
   return el&&el.value?el.value:null;
@@ -2226,6 +2278,484 @@ function readOriginatedBy(){
 function readOriginationNote(){
   const el=document.getElementById('m-originnote');
   return el?(el.value||'').trim():'';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMMUNITY PARTNERSHIPS — ORGANIZATIONS ON A REVENUE SHARE
+// ═══════════════════════════════════════════════════════════════════════════
+// This is NOT the Liaisons tab. Keep the two straight:
+//
+//   LIAISONS (the Partners tab)      an INDIVIDUAL, 1099, flat commission on
+//                                    bookings they originate or refer. Katy
+//                                    Greenberg is a liaison.
+//
+//   PARTNERSHIPS (this tab)          an ORGANIZATION — a PTA, a synagogue, a
+//                                    rec department — that hosts or promotes a
+//                                    class under a Community Partnership
+//                                    Agreement and takes 50% of its net.
+//
+// They are independent and can both apply to one class: a liaison can originate
+// a booking with an organization that then hosts it on a revenue share. Each is
+// calculated on its own terms and neither reduces the other.
+//
+// ─── HOW THE SHARE IS CALCULATED (Section 3.A of the agreement) ─────────────
+// Collected Revenue, less the Company's Direct Program Costs, less the Company
+// Overhead Allocation, split 50/50. Note what is NOT in that list: the partner
+// deducts nothing. Whatever the organization spends on printing, refreshments,
+// or volunteer hours is its own, is never reimbursed, and never touches this
+// math. That is the whole point of the structure — no receipts to chase.
+//
+// Direct Program Costs come from partnerRevenueEvents(), which already spreads
+// instructor pay, per-student materials and any job costs across the session's
+// revenue lines. Processing fees are already removed upstream, so they are not
+// deducted twice.
+//
+// ─── WHEN IT IS EARNED, AND WHEN IT IS PAID ────────────────────────────────
+// Earned: the money has landed AND the class has been taught. partnerRevenueEvents
+// already stamps that as ev.collected, so both engines agree on what counts.
+//
+// Paid: at the END of each month, for every class completed by then. This is the
+// one place the two tabs deliberately differ. A liaison is paid by the 10th of
+// the FOLLOWING month; a partner organization is paid at the close of the SAME
+// month. So the default period on this screen is the current month, not last
+// month, and the current month is payable rather than "in progress".
+const ORG_SHARE_PCT=50, ORG_OVERHEAD_PCT=15;
+
+const ORGP_SETUP_HTML=`<div class="alert warn" style="display:block">
+  <div style="font-weight:500;margin-bottom:6px">⚙️ One setup step left</div>
+  <div style="line-height:1.6">The Community Partnerships tables don't exist in your database yet. Open Supabase → <strong>SQL Editor</strong> → <strong>New query</strong>, paste the block below, and click Run. Then reload this page. Nothing else in the portal is affected until you do.</div>
+  <pre style="background:#fff;border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-top:10px;font-size:13px;line-height:1.5;overflow:auto;white-space:pre">create table if not exists community_partners (
+  id uuid primary key,
+  name text not null,
+  contact_name text,
+  email text,
+  phone text,
+  share_pct numeric default 50,
+  overhead_pct numeric default 15,
+  is_title1 boolean default false,
+  status text default 'active',
+  contract_signed boolean default false,
+  contract_signed_date date,
+  pay_method text,
+  notes text,
+  created_at bigint
+);
+
+create table if not exists community_partner_payouts (
+  id uuid primary key,
+  partner_id uuid,
+  period text,
+  amount numeric,
+  breakdown jsonb,
+  paid_date date,
+  method text,
+  notes text,
+  unique (partner_id, period)
+);
+
+alter table sessions add column if not exists hosted_for uuid;
+
+alter table community_partners enable row level security;
+alter table community_partner_payouts enable row level security;
+create policy "auth all" on community_partners for all to authenticated using (true) with check (true);
+create policy "auth all" on community_partner_payouts for all to authenticated using (true) with check (true);</pre>
+</div>`;
+
+// ─── DATABASE MAPPING ───────────────────────────────────────
+function orgPartnerFromDB(r){
+  return{id:r.id,name:r.name||'',contactName:r.contact_name||'',email:r.email||'',phone:r.phone||'',
+    sharePct:r.share_pct==null?ORG_SHARE_PCT:Number(r.share_pct),
+    overheadPct:r.overhead_pct==null?ORG_OVERHEAD_PCT:Number(r.overhead_pct),
+    isTitle1:!!r.is_title1,status:r.status||'active',
+    contractSigned:!!r.contract_signed,contractSignedDate:r.contract_signed_date||'',
+    payMethod:r.pay_method||'',notes:r.notes||'',createdAt:r.created_at==null?null:Number(r.created_at)};
+}
+function orgPartnerToDB(p){
+  return{id:p.id,name:p.name,contact_name:p.contactName||null,email:p.email||null,phone:p.phone||null,
+    share_pct:p.sharePct,overhead_pct:p.overheadPct,is_title1:!!p.isTitle1,status:p.status||'active',
+    contract_signed:!!p.contractSigned,contract_signed_date:p.contractSignedDate||null,
+    pay_method:p.payMethod||null,notes:p.notes||null,created_at:p.createdAt||Date.now()};
+}
+function orgPayoutFromDB(r){
+  return{id:r.id,partnerId:r.partner_id,period:r.period||'',amount:Number(r.amount)||0,
+    breakdown:r.breakdown||null,paidDate:r.paid_date||'',method:r.method||'',notes:r.notes||''};
+}
+function orgPayoutToDB(p){
+  return{id:p.id,partner_id:p.partnerId,period:p.period,amount:p.amount,
+    breakdown:p.breakdown||null,paid_date:p.paidDate||null,method:p.method||null,notes:p.notes||null};
+}
+function orgPartnerById(id){return orgPartners.find(p=>p.id===id);}
+
+// ─── THE MATH ───────────────────────────────────────────────
+// One row per session per month. A session whose families paid across two
+// calendar months produces two rows, each settled in its own month, so a late
+// payment never quietly reopens a month you already paid out.
+function orgPartnerRows(partnerId){
+  const p=orgPartnerById(partnerId);
+  if(!p)return{rows:[],pending:[]};
+  const sharePct=(Number(p.sharePct)||0)/100;
+  const ohPct=(Number(p.overheadPct)||0)/100;
+  const rows=[],pending=[];
+  (sessions||[]).forEach(s=>{
+    if(s.hostedFor!==partnerId)return;
+    if(s.isHold)return;
+    const events=partnerRevenueEvents(s);
+    if(!events.length)return;
+    const byMonth={};
+    events.forEach(ev=>{
+      if(!ev.collected){
+        pending.push({session:s,amount:round2(ev.amount||0),cost:round2(ev.cost||0),
+          moneyIn:ev.moneyIn,taught:ev.taught,sessionEnd:ev.sessionEnd,
+          blocked:!ev.moneyIn&&!ev.taught?'Money not in, and the class has not run yet'
+                 :!ev.moneyIn?'Class has been taught — waiting on payment'
+                 :'Paid — waiting on the class to be taught'});
+        return;
+      }
+      const m=ev.month;
+      const b=byMonth[m]||(byMonth[m]={month:m,collected:0,costs:0,lines:0});
+      b.collected=round2(b.collected+(Number(ev.amount)||0));
+      b.costs=round2(b.costs+(Number(ev.cost)||0));
+      b.lines++;
+    });
+    Object.keys(byMonth).forEach(m=>{
+      const b=byMonth[m];
+      const overhead=round2(b.collected*ohPct);
+      // A class that cost more to deliver than it brought in owes nothing rather
+      // than a negative share. The partner is never billed for a job that lost money.
+      const net=Math.max(0,round2(b.collected-b.costs-overhead));
+      const title1=!!p.isTitle1;
+      rows.push({session:s,sessionId:s.id,month:m,collected:b.collected,costs:b.costs,
+        overhead,net,lines:b.lines,title1,
+        share:title1?0:round2(net*sharePct),
+        client:s.billToOrg||s.contactName||p.name});
+    });
+  });
+  rows.sort((a,b)=>(a.month+a.session.date).localeCompare(b.month+b.session.date));
+  return{rows,pending};
+}
+
+// Everything owed to one organization for one month.
+function orgPartnerStatement(partnerId,period){
+  const p=orgPartnerById(partnerId);
+  const{rows,pending}=orgPartnerRows(partnerId);
+  const mine=rows.filter(r=>r.month===period);
+  const collected=round2(mine.reduce((a,r)=>a+r.collected,0));
+  const costs=round2(mine.reduce((a,r)=>a+r.costs,0));
+  const overhead=round2(mine.reduce((a,r)=>a+r.overhead,0));
+  const net=round2(mine.reduce((a,r)=>a+r.net,0));
+  const share=round2(mine.reduce((a,r)=>a+r.share,0));
+  const payout=orgPartnerPayouts.find(x=>x.partnerId===partnerId&&x.period===period)||null;
+  // A frozen payout wins over a recalculation. Once you have sent the money, a
+  // later refund or price edit must not silently rewrite what you already paid.
+  const total=(payout&&payout.paidDate)?round2(payout.amount):share;
+  const sharePct=(Number(p&&p.sharePct)||0)/100;
+  const ohPct=(Number(p&&p.overheadPct)||0)/100;
+  const pendingEst=round2(pending.reduce((a,x)=>{
+    const n=Math.max(0,round2(x.amount-x.cost-round2(x.amount*ohPct)));
+    return a+(p&&p.isTitle1?0:round2(n*sharePct));
+  },0));
+  return{partner:p,period,rows:mine,collected,costs,overhead,net,share,total,payout,
+    pending,pendingEst,kept:round2(net-share)};
+}
+
+// Every month this organization has ever earned in, newest first.
+function orgPartnerPeriods(partnerId){
+  const set=new Set(orgPartnerRows(partnerId).rows.map(r=>r.month));
+  orgPartnerPayouts.filter(x=>x.partnerId===partnerId).forEach(x=>{if(x.period)set.add(x.period);});
+  return[...set].sort().reverse();
+}
+// Paid at the END of the month for classes completed by then, so the month you
+// are settling right now is THIS one.
+function defaultOrgPeriod(){return currentCalendarMonth();}
+
+// ─── SCREEN ─────────────────────────────────────────────────
+function renderOrgPartners(){
+  const setupEl=document.getElementById('orgp-setup');
+  const ctrlEl=document.getElementById('orgp-controls');
+  const bodyEl=document.getElementById('orgp-body');
+  if(!setupEl)return;
+  if(!orgPartnersTableReady){
+    setupEl.innerHTML=ORGP_SETUP_HTML;ctrlEl.innerHTML='';bodyEl.innerHTML='';return;
+  }
+  setupEl.innerHTML='';
+
+  const thisMonth=currentCalendarMonth();
+  if(!orgPartnerPeriod)orgPartnerPeriod=defaultOrgPeriod();
+  const all=new Set([thisMonth,shiftCalendarMonth(thisMonth,-1)]);
+  orgPartners.forEach(p=>orgPartnerPeriods(p.id).forEach(m=>all.add(m)));
+  const periods=[...all].sort().reverse();
+  if(!periods.includes(orgPartnerPeriod))orgPartnerPeriod=thisMonth;
+
+  const statements=orgPartners.map(p=>orgPartnerStatement(p.id,orgPartnerPeriod));
+  const totCollected=round2(statements.reduce((a,x)=>a+x.collected,0));
+  const totShare=round2(statements.reduce((a,x)=>a+x.share,0));
+  const totOwed=round2(statements.reduce((a,x)=>a+((x.payout&&x.payout.paidDate)?0:x.share),0));
+  const totPaid=round2(statements.reduce((a,x)=>a+((x.payout&&x.payout.paidDate)?x.payout.amount:0),0));
+  const totPending=round2(statements.reduce((a,x)=>a+x.pendingEst,0));
+  const isCurrent=orgPartnerPeriod===thisMonth;
+
+  ctrlEl.innerHTML=`
+    <div class="alert info" style="display:block">
+      <div style="line-height:1.6">💡 &nbsp;Partner organizations are paid at the <strong>end of each month</strong>, for every class <strong>completed</strong> by then. A class counts once the money has landed <em>and</em> it has been taught — anything short of both shows as not payable yet. The organization deducts nothing, so nothing on this screen waits on receipts from them.</div>
+    </div>
+    <div class="card" style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between">
+      <div>
+        <label style="font-size:14px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px">Settlement month</label>
+        <select id="orgp-period" style="min-width:230px" onchange="setOrgPeriod(this.value)">
+          ${periods.map(m=>`<option value="${m}" ${m===orgPartnerPeriod?'selected':''}>${periodLabel(m)}${m===thisMonth?' — settling now':''}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div class="metric"><div class="m-label">Collected</div><div class="m-val">${fmt(totCollected)}</div><div class="m-sub">On partnership classes</div></div>
+        <div class="metric"><div class="m-label">Partner share</div><div class="m-val">${fmt(totShare)}</div><div class="m-sub">${isCurrent?'Payable at month end':'Settled'}</div></div>
+        <div class="metric"><div class="m-label">Still to pay</div><div class="m-val ${totOwed>0?'red':''}">${fmt(totOwed)}</div><div class="m-sub">${fmt(totPaid)} already sent</div></div>
+        <div class="metric"><div class="m-label">Not payable yet</div><div class="m-val" style="color:var(--warn)">${fmt(totPending)}</div><div class="m-sub">Awaiting payment or the class</div></div>
+      </div>
+    </div>`;
+
+  if(!orgPartners.length){
+    bodyEl.innerHTML=`<div class="card" style="text-align:center;padding:44px 22px">
+      <div style="font-size:18px;font-weight:500;margin-bottom:6px">No partner organizations yet</div>
+      <div style="color:var(--muted);font-size:16px;max-width:520px;margin:0 auto 18px">Add the organization you signed a Community Partnership Agreement with, then pick it under "Hosted in partnership with" on any class it hosts or promotes. The share works itself out from there. This is for organizations — an individual on commission belongs on the Liaisons tab.</div>
+      <button class="btn primary" onclick="openAddOrgPartner()">+ Add organization</button>
+    </div>`;
+    return;
+  }
+  bodyEl.innerHTML=orgPartners.map((p,i)=>orgPartnerCardHtml(p,statements[i])).join('');
+}
+function setOrgPeriod(v){orgPartnerPeriod=v;renderOrgPartners();}
+
+function orgPartnerCardHtml(p,st){
+  const paid=!!(st.payout&&st.payout.paidDate);
+  const badge=p.isTitle1
+    ?`<span style="background:#e8f3ec;color:#1d6b42;padding:2px 10px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">Title I — billed at cost</span>`
+    :`<span style="background:#eef1f8;color:#31406b;padding:2px 10px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">${p.sharePct}% of net</span>`;
+  const inactive=p.status==='inactive'?`<span style="background:#f3f0e8;color:#7a6a3f;padding:2px 10px;border-radius:100px;font-size:13px;font-weight:600">Inactive</span>`:'';
+  const nopaper=!p.contractSigned?`<span style="background:#fbeeee;color:#9c3434;padding:2px 10px;border-radius:100px;font-size:13px;font-weight:600">No signed agreement on file</span>`:'';
+
+  const rowsHtml=st.rows.length?st.rows.map(r=>`<tr>
+      <td>${escapeHtml(r.session.course||'')}${r.title1?' <span style="color:var(--muted);font-size:13px">(Title I)</span>':''}</td>
+      <td>${r.session.date||''}</td>
+      <td>${escapeHtml(r.client||'')}</td>
+      <td>${fmt(r.collected)}</td>
+      <td style="color:var(--muted)">${fmt(r.costs)}</td>
+      <td style="color:var(--muted)">${fmt(r.overhead)}</td>
+      <td>${fmt(r.net)}</td>
+      <td style="font-weight:500;color:var(--success)">${fmt(r.share)}</td>
+    </tr>`).join('')
+    :`<tr><td colspan="8" style="color:var(--muted);padding:16px 12px">Nothing completed and collected in ${escapeHtml(periodLabel(st.period))}.</td></tr>`;
+
+  const pendingHtml=st.pending.length?`
+    <div class="alert warn" style="display:block;margin-top:14px">
+      <div style="font-weight:500;margin-bottom:6px">Not payable yet: about ${fmt(st.pendingEst)}</div>
+      <div style="line-height:1.6;font-size:14px">${st.pending.slice(0,6).map(x=>
+        `${escapeHtml(x.session.course||'Session')}${x.session.date?' — '+x.session.date:''}: ${fmt(x.amount)} · ${escapeHtml(x.blocked)}`).join('<br>')}
+        ${st.pending.length>6?`<br><span style="color:var(--muted)">and ${st.pending.length-6} more</span>`:''}</div>
+    </div>`:'';
+
+  return `<div class="card" style="margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px">
+      <div>
+        <div style="font-size:20px;font-weight:600;margin-bottom:4px">${escapeHtml(p.name)}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">${badge}${inactive}${nopaper}</div>
+        <div style="font-size:14px;color:var(--muted)">${escapeHtml([p.contactName,p.email,p.phone].filter(Boolean).join(' · '))||'No contact on file'}</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="openOrgPartnerStatement('${p.id}')">🧾 Statement</button>
+        <button class="btn" onclick="openEditOrgPartner('${p.id}')">✎ Edit</button>
+        ${paid
+          ? `<button class="btn" onclick="undoOrgPayout('${p.id}')">↺ Undo payout</button>`
+          : `<button class="btn primary" ${st.share>0?'':'disabled'} onclick="markOrgPaid('${p.id}')">✓ Record payment of ${fmt(st.share)}</button>`}
+      </div>
+    </div>
+    ${paid?`<div class="alert info" style="display:block;margin-bottom:12px">Paid ${fmt(st.payout.amount)} on ${st.payout.paidDate}${st.payout.method?' by '+escapeHtml(st.payout.method):''}. These figures are frozen as sent.</div>`:''}
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+      <div class="metric"><div class="m-label">Collected</div><div class="m-val" style="font-size:23px">${fmt(st.collected)}</div></div>
+      <div class="metric"><div class="m-label">Direct costs</div><div class="m-val" style="font-size:23px">${fmt(st.costs)}</div></div>
+      <div class="metric"><div class="m-label">Overhead ${p.overheadPct}%</div><div class="m-val" style="font-size:23px">${fmt(st.overhead)}</div></div>
+      <div class="metric"><div class="m-label">Net</div><div class="m-val" style="font-size:23px">${fmt(st.net)}</div></div>
+      <div class="metric"><div class="m-label">Their share</div><div class="m-val" style="font-size:23px;color:var(--success)">${fmt(st.share)}</div></div>
+      <div class="metric"><div class="m-label">You keep</div><div class="m-val" style="font-size:23px">${fmt(round2(st.overhead+st.kept))}</div><div class="m-sub">Overhead plus your half</div></div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Course</th><th>Date</th><th>Host</th><th>Collected</th><th>Direct costs</th><th>Overhead</th><th>Net</th><th>Their share</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table></div>
+    ${pendingHtml}
+  </div>`;
+}
+
+// ─── ADD / EDIT ─────────────────────────────────────────────
+function orgPartnerFormHtml(p){
+  const v=p||{name:'',contactName:'',email:'',phone:'',sharePct:ORG_SHARE_PCT,
+    overheadPct:ORG_OVERHEAD_PCT,isTitle1:false,status:'active',contractSigned:false,payMethod:'',notes:''};
+  return `<div class="modal-body"><div class="form-grid">
+    <div class="fg full"><label>Organization name *</label><input type="text" id="m-oname" value="${escapeHtml(v.name)}" placeholder="e.g. Virginia PTA"><div style="font-size:14px;color:var(--muted);margin-top:4px">The organization, not a person. An individual working on commission belongs on the Liaisons tab instead.</div></div>
+    <div class="fg"><label>Main contact</label><input type="text" id="m-ocontact" value="${escapeHtml(v.contactName)}" placeholder="Name and title"></div>
+    <div class="fg"><label>Email</label><input type="email" id="m-oemail" value="${escapeHtml(v.email)}" placeholder="email@example.com"></div>
+    <div class="fg"><label>Phone</label><input type="tel" id="m-ophone" value="${escapeHtml(v.phone)}" placeholder="(555) 555-5555"></div>
+    <div class="fg"><label>Status</label><select id="m-ostatus" style="width:100%"><option value="active" ${v.status!=='inactive'?'selected':''}>Active</option><option value="inactive" ${v.status==='inactive'?'selected':''}>Inactive (agreement ended)</option></select></div>
+    <div class="fg"><label>Their share of net (%)</label><input type="number" id="m-oshare" value="${v.sharePct}" min="0" max="100" step="1"><div style="font-size:14px;color:var(--muted);margin-top:4px">50 under the standard agreement.</div></div>
+    <div class="fg"><label>Overhead allocation (%)</label><input type="number" id="m-ooh" value="${v.overheadPct}" min="0" max="100" step="1"><div style="font-size:14px;color:var(--muted);margin-top:4px">15 under the standard agreement. Taken off before the split.</div></div>
+    <div class="fg full"><label>How you pay them</label><input type="text" id="m-opay" value="${escapeHtml(v.payMethod)}" placeholder="e.g. Check to the unit, or Zelle to the foundation"></div>
+    <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-ocontract" ${v.contractSigned?'checked':''} style="width:auto;margin:0"> Signed Community Partnership Agreement on file</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-otitle1" ${v.isTitle1?'checked':''} style="width:auto;margin:0"> Title I school — billed at cost, no revenue share</label>
+      <div style="font-size:14px;color:var(--muted);margin-top:8px">A Title I partner still gets a record of every class you run for them. It simply never generates a share, because there is no margin to divide.</div>
+    </div>
+    <div class="fg full"><label>Notes</label><input type="text" id="m-onotes" value="${escapeHtml(v.notes)}" placeholder="Optional"></div>
+  </div></div>`;
+}
+function openAddOrgPartner(){
+  showModal(`<div class="modal-head"><h3>Add partner organization</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  ${orgPartnerFormHtml(null)}
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveOrgPartner(null)">Add organization</button></div>`);
+}
+function openEditOrgPartner(id){
+  const p=orgPartnerById(id);if(!p)return;
+  showModal(`<div class="modal-head"><h3>Edit ${escapeHtml(p.name)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  ${orgPartnerFormHtml(p)}
+  <div class="modal-foot"><button class="btn danger" onclick="deleteOrgPartner('${p.id}')">Remove</button><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveOrgPartner('${p.id}')">Save changes</button></div>`);
+}
+async function saveOrgPartner(editId){
+  const name=(document.getElementById('m-oname').value||'').trim();
+  if(!name){showToast('The organization needs a name.');return;}
+  const num=(id,dflt)=>{const v=document.getElementById(id)?.value;return v===''||v==null?dflt:Math.max(0,Math.min(100,Number(v)));};
+  const data={name,
+    contactName:(document.getElementById('m-ocontact').value||'').trim(),
+    email:(document.getElementById('m-oemail').value||'').trim(),
+    phone:(document.getElementById('m-ophone').value||'').trim(),
+    status:document.getElementById('m-ostatus').value||'active',
+    sharePct:num('m-oshare',ORG_SHARE_PCT),
+    overheadPct:num('m-ooh',ORG_OVERHEAD_PCT),
+    payMethod:(document.getElementById('m-opay').value||'').trim(),
+    contractSigned:!!document.getElementById('m-ocontract')?.checked,
+    isTitle1:!!document.getElementById('m-otitle1')?.checked,
+    notes:(document.getElementById('m-onotes').value||'').trim()};
+  let p;
+  if(editId){p=orgPartnerById(editId);if(!p)return;Object.assign(p,data);}
+  else{p={id:sid(),contractSignedDate:'',createdAt:Date.now(),...data};orgPartners.push(p);}
+  if(data.contractSigned&&!p.contractSignedDate)p.contractSignedDate=new Date().toISOString().slice(0,10);
+  if(!data.contractSigned)p.contractSignedDate='';
+  orgPartners.sort((a,b)=>a.name.localeCompare(b.name));
+  closeModal();renderOrgPartners();
+  const ok=await dbWrite(sb.from('community_partners').upsert(orgPartnerToDB(p)),'Partner organization');
+  if(ok)showToast(editId?'Organization updated.':'Organization added. Pick it under "Hosted in partnership with" on any class it hosts.');
+  else{await loadData();renderOrgPartners();}
+}
+async function deleteOrgPartner(id){
+  const p=orgPartnerById(id);if(!p)return;
+  const credited=(sessions||[]).filter(s=>s.hostedFor===id).length;
+  const paidOut=orgPartnerPayouts.filter(x=>x.partnerId===id&&x.paidDate).length;
+  let msg='Remove '+p.name+' from your partner organizations?';
+  if(credited)msg+='\n\n'+credited+' session'+(credited===1?'':'s')+' hosted in partnership with them will lose that link, and the share history on this page disappears with it.';
+  if(paidOut)msg+='\n'+paidOut+' recorded payment'+(paidOut===1?'':'s')+' will also be deleted.';
+  msg+='\n\nIf the agreement simply ended, set the status to Inactive instead — that keeps the record intact.';
+  if(!confirm(msg))return;
+  orgPartners=orgPartners.filter(x=>x.id!==id);
+  orgPartnerPayouts=orgPartnerPayouts.filter(x=>x.partnerId!==id);
+  (sessions||[]).forEach(s=>{if(s.hostedFor===id)s.hostedFor=null;});
+  closeModal();renderOrgPartners();
+  const ok=await dbWrite(sb.from('community_partners').delete().eq('id',id),'Remove partner organization');
+  if(!ok){await loadData();renderOrgPartners();}
+}
+
+// ─── PAYOUTS ────────────────────────────────────────────────
+// Recording a payment freezes the month. A refund or a price edit afterwards can
+// never quietly rewrite a figure you have already sent.
+async function markOrgPaid(partnerId){
+  const st=orgPartnerStatement(partnerId,orgPartnerPeriod);
+  const p=orgPartnerById(partnerId);
+  if(!p||st.share<=0)return;
+  if(!p.contractSigned&&!confirm('There is no signed Community Partnership Agreement on file for '+p.name+'. Record this payment anyway?'))return;
+  const today=new Date().toISOString().slice(0,10);
+  const breakdown={sharePct:p.sharePct,overheadPct:p.overheadPct,
+    collected:st.collected,costs:st.costs,overhead:st.overhead,net:st.net,share:st.share,
+    lines:st.rows.map(r=>({sessionId:r.sessionId,course:r.session.course,date:r.session.date||'',
+      client:r.client,collected:r.collected,costs:r.costs,overhead:r.overhead,net:r.net,share:r.share}))};
+  const existing=orgPartnerPayouts.find(x=>x.partnerId===partnerId&&x.period===orgPartnerPeriod);
+  const row=existing||{id:sid(),partnerId,period:orgPartnerPeriod,method:p.payMethod||'',notes:''};
+  Object.assign(row,{amount:st.share,breakdown,paidDate:today});
+  if(!existing)orgPartnerPayouts.push(row);
+  renderOrgPartners();
+  const ok=await dbWrite(sb.from('community_partner_payouts').upsert(orgPayoutToDB(row),{onConflict:'partner_id,period'}),'Partnership payment');
+  if(ok)showToast('Recorded '+fmt(st.share)+' paid to '+p.name+' for '+periodLabel(orgPartnerPeriod)+'.');
+  else{await loadData();renderOrgPartners();}
+}
+async function undoOrgPayout(partnerId){
+  const row=orgPartnerPayouts.find(x=>x.partnerId===partnerId&&x.period===orgPartnerPeriod);
+  if(!row)return;
+  if(!confirm('Undo the recorded payment of '+fmt(row.amount)+' for '+periodLabel(orgPartnerPeriod)+'? This only changes your records here — it does not reverse a transfer.'))return;
+  orgPartnerPayouts=orgPartnerPayouts.filter(x=>x!==row);
+  renderOrgPartners();
+  const ok=await dbWrite(sb.from('community_partner_payouts').delete().eq('id',row.id),'Undo partnership payment');
+  if(!ok){await loadData();renderOrgPartners();}
+}
+
+// ─── STATEMENT ──────────────────────────────────────────────
+// What you hand or email to the organization. Course, date, money, share — no
+// student names, no contact details, nothing confidential leaves with it.
+function openOrgPartnerStatement(partnerId){
+  const p=orgPartnerById(partnerId);if(!p)return;
+  const st=orgPartnerStatement(partnerId,orgPartnerPeriod);
+  const paid=!!(st.payout&&st.payout.paidDate);
+  const rows=st.rows.map(r=>`<tr>
+    <td>${escapeHtml(r.session.course||'')}</td><td>${r.session.date||''}</td>
+    <td style="text-align:right">${fmt(r.collected)}</td>
+    <td style="text-align:right">${fmt(r.costs)}</td>
+    <td style="text-align:right">${fmt(r.overhead)}</td>
+    <td style="text-align:right">${fmt(r.net)}</td>
+    <td style="text-align:right;font-weight:600">${fmt(r.share)}</td></tr>`).join('')
+    ||`<tr><td colspan="7" style="padding:14px;color:#666">No completed classes settled in this month.</td></tr>`;
+  const w=window.open('','_blank');
+  if(!w){showToast('Your browser blocked the statement window. Allow pop-ups for this site and try again.');return;}
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Statement — ${escapeHtml(p.name)} — ${escapeHtml(periodLabel(st.period))}</title>
+  <style>body{font-family:Montserrat,Helvetica,Arial,sans-serif;color:#1E3161;margin:40px;font-size:14px;line-height:1.5}
+  h1{font-size:22px;margin:0 0 2px}h2{font-size:15px;margin:26px 0 8px;text-transform:uppercase;letter-spacing:1px}
+  .sub{color:#7a6a3f;font-weight:600;margin-bottom:18px}
+  table{width:100%;border-collapse:collapse;margin-top:6px}
+  th{background:#1E3161;color:#F5F2EA;text-align:left;padding:8px 10px;font-size:11px;letter-spacing:.8px;text-transform:uppercase}
+  th:nth-child(n+3){text-align:right}
+  td{padding:8px 10px;border-bottom:1px solid #ddd6c4}
+  tr:nth-child(even) td{background:#F5F2EA}
+  .tot{background:#EFC75A;font-weight:700}
+  .note{background:#F5F2EA;border-left:5px solid #C7A24A;padding:10px 14px;margin-top:18px}
+  @media print{button{display:none}}</style></head><body>
+  <h1>Mindful Beginnings LLC</h1>
+  <div class="sub">Community partnership statement — ${escapeHtml(p.name)} — ${escapeHtml(periodLabel(st.period))}</div>
+  <table><thead><tr><th>Course</th><th>Date</th><th>Collected</th><th>Direct costs</th><th>Overhead ${p.overheadPct}%</th><th>Net</th><th>Your share</th></tr></thead>
+  <tbody>${rows}
+  <tr class="tot"><td colspan="2">Total</td><td style="text-align:right">${fmt(st.collected)}</td><td style="text-align:right">${fmt(st.costs)}</td><td style="text-align:right">${fmt(st.overhead)}</td><td style="text-align:right">${fmt(st.net)}</td><td style="text-align:right">${fmt(st.share)}</td></tr>
+  </tbody></table>
+  <div class="note">${p.isTitle1
+    ?'This is a Title I partnership. Classes are billed at direct cost and overhead only, and everything above that is donated, so no share is generated.'
+    :'Your share is '+p.sharePct+'% of Net Program Revenue, being Collected Revenue less Mindful Beginnings direct program costs and the '+p.overheadPct+'% overhead allocation. Payment is issued at the end of each month for every class completed by then.'}</div>
+  ${paid?`<div class="note">Paid ${fmt(st.payout.amount)} on ${st.payout.paidDate}${st.payout.method?' by '+escapeHtml(st.payout.method):''}.</div>`:''}
+  <p style="margin-top:26px"><button onclick="window.print()">Print or save as PDF</button></p>
+  </body></html>`);
+  w.document.close();
+}
+
+// ─── CSV ────────────────────────────────────────────────────
+function exportOrgPartnersCSV(){
+  const rows=[['Organization','Period','Share %','Overhead %','Title I','Collected','Direct costs','Overhead','Net','Their share','Status','Paid date',
+    '--- Class detail ---','Course','Date','Host','Collected','Direct costs','Overhead','Net','Share']];
+  orgPartners.forEach(p=>{
+    const st=orgPartnerStatement(p.id,orgPartnerPeriod);
+    const paid=!!(st.payout&&st.payout.paidDate);
+    rows.push([p.name,orgPartnerPeriod,p.sharePct+'%',p.overheadPct+'%',p.isTitle1?'Yes':'No',
+      st.collected.toFixed(2),st.costs.toFixed(2),st.overhead.toFixed(2),st.net.toFixed(2),st.share.toFixed(2),
+      paid?'Paid':'Outstanding',paid?st.payout.paidDate:'','','','','','','','','','']);
+    st.rows.forEach(r=>{
+      rows.push(['','','','','','','','','','','','','',r.session.course||'',r.session.date||'',r.client||'',
+        r.collected.toFixed(2),r.costs.toFixed(2),r.overhead.toFixed(2),r.net.toFixed(2),r.share.toFixed(2)]);
+    });
+    st.pending.forEach(x=>{
+      rows.push(['','','','','','','','','','','','','','NOT PAYABLE YET — '+x.blocked,x.session.date||'',
+        x.session.course||'',x.amount.toFixed(2),x.cost.toFixed(2),'','','']);
+    });
+  });
+  reportDownloadCSV(rows,'community-partnerships-'+orgPartnerPeriod);
 }
 
 // ─── PARTNERS SCREEN ─────────────────────────────────────────
@@ -2941,6 +3471,7 @@ function showScreen(name,el){
   if(name==='codes')renderCodes();
   if(name==='instructors')renderInstructors();
   if(name==='partners')renderPartners();
+  if(name==='orgpartners')renderOrgPartners();
   if(name==='jobs')renderJobs();
   if(name==='materials')renderMaterials();
   if(name==='reports')renderReports();
@@ -3059,18 +3590,6 @@ function clearPendingPaymentNotes(notes){
 }
 function hasPaidIndicatorNote(notes){
   return /\[(Paid via |Registered\s*[—-]\s*paid\]|FREE registration|AUCTION|Re-registration)/i.test(notes||'');
-}
-// Host/admin "Mark paid" is a confirmation, not a collected checkout — revenue is $0.
-// PayPal/card capture writes the charged total via /api/paypal/*. Keep in sync with
-// lib/payment-utils.js adminTogglePaidPatch.
-function adminTogglePaidPatch(opts){
-  opts=opts||{};
-  if(opts.currentlyPaid){
-    const patch={pay_status:'unpaid'};
-    if(opts.existingPricePaid===0)patch.price_paid=null;
-    return patch;
-  }
-  return{pay_status:'paid',price_paid:0};
 }
 // Display notes that match payStatus so a green "paid" badge never sits next to
 // "[Registered — awaiting payment]". Pending / unpaid keep the reservation tag.
@@ -4117,7 +4636,7 @@ function openAddSession(){
       </div>
       ${orgDatalistHtml()}
     </div>
-    ${partnerOriginFieldHtml(null)}
+    ${partnerOriginFieldHtml(null)}${orgPartnerFieldHtml(null)}
     <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee)</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
@@ -4255,7 +4774,7 @@ function openAddCustomJob(){
       <div id="extra-costs-list"></div>
       <div style="font-size:14px;color:var(--muted);margin-top:6px">These come off the top alongside instructor pay, so the profit on this job is your true take-home.</div>
     </div>
-    ${partnerOriginFieldHtml(null)}
+    ${partnerOriginFieldHtml(null)}${orgPartnerFieldHtml(null)}
     <div class="fg full" style="background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="cj-rnonly" onchange="updateCjCredNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
@@ -4388,7 +4907,7 @@ async function saveCustomJob(){
   if(!confirmNotDuplicate({course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,isVirtual:false,isCancelled:false},null))return;
   if(_savingSession)return; _savingSession=true;
   try{
-  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:_editCosts.filter(c=>c.label||c.amount),createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),...customJobDayFields(date)};
+  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,additionalCosts:_editCosts.filter(c=>c.label||c.amount),createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false;
@@ -4489,7 +5008,7 @@ function openEditCustomJob(id){
       <div id="extra-costs-list"></div>
       <div style="font-size:14px;color:var(--muted);margin-top:6px">These come off the top alongside instructor pay, so the profit on this job is your true take-home.</div>
     </div>
-    ${partnerOriginFieldHtml(s)}
+    ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
     <div class="fg full" style="background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="cj-rnonly" ${s.requiresRN?'checked':''} onchange="updateCjCredNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
@@ -4551,7 +5070,7 @@ async function saveEditCustomJob(id){
     code=reissueStaleCode(id,code,_prevDate,date,uniqueCustomJobCode(date,id,title,siteName,isRecurring));
   }
   const prevSnapshot={...s};
-  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),additionalCosts:_editCosts.filter(c=>c.label||c.amount),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),...customJobDayFields(date)});
+  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),additionalCosts:_editCosts.filter(c=>c.label||c.amount),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)});
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false;
   {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;}
@@ -4778,7 +5297,7 @@ function openEditSession(id){
       </div>
       ${orgDatalistHtml()}
     </div>
-    ${partnerOriginFieldHtml(s)}
+    ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
     <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee of ${fmt((()=>{const dc=COURSES[s.course]||{};return (dc.instrFlatFee!==undefined?dc.instrFlatFee:(dc.hours||0)*INSTR_RATE+INSTR_RATE)+INSTR_EXTRA_HOURS*INSTR_RATE;})())})</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
@@ -4885,6 +5404,7 @@ async function saveSession(editId){
   const billedHeadcount=(billToOrg&&billCountRaw!==''&&billCountRaw!=null)?Number(billCountRaw):null;
   const originatedBy=readOriginatedBy();
   const originationNote=readOriginationNote();
+  const hostedFor=readHostedFor();
   // Additional class days: drop blanks and duplicate dates (including the main date), keep sorted by date.
   // Each day keeps its own time; extraDates stays as a plain date list for older code and other pages.
   const _seenDays=new Set([date]);
@@ -4912,9 +5432,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor};
     sessions.push(s);
   }
   closeModal();renderSessions();renderDashboard();renderCodes();
@@ -4938,6 +5458,7 @@ async function saveSession(editId){
     else if(CLOSURES_COL&&/closures/i.test(_msg)){CLOSURES_COL=false;_note='detail';}
     else if(INSTR_INFO_COL&&/instructor_info/i.test(_msg)){INSTR_INFO_COL=false;_note='detail';}
     else if(ORIGINATED_COL&&/originated_by|origination_note/i.test(_msg)){ORIGINATED_COL=false;_note='partner';}
+    else if(HOSTED_FOR_COL&&/hosted_for/i.test(_msg)){HOSTED_FOR_COL=false;_note='orgpartner';}
     else if(REQUIRES_SS_COL&&/requires_safe_sitter/i.test(_msg)){REQUIRES_SS_COL=false;_note='ss';}
     else if(REQUIRES_RN_COL&&/requires_rn/i.test(_msg)){REQUIRES_RN_COL=false;_note='rn';}
     else break;
@@ -4946,6 +5467,7 @@ async function saveSession(editId){
       const {error}=await sb.from('sessions').upsert(sessionToDB(s));
       if(error){saveFailed=true;saveErr=error;}
       else if(_note==='partner')showToast('⚠️ Saved, but WITHOUT the "Originated by" partner credit — run partners_setup.sql once in the Supabase SQL editor, then re-save this session.');
+      else if(_note==='orgpartner')showToast('⚠️ Saved, but WITHOUT the partnership credit — run the setup SQL shown on the Partnerships tab, then re-save this session.');
       else if(_note==='rn')showToast(RN_COL_SQL_TOAST);
       else if(_note==='ss')showToast(SS_COL_SQL_TOAST);
       else if(_note==='detail')showToast("⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;");
@@ -5374,10 +5896,8 @@ async function saveReg(){
 
 async function togglePaid(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
-  const currentlyPaid=r.payStatus==='paid';
-  const update=adminTogglePaidPatch({currentlyPaid,existingPricePaid:r.pricePaid});
-  r.payStatus=update.pay_status;
-  if(Object.prototype.hasOwnProperty.call(update,'price_paid'))r.pricePaid=update.price_paid;
+  r.payStatus=r.payStatus==='paid'?'unpaid':'paid';
+  const update={pay_status:r.payStatus};
   if(r.payStatus==='paid'){
     const cleaned=notesForPaymentStatus(r.payStatus,r.notes);
     if(cleaned!==(r.notes||'')){r.notes=cleaned;update.notes=r.notes;}
