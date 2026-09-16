@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <!-- Shared course data / pricing / caps / promos. Must load before the inline script below. -->
 <script src="/config.js"></script>
+<script src="/js/public-sessions.js"></script>
 
 <!-- PayPal is handled via a direct hosted-checkout link (no embedded SDK), so no PayPal
      script loads on this page. This permanently removes the Apple Pay config errors. -->
@@ -96,6 +97,22 @@ main{max-width:600px;margin:0 auto;padding:32px 24px 64px}
 .crow .cl{color:var(--muted)}.crow .cv{font-weight:500}
 .help{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
 .help a{color:var(--sky);text-decoration:none}
+.public-sessions{margin-top:28px;background:white;border-radius:var(--r);border:1px solid var(--border);padding:22px 20px 16px;text-align:left}
+.public-sessions h3{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:4px;text-align:center}
+.public-sessions-lead{color:var(--muted);font-size:13px;text-align:center;margin:0 0 16px}
+.public-month{font-size:11px;font-weight:600;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.public-month:first-child{margin-top:0}
+.public-row{width:100%;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;background:#f8fafd;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text);transition:border-color .2s,background .2s}
+.public-row:hover{border-color:var(--sky);background:#eef6fb}
+.public-row:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,143,196,.12)}
+.public-row .pname{font-weight:500;font-size:15px;color:var(--navy)}
+.public-row .pmeta{font-size:13px;color:#3a6a94;margin-top:2px}
+.public-row .pside{text-align:right;flex-shrink:0}
+.public-row .pprice{font-weight:500;color:var(--navy);font-size:15px;white-space:nowrap}
+.public-row .pseats{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap}
+.public-row .pseats.full{color:#9a6800}
+.public-row .pcode{font-size:11px;letter-spacing:.4px;color:var(--muted);margin-top:4px}
+.public-empty{font-size:13px;color:var(--muted);text-align:center;padding:8px 4px 12px;line-height:1.6}
 .waitlist-box{background:#fff7e6;border:1px solid #f0d090;border-radius:var(--r);padding:28px 24px;text-align:center}
 .waitlist-box h3{font-family:'DM Serif Display',serif;font-size:20px;color:#7a5000;margin-bottom:8px}
 .waitlist-box p{font-size:13px;color:#9a6800;margin-bottom:16px;line-height:1.6}
@@ -148,10 +165,16 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
   <div class="code-card">
     <div class="code-icon">🔑</div>
     <h2>Enter your session code</h2>
+    <p>Have a code from your host or a private class? Enter it here. You can also choose a public session below.</p>
         <input type="text" class="code-input" id="code-input" placeholder="e.g. SS-0612" maxlength="12" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
     <div class="error-msg" id="code-error"></div>
     <button class="btn-p" id="code-btn" onclick="checkCode()">Continue →</button>
-    <div class="help">No code? <a href="https://mindfulbeginnings.org/contact">Contact us</a> to find a session near you.</div>
+    <div class="help">Looking for an upcoming public class? Browse the list below. Still need help? <a href="https://mindfulbeginnings.org/contact">Contact us</a>.</div>
+  </div>
+  <div class="public-sessions" id="public-sessions">
+    <h3>Upcoming public sessions</h3>
+    <p class="public-sessions-lead">Tap a class to continue — no code needed for these public sessions.</p>
+    <div id="public-sessions-list"><div class="public-empty">Loading upcoming sessions…</div></div>
   </div>
 </div>
 
@@ -813,12 +836,112 @@ async function fetchSessionByCode(code){
 }
 function extraDatesFromRow(r){return Array.isArray(r&&r.extra_dates)?r.extra_dates.filter(Boolean).slice().sort():[];}
 
+// Upcoming public sessions shown on the code step. Filters live in /js/public-sessions.js
+// so ops / custom / hold / cancelled rows never appear on this family-facing list.
+const PUBLIC_SESSION_COLS='id,code,course,date,time,city,is_virtual,price_override,max_students_override,created_at,is_cancelled,is_hold,is_custom_job';
+const PUBLIC_SESSION_COLS_CORE='id,code,course,date,time,city,is_virtual,price_override,max_students_override,created_at';
+function fmtPublicDate(dateStr){
+  if(!dateStr)return'';
+  const d=new Date(dateStr+'T12:00:00');
+  return isNaN(d)?'':d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+function rememberSessionCode(code){
+  const val=String(code||'').trim().toUpperCase();
+  try{
+    const url=new URL(window.location.href);
+    if(val)url.searchParams.set('code',val);
+    else url.searchParams.delete('code');
+    history.replaceState(null,'',url.pathname+(url.search||'')+url.hash);
+  }catch(e){}
+}
+function selectPublicSession(code){
+  const val=String(code||'').trim().toUpperCase();
+  if(!val)return;
+  const inp=document.getElementById('code-input');
+  if(inp)inp.value=val;
+  rememberSessionCode(val);
+  checkCode();
+}
+function renderPublicSessions(rows,counts){
+  const box=document.getElementById('public-sessions-list');
+  if(!box)return;
+  const helpers=window.MBPublicSessions;
+  if(!helpers){box.innerHTML='<div class="public-empty">Upcoming sessions could not be loaded. You can still enter a session code above.</div>';return;}
+  const list=helpers.filterPublicSessions(rows);
+  if(!list.length){
+    box.innerHTML='<div class="public-empty">No upcoming public sessions are listed right now. If you have a private or host code, enter it above, or <a href="https://mindfulbeginnings.org/contact" style="color:var(--sky)">contact us</a>.</div>';
+    return;
+  }
+  const priceFn=typeof getSessionBasePrice==='function'?getSessionBasePrice:null;
+  const caps=typeof MAX_STUDENTS!=='undefined'?MAX_STUDENTS:{};
+  let html='';
+  let lastMonth='';
+  list.forEach(function(r){
+    const month=helpers.monthLabel(r.date);
+    if(month&&month!==lastMonth){html+='<div class="public-month">'+escapeHtml(month)+'</div>';lastMonth=month;}
+    const when=[fmtPublicDate(r.date),r.time?String(r.time).trim():''].filter(Boolean).join(' · ');
+    const place=helpers.sessionPlace(r);
+    const price=helpers.sessionPrice(r,priceFn);
+    const priceLabel=price==null?'':(price===0?'Free':'$'+price);
+    const count=counts&&r.id!=null?counts[r.id]:null;
+    const left=count==null?null:helpers.seatsLeft(r,count,caps);
+    let seats='';
+    if(left!=null){
+      seats=left===0?'Full — waitlist available':(left===1?'1 seat left':left+' seats left');
+    }
+    html+='<button type="button" class="public-row" data-code="'+escapeHtml(r.code)+'">'+
+      '<div><div class="pname">'+escapeHtml(r.course||'Course')+'</div>'+
+      '<div class="pmeta">'+escapeHtml(when)+(place?' · '+escapeHtml(place):'')+'</div>'+
+      '<div class="pcode">'+escapeHtml(r.code)+'</div></div>'+
+      '<div class="pside">'+(priceLabel?'<div class="pprice">'+priceLabel+'</div>':'')+
+      (seats?'<div class="pseats'+(left===0?' full':'')+'">'+escapeHtml(seats)+'</div>':'')+
+      '</div></button>';
+  });
+  box.innerHTML=html;
+}
+async function loadPublicSessions(){
+  const box=document.getElementById('public-sessions-list');
+  if(!box||!sb)return;
+  const helpers=window.MBPublicSessions;
+  const today=helpers?helpers.todayLocalISO():'';
+  try{
+    let res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).gte('date',today).order('date',{ascending:true}).limit(200);
+    if(res&&res.error){
+      console.warn('Public session list (full columns) failed, retrying core columns:',res.error);
+      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).gte('date',today).order('date',{ascending:true}).limit(200);
+    }
+    if(res&&res.error){
+      console.error('Public session list failed:',res.error);
+      box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. You can still enter a session code above.</div>';
+      return;
+    }
+    const counts={};
+    try{
+      const{data:cntRows}=await sb.rpc('get_all_registration_counts');
+      (cntRows||[]).forEach(function(c){if(c&&c.session_id)counts[c.session_id]=Number(c.cnt)||0;});
+    }catch(e){console.warn('Public session seat counts unavailable:',e);}
+    renderPublicSessions(res.data||[],counts);
+  }catch(e){
+    console.error('Public session list failed:',e);
+    box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. You can still enter a session code above.</div>';
+  }
+}
+
 // Auto-fill code from URL param
 window.onload=function(){
+  const list=document.getElementById('public-sessions-list');
+  if(list){
+    list.addEventListener('click',function(e){
+      const btn=e.target.closest?e.target.closest('.public-row'):null;
+      if(!btn)return;
+      selectPublicSession(btn.getAttribute('data-code'));
+    });
+  }
   const p=new URLSearchParams(window.location.search);
   // Payment-reminder link: if a paycode is present, skip the whole registration flow and
   // take the family straight to the payment screen for their existing (pending) spot.
   if(p.get('paycode')){startPayNow(p.get('paycode'),p.get('name')||'',p.get('amt')||'');return;}
+  loadPublicSessions();
   if(p.get('paid')&&p.get('paid')===PREPAID_TOKEN)compMode=true;
   if(p.get('auction')&&p.get('auction')===AUCTION_TOKEN)auctionMode=true;
   const c=p.get('code');
@@ -899,6 +1022,7 @@ async function checkCode(){
       extraDates:extraDatesFromRow(r)
     };
     err.textContent='';inp.classList.remove('error');
+    rememberSessionCode(val);
     // Check capacity — uses per-session override if set, else course default
     const max=getMaxSpots();
     const forceWaitlist=new URLSearchParams(window.location.search).get('waitlist')==='1';
@@ -1936,7 +2060,7 @@ async function startPayNow(code,name,amt){
       if(stepsWrap)stepsWrap.style.display='';
       if(heroH1)heroH1.innerHTML='Course <em>Registration</em>';
       const err=document.getElementById('code-error');
-      if(err)err.textContent='We could not find that session. Please enter your session code below, or contact us.';
+      if(err)err.textContent='We could not find that session. Please enter your session code below, or pick a public session from the list.';
       const inp=document.getElementById('code-input');if(inp)inp.value=val;
       document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
       document.getElementById('screen-code').classList.add('active');
@@ -2009,7 +2133,7 @@ async function startPayNow(code,name,amt){
     if(stepsWrap)stepsWrap.style.display='';
     if(heroH1)heroH1.innerHTML='Course <em>Registration</em>';
     const err=document.getElementById('code-error');
-    if(err)err.textContent='Sorry — something went wrong loading your payment page. Please enter your session code below, or contact us.';
+    if(err)err.textContent='Sorry — something went wrong loading your payment page. Please enter your session code below, or pick a public session from the list.';
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     document.getElementById('screen-code').classList.add('active');
   }
