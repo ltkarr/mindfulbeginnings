@@ -134,6 +134,16 @@ tr:hover td{background:#fafbfd}
 .toggle-group{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;width:fit-content;margin-bottom:16px}
 .tgl{padding:6px 14px;font-size:15px;font-family:'DM Sans',sans-serif;cursor:pointer;background:white;border:none;color:var(--muted);transition:all .15s}
 .tgl.active{background:var(--navy);color:white}
+/* Active / Inactive tabs on the Instructors screen. Deliberately NOT the .tgl class:
+   setFinView() clears .active from every .tgl on the page, which would wipe these. */
+.instr-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;width:fit-content;margin-bottom:14px}
+.itg{padding:9px 22px;font-size:17px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;background:white;border:none;color:var(--muted);transition:all .15s}
+.itg:hover{background:var(--cream)}
+.itg.active{background:var(--navy);color:white}
+.itg.active:hover{background:var(--navy)}
+.itg .itg-count{font-weight:500;opacity:.75;margin-left:5px}
+tr.instr-inactive td{background:#fbfbfc}
+tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .code-badge{display:inline-flex;align-items:center;gap:4px;background:var(--navy);color:white;padding:3px 9px;border-radius:100px;font-size:15px;font-family:monospace;letter-spacing:.4px;cursor:pointer;transition:opacity .2s;white-space:nowrap}
 .code-badge:hover{opacity:.85}
 .job-card{background:white;border:0.5px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:12px}
@@ -409,6 +419,11 @@ tr:hover td{background:#fafbfd}
         </div>
       </div>
       <div class="alert info">🔑 &nbsp;Each instructor logs into <strong>instructor.html</strong> using their PIN. Share their PIN privately — they can see available jobs and accept them from their portal.</div>
+      <div class="instr-tabs">
+        <button class="itg active" id="itg-active" onclick="setInstrTab('active',this)">Active</button>
+        <button class="itg" id="itg-inactive" onclick="setInstrTab('inactive',this)">Inactive</button>
+      </div>
+      <div id="instr-inactive-note" class="alert info" style="display:none">📁 &nbsp;These people are off your roster. Their past classes and pay history are kept, and they stay attached to any session they already taught, but they no longer appear in assignment dropdowns, credential counts, or the open-jobs email. Reactivate any time.</div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="instructors-table"></table></div></div>
     </div>
 
@@ -676,7 +691,15 @@ function instructorFromDB(r){
   // safeSitterCertified is tri-state: true/false when the safe_sitter_certified column
   // exists in the database, null when it does not (setup SQL not run yet). While null,
   // the UI falls back to "has a Safe Sitter® training date on file" as the credential.
-  return{id:r.id,name:r.name,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,pinChangeRequired:!!r.pin_change_required,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,createdAt:r.created_at||Date.now()};
+  // active defaults to TRUE when the is_active column is missing or null, so a database
+  // that has not had the column added yet behaves exactly as it always has.
+  // Run once in the Supabase SQL editor. The grants are only needed if instructor.html
+  // is later updated to read is_active (to block an inactive person's portal sign-in):
+  //   alter table instructors add column if not exists is_active boolean default true;
+  //   alter table instructors add column if not exists archived_at timestamptz;
+  //   update instructors set is_active = true where is_active is null;
+  //   grant select (is_active) on public.instructors to anon;
+  return{id:r.id,name:r.name,active:(r.is_active===undefined||r.is_active===null)?true:!!r.is_active,archivedAt:r.archived_at||null,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,pinChangeRequired:!!r.pin_change_required,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,createdAt:r.created_at||Date.now()};
 }
 // headshot_path is deliberately absent below: only the instructor portal writes it,
 // and including it here would break saving an instructor on databases that have not
@@ -1500,6 +1523,23 @@ function sessionMaxStudents(s){
   if(s&&s.maxStudentsOverride&&Number(s.maxStudentsOverride)>0)return Number(s.maxStudentsOverride);
   return(COURSES[s.course]||{maxStudents:8}).maxStudents;
 }
+// ── ACTIVE / INACTIVE INSTRUCTORS ───────────────────────────
+// An inactive instructor is one who is no longer on the roster — someone who never
+// finished onboarding, or who has stopped teaching. The record is KEPT (past jobs,
+// pay history and session assignments all still resolve by id), it is just moved off
+// the working list: hidden from the Active tab, left out of every assignment
+// dropdown, left out of the open-jobs email, and left out of the credential counts.
+function instrActive(i){return !i||i.active!==false;}
+// The people who should appear in an assignment dropdown: everyone active, plus
+// whoever is already picked on this record. Without that second part, opening an old
+// session assigned to a now-inactive instructor would quietly blank the assignment.
+function instrPickList(...keepIds){
+  const keep=keepIds.filter(Boolean);
+  return instructors.filter(i=>instrActive(i)||keep.includes(i.id)).slice().sort(byInstrName);
+}
+// Label suffix so an inactive person still visible in a dropdown is obviously not on the roster.
+function instrInactiveMark(i){return instrActive(i)?'':' — inactive';}
+const ACTIVE_COL_SQL_TOAST='⚠️ Could not save the inactive setting — the database is missing one column. Run this once in the Supabase SQL editor, then try again: alter table instructors add column if not exists is_active boolean default true;';
 // ── INSTRUCTOR ELIGIBILITY ──────────────────────────────────
 // Whether an instructor counts as Safe Sitter® certified. Uses the explicit
 // safe_sitter_certified flag when the database column exists; before the setup
@@ -3164,13 +3204,13 @@ async function publishPartnerPortalsNow(){
 function partnerPortalFieldsHtml(p){
   const linked=p?(p.instructorId||''):'';
   const pin=p?(p.pin||''):'';
-  const list=(instructors||[]).slice().sort(byInstrName);
+  const list=instrPickList(linked);
   return `<div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
     <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Partner portal access</div>
     <label style="font-weight:400;font-size:15px">Also one of my instructors</label>
     <select id="m-plinked" style="width:100%">
       <option value="">No — this partner does not teach</option>
-      ${list.map(i=>`<option value="${i.id}" ${i.id===linked?'selected':''}>${escapeHtml(instrSortName(i.name))}</option>`).join('')}
+      ${list.map(i=>`<option value="${i.id}" ${i.id===linked?'selected':''}>${escapeHtml(instrSortName(i.name))}${instrInactiveMark(i)}</option>`).join('')}
     </select>
     <div style="font-size:14px;color:var(--muted);margin:4px 0 10px">Link them and they sign in with their existing instructor PIN. The Partnerships tab appears alongside their jobs.</div>
     <label style="font-weight:400;font-size:15px">Portal PIN (6 digits)</label>
@@ -3944,7 +3984,7 @@ function renderDashboard(){
     let acked={};
     try{acked=JSON.parse(localStorage.getItem('mb_milestones_acked')||'{}');}catch(e){}
     const hits=[];
-    instructors.forEach(i=>{
+    instructors.filter(instrActive).forEach(i=>{
       const taught=classesTaughtBy(i.id);
       if(taught<5)return;
       const milestone=Math.floor(taught/5)*5;
@@ -4663,7 +4703,8 @@ function openAddSession(){
   // populate instructor options (primary + second)
   const instrSel=document.getElementById('m-instr');
   const instrSel2=document.getElementById('m-instr2');
-  instructors.forEach(i=>{
+  // Active roster only — an inactive instructor cannot be newly assigned.
+  instrPickList().forEach(i=>{
     const o=document.createElement('option');o.value=i.id;o.textContent=i.name;instrSel.appendChild(o);
     const o2=document.createElement('option');o2.value=i.id;o2.textContent=i.name;instrSel2.appendChild(o2);
   });
@@ -4819,7 +4860,7 @@ function fillCjInstrSelect(preferredId){
   const placeholder=sel.options.length?sel.options[0].textContent:'— Post as open job —';
   sel.innerHTML='';
   const blank=document.createElement('option');blank.value='';blank.textContent=placeholder;sel.appendChild(blank);
-  instructors.forEach(i=>{
+  instrPickList().forEach(i=>{
     const o=document.createElement('option');o.value=i.id;
     const warn=[];
     if(rnOnly&&!i.isRN)warn.push('not an RN');
@@ -4852,7 +4893,7 @@ function credNotice({boxId,noteId,assigned,has,label,short,setupHint}){
   const note=document.getElementById(noteId);
   if(!box||!note)return;
   if(!box.checked){note.style.display='none';note.innerHTML='';return;}
-  const n=instructors.filter(has).length;
+  const n=instructors.filter(i=>instrActive(i)&&has(i)).length;
   const bits=[];
   if(n===0)bits.push('No instructor is marked as '+label+' right now, so <strong>nobody will see this job</strong> on the open board. '+setupHint);
   else bits.push(n+' instructor'+(n===1?'':'s')+' marked as '+label+' will see this job. Everyone else will not.');
@@ -5248,11 +5289,11 @@ function openEditSession(id){
       <select id="m-owner" onchange="toggleInstrSelect(this.value)"><option value="no" ${!s.ownerTaught?'selected':''}>Hired instructor</option><option value="yes" ${s.ownerTaught?'selected':''}>You are teaching</option></select></div>
     <div class="fg full" id="m-instr-wrap" style="margin-top:-4px;display:${s.ownerTaught?'none':'flex'}">
       <label>Pre-assign instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
-      <select id="m-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option>${instructors.slice().sort(byInstrName).map(i=>`<option value="${i.id}" ${(jobDataCache[s.id]||{}).instructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}</option>`).join('')}</select>
+      <select id="m-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option>${instrPickList((jobDataCache[s.id]||{}).instructorId).map(i=>`<option value="${i.id}" ${(jobDataCache[s.id]||{}).instructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}${instrInactiveMark(i)}</option>`).join('')}</select>
     </div>
     <div class="fg full" id="m-instr2-wrap" style="margin-top:-4px">
       <label id="m-instr2-label">Second instructor <span style="font-weight:400;color:var(--muted)">(optional — for large classes needing two instructors)</span></label>
-      <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option>${instructors.slice().sort(byInstrName).map(i=>`<option value="${i.id}" ${s.secondInstructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}</option>`).join('')}</select>
+      <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option>${instrPickList(s.secondInstructorId).map(i=>`<option value="${i.id}" ${s.secondInstructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}${instrInactiveMark(i)}</option>`).join('')}</select>
     </div>
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
@@ -6280,10 +6321,28 @@ function instrSortKey(full){return instrSortName(full).toLowerCase();}
 function byInstrName(a,b){return instrSortKey(a&&a.name).localeCompare(instrSortKey(b&&b.name));}
 function sortInstructors(){instructors.sort(byInstrName);}
 
+// Which tab the Instructors screen is showing: 'active' or 'inactive'.
+let instrTab='active';
+function setInstrTab(tab,btn){
+  instrTab=tab;
+  document.querySelectorAll('.instr-tabs .itg').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const note=document.getElementById('instr-inactive-note');
+  if(note)note.style.display=(tab==='inactive')?'':'none';
+  renderInstructors();
+}
+
 function renderInstructors(){
   const t=document.getElementById('instructors-table');
+  // Keep the tab labels' counts live, and never strand her on an empty Inactive tab.
+  const nActive=instructors.filter(instrActive).length;
+  const nInactive=instructors.length-nActive;
+  const aBtn=document.getElementById('itg-active'),iBtn=document.getElementById('itg-inactive');
+  if(aBtn)aBtn.innerHTML=`Active <span class="itg-count">${nActive}</span>`;
+  if(iBtn)iBtn.innerHTML=`Inactive <span class="itg-count">${nInactive}</span>`;
+  const showing=instructors.filter(i=>instrTab==='inactive'?!instrActive(i):instrActive(i));
   t.innerHTML=`<thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Zelle</th><th>Rate/hr</th><th>PIN</th><th>Training date</th><th>Sweatshirt</th><th>Jobs</th><th>Pending pay</th><th>Total paid</th><th></th></tr></thead><tbody>`+
-    (instructors.length?instructors.slice().sort(byInstrName).map(i=>{
+    (showing.length?showing.slice().sort(byInstrName).map(i=>{
       const myJobs=sessions.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.instructorId===i.id;});
       const paidAmt=myJobs.filter(s=>(jobDataCache[s.id]||{}).payStatus==='paid')
         .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
@@ -6319,11 +6378,15 @@ function renderInstructors(){
           <td colspan="2">${payPill}${jd.payDate?`<span style="font-size:14px;color:var(--muted);margin-left:6px">${(pd=>{const dt=new Date(/^\d{4}-\d{2}-\d{2}$/.test(pd)?pd+'T12:00:00':pd);return isNaN(dt)?pd:dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});})(jd.payDate)}</span>`:''}</td>
           <td></td></tr>`;
       }).join(''):'';
-      return`<tr style="cursor:pointer" onclick="this.nextElementSibling&&this.nextElementSibling.tagName==='TR'?toggleInstructorJobs(this):null">
+      return`<tr class="${instrActive(i)?'':'instr-inactive'}" style="cursor:pointer" onclick="this.nextElementSibling&&this.nextElementSibling.tagName==='TR'?toggleInstructorJobs(this):null">
         <td style="font-weight:500">${i.name}
+          ${instrActive(i)?'':`<br><span style="font-size:14px;color:var(--muted);font-weight:600" title="Off the roster — hidden from assignment dropdowns, credential counts and the open-jobs email">📁 Inactive${i.archivedAt?' since '+new Date(i.archivedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''}</span>`}
           ${(()=>{
             // Mirror the instructor portal's isOnboardingComplete() gate: an instructor
-            // cannot see ANY job posts until all five steps below are done.
+            // cannot see ANY job posts until all five steps below are done. Skipped for
+            // inactive people — a lockout warning is noise for someone off the roster,
+            // though the list of what they never finished still shows on their profile.
+            if(!instrActive(i))return'';
             const missing=[];
             if(!i.contractSigned)missing.push('contract');
             if(!i.w9Submitted)missing.push('W-9');
@@ -6362,12 +6425,15 @@ function renderInstructors(){
         <td><div class="btn-row">
           <button class="btn sm primary" onclick="event.stopPropagation();openInstructorProfile('${i.id}')">👤 Profile</button>
           <button class="btn sm" onclick="event.stopPropagation();openEditInstructor('${i.id}')">Edit</button>
-          <button class="btn sm danger" onclick="event.stopPropagation();deleteInstructor('${i.id}')">Remove</button>
+          ${instrActive(i)
+            ?`<button class="btn sm" onclick="event.stopPropagation();setInstructorActive('${i.id}',false)" title="Move off the roster. Keeps their record and pay history.">📁 Make inactive</button>`
+            :`<button class="btn sm success" onclick="event.stopPropagation();setInstructorActive('${i.id}',true)" title="Put them back on the roster">↩ Reactivate</button>
+              <button class="btn sm danger" onclick="event.stopPropagation();deleteInstructor('${i.id}')" title="Delete the record permanently">Delete forever</button>`}
         </div></td></tr>
         <tr class="instructor-jobs-row" style="display:none"><td colspan="12" style="padding:0">
           <table style="width:100%;border-collapse:collapse">${jobRows||`<tr><td colspan="12" style="padding:10px 32px;font-size:15px;color:var(--muted);font-style:italic">No jobs assigned yet.</td></tr>`}</table>
         </td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="12">No instructors yet.</td></tr>`)+'</tbody>';
+    }).join(''):`<tr class="empty-row"><td colspan="12">${instrTab==='inactive'?'Nobody is inactive. Use <strong>Make inactive</strong> on the Active tab to move someone off the roster.':'No active instructors yet.'}</td></tr>`)+'</tbody>';
 }
 function toggleInstructorJobs(row){
   const next=row.nextElementSibling;
@@ -6378,8 +6444,10 @@ function toggleInstructorJobs(row){
   }
 }
 function exportInstructorsCSV(){
-  const rows=[['Name','Email','Phone','Zelle','Rate/hr','PIN','Training Date','Sweatshirt Size','Contract Signed','Jobs Taught','Pending Pay','Total Paid','--- Job Details ---','Course','Date','Location','Base Fee','Referral Bonus','Total Fee','Pay Status','Pay Date']];
-  instructors.forEach(i=>{
+  const rows=[['Status','Name','Email','Phone','Zelle','Rate/hr','PIN','Training Date','Sweatshirt Size','Contract Signed','Jobs Taught','Pending Pay','Total Paid','--- Job Details ---','Course','Date','Location','Base Fee','Referral Bonus','Total Fee','Pay Status','Pay Date']];
+  // Everyone is exported, active first, with a Status column — the CSV is the record
+  // of who has ever taught for you, not just who is on the roster today.
+  instructors.slice().sort((a,b)=>(instrActive(a)===instrActive(b))?byInstrName(a,b):(instrActive(a)?-1:1)).forEach(i=>{
     const myJobs=sessions.filter(s=>(jobDataCache[s.id]||{}).instructorId===i.id);
     const paidAmt=myJobs.filter(s=>(jobDataCache[s.id]||{}).payStatus==='paid')
       .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
@@ -6387,7 +6455,7 @@ function exportInstructorsCSV(){
       .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
     const trainDate=i.safeSitterTrainingDate||'';
     // Summary row
-    rows.push([i.name,i.email||'',i.phone||'',i.zelle||'','$'+(i.hourlyRate||50)+'/hr',i.pin,trainDate,i.sweatshirtSize||'',i.contractSigned?'Yes':'No',myJobs.length,'$'+pendingAmt.toFixed(2),'$'+paidAmt.toFixed(2),'','','','','','','','','']);
+    rows.push([instrActive(i)?'Active':'Inactive',i.name,i.email||'',i.phone||'',i.zelle||'','$'+(i.hourlyRate||50)+'/hr',i.pin,trainDate,i.sweatshirtSize||'',i.contractSigned?'Yes':'No',myJobs.length,'$'+pendingAmt.toFixed(2),'$'+paidAmt.toFixed(2),'','','','','','','','','']);
     // Job detail rows
     myJobs.forEach(s=>{
       const jd=jobDataCache[s.id]||{};
@@ -6396,7 +6464,7 @@ function exportInstructorsCSV(){
       const bonus=jd.referralBonus||0;
       const fee=baseFee+bonus;
       const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-      rows.push(['','','','','','','','','','','','',s.course,d,(s.location||'')+(s.city?', '+s.city:''),'$'+baseFee.toFixed(2),'$'+bonus.toFixed(2),'$'+fee.toFixed(2),jd.payStatus==='paid'?'Paid':'Pending',jd.payDate||'']);
+      rows.push(['','','','','','','','','','','','','',s.course,d,(s.location||'')+(s.city?', '+s.city:''),'$'+baseFee.toFixed(2),'$'+bonus.toFixed(2),'$'+fee.toFixed(2),jd.payStatus==='paid'?'Paid':'Pending',jd.payDate||'']);
     });
     rows.push([]); // spacer
   });
@@ -6505,8 +6573,59 @@ async function saveInstructor(editId){
   }
 }
 
+// Move an instructor on or off the roster. Nothing is deleted: the row stays in the
+// database with is_active flipped, so every past session, pay record and CSV export
+// that references this person by id keeps resolving.
+async function setInstructorActive(id,makeActive){
+  const i=instructors.find(x=>x.id===id);if(!i)return;
+  if(!makeActive){
+    // Warn if they are still on the books for something upcoming — deactivating does
+    // not unassign anyone, and a job silently held by someone off the roster is worse
+    // than the extra click here.
+    const today=new Date();today.setHours(0,0,0,0);
+    const upcoming=sessions.filter(s=>!s.isCancelled&&s.date&&new Date(s.date+'T12:00:00')>=today&&
+      (((jobDataCache[s.id]||{}).instructorId===id)||s.instructorId===id||s.secondInstructorId===id));
+    const unpaid=sessions.filter(s=>!s.isCancelled&&(
+      (((jobDataCache[s.id]||{}).instructorId===id)&&(jobDataCache[s.id]||{}).payStatus!=='paid')||
+      (s.secondInstructorId===id&&!(jobDataCache[s.id]||{}).secondInstrPaid)));
+    let msg=`Make ${i.name} inactive?\n\nThey move to the Inactive tab and drop out of assignment dropdowns, credential counts and the open-jobs email. Their record, past classes and pay history are all kept, and you can reactivate them any time.`;
+    if(upcoming.length)msg+=`\n\n⚠ They are still assigned to ${upcoming.length} upcoming class${upcoming.length===1?'':'es'}. Making them inactive does NOT unassign them — reassign those classes yourself.`;
+    if(unpaid.length)msg+=`\n\n⚠ ${unpaid.length} of their classes ${unpaid.length===1?'is':'are'} still marked unpaid.`;
+    msg+=`\n\nNote: this does not change their PIN, so it does not by itself block them from signing in to the instructor portal.`;
+    if(!confirm(msg))return;
+  }
+  const prev=i.active;
+  const prevArchived=i.archivedAt;
+  i.active=!!makeActive;
+  i.archivedAt=makeActive?null:new Date().toISOString();
+  renderInstructors();
+  // Written as its own targeted update rather than through instructorToDB(), so a
+  // database that has not had is_active added yet still saves everything else fine.
+  let{error}=await sb.from('instructors').update({is_active:!!makeActive,archived_at:i.archivedAt}).eq('id',id);
+  if(error&&String(error.message||'').includes('archived_at')){
+    // archived_at is optional — retry with just the flag.
+    ({error}=await sb.from('instructors').update({is_active:!!makeActive}).eq('id',id));
+    if(!error)i.archivedAt=null;
+  }
+  if(error){
+    i.active=prev;i.archivedAt=prevArchived;
+    renderInstructors();
+    showToast(String(error.message||'').includes('is_active')?ACTIVE_COL_SQL_TOAST:('⚠️ Could not save: '+(error.message||error.code||'unknown error')));
+    return;
+  }
+  showToast(makeActive?`✓ ${i.name} is back on the active roster.`:`📁 ${i.name} moved to Inactive.`);
+}
+
 async function deleteInstructor(id){
-  if(!confirm('Remove this instructor?'))return;
+  const i=instructors.find(x=>x.id===id)||{};
+  // Permanent. Only offered from the Inactive tab, and only after naming what goes
+  // with it — sessions store the instructor id, so deleting the row leaves old
+  // classes pointing at nobody.
+  const jobCount=sessions.filter(s=>(jobDataCache[s.id]||{}).instructorId===id||s.secondInstructorId===id).length;
+  let msg=`Delete ${i.name||'this instructor'} permanently?\n\nThis cannot be undone.`;
+  if(jobCount)msg+=`\n\n⚠ They are attached to ${jobCount} class${jobCount===1?'':'es'}. Deleting them will leave those classes showing no instructor, and their pay history will disappear from your reports. Leaving them Inactive keeps all of that intact.`;
+  msg+=`\n\nType of thing you usually want instead: Reactivate later, or just leave them on the Inactive tab.`;
+  if(!confirm(msg))return;
   instructors=instructors.filter(x=>x.id!==id);
   renderInstructors();
   dbWrite(sb.from('instructors').delete().eq('id',id),'Instructor delete');
@@ -6563,6 +6682,8 @@ async function openInstructorProfile(id){
   }).join(''):`<tr><td colspan="4" style="text-align:center;color:var(--muted);font-style:italic;padding:16px">No sessions yet</td></tr>`;
 
   document.getElementById('profile-modal-body').innerHTML=`
+    ${instrActive(i)?'':`<div class="alert info" style="margin-bottom:14px;font-size:16px">📁 &nbsp;<strong>${escapeHtml(i.name)} is inactive.</strong> Everything below is kept on file, but they are off the roster and out of assignment dropdowns.
+      <button class="btn sm success" style="margin-left:10px" onclick="closeModal();setInstructorActive('${i.id}',true)">↩ Reactivate</button></div>`}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div class="fg"><div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Name</div><div style="font-weight:500">${i.name}</div></div>
       <div class="fg"><div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">PIN</div><div><span class="pin-badge">${i.pin}</span></div></div>
@@ -6674,7 +6795,7 @@ function renderJobs(){
     const c=COURSES[s.course]||{};
     const instrRate=instr?(instr.hourlyRate||INSTR_RATE):INSTR_RATE;
     const instrFee=instrDisplayFee(s,instr,jdi);
-    const instrOpts=instructors.slice().sort(byInstrName).map(i=>`<option value="${i.id}" ${jdi.instructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMarkSession(i,s)}</option>`).join('');
+    const instrOpts=instrPickList(jdi.instructorId).map(i=>`<option value="${i.id}" ${jdi.instructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMarkSession(i,s)}${instrInactiveMark(i)}</option>`).join('');
     // Co-instructor display block (shown whether you teach or a primary instructor is hired).
     const secondInstrBlock=s.secondInstructorId?(()=>{const i2=instructors.find(x=>x.id===s.secondInstructorId);if(!i2)return'';const i2Fee=secondInstrDisplayFee(s,i2,jdi);const i2Paid=jdi.secondInstrPaid;const i2PayCtrl=i2Paid?`<div class="tag paid" style="margin-top:6px">✓ Paid via Zelle${jdi.secondInstrPayDate?' · '+jdi.secondInstrPayDate:''}</div> <button class="btn sm" style="margin-top:6px" onclick="toggleSecondInstrPaid('${s.id}')">Undo</button>`:`<button class="btn sm success" style="margin-top:6px" onclick="toggleSecondInstrPaid('${s.id}')">Mark second instructor paid</button>`;return`<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)"><div style="font-size:14px;font-weight:500;color:var(--sky);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">+ ${s.ownerTaught?'Co-instructor':'Second instructor'}</div><div style="font-weight:500;font-size:16px">${i2.name}</div><div style="font-size:14px;color:var(--muted);margin-top:2px">Zelle: ${i2.zelle||'not set'} · Fee: ${fmt(i2Fee)}</div>${i2PayCtrl}</div>`;})():'';
     return`<div class="job-card">
@@ -7034,7 +7155,7 @@ function emailClass(sessId){
 function emailOpenJobs(){
   const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
   const open=sessions.filter(s=>!s.ownerTaught&&!s.isHold&&!s.isCancelled&&s.date&&new Date(s.date+'T12:00:00')>=startOfToday&&!(jobDataCache[s.id]||{}).instructorId).sort((a,b)=>a.date.localeCompare(b.date));
-  const recips=[...new Set(instructors.filter(i=>i.email&&i.email.includes('@')).map(i=>i.email.trim()))];
+  const recips=[...new Set(instructors.filter(i=>instrActive(i)&&i.email&&i.email.includes('@')).map(i=>i.email.trim()))];
   if(!recips.length){alert('No instructor email addresses are on file yet. Add each instructor\'s email on the Instructors tab (use Add instructor or edit an existing one), then try again.');return;}
   if(!open.length){alert('There are no open jobs right now, so there is nothing to send. A job counts as open when it is not taught by you, not on hold, not cancelled, dated today or later, and not yet claimed by an instructor.');return;}
 
@@ -8491,7 +8612,7 @@ function buildCheckoutModal(c,presetSessId){
   const sessOpts=sessions.filter(s=>!s.isHold&&s.date&&(!s.isCancelled||s.id===selId)&&(sessionEndDate(s)>=today||s.id===selId)&&(s.id===selId||!matCheckouts.some(x=>x.sessionId===s.id)))
     .sort((a,b)=>a.date.localeCompare(b.date))
     .map(s=>`<option value="${s.id}" ${s.id===selId?'selected':''}>${escapeHtml(s.course)} — ${fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'})}</option>`).join('');
-  const whoList=[...new Set(['Lindsay Karr (owner)',...instructors.map(i=>i.name)])].map(n=>`<option value="${escapeHtml(n)}">`).join('');
+  const whoList=[...new Set(['Lindsay Karr (owner)',...instructors.filter(instrActive).map(i=>i.name)])].map(n=>`<option value="${escapeHtml(n)}">`).join('');
   const itemRows=equipment.map(eq=>{
     const cur=c?((c.items||[]).find(it=>it.equipmentId===eq.id)||{}).qty||0:0;
     return`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)">

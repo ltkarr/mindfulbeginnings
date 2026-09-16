@@ -249,6 +249,17 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
   </div>
 </div>
 
+<div id="inactive-screen" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--navy);padding:20px">
+  <div class="login-box" style="width:400px;text-align:left">
+    <div class="login-logo" style="text-align:center">Mindful Beginnings</div>
+    <div style="font-size:15px;line-height:1.65;color:var(--text);background:var(--cream);border-radius:var(--r-sm);padding:14px 16px;margin:16px 0 18px">
+      Your instructor account is not currently active, so the portal is closed to this PIN. This usually means onboarding was never finished, or that you are not teaching with us at the moment. Nothing has been deleted.
+      <br><br>If you think this is a mistake, or you would like to start teaching again, please call or text Lindsay at <strong>703-987-5979</strong> or email <strong>lindsay@mindfulbeginnings.org</strong>.
+    </div>
+    <button class="login-btn" onclick="backToLogin()">Back to sign in</button>
+  </div>
+</div>
+
 <div id="pinchange-screen" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--navy);padding:20px">
   <div class="login-box" style="width:400px;text-align:left">
     <div class="login-logo" style="text-align:center">Mindful Beginnings</div>
@@ -442,7 +453,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-09.4';
+const PORTAL_VERSION='v2026-09-16.1';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -869,6 +880,47 @@ function goodToKnowHTML(s){
 }
 
 
+// Shown instead of the portal when someone whose account is inactive signs in.
+// Deliberately warm and non-accusatory: the commonest reason is that onboarding
+// was never finished, and the second commonest is that they simply stopped
+// teaching. Neither deserves a security-sounding error.
+function showInactiveNotice(){
+  const err=document.getElementById('login-err');
+  if(err)err.textContent='';
+  const box=document.getElementById('inactive-screen');
+  if(!box){
+    // Fall back to the inline error if the notice markup is missing for any reason.
+    if(err)err.textContent='This account is not active. Please contact Lindsay at 703-987-5979.';
+    return;
+  }
+  document.getElementById('login-screen').style.display='none';
+  box.style.display='flex';
+}
+function backToLogin(){
+  const box=document.getElementById('inactive-screen');
+  if(box)box.style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  const err=document.getElementById('login-err');if(err)err.textContent='';
+  const inp=document.getElementById('pin-input');
+  if(inp){inp.classList.remove('err');inp.value='';setTimeout(()=>inp.focus(),50);}
+  const btn=document.getElementById('login-btn');
+  if(btn){btn.disabled=false;btn.textContent='Sign in';}
+}
+// If Lindsay deactivates someone while their portal is already open, the next
+// automatic refresh closes it. Silent when the RPC is missing or the network is
+// down — a failed check must never lock out an active instructor.
+async function checkStillActive(){
+  if(!me||partnerOnly||me.active===null)return true;
+  let val=null;
+  try{const{data:ia}=await sb.rpc('instructor_is_active',{p_pin:me.pin});if(typeof ia==='boolean')val=ia;}
+  catch(e){return true;}
+  if(val!==false)return true;
+  me=null;partnerData=null;partnerOnly=false;
+  document.getElementById('app').style.display='none';
+  showInactiveNotice();
+  return false;
+}
+
 // ─── AUTH ────────────────────────────────────────────────────
 async function doLogin(){
   const pin=document.getElementById('pin-input').value.trim();
@@ -896,6 +948,39 @@ async function doLogin(){
     }
     // Keep the PIN client-side so we can authorize subsequent operations. It is also the password the user just typed; we are not learning anything they don't already know.
     me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||'',pinChangeRequired:(profile.pin_change_required===undefined||profile.pin_change_required===null)?null:!!profile.pin_change_required};
+    // Roster status. Lindsay can move someone to the Inactive tab in admin when they
+    // stop teaching or never finish onboarding. An inactive person keeps their record
+    // and their history, but must not be able to open the portal — the boards here
+    // show upcoming classes, and the roster screen shows families' contact details.
+    // Same graceful-degradation pattern as the credentials above: if the deployed
+    // instructor_login predates the is_active column, ask the small helper RPC; if
+    // that does not exist either, the value stays null and everyone is let in, which
+    // is exactly how the portal behaved before this check.
+    me.active=(profile.is_active===undefined||profile.is_active===null)?null:!!profile.is_active;
+    if(me.active===null){
+      try{const{data:ia}=await sb.rpc('instructor_is_active',{p_pin:pin});if(typeof ia==='boolean')me.active=ia;}
+      catch(e){/* keep null — allow, as before */}
+    }
+    if(me.active===false){
+      // Edge case worth handling: some instructors are also community partners
+      // (Katy Greenberg teaches and is a Partnerships Liaison). Being taken off the
+      // teaching roster should not cost someone their commission statement, so if a
+      // partner record is linked to this PIN they still get in — partner tab only,
+      // no job board, no rosters.
+      const partner=await loadPartnerData(pin);
+      if(partner){
+        me={id:partner.partnerId||me.id,name:partner.partnerName||me.name,pin:pin,
+          email:'',phone:'',zelle:partner.zelle||''};
+        partnerOnly=true;
+        enterApp();
+        return;
+      }
+      me=null;
+      showInactiveNotice();
+      btn.disabled=false;btn.textContent='Sign in';
+      document.getElementById('pin-input').value='';
+      return;
+    }
     // PIN change flag: instructor_login may predate the pin_change_required column,
     // so fall back to a small helper RPC the same way the other credentials do. If
     // neither is available, nobody is prompted and the portal behaves as before.
@@ -1166,7 +1251,11 @@ async function refreshData(force){
   if(!me||partnerOnly||fetching)return;
   if(!force&&Date.now()-lastFetch<60*1000)return;
   fetching=true;updateRefreshBar('Checking for new jobs…');
-  try{await loadData();refreshJobViews();}
+  try{
+    // Catches a deactivation that happened while this portal was sitting open.
+    if(!await checkStillActive()){fetching=false;return;}
+    await loadData();refreshJobViews();
+  }
   catch(e){console.error('refresh failed',e);}
   fetching=false;updateRefreshBar();
 }
