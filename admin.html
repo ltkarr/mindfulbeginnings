@@ -282,6 +282,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <button class="btn primary" onclick="openAddSession()">+ New session</button>
       </div>
       <div class="metrics" id="dash-metrics"></div>
+      <div id="org-billing" style="margin-bottom:16px"></div>
       <div id="instructor-milestones" style="margin-bottom:16px"></div>
       <div id="reminder-alerts" style="margin-bottom:16px"></div>
       <div id="needs-regs" style="margin-bottom:16px"></div>
@@ -4108,6 +4109,8 @@ function renderDashboard(){
       </div>`;
     }
   }
+  // ── Organization billing ("did I bill them yet?") ──
+  renderOrgBilling();
 }
 
 // ─── SESSIONS ────────────────────────────────────────────────
@@ -8975,7 +8978,7 @@ function uninvoicedOrgGroups(){
   const done=invoicedSessionIds();
   const groups={};
   sessions.forEach(s=>{
-    if(s.isHold||!s.billToOrg||!s.date)return;
+    if(s.isHold||s.isCancelled||!s.billToOrg||!s.date)return;   // a cancelled class is never billed
     if(done.has(s.id)||!sessionIsComplete(s))return;
     const key=s.billToOrg.trim()+'|'+s.date.slice(0,7);
     if(!groups[key])groups[key]={org:s.billToOrg.trim(),ym:s.date.slice(0,7),sessions:[],total:0};
@@ -9032,6 +9035,167 @@ function renderInvoices(){
           <button class="btn sm" style="color:var(--danger)" onclick="deleteInvoice('${v.id}')">✕</button>
         </td></tr>`;
     }).join(''):'<tr class="empty-row"><td colspan="9">No invoices yet. Mark sessions "Bill to organization" and create your first invoice at the end of the month.</td></tr>')+'</tbody>';
+  // The dashboard carries the same reminders, so refresh it whenever an invoice
+  // is created, sent, paid or deleted rather than waiting for a tab switch.
+  renderOrgBilling();
+}
+
+// ─── DASHBOARD: ORGANIZATION BILLING REMINDERS ───────────────
+// Custom jobs and course sessions that a partner organization pays for never
+// collect money through register.html, so nothing chases them on its own — the
+// work gets taught and the bill quietly never goes out. This card is the chase
+// list, and it lives on the dashboard so it is seen without opening Finances.
+// It covers the whole life of the money: work finished and not yet invoiced,
+// invoices drafted but never sent, invoices sent but not paid, and org jobs
+// missing the details an invoice needs. It reads the same sessions and invoices
+// the Finances tab does — there is no second set of books here.
+function orgBillDismissed(){
+  try{return JSON.parse(localStorage.getItem('mb_orgbill_dismissed')||'[]');}catch(e){return[];}
+}
+function dismissOrgBillCheck(id){
+  const list=orgBillDismissed();
+  if(!list.includes(id))list.push(id);
+  localStorage.setItem('mb_orgbill_dismissed',JSON.stringify(list));
+  renderOrgBilling();
+}
+function undismissOrgBillChecks(){
+  localStorage.removeItem('mb_orgbill_dismissed');
+  renderOrgBilling();
+}
+// Jump from the dashboard to Finances → Organization invoices.
+function gotoInvoices(){
+  const nav=[...document.querySelectorAll('.nav-item')].find(n=>(n.getAttribute('onclick')||'').includes("'finances'"));
+  showScreen('finances',nav);
+  setTimeout(()=>{const t=document.getElementById('invoices-table');if(t)t.scrollIntoView({behavior:'smooth',block:'center'});},80);
+}
+// Finished org work that cannot be invoiced correctly as it stands: a custom job
+// carrying an organization fee with no organization named (it never reaches the
+// invoice screen at all), or one named to an organization with no fee entered
+// (the invoice line would print $0). Each can be dismissed — a custom job paid
+// up front, or one that was never an organization job, should stop asking.
+function orgBillingGaps(){
+  const skip=orgBillDismissed();
+  const done=invoicedSessionIds();
+  const gaps=[];
+  sessions.forEach(s=>{
+    if(s.isHold||s.isCancelled||!s.date)return;
+    if(!sessionIsComplete(s)||done.has(s.id)||skip.includes(s.id))return;
+    const org=(s.billToOrg||'').trim();
+    const fee=s.priceOverride==null?0:Number(s.priceOverride);
+    if(s.isCustomJob&&!org&&fee>0){
+      gaps.push({s,why:'No organization named on this job, so it never reaches the invoice screen.',fix:'Bill to organization'});
+    }else if(org&&(invoiceLineFor(s).amount||0)<=0){
+      gaps.push({s,why:s.isCustomJob
+        ?'No organization fee entered, so the invoice line would come to $0.'
+        :'No roster headcount entered, so the invoice line would come to $0.',
+        fix:s.isCustomJob?'What the organization pays you':'Roster headcount from the organization'});
+    }
+  });
+  return gaps.sort((a,b)=>b.s.date.localeCompare(a.s.date));
+}
+function obDate(d){return d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';}
+function renderOrgBilling(){
+  const el=document.getElementById('org-billing');if(!el)return;
+  const today=new Date().toISOString().slice(0,10);
+  // A session whose line would come to $0 is not ready to bill — it is missing a
+  // fee or a headcount, and the "check before billing" list below owns it. Dropping
+  // it here keeps every job in exactly one place on this card.
+  const groups=uninvoicedOrgGroups().map(g=>{
+    const keep=g.sessions.filter(s=>(invoiceLineFor(s).amount||0)>0);
+    return{org:g.org,ym:g.ym,sessions:keep,total:keep.reduce((n,s)=>n+(invoiceLineFor(s).amount||0),0)};
+  }).filter(g=>g.sessions.length);
+  window._dashInvGroups=groups;
+  const drafts=invoices.filter(v=>v.status==='draft');
+  const awaiting=invoices.filter(v=>v.status==='sent');
+  const gaps=orgBillingGaps();
+  const hiddenGaps=orgBillDismissed().length;
+  if(!groups.length&&!drafts.length&&!awaiting.length&&!gaps.length){el.innerHTML='';return;}
+
+  const notBilled=groups.reduce((n,g)=>n+g.total,0)+drafts.reduce((n,v)=>n+(Number(v.total)||0),0);
+  const outstanding=awaiting.reduce((n,v)=>n+(Number(v.total)||0),0);
+  const overdue=awaiting.filter(v=>v.dueDate&&v.dueDate<today);
+  const sect=(label,color,body)=>`<div style="margin-top:12px">
+    <div style="font-size:15px;font-weight:700;color:${color};margin-bottom:4px">${label}</div>${body}</div>`;
+  const row=(left,right)=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:9px 0;border-bottom:0.5px solid var(--border)">
+    <div style="min-width:0;flex:1">${left}</div><div style="flex-shrink:0;display:flex;align-items:center;gap:8px">${right}</div></div>`;
+
+  // 1. Taught, not yet invoiced — the actual "go bill them" list.
+  let readyHtml='';
+  if(groups.length){
+    readyHtml=sect('Taught and not yet invoiced — send the bill','#b86a00',groups.map((g,gi)=>{
+      const shown=g.sessions.slice(0,4).map(s=>`${obDate(s.date)} · ${escapeHtml(s.course)}${s.isCustomJob?' <span style="color:#1a5c8a;font-weight:600">custom job</span>':''}`).join('<br>');
+      const extra=g.sessions.length-4;
+      return row(
+        `<div style="font-size:17px;font-weight:600">${escapeHtml(g.org)} — ${ymLabel(g.ym)}</div>
+         <div style="font-size:15px;color:var(--muted);line-height:1.5;margin-top:2px">${shown}${extra>0?`<br>+ ${extra} more session${extra===1?'':'s'}`:''}</div>`,
+        `<div style="text-align:right"><div style="font-size:19px;font-weight:700;color:#b86a00">${fmt(g.total)}</div>
+         <div style="font-size:13px;color:var(--muted)">${g.sessions.length} session${g.sessions.length===1?'':'s'}</div></div>
+         <button class="btn sm primary" onclick="openCreateInvoice(_dashInvGroups[${gi}].org,_dashInvGroups[${gi}].ym)">Create invoice</button>`
+      );
+    }).join(''));
+  }
+
+  // 2. Invoice written but never sent — the organization still has not been billed.
+  let draftHtml='';
+  if(drafts.length){
+    draftHtml=sect('Invoice created but not sent yet','#6b7a99',drafts.map(v=>row(
+      `<div style="font-size:17px"><span style="font-weight:600">${escapeHtml(v.invoiceNumber)}</span> — ${escapeHtml(v.orgName)}</div>
+       <div style="font-size:15px;color:var(--muted)">${v.invoiceMonth?ymLabel(v.invoiceMonth):''} · ${fmt(v.total)} · still a draft, so the organization has not been billed</div>`,
+      `<button class="btn sm" onclick="openInvoiceDoc('${v.id}')">🖨️ View</button>
+       <button class="btn sm primary" onclick="setInvoiceStatus('${v.id}','sent')">Mark sent</button>`
+    )).join(''));
+  }
+
+  // 3. Sent and waiting on the check.
+  let owedHtml='';
+  if(awaiting.length){
+    owedHtml=sect('Billed and waiting on payment','#1a5c8a',awaiting
+      .sort((a,b)=>String(a.dueDate).localeCompare(String(b.dueDate)))
+      .map(v=>{
+        const late=v.dueDate&&v.dueDate<today;
+        const days=late?Math.round((new Date(today+'T12:00:00')-new Date(v.dueDate+'T12:00:00'))/86400000):0;
+        return row(
+          `<div style="font-size:17px"><span style="font-weight:600">${escapeHtml(v.invoiceNumber)}</span> — ${escapeHtml(v.orgName)}
+             ${late?`<span style="background:#fdf0ee;color:#c0392b;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 8px;border-radius:100px;text-transform:uppercase;margin-left:6px">${days} day${days===1?'':'s'} overdue</span>`:''}</div>
+           <div style="font-size:15px;color:var(--muted)">${fmt(v.total)} · sent ${obDate(v.sentDate)} · due ${obDate(v.dueDate)}</div>`,
+          `<button class="btn sm success" onclick="setInvoiceStatus('${v.id}','paid')">Mark paid</button>`
+        );
+      }).join(''));
+  }
+
+  // 4. Org jobs that would bill wrong or never bill at all.
+  let gapHtml='';
+  if(gaps.length){
+    gapHtml=sect('Check before billing — organization jobs missing invoice details','#c0392b',gaps.map(g=>row(
+      `<div style="font-size:17px;font-weight:600">${escapeHtml(g.s.course)}<span style="font-weight:400;color:var(--muted)"> · ${obDate(g.s.date)}${g.s.location?' · '+escapeHtml(g.s.location):''}</span></div>
+       <div style="font-size:15px;color:var(--muted);line-height:1.5">${g.why} Open the job and fill in <strong>${g.fix}</strong>.</div>`,
+      `<button class="btn sm" onclick="openSessionForReview('${g.s.id}')">✏️ Open job</button>
+       <button class="btn sm" onclick="dismissOrgBillCheck('${g.s.id}')" title="Hide this one — not an organization job, or already paid another way">Not billable</button>`
+    )).join(''));
+  }
+
+  // Org work still on the calendar. Nothing can be invoiced until it is taught,
+  // so this is context, not a task.
+  const upcoming=sessions.filter(s=>!s.isHold&&!s.isCancelled&&(s.billToOrg||'').trim()&&s.date&&!sessionIsComplete(s));
+  const upcomingTotal=upcoming.reduce((n,s)=>n+(invoiceLineFor(s).amount||0),0);
+  const footBits=[];
+  if(upcoming.length)footBits.push(`${upcoming.length} organization session${upcoming.length===1?'':'s'} still to teach (${fmt(upcomingTotal)}) — billable once complete.`);
+  if(hiddenGaps)footBits.push(`<a href="#" onclick="undismissOrgBillChecks();return false;" style="color:var(--muted)">Show ${hiddenGaps} hidden job${hiddenGaps===1?'':'s'} again</a>`);
+  const foot=footBits.length?`<div style="font-size:14px;color:var(--muted);padding-top:10px;line-height:1.6">${footBits.join('<br>')}</div>`:'';
+
+  const heads=[];
+  if(notBilled>0)heads.push(`<span style="color:#b86a00;font-weight:700">${fmt(notBilled)} not billed yet</span>`);
+  if(outstanding>0)heads.push(`<span style="color:#1a5c8a;font-weight:700">${fmt(outstanding)} billed, awaiting payment</span>`);
+  if(overdue.length)heads.push(`<span style="color:#c0392b;font-weight:700">${overdue.length} overdue</span>`);
+
+  el.innerHTML=`<div class="card" style="padding:14px 18px;border-left:3px solid #1E3161">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:2px">
+      <div style="font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)">🧾 Organization billing — bill the org, create the invoice</div>
+      <button class="btn sm" onclick="gotoInvoices()">All invoices →</button>
+    </div>
+    ${heads.length?`<div style="font-size:16px;line-height:1.6">${heads.join(' &nbsp;·&nbsp; ')}</div>`:''}
+    ${readyHtml}${draftHtml}${owedHtml}${gapHtml}${foot}
+  </div>`;
 }
 
 let _invLines=[];
