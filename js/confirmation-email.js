@@ -23,7 +23,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  var PUBLIC_ORIGIN = 'https://mindfulbeginnings.vercel.app';
+  var PUBLIC_ORIGIN = 'https://register.mindfulbeginnings.org';
   var PAID_NOTE = 'Payment received. You\'re all set — no further payment is needed.';
   var ZERO_NOTE = 'No payment is needed for this registration.';
   var PAY_BUTTON_BG = '#3f63ad';

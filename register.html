@@ -2216,7 +2216,7 @@ function buildPayNowUrl(session, studentName, price){
   params.set('paycode', session.code||'');
   if(studentName)params.set('name', studentName);
   if(price!=null&&price!=='')params.set('amt', String(price));
-  return 'https://mindfulbeginnings.vercel.app/register.html?'+params.toString();
+  return 'https://register.mindfulbeginnings.org/register.html?'+params.toString();
 }
 
 function needsPayNowLink(method){

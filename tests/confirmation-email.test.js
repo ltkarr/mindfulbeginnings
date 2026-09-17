@@ -69,7 +69,7 @@ test('unpaid CTA exposes a non-empty absolute pay_url and a Gmail-safe bulletpro
   const cta = buildPayCta(dueOpts);
   const escapedUrl = cta.pay_url.replace(/&/g, '&amp;');
   assert.equal(cta.show_pay_now, true);
-  assert.match(cta.pay_url, /^https:\/\/mindfulbeginnings\.vercel\.app\/register\.html\?/);
+  assert.match(cta.pay_url, new RegExp('^' + PUBLIC_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/register\\.html\\?'));
   assert.equal(cta.pay_link, cta.pay_url);
   assert.equal(cta.payment_url, cta.pay_url);
   assert.equal(cta.pay_now_url, cta.pay_url);
