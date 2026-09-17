@@ -23,6 +23,10 @@ const dueOpts = {
   sessionCode: 'SS-1016'
 };
 
+test('default public origin is the branded registration host', () => {
+  assert.equal(PUBLIC_ORIGIN, 'https://register.mindfulbeginnings.org');
+});
+
 test('Pay now URL is an absolute HTTPS checkout link for the registration', () => {
   const url = buildPayNowUrl(dueOpts);
   assert.match(url, /^https:\/\//);

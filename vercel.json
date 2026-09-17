@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/register.html",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)\\.html",

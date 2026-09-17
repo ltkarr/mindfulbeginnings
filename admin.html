@@ -6157,6 +6157,7 @@ function renderFinances(){
 }
 
 // ─── CODES ───────────────────────────────────────────────────
+// Public parent/host registration URL. Used by copy-link, SMS, host letter, and host reminder emails.
 const REG_PAGE='https://register.mindfulbeginnings.org/register.html';
 
 function renderCodes(){
@@ -7260,7 +7261,7 @@ The most important thing your child learned today is the Safety Signal. If you e
 
 We have also attached a letter from Safe Sitter, Inc. that we encourage you to read in full. A few points we consider especially important: Completing the course is a meaningful achievement, but it does not automatically mean your child is ready to babysit or stay home alone, so please assess their readiness based on their individual maturity. We ask students to take jobs only with friends, neighbors, and others you or they know personally, and never to advertise online. And a quick conversation after each job gives your child helpful guidance while keeping you informed about what they are experiencing.
 
-When your child is ready for the next step, they can build on these skills in our 60-minute virtual session, All Kids Welcome: Babysitting Children with Special Needs. This course helps experienced sitters confidently and competently care for neurodivergent, disabled, and differently-abled children, and it is a wonderful way to become the most trusted sitter on the block. View upcoming dates and reserve a spot: http://mindfulbeginnings.org/register
+When your child is ready for the next step, they can build on these skills in our 60-minute virtual session, All Kids Welcome: Babysitting Children with Special Needs. This course helps experienced sitters confidently and competently care for neurodivergent, disabled, and differently-abled children, and it is a wonderful way to become the most trusted sitter on the block. View upcoming dates and reserve a spot: https://register.mindfulbeginnings.org/register.html
 
 If you have a moment, three small things would mean a great deal to us. You can earn $50 for every family you refer who hosts a course; simply have them give your name and phone number when they schedule the class with us, and we will take care of the rest. A Google review helps other families find us: https://g.page/r/Ca2jsWW-MkfvEAE/review. And our short program evaluation helps us improve every session: https://forms.gle/3YkNJiaJyavjvSu49
 
@@ -10211,7 +10212,8 @@ Here is a quick reminder of your session details:
   Time: ${s.time||'To be confirmed'}
   Location: ${s.location?s.location+(s.city?', '+s.city:''):'Your home'}
   Instructor: ${instr}
-  Session code: ${s.code}${s.wifiInfo?'\n  WiFi: '+s.wifiInfo:''}
+  Session code: ${s.code}
+  Registration link (share with parents): ${REG_PAGE}?code=${s.code}${s.wifiInfo?'\n  WiFi: '+s.wifiInfo:''}
 
 We currently have ${studentCount} student${studentCount!==1?'s':''} registered — your class roster is attached so you know exactly who to expect.
 
