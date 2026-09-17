@@ -2,6 +2,22 @@
   "redirects": [
     {
       "source": "/",
+      "has": [
+        { "type": "host", "value": "mindfulbeginnings.vercel.app" }
+      ],
+      "destination": "https://register.mindfulbeginnings.org/",
+      "permanent": true
+    },
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [
+        { "type": "host", "value": "mindfulbeginnings.vercel.app" }
+      ],
+      "destination": "https://register.mindfulbeginnings.org/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/",
       "destination": "/register.html",
       "permanent": false
     }

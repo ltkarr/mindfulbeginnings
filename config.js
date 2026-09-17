@@ -19,6 +19,15 @@
    ──────────────────────────────────────────────────────────────────────── */
 
 
+/* ─── PUBLIC REGISTRATION ORIGIN ───────────────────────────────────────
+   Family-facing links (register, pay, confirmation emails) use this host.
+   Do not point new parent links at *.vercel.app — that hostname permanently
+   redirects here (see vercel.json). Keep this value identical to
+   PUBLIC_ORIGIN in js/confirmation-email.js and REG_PAGE's origin in
+   admin.html.                                                            */
+const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
+
+
 /* ─── COURSES ──────────────────────────────────────────────────────────
    Used by instructor.html (hours, flat fees, credential flags) and kept
    as the master reference for every course's numbers.
