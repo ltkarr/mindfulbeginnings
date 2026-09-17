@@ -15,24 +15,34 @@ function indexOf(haystack, needle) {
   return i;
 }
 
-test('step 1 is code-first: host-code details before the public list', () => {
-  const sessions = indexOf(register, 'id="public-sessions"');
-  const hostCode = indexOf(register, 'id="host-code-details"');
-  assert.ok(hostCode < sessions, 'host/private code details should appear above the public sessions list');
-  assert.match(register, /Have a host or private code\?/);
-  assert.match(register, /Enter a host or private code, or browse upcoming public classes/);
-  assert.match(register, /id="pf-course"/);
-  assert.match(register, /id="pf-when"/);
-  assert.match(register, /id="pf-city"/);
-  assert.match(register, /id="public-show-more"/);
+test('step 1 is code-only: host/private code entry, no public browse UI', () => {
+  assert.match(register, /id="host-code-card"/);
+  assert.match(register, /id="code-input"/);
+  assert.match(register, /id="code-btn"/);
+  assert.match(register, /function checkCode/);
+  assert.match(register, /Enter your session code/);
+  assert.match(register, /Enter the host or private code from your organizer to register/);
   assert.match(register, /Find a class/);
+  assert.doesNotMatch(register, /id="public-sessions"/);
+  assert.doesNotMatch(register, /id="public-sessions-list"/);
+  assert.doesNotMatch(register, /id="pf-course"/);
+  assert.doesNotMatch(register, /id="pf-when"/);
+  assert.doesNotMatch(register, /id="pf-city"/);
+  assert.doesNotMatch(register, /id="pf-price"/);
+  assert.doesNotMatch(register, /id="public-show-more"/);
+  assert.doesNotMatch(register, /Upcoming public sessions/);
+  assert.doesNotMatch(register, /browse upcoming public classes/);
+  assert.doesNotMatch(register, /public-sessions\.js/);
+  assert.doesNotMatch(register, /host-code-details/);
+  assert.doesNotMatch(register, /loadPublicSessions/);
+  assert.doesNotMatch(register, /pick a public session from the list/);
 });
 
-test('public cards show price; Free/Paid filter is optional', () => {
-  assert.match(register, /class="pprice"/);
-  assert.match(register, /sessionPriceLabel/);
-  assert.match(register, /id="pf-price"/);
-  assert.match(register, /Any price/);
+test('unused public-session browse helpers are gone', () => {
+  assert.equal(fs.existsSync(path.join(__dirname, '../js/public-sessions.js')), false);
+});
+
+test('course config still carries parent-facing audience lines', () => {
   assert.match(config, /audience:'Grades 3–9'/);
 });
 
