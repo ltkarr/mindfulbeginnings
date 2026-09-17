@@ -42,6 +42,12 @@
       ]
     },
     {
+      "source": "/js/public-sessions.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
       "source": "/js/payments.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, must-revalidate" }
