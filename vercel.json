@@ -22,6 +22,12 @@
       "permanent": false
     }
   ],
+  "rewrites": [
+    {
+      "source": "/our-team",
+      "destination": "/our-team.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)\\.html",
