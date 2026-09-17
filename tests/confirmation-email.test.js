@@ -6,6 +6,8 @@ const {
   PUBLIC_ORIGIN,
   PAID_NOTE,
   ZERO_NOTE,
+  publicOrigin,
+  isVercelAppHost,
   shouldShowPayNow,
   buildPayNowUrl,
   buildPayNowButtonHtml,
@@ -106,20 +108,31 @@ test('$0 / complimentary CTA omits Pay now and uses no-payment-needed copy', () 
   assert.equal(cta.pay_note, ZERO_NOTE);
 });
 
+test('PUBLIC_ORIGIN is the branded registration host, not vercel.app', () => {
+  assert.equal(PUBLIC_ORIGIN, 'https://register.mindfulbeginnings.org');
+  assert.equal(isVercelAppHost('mindfulbeginnings.vercel.app'), true);
+  assert.equal(isVercelAppHost('https://mindfulbeginnings.vercel.app/register.html'), true);
+  assert.equal(isVercelAppHost('register.mindfulbeginnings.org'), false);
+  assert.equal(publicOrigin(), PUBLIC_ORIGIN);
+  assert.equal(publicOrigin('https://mindfulbeginnings.vercel.app'), PUBLIC_ORIGIN);
+  assert.equal(publicOrigin('https://mindfulbeginnings.vercel.app/'), PUBLIC_ORIGIN);
+  assert.equal(publicOrigin('https://register.mindfulbeginnings.org'), PUBLIC_ORIGIN);
+});
+
 test('buildPayNowButtonHtml refuses empty or non-https hrefs', () => {
   assert.equal(buildPayNowButtonHtml(''), '');
   assert.equal(buildPayNowButtonHtml('javascript:alert(1)'), '');
   assert.equal(buildPayNowButtonHtml('/pay.html'), '');
-  assert.equal(buildPayNowButtonHtml('http://mindfulbeginnings.vercel.app/pay.html'), '');
+  assert.equal(buildPayNowButtonHtml('http://register.mindfulbeginnings.org/pay.html'), '');
 });
 
 test('buildPayNowButtonHtml is a Gmail-safe table button with a plain-text fallback', () => {
-  const url = 'https://mindfulbeginnings.vercel.app/pay.html?amt=40&reg=id_1';
+  const url = 'https://register.mindfulbeginnings.org/pay.html?amt=40&reg=id_1';
   const html = buildPayNowButtonHtml(url);
   const escaped = url.replace(/&/g, '&amp;');
   assert.match(html, /^<table role="presentation" border="0" cellspacing="0" cellpadding="0"/);
   assert.match(html, /bgcolor="#3f63ad"/);
-  assert.match(html, /<a href="https:\/\/mindfulbeginnings\.vercel\.app\/pay\.html\?amt=40&amp;reg=id_1"/);
+  assert.match(html, /<a href="https:\/\/register\.mindfulbeginnings\.org\/pay\.html\?amt=40&amp;reg=id_1"/);
   assert.match(html, />Pay now<\/a>/);
   assert.doesNotMatch(html, /→|&rarr;|&#8594;/);
   assert.match(html, /If the button does not open, use this link:/);

@@ -2216,7 +2216,13 @@ function buildPayNowUrl(session, studentName, price){
   params.set('paycode', session.code||'');
   if(studentName)params.set('name', studentName);
   if(price!=null&&price!=='')params.set('amt', String(price));
-  return 'https://register.mindfulbeginnings.org/register.html?'+params.toString();
+  var origin='https://register.mindfulbeginnings.org';
+  try{
+    if(typeof PUBLIC_ORIGIN==='string'&&/^https:\/\//i.test(PUBLIC_ORIGIN)&&!/\.vercel\.app/i.test(PUBLIC_ORIGIN)){
+      origin=PUBLIC_ORIGIN.replace(/\/$/,'');
+    }
+  }catch(e){}
+  return origin+'/register.html?'+params.toString();
 }
 
 function needsPayNowLink(method){

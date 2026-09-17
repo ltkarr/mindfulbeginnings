@@ -36,11 +36,31 @@
   var PAID_METHODS = { paid: 1, host: 1, free: 1 };
   var DUE_STATUSES = { unpaid: 1, pending: 1, reserved: 1, awaiting: 1, '': 1 };
 
+  function hostnameFrom(value) {
+    var raw = String(value == null ? '' : value).trim();
+    if (!raw) return '';
+    try {
+      if (/^https?:\/\//i.test(raw)) return new URL(raw).hostname.toLowerCase();
+    } catch (e) {}
+    return raw.replace(/^https?:\/\//i, '').split('/')[0].split(':')[0].toLowerCase();
+  }
+
+  function isVercelAppHost(value) {
+    var host = hostnameFrom(value);
+    return host === 'vercel.app' || /\.vercel\.app$/i.test(host);
+  }
+
   function publicOrigin(origin) {
     var raw = String(origin == null ? '' : origin).trim();
-    if (/^https:\/\//i.test(raw)) return raw.replace(/\/$/, '');
+    if (/^https:\/\//i.test(raw) && !isVercelAppHost(raw)) return raw.replace(/\/$/, '');
     try {
-      if (typeof location !== 'undefined' && location.protocol === 'https:' && location.hostname && location.hostname !== 'localhost') {
+      if (
+        typeof location !== 'undefined' &&
+        location.protocol === 'https:' &&
+        location.hostname &&
+        location.hostname !== 'localhost' &&
+        !isVercelAppHost(location.hostname)
+      ) {
         return String(location.origin).replace(/\/$/, '');
       }
     } catch (e) {}
@@ -191,6 +211,7 @@
     PAID_NOTE: PAID_NOTE,
     ZERO_NOTE: ZERO_NOTE,
     publicOrigin: publicOrigin,
+    isVercelAppHost: isVercelAppHost,
     parseAmount: parseAmount,
     isAmountDue: isAmountDue,
     isAlreadyPaid: isAlreadyPaid,

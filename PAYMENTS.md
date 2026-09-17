@@ -32,12 +32,12 @@ Do **not** invent or paste fake credentials into the repo. Leave these blank unt
 1. Create (or open) a REST app in the PayPal Developer Dashboard.
 2. Copy the **Client ID** and **Secret** into the Vercel env vars above.
 3. Under app settings, add your live domains, e.g.:
-   - `https://register.mindfulbeginnings.org`
-   - `https://mindfulbeginnings.vercel.app`
+   - `https://register.mindfulbeginnings.org` (public registration / payment host)
+   - `https://mindfulbeginnings.vercel.app` (legacy; `vercel.json` permanently redirects HTML pages to the custom domain)
    - `https://mindfulbeginnings.org` (marketing site; keep if PayPal still lists it)
 4. Enable **Checkout / Orders v2**.
 5. (Recommended) Add a webhook:
-   - URL: `https://<your-domain>/api/paypal/webhook`
+   - URL: `https://register.mindfulbeginnings.org/api/paypal/webhook`
    - Events: `PAYMENT.CAPTURE.COMPLETED` and `CHECKOUT.ORDER.APPROVED`
    - Copy the Webhook ID into `PAYPAL_WEBHOOK_ID`
 
