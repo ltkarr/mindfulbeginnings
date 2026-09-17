@@ -10,7 +10,7 @@ Venmo and Zelle are unchanged as off-platform options. Their memo now includes `
 
 The old PayPal No Code Payments / hosted-button URL (`/ncp/payment/V9QPR5SLN9DD4`) is no longer used. It could only charge a single fixed amount, which is why discounted card payments were previously hidden. `register.html` now mounts the same Smart Buttons as `pay.html`, so the amount charged matches the session (and any promo) shown on screen.
 
-The registration payment screen shows that session price. Marketing-site / GoDaddy course prices are a separate surface and are not part of this checkout path.
+Public registration cards also show that session price. Marketing-site / GoDaddy course prices are a separate surface and are not part of this checkout path.
 
 ## What you must set (Vercel)
 

@@ -15,31 +15,43 @@ function indexOf(haystack, needle) {
   return i;
 }
 
-test('step 1 is code-only: host/private code entry, no public browse UI', () => {
-  assert.match(register, /id="host-code-card"/);
+test('step 1 lists public sessions first, then private/host code entry, with no filter UI', () => {
+  const sessions = indexOf(register, 'id="public-sessions"');
+  const hostCode = indexOf(register, 'id="host-code-card"');
+  assert.ok(sessions < hostCode, 'public session cards should appear above private/host code entry');
   assert.match(register, /id="code-input"/);
   assert.match(register, /id="code-btn"/);
   assert.match(register, /function checkCode/);
-  assert.match(register, /Enter your session code/);
-  assert.match(register, /Enter the host or private code from your organizer to register/);
+  assert.match(register, /Have a private or host code\?/);
+  assert.match(register, /Tap a public class to register, or enter a host or private code below/);
+  assert.match(register, /Upcoming public sessions/);
+  assert.match(register, /id="public-sessions-list"/);
+  assert.match(register, /id="public-show-more"/);
+  assert.match(register, /function loadPublicSessions/);
+  assert.match(register, /public-sessions\.js/);
   assert.match(register, /Find a class/);
-  assert.doesNotMatch(register, /id="public-sessions"/);
-  assert.doesNotMatch(register, /id="public-sessions-list"/);
   assert.doesNotMatch(register, /id="pf-course"/);
   assert.doesNotMatch(register, /id="pf-when"/);
   assert.doesNotMatch(register, /id="pf-city"/);
   assert.doesNotMatch(register, /id="pf-price"/);
-  assert.doesNotMatch(register, /id="public-show-more"/);
-  assert.doesNotMatch(register, /Upcoming public sessions/);
-  assert.doesNotMatch(register, /browse upcoming public classes/);
-  assert.doesNotMatch(register, /public-sessions\.js/);
+  assert.doesNotMatch(register, /class="public-filters"/);
+  assert.doesNotMatch(register, /All courses/);
+  assert.doesNotMatch(register, /Any area/);
+  assert.doesNotMatch(register, /Any price/);
   assert.doesNotMatch(register, /host-code-details/);
-  assert.doesNotMatch(register, /loadPublicSessions/);
-  assert.doesNotMatch(register, /pick a public session from the list/);
 });
 
-test('unused public-session browse helpers are gone', () => {
-  assert.equal(fs.existsSync(path.join(__dirname, '../js/public-sessions.js')), false);
+test('public cards show price; private/host sessions are excluded from the list', () => {
+  assert.match(register, /class="pprice"/);
+  assert.match(register, /sessionPriceLabel/);
+  assert.match(register, /isPrivateHostSession|has_host/);
+  assert.match(register, /\.eq\('has_host',false\)/);
+  assert.match(config, /audience:'Grades 3–9'/);
+});
+
+test('Need help Contact us uses Lindsay mailto', () => {
+  assert.match(register, /Need help finding a class\? <a href="mailto:lindsay@mindfulbeginnings\.org">Contact us<\/a>\./);
+  assert.doesNotMatch(register, /mindfulbeginnings\.org\/contact/);
 });
 
 test('course config still carries parent-facing audience lines', () => {
