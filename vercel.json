@@ -22,6 +22,12 @@
       "permanent": false
     }
   ],
+  "rewrites": [
+    {
+      "source": "/configinstructor.js",
+      "destination": "/config-instructor.js"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)\\.html",
@@ -37,6 +43,24 @@
     },
     {
       "source": "/js/public-sessions.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/js/payments.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/js/confirmation-email.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/config-instructor.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, must-revalidate" }
       ]

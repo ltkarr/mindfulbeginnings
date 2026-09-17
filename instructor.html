@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="MB Instructor">
 <title>Instructor Portal — Mindful Beginnings</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/email-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -415,7 +416,8 @@ if(typeof COURSES==='undefined'){
     'Steady and Ready':{hours:1.5, maxStudents:8},
     'My First Babysitters Club':{hours:1, maxStudents:12},
     'My First Babysitters Club — Single Session':{hours:2.5, maxStudents:12},
-    'Ready. Period.':{hours:1.5, maxStudents:12, requiresRN:true}
+    'Ready. Period.':{hours:1.5, maxStudents:18, requiresRN:true},
+    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{hours:1, maxStudents:20, requiresRN:true}
   };
   console.warn('config-instructor.js did not define COURSES — using built-in fallback. Check that /config-instructor.js is deploying correctly.');
 }
@@ -425,7 +427,7 @@ if(typeof COURSES==='undefined'){
 // to a stale config. Name matching is intentionally loose so renamed variants (e.g.
 // "Safe Sitter® Babysitting") stay covered.
 Object.keys(COURSES).forEach(c=>{
-  if(/stay ready|campus ready|ready\. ?period/i.test(c))COURSES[c].requiresRN=true;  // RN instructors only
+  if(/stay ready|campus ready|ready\. ?period|season ready/i.test(c))COURSES[c].requiresRN=true;  // RN instructors only
   if(/safe sitter|grandparent/i.test(c))COURSES[c].requiresSafeSitter=true;  // Safe Sitter® trained only
 });
 if(typeof INSTR_RATE==='undefined'){window.INSTR_RATE=50;}
@@ -453,7 +455,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-16.1';
+const PORTAL_VERSION='v2026-09-17.1';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
