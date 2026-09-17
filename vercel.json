@@ -22,9 +22,31 @@
       "permanent": false
     }
   ],
+  "rewrites": [
+    {
+      "source": "/register",
+      "destination": "/register.html"
+    },
+    {
+      "source": "/register/",
+      "destination": "/register.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)\\.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/register",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/register/",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, must-revalidate" }
       ]

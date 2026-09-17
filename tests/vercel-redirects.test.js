@@ -59,3 +59,28 @@ test('PayPal API routes on vercel.app are not redirected', () => {
     'host redirects should exclude /api/ so existing PayPal webhooks keep working'
   );
 });
+
+test('/register is rewritten to register.html so the clean URL stays in the bar', () => {
+  const rewrites = cfg.rewrites || [];
+  const destinations = rewrites
+    .filter((rule) => rule.source === '/register' || rule.source === '/register/')
+    .map((rule) => rule.destination);
+  assert.ok(destinations.includes('/register.html'), 'expected /register → /register.html rewrite');
+  assert.equal(
+    destinations.length,
+    2,
+    'both /register and /register/ should rewrite to register.html'
+  );
+  assert.ok(
+    !(cfg.redirects || []).some((rule) => rule.source === '/register' || rule.source === '/register/'),
+    'do not 30x /register to .html; use a rewrite so the public URL can stay /register'
+  );
+});
+
+test('existing /register.html links are not redirected away', () => {
+  assert.ok(
+    !(cfg.redirects || []).some((rule) => rule.source === '/register.html'),
+    '/register.html must keep serving the registration page'
+  );
+  assert.equal(fs.existsSync(path.join(__dirname, '../register.html')), true);
+});
