@@ -45,44 +45,44 @@ const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
      requiresSafeSitter → only Safe Sitter® certified instructors see these jobs
      requiresRN         → only Registered Nurse instructors see these jobs   */
 const COURSES={
-  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true},
-  'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20},
-  'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16},
+  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Grades 3–9'},
+  'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Grades 4–8'},
+  'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16,audience:'Kids home alone'},
   // Program guide (Aug 2026): Safe@Home is $65 as a 90-minute single session,
   // $125 as a multi-week series. Schedule a series under this separate course
   // so the registration page automatically shows the series price.
-  'Safe@Home — Series':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:10,hours:1,maxStudents:16},
+  'Safe@Home — Series':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:10,hours:1,maxStudents:16,audience:'Kids home alone · multi-week'},
   // Safe@Home — Virtual: the 60-minute online version from the program guide, $40.
   // Schedule it under this course so register.html shows the virtual price automatically.
   // Still tick "Virtual session" on the session itself so families get the Zoom link.
-  'Safe@Home — Virtual':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:10,hours:1,instrFlatFee:75,maxStudents:16,virtual:true},
-  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true},
-  'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true},
-  'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true},
-  'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true},
+  'Safe@Home — Virtual':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:10,hours:1,instrFlatFee:75,maxStudents:16,virtual:true,audience:'Kids home alone · Virtual'},
+  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true,audience:'Grandparents & caregivers'},
+  'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters · Grades 3–9'},
+  'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true,audience:'Grades 7–12'},
+  'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'11th–12th grade & college'},
   // Steady and Ready stays $65 on purpose — the Aug 2026 program guide printed
   // $50, which Lindsay confirmed is a typo in the guide, not a price change.
-  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1.5,maxStudents:8},
+  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1.5,maxStudents:8,audience:'Family safety workshop'},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug
   // 2026 program guide confirmed $165 for the 8-week series.
   // Material cost is $30/student — an 8-week series consumes far more supplies
   // than a one-off class, so it does not share the $10 handbook cost of the
   // short courses. (Corrected from $10, Aug 30 2026, to match admin.html.)
-  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12},
+  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12,audience:'Younger sitters · 8-week series'},
   // My First Babysitters Club — Single Session: the one-off 2.5-hour version, $95.
   // Deliberately a SEPARATE course from the 8-week series above so the series keeps
   // its own $165 price and $30 material rate. Any instructor may teach it.
-  'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:10,hours:2.5,maxStudents:12},
+  'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:10,hours:2.5,maxStudents:12,audience:'Younger sitters'},
   // Ready. Period. — 90-minute puberty-prep workshop, $75/participant, up to 18.
   // RN instructors only. No flat fee, so the instructor is paid 1.5 teaching
   // hours + 1 travel hour + the standard extra 30 minutes.
-  'Ready. Period.':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:18,requiresRN:true},
+  'Ready. Period.':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:18,requiresRN:true,audience:'Grades 5–7'},
   // Season Ready — 60-minute safety, fueling, and injury-prevention workshop for
   // middle and high school athletes, $25/participant, up to 20 in a class.
   // RN instructors only (hands-only CPR, AED trainers, heat-illness and concussion
   // response). No flat fee, so the instructor is paid 1 teaching hour + 1 travel
   // hour + the standard extra 30 minutes.
-  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true}
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true,audience:'Student athletes · Grades 6–12'}
 };
 
 
