@@ -13,6 +13,7 @@ function mockRes() {
 test('GET /api/paypal/config reports unconfigured without secrets', async () => {
   delete process.env.PAYPAL_CLIENT_ID;
   delete process.env.PAYPAL_CLIENT_SECRET;
+  delete require.cache[require.resolve('../api/paypal/config')];
   const handler = require('../api/paypal/config');
   const res = mockRes();
   await handler({ method: 'GET', headers: {} }, res);
@@ -20,6 +21,16 @@ test('GET /api/paypal/config reports unconfigured without secrets', async () => 
   const body = JSON.parse(res.body);
   assert.equal(body.configured, false);
   assert.equal(body.clientId, '');
+});
+
+test('HEAD /api/paypal/config is allowed', async () => {
+  delete process.env.PAYPAL_CLIENT_ID;
+  delete process.env.PAYPAL_CLIENT_SECRET;
+  delete require.cache[require.resolve('../api/paypal/config')];
+  const handler = require('../api/paypal/config');
+  const res = mockRes();
+  await handler({ method: 'HEAD', headers: {} }, res);
+  assert.equal(res.statusCode, 200);
 });
 
 test('POST /api/paypal/create-order rejects a zero amount', async () => {

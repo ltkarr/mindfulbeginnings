@@ -5,20 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Register for a Course — Mindful Beginnings</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/email-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <!-- Shared course data / pricing / caps / promos. Must load before the inline script below. -->
 <script src="/config.js"></script>
 <script src="/js/public-sessions.js"></script>
-
-<!-- PayPal is handled via a direct hosted-checkout link (no embedded SDK), so no PayPal
-     script loads on this page. This permanently removes the Apple Pay config errors. -->
+<script src="/js/payments.js"></script>
+<script src="/js/confirmation-email.js"></script>
 
 <!--
   ════════════════════════════════════════════════════════
-  PAYMENT: PayPal (hosted button) + Direct Venmo + Zelle
-  PayPal: hosted button id V9QPR5SLN9DD4
+  PAYMENT: card/PayPal (Orders API, on-screen total) + Venmo + Zelle
   Venmo:  https://www.venmo.com/u/mindfulbeginnings
   Zelle:  lindsay@mindfulbeginnings.org
   ════════════════════════════════════════════════════════
@@ -138,6 +137,10 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
   header{padding:14px 20px}.hero{padding:32px 20px 28px}.hero h1{font-size:28px}
   main{padding:24px 16px 48px}.code-card{padding:28px 20px}
   .fgrid{grid-template-columns:1fr}.fgrid .full{grid-column:1}.step-label{display:none}
+  .public-row{flex-direction:column;align-items:flex-start}
+  .public-row .pside{text-align:left}
+  .sess-banner{flex-wrap:wrap}
+  .sess-price{margin-left:0;width:100%}
 }
 </style>
 </head>
@@ -417,9 +420,10 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
   </div>
   <div id="host-free-msg" style="display:none" class="host-free">✓ &nbsp;<div><strong>No payment required.</strong> As the host, your registration is complimentary.</div></div>
   <div id="paypal-wrap">
-    <button id="paypal-btn" type="button" onclick="payWithPayPal()" style="width:100%;padding:15px;background:#0070ba;color:#fff;border:none;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#005ea6'" onmouseout="this.style.background='#0070ba'">Pay with Card or PayPal</button>
-    <p id="paypal-card-note" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Secure checkout on PayPal — pay by credit/debit card or PayPal balance</p>
-    <p id="paypal-promo-note" style="display:none;font-size:13px;color:#1d6b42;text-align:center;margin:4px 0 0;background:#eaf6ef;border:1px solid #bfe3cd;border-radius:var(--r-sm);padding:12px 14px;line-height:1.5">✓ Your discount code is applied! Pay by <strong>Venmo</strong> or <strong>Zelle</strong> below — your discounted total is shown above.<br><span style="font-size:12px;opacity:.85">Credit/debit card payment isn't available with a discount code because the card processor charges a fixed amount set in advance. Venmo and Zelle let us apply the discount on our end.</span></p>
+    <div id="paypal-button-container"></div>
+    <p id="paypal-card-note" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Secure checkout — pay by credit or debit card, no account needed. The amount charged is the total shown above, including any discount.</p>
+    <p id="paypal-unavailable-note" style="display:none;font-size:13px;color:#7a5a00;text-align:center;margin:4px 0 0;background:#fff7e6;border:1px solid #f0d878;border-radius:var(--r-sm);padding:12px 14px;line-height:1.5">Card/PayPal checkout is not available right now. Please use Venmo or Zelle below — your exact total is shown above.</p>
+    <p id="paypal-error" style="display:none;font-size:13px;color:var(--danger);text-align:center;margin:8px 0 0;line-height:1.5"></p>
     <div style="display:flex;align-items:center;gap:12px;margin:18px 0 14px;color:var(--muted);font-size:12px">
       <div style="flex:1;height:1px;background:var(--border)"></div>
       <span>OR</span>
@@ -638,7 +642,7 @@ if(typeof getSessionBasePrice==='undefined'){
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':8,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':8,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20};
+  window.MAX_STUDENTS={'Safe Sitter®':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -656,7 +660,7 @@ let reservedReg=null,reservedPrice=null,reservedDone=false;
 // The family is ALREADY registered (pay_status 'pending'); this mode skips the whole
 // waiver/info flow and lands them straight on the payment screen with the right amount
 // and memo. It NEVER inserts a registration row — it only shows payment instructions.
-let payNowMode=false,payNowAmtProvided=false;
+let payNowMode=false,payNowAmtProvided=false,payNowRegId='';
 // ── PREPAID / RE-REGISTRATION LINK ───────────────────────────
 // Families who already paid (e.g. the PayPal re-registration cleanup) can use a
 // special link that skips payment but still collects the full waiver + consents:
@@ -940,7 +944,7 @@ window.onload=function(){
   const p=new URLSearchParams(window.location.search);
   // Payment-reminder link: if a paycode is present, skip the whole registration flow and
   // take the family straight to the payment screen for their existing (pending) spot.
-  if(p.get('paycode')){startPayNow(p.get('paycode'),p.get('name')||'',p.get('amt')||'');return;}
+  if(p.get('paycode')){startPayNow(p.get('paycode'),p.get('name')||'',p.get('amt')||'',p.get('reg')||'');return;}
   loadPublicSessions();
   if(p.get('paid')&&p.get('paid')===PREPAID_TOKEN)compMode=true;
   if(p.get('auction')&&p.get('auction')===AUCTION_TOKEN)auctionMode=true;
@@ -1383,7 +1387,6 @@ async function goToPayment(){
   }
   // Paint all the dollar amounts + PayPal visibility (accounts for any applied promo).
   refreshPaymentScreen();
-  if(!noCharge&&!promoApplied)renderPayPal(getPayablePrice());
 
   // Host / already-paid: no payment redirect happens, so there is nothing to lose by
   // letting the existing no-charge confirm button save the row on click. Show the strip
@@ -1444,6 +1447,7 @@ async function goToPayment(){
     // even if they close the page before paying.
     try{sendConfirmationEmail(reg,currentSession,price);}catch(e){console.warn('Reserve email failed:',e);}
   }
+  remountRegisterPayPal();
   if(regStrip)regStrip.style.display='block';
   goToScreen(3);
 }
@@ -1470,27 +1474,9 @@ function refreshPaymentScreen(){
   }
   document.getElementById('pay-total-ln').textContent=(isHost||auctionMode||freeSession)?'$0.00':(compMode?'$0.00 due now':'$'+payable.toFixed(2));
 
-  // PayPal hosted button charges a FIXED amount set on PayPal's side, so it cannot
-  // reflect the $10 discount. When a promo is active we hide the card button and
-  // steer the family to Venmo/Zelle, whose amounts this page controls directly.
-  // The PayPal hosted-checkout link charges a FIXED amount set on PayPal's side, so it
-  // cannot reflect the $10 discount. When a promo is active we hide the card button and
-  // steer the family to Venmo/Zelle, whose amounts this page controls directly.
-  const ppContainer=document.getElementById('paypal-btn');
-  const ppCardNote=document.getElementById('paypal-card-note');
-  const ppPromoNote=document.getElementById('paypal-promo-note');
+  // Card/PayPal Smart Buttons charge getPayablePrice(), including after a promo.
   document.getElementById('paypal-wrap').style.display=noCharge?'none':'block';
-  if(!noCharge){
-    if(promoApplied){
-      if(ppContainer)ppContainer.style.display='none';
-      if(ppCardNote)ppCardNote.style.display='none';
-      if(ppPromoNote)ppPromoNote.style.display='block';
-    }else{
-      if(ppContainer)ppContainer.style.display='';
-      if(ppCardNote)ppCardNote.style.display='';
-      if(ppPromoNote)ppPromoNote.style.display='none';
-    }
-  }
+  if(!noCharge)remountRegisterPayPal();
 }
 
 // Validate and apply the promo code typed into the order-summary box.
@@ -1532,65 +1518,111 @@ function removePromo(){
   refreshPaymentScreen();
 }
 
-// Tracks whether we've already mounted the hosted button on this page load.
-// Re-rendering into the same container throws; this guard makes going Back/Forward safe.
-// PayPal hosted-checkout link for button V9QPR5SLN9DD4. Opening this is the most reliable
-// way to take a PayPal/card payment — it is PayPal's own checkout page and does not depend
-// on any embedded SDK rendering on our page.
-const PAYPAL_CHECKOUT_URL='https://www.paypal.com/ncp/payment/V9QPR5SLN9DD4';
+function currentPayStudentName(){
+  return (reservedReg&&reservedReg.student_name)||((document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim()).trim());
+}
+function currentPayRegistrationId(){
+  return (reservedReg&&reservedReg.id)||payNowRegId||'';
+}
+function currentPayMemo(){
+  const MB=window.MBPayments;
+  const studentName=currentPayStudentName();
+  const course=currentSession?currentSession.course:'';
+  if(MB&&typeof MB.buildPaymentMemo==='function'){
+    return MB.buildPaymentMemo({
+      registrationId:currentPayRegistrationId(),
+      studentName:studentName,
+      course:course
+    });
+  }
+  return (studentName||'Student name')+' — '+course;
+}
 
-// Legacy no-op: the embedded PayPal button was removed in favor of the checkout link above.
-// Kept as a no-op so any remaining calls are harmless.
-function renderPayPal(){}
+function showPayPalError(msg){
+  const el=document.getElementById('paypal-error');
+  if(!el)return;
+  if(msg){el.textContent=msg;el.style.display='block';}
+  else{el.textContent='';el.style.display='none';}
+}
 
-// State for the PayPal flow. We save the (pending) registration the MOMENT the parent
-// leaves for PayPal, so closing PayPal's "payment complete" tab can never lose it.
+function remountRegisterPayPal(){
+  const MB=window.MBPayments;
+  const wrap=document.getElementById('paypal-button-container');
+  const note=document.getElementById('paypal-card-note');
+  const unavail=document.getElementById('paypal-unavailable-note');
+  if(!wrap)return;
+  if(!MB||typeof MB.mountCardButtons!=='function'){
+    wrap.innerHTML='';
+    if(note)note.style.display='none';
+    if(unavail)unavail.style.display='block';
+    return;
+  }
+  showPayPalError('');
+  MB.mountCardButtons({
+    container:wrap,
+    getAmount:function(){return getPayablePrice();},
+    getContext:function(){
+      return {
+        registrationId:currentPayRegistrationId(),
+        studentName:currentPayStudentName(),
+        course:currentSession?currentSession.course:'',
+        description:currentPayMemo()
+      };
+    },
+    onPaid:function(result){onCardPaid(result||{});},
+    onError:function(msg){showPayPalError(msg||'PayPal checkout could not be completed. Please try Venmo or Zelle.');},
+    onUnavailable:function(){
+      if(note)note.style.display='none';
+      if(unavail)unavail.style.display='block';
+    }
+  }).then(function(info){
+    if(info&&info.configured){
+      if(note)note.style.display='';
+      if(unavail)unavail.style.display='none';
+    }
+  });
+}
 
-// Opens the PayPal checkout in a new tab and shows the confirm step (mirrors Venmo/Zelle).
-// ─── REGISTER-FIRST PAYMENT ──────────────────────────────────
-// By the time any of these run, the seat is ALREADY saved as a pending registration
-// (see goToPayment → "REGISTER FIRST"). So these buttons only open the payment method
-// and show the confirmation screen. They never insert a row, which is what makes a
-// duplicate registration impossible. The displayed amount uses the live price so any
-// discount code applied on the payment screen is reflected.
-
-function payWithPayPal(){
-  const price=getPayablePrice();
-  const studentName=(reservedReg&&reservedReg.student_name)||((document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim()).trim());
-  const memo=(studentName||'Student name')+' — '+currentSession.course;
-  document.getElementById('paypal-amount-1').textContent='$'+price;
-  document.getElementById('paypal-amount-2').textContent='$'+price;
-  document.getElementById('paypal-memo').textContent=memo;
-  document.getElementById('paypal-deeplink').href=PAYPAL_CHECKOUT_URL;
-  // Open PayPal checkout in a new tab. The seat is already saved, so even if this page
-  // freezes the instant the tab opens, the registration is safe.
-  window.open(PAYPAL_CHECKOUT_URL,'_blank');
-  document.getElementById('paypal-modal').style.display='flex';
+function onCardPaid(result){
+  const captureId=(result&&(result.captureId||result.paypal_tx_id||result.id))||null;
+  const amount=(result&&result.amount!=null)?result.amount:getPayablePrice();
+  if(payNowMode){
+    showPayNowThanks('paypal',captureId,amount);
+    return;
+  }
+  if(reservedReg){
+    reservedReg.pay_status='paid';
+    if(captureId)reservedReg.paypal_tx_id=captureId;
+    showSuccessScreen(reservedReg,currentSession,amount,'paypal',true);
+  }
 }
 
 function closePayPalModal(){
-  document.getElementById('paypal-modal').style.display='none';
+  const m=document.getElementById('paypal-modal');
+  if(m)m.style.display='none';
 }
 
 async function confirmPayPalPayment(){
   closePayPalModal();
   if(payNowMode){showPayNowThanks('paypal-link');return;}
   if(reservedReg){showSuccessScreen(reservedReg,currentSession,getPayablePrice(),'paypal-link',true);return;}
-  completeReg('paypal-link',null); // fallback only if the seat was somehow not reserved
+  completeReg('paypal-link',null);
 }
 
 function payWithVenmo(){
   const price=getPayablePrice();
-  const studentName=(reservedReg&&reservedReg.student_name)||((document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim()).trim());
-  const memo=(studentName||'Student name')+' — '+currentSession.course;
+  const memo=currentPayMemo();
   document.getElementById('venmo-amount-1').textContent='$'+price;
   document.getElementById('venmo-amount-2').textContent='$'+price;
   document.getElementById('venmo-memo').textContent=memo;
-  const venmoUrl='https://venmo.com/?txn=pay&audience=private&recipients=mindfulbeginnings'
-    +'&amount='+encodeURIComponent(price.toFixed(2))
-    +'&note='+encodeURIComponent(memo);
+  const MB=window.MBPayments;
+  const venmoUrl=(MB&&typeof MB.venmoUrl==='function')
+    ?MB.venmoUrl({amount:price,memo:memo})
+    :('https://venmo.com/?txn=pay&audience=private&recipients=mindfulbeginnings'
+      +'&amount='+encodeURIComponent(price.toFixed(2))
+      +'&note='+encodeURIComponent(memo));
   document.getElementById('venmo-deeplink').href=venmoUrl;
-  document.getElementById('venmo-deeplink').onclick=null; // seat already saved — no insert on tap
+  document.getElementById('venmo-deeplink').onclick=null;
   document.getElementById('venmo-modal').style.display='flex';
 }
 
@@ -1607,10 +1639,10 @@ async function confirmVenmoPayment(){
 
 function payWithZelle(){
   const price=getPayablePrice();
-  const studentName=(reservedReg&&reservedReg.student_name)||((document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim()).trim());
+  const memo=currentPayMemo();
   document.getElementById('zelle-amount-1').textContent='$'+price;
   document.getElementById('zelle-amount-2').textContent='$'+price;
-  document.getElementById('zelle-memo').textContent=(studentName||'Student name')+' — '+currentSession.course;
+  document.getElementById('zelle-memo').textContent=memo;
   document.getElementById('zelle-modal').style.display='flex';
 }
 
@@ -2047,8 +2079,9 @@ function showSaveFailureRecovery(reg,s,price,method,txId){
 // screen. Looks the session up by its code (same anon-safe query as checkCode), shows
 // the amount owed, and reuses the existing PayPal / Venmo / Zelle buttons. It never
 // inserts a registration row — the family is already registered.
-async function startPayNow(code,name,amt){
+async function startPayNow(code,name,amt,regId){
   payNowMode=true;isHost=false;compMode=false;reservedReg=null;reservedDone=false;promoApplied=false;
+  payNowRegId=String(regId||'').trim();
   // Hide the 1-2-3-4 step rail and retitle the hero for a payment (not registration) context.
   const stepsWrap=document.querySelector('.steps-wrap');if(stepsWrap)stepsWrap.style.display='none';
   const heroH1=document.querySelector('.hero h1');if(heroH1)heroH1.innerHTML='Complete Your <em>Payment</em>';
@@ -2110,21 +2143,6 @@ async function startPayNow(code,name,amt){
     const backBtn=document.querySelector('#screen-payment .btn-o');
     if(backBtn&&backBtn.parentElement)backBtn.parentElement.style.display='none';
     refreshPaymentScreen();
-    // The PayPal hosted button charges a FIXED amount set on PayPal's side, so it cannot
-    // honor a custom balance. When a specific amount was passed, steer to Venmo/Zelle
-    // (which carry the exact amount) and hide the card button.
-    if(payNowAmtProvided){
-      const ppBtn=document.getElementById('paypal-btn'),ppNote=document.getElementById('paypal-card-note');
-      if(ppBtn)ppBtn.style.display='none';
-      if(ppNote)ppNote.style.display='none';
-      if(!document.getElementById('paynow-card-note')){
-        const n=document.createElement('p');
-        n.id='paynow-card-note';
-        n.style.cssText='font-size:13px;color:#1d6b42;text-align:center;margin:4px 0 0;background:#eaf6ef;border:1px solid #bfe3cd;border-radius:var(--r-sm);padding:12px 14px;line-height:1.5';
-        n.innerHTML='To pay by card, bank, or app, please use <strong>Venmo</strong> or <strong>Zelle</strong> below \u2014 your exact total is shown above.';
-        ppBtn&&ppBtn.after(n);
-      }
-    }
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     document.getElementById('screen-payment').classList.add('active');
     window.scrollTo({top:0,behavior:'smooth'});
@@ -2145,13 +2163,15 @@ function showPayNowThanks(method){
   const s=currentSession;
   const d=fmtSessDates(s);
   const price=getPayablePrice();
-  const methodLabel={zelle:'Zelle',venmo:'Venmo','paypal-link':'PayPal / card','already-paid':'previously paid'}[method]||'payment';
-  document.getElementById('ok-title').textContent='Thank you!';
-  document.getElementById('ok-sub').textContent=method==='already-paid'
+  const paidNow=method==='paypal';
+  const methodLabel={zelle:'Zelle',venmo:'Venmo',paypal:'PayPal / card','paypal-link':'PayPal / card','already-paid':'previously paid'}[method]||'payment';
+  document.getElementById('ok-title').textContent=paidNow?'Payment received':'Thank you!';
+  document.getElementById('ok-sub').textContent=paidNow
+    ?'Payment received. This registration is marked paid. You are all set — nothing else to do.'
+    :(method==='already-paid'
     ?'Thanks for letting us know. Lindsay will confirm your payment on our end, usually within 24 hours. There is nothing else you need to do.'
-    :'Your payment is on its way. Lindsay matches it to your registration and will confirm, usually within 24 hours. There is nothing else you need to do.';
+    :'Your payment is on its way. Lindsay matches it to your registration and will confirm, usually within 24 hours. There is nothing else you need to do.');
   const okCircle=document.getElementById('ok-circle');if(okCircle)okCircle.textContent='✓';
-  // Hide the registration-specific extras.
   ['zelle-pending-banner','save-error-banner','cal-btn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
   const icsLine=document.getElementById('cal-ics-link');if(icsLine&&icsLine.parentElement)icsLine.parentElement.style.display='none';
   const box=document.getElementById('conf-box');
@@ -2160,7 +2180,7 @@ function showPayNowThanks(method){
       (s?'<div class="crow"><span class="cl">Course</span><span class="cv">'+escapeHtml(s.course)+'</span></div>':'')+
       (d?'<div class="crow"><span class="cl">Date</span><span class="cv">'+d+'</span></div>':'')+
       '<div class="crow"><span class="cl">Amount</span><span class="cv">$'+price+'</span></div>'+
-      '<div class="crow"><span class="cl">Payment</span><span class="cv" style="color:#b86a00">'+methodLabel+' — pending confirmation</span></div>';
+      '<div class="crow"><span class="cl">Payment</span><span class="cv" style="color:'+(paidNow?'#1d6b42':'#b86a00')+'">'+methodLabel+(paidNow?' — received':(' — pending confirmation'))+'</span></div>';
   }
   document.querySelectorAll('.screen').forEach(sc=>sc.classList.remove('active'));
   document.getElementById('screen-success').classList.add('active');
@@ -2211,11 +2231,22 @@ function getPaymentMessage(method, price, promoCode, promoDiscount) {
 }
 
 // Deep link into the pay-now screen (PayPal / Venmo / Zelle with amount ready).
-function buildPayNowUrl(session, studentName, price){
+function buildPayNowUrl(session, studentName, price, registrationId){
+  const helpers=window.MBConfirmationEmail;
+  if(helpers&&typeof helpers.buildPayNowUrl==='function'){
+    return helpers.buildPayNowUrl({
+      amount:price,
+      registrationId:registrationId||'',
+      studentName:studentName,
+      course:session&&session.course,
+      sessionCode:session&&session.code
+    });
+  }
   const params=new URLSearchParams();
-  params.set('paycode', session.code||'');
+  params.set('paycode', (session&&session.code)||'');
   if(studentName)params.set('name', studentName);
   if(price!=null&&price!=='')params.set('amt', String(price));
+  if(registrationId)params.set('reg', String(registrationId));
   var origin='https://register.mindfulbeginnings.org';
   try{
     if(typeof PUBLIC_ORIGIN==='string'&&/^https:\/\//i.test(PUBLIC_ORIGIN)&&!/\.vercel\.app/i.test(PUBLIC_ORIGIN)){
@@ -2248,11 +2279,26 @@ function sendConfirmationEmail(reg,session,price){
   // Use consolidated payment detection
   const paymentMethod = detectPaymentMethod(reg, isHost);
   const amountLine = getPaymentMessage(paymentMethod, price, promoApplied ? PROMO_CODE : null, promoApplied ? PROMO_DISCOUNT : null);
-  const payUrl = needsPayNowLink(paymentMethod) ? buildPayNowUrl(session, reg.student_name, price) : '';
-  // Short CTA lines for EmailJS HTML (template uses these next to a Pay now button).
+  const helpers = window.MBConfirmationEmail;
+  let cta = {};
+  if(helpers&&typeof helpers.buildPayCta==='function'){
+    cta=helpers.buildPayCta({
+      payStatus:reg.pay_status,
+      paymentMethod:paymentMethod,
+      amount:price,
+      registrationId:reg.id,
+      studentName:reg.student_name,
+      course:session.course,
+      sessionCode:session.code
+    });
+  }
+  const payUrl = cta.pay_url || (needsPayNowLink(paymentMethod) ? buildPayNowUrl(session, reg.student_name, price, reg.id) : '');
   const payment_cta = payUrl
     ? 'Your spot is reserved. Tap Pay now to finish by card/PayPal, Venmo, or Zelle — amount is ready. Discount codes work on that screen.'
-    : '';
+    : (cta.pay_note||'');
+  const amountWithUrl = (helpers&&typeof helpers.withPayUrlInAmount==='function')
+    ? helpers.withPayUrlInAmount(amountLine, payUrl)
+    : amountLine;
   
   emailjs.send(
     'service_delt0r4',
@@ -2267,8 +2313,15 @@ function sendConfirmationEmail(reg,session,price){
       location: session.location||'TBD',
       address: fullAddress,
       instructor_contact: instrContact,
-      amount: amountLine,
+      amount: amountWithUrl,
       pay_url: payUrl,
+      pay_link: cta.pay_link||payUrl,
+      payment_url: cta.payment_url||payUrl,
+      pay_now_url: cta.pay_now_url||payUrl,
+      pay_button: cta.pay_button||'',
+      pay_cta: cta.pay_cta||payment_cta,
+      pay_note: cta.pay_note||'',
+      payment_note: cta.payment_note||cta.pay_note||'',
       payment_cta: payment_cta,
       reply_to: 'lindsay@mindfulbeginnings.org'
     },
@@ -2304,13 +2357,21 @@ function calEventFields(session,studentName,dateStr){
     const t=session.time.toLowerCase();
     const timeMatch=t.match(/(\d+)(?::(\d+))?\s*(am|pm)/);
     if(timeMatch){
-      startHour=parseInt(timeMatch[1])+(timeMatch[3]==='pm'&&parseInt(timeMatch[1])!==12?12:0);
-      startMin=parseInt(timeMatch[2]||'0');
+      let h=parseInt(timeMatch[1],10);
+      const ap=timeMatch[3];
+      if(ap==='pm'&&h!==12)h+=12;
+      if(ap==='am'&&h===12)h=0;
+      startHour=h;
+      startMin=parseInt(timeMatch[2]||'0',10);
     }
     const endMatch=t.match(/[-–]\s*(\d+)(?::(\d+))?\s*(am|pm)/);
     if(endMatch){
-      endHour=parseInt(endMatch[1])+(endMatch[3]==='pm'&&parseInt(endMatch[1])!==12?12:0);
-      endMin=parseInt(endMatch[2]||'0');
+      let h=parseInt(endMatch[1],10);
+      const ap=endMatch[3];
+      if(ap==='pm'&&h!==12)h+=12;
+      if(ap==='am'&&h===12)h=0;
+      endHour=h;
+      endMin=parseInt(endMatch[2]||'0',10);
     }
   }
   const pad=n=>String(n).padStart(2,'0');
