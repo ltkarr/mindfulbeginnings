@@ -15,11 +15,12 @@ function indexOf(haystack, needle) {
   return i;
 }
 
-test('step 1 is sessions-first: public list before the host-code details', () => {
+test('step 1 is code-first: host-code details before the public list', () => {
   const sessions = indexOf(register, 'id="public-sessions"');
   const hostCode = indexOf(register, 'id="host-code-details"');
-  assert.ok(sessions < hostCode, 'public sessions should appear above the host/private code details');
+  assert.ok(hostCode < sessions, 'host/private code details should appear above the public sessions list');
   assert.match(register, /Have a host or private code\?/);
+  assert.match(register, /Enter a host or private code, or browse upcoming public classes/);
   assert.match(register, /id="pf-course"/);
   assert.match(register, /id="pf-when"/);
   assert.match(register, /id="pf-city"/);
