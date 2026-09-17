@@ -6,10 +6,22 @@ const {
   isPublicSession,
   filterPublicSessions,
   sessionPlace,
+  sessionCardPlace,
   sessionPrice,
+  sessionPriceLabel,
   sessionCap,
   seatsLeft,
-  todayLocalISO
+  seatsLabel,
+  todayLocalISO,
+  addDaysISO,
+  courseAudience,
+  applyBrowseFilters,
+  sliceForDisplay,
+  matchesPriceFilter,
+  uniqueCourses,
+  uniqueCities,
+  DEFAULT_VISIBLE,
+  DEFAULT_WINDOW_DAYS
 } = require('../js/public-sessions');
 
 const TODAY = '2026-09-16';
@@ -106,4 +118,84 @@ test('seatsLeft uses override cap, then course cap', () => {
   assert.equal(seatsLeft(row(), 3, { 'Safe Sitter®': 16 }), 13);
   assert.equal(seatsLeft(row({ max_students_override: 8 }), 8, { 'Safe Sitter®': 16 }), 0);
   assert.equal(seatsLeft(row(), 1, {}), null);
+  assert.equal(seatsLabel(0), 'Full — waitlist');
+  assert.equal(seatsLabel(1), '1 seat left');
+  assert.equal(seatsLabel(4), '4 seats left');
+});
+
+test('sessionCardPlace shows city or Virtual and never a street address', () => {
+  assert.equal(sessionCardPlace(row({ is_virtual: true, city: 'Bethesda', location: '123 Oak Ave' })), 'Virtual');
+  assert.equal(sessionCardPlace(row({ city: 'Potomac', location: '123 Host Lane' })), 'Potomac');
+  assert.equal(sessionCardPlace(row({ city: 'Arlington', location: 'Stone Ridge School' })), 'Stone Ridge School · Arlington');
+  assert.equal(sessionCardPlace(row({ city: '', location: '' })), 'Location TBD');
+  assert.doesNotMatch(sessionCardPlace(row({ city: 'Potomac', location: '4412 Host Lane', host_address: '4412 Host Lane' })), /4412/);
+});
+
+test('sessionPriceLabel is parent-facing (Free / whole dollars / cents)', () => {
+  assert.equal(sessionPriceLabel(0), 'Free');
+  assert.equal(sessionPriceLabel(185), '$185');
+  assert.equal(sessionPriceLabel(40.5), '$40.50');
+  assert.equal(sessionPriceLabel(null), '');
+});
+
+test('courseAudience prefers config.audience then the built-in map', () => {
+  assert.equal(courseAudience('Safe Sitter®'), 'Grades 3–9');
+  assert.equal(courseAudience('Safe Sitter®', { 'Safe Sitter®': { audience: 'Grades 4–8' } }), 'Grades 4–8');
+  assert.equal(courseAudience('Unknown Course'), '');
+});
+
+test('applyBrowseFilters keeps course, city, date window, and optional price', () => {
+  const rows = [
+    row({ code: 'SS-261002', date: '2026-10-02', city: 'Potomac', course: 'Safe Sitter®' }),
+    row({ code: 'SAH-1016', date: '2026-10-16', city: 'Bethesda', course: 'Safe@Home' }),
+    row({ code: 'SS-261201', date: '2026-12-01', city: 'Potomac', course: 'Safe Sitter®' }),
+    row({ code: 'AKW-1003', date: '2026-10-03', city: '', is_virtual: true, course: 'All Kids Welcome', price_override: 0 })
+  ];
+  const priced = applyBrowseFilters(rows, { price: 'free', windowDays: 'all' }, { today: TODAY, getBasePrice: () => 185 });
+  assert.deepEqual(priced.map((s) => s.code), ['AKW-1003']);
+
+  const paid = applyBrowseFilters(rows, { price: 'paid', windowDays: 'all' }, { today: TODAY, getBasePrice: () => 185 });
+  assert.deepEqual(paid.map((s) => s.code), ['SS-261002', 'SAH-1016', 'SS-261201']);
+
+  const potomac = applyBrowseFilters(rows, { city: 'Potomac', windowDays: 'all' }, { today: TODAY });
+  assert.deepEqual(potomac.map((s) => s.code), ['SS-261002', 'SS-261201']);
+
+  const windowed = applyBrowseFilters(rows, { windowDays: 60 }, { today: TODAY });
+  assert.deepEqual(windowed.map((s) => s.code), ['SS-261002', 'SAH-1016', 'AKW-1003']);
+  assert.equal(DEFAULT_WINDOW_DAYS, 60);
+});
+
+test('sliceForDisplay defaults to the first six cards with a Show more remainder', () => {
+  const rows = Array.from({ length: 10 }, (_, i) => row({ code: 'SS-' + String(i).padStart(6, '0') }));
+  const sliced = sliceForDisplay(rows, false);
+  assert.equal(DEFAULT_VISIBLE, 6);
+  assert.equal(sliced.rows.length, 6);
+  assert.equal(sliced.hidden, 4);
+  assert.equal(sliced.truncated, true);
+  const all = sliceForDisplay(rows, true);
+  assert.equal(all.rows.length, 10);
+  assert.equal(all.truncated, false);
+});
+
+test('matchesPriceFilter treats empty as any price', () => {
+  assert.equal(matchesPriceFilter(185, ''), true);
+  assert.equal(matchesPriceFilter(0, 'free'), true);
+  assert.equal(matchesPriceFilter(40, 'paid'), true);
+  assert.equal(matchesPriceFilter(0, 'paid'), false);
+  assert.equal(matchesPriceFilter(null, 'paid'), false);
+});
+
+test('uniqueCourses and uniqueCities feed the browse filters', () => {
+  const rows = [
+    row({ course: 'Safe@Home', city: 'Bethesda' }),
+    row({ course: 'Safe Sitter®', city: 'Potomac' }),
+    row({ course: 'Safe Sitter®', city: 'Potomac' }),
+    row({ course: 'All Kids Welcome', is_virtual: true, city: '' })
+  ];
+  assert.deepEqual(uniqueCourses(rows), ['All Kids Welcome', 'Safe Sitter®', 'Safe@Home']);
+  assert.deepEqual(uniqueCities(rows), ['Bethesda', 'Potomac', 'Virtual']);
+});
+
+test('addDaysISO is calendar-local', () => {
+  assert.equal(addDaysISO('2026-09-16', 60), '2026-11-15');
 });

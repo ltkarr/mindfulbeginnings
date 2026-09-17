@@ -52,6 +52,12 @@ test('shared origin constants agree on the branded host', () => {
   assert.doesNotMatch(config, /mindfulbeginnings\.vercel\.app/);
 });
 
+test('family-facing JS is not cached so registration and PayPal helpers stay current', () => {
+  const sources = (cfg.headers || []).map((rule) => rule.source);
+  assert.ok(sources.includes('/js/public-sessions.js'));
+  assert.ok(sources.includes('/js/payments.js'));
+});
+
 test('PayPal API routes on vercel.app are not redirected', () => {
   const rules = hostRedirects();
   assert.ok(
