@@ -46,7 +46,7 @@ header img{height:44px;width:44px;object-fit:contain;border-radius:50%;backgroun
 main{max-width:640px;margin:0 auto;padding:32px 24px 64px}
 .screen{display:none}.screen.active{display:block;animation:fadeIn .25s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.code-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:36px 32px;text-align:center}
+.code-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:36px 32px;text-align:center;margin-bottom:16px}
 .code-icon{width:56px;height:56px;background:var(--sky-l);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px}
 .code-card h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:8px}
 .code-card p{color:var(--muted);font-size:14px;margin-bottom:28px;max-width:340px;margin-left:auto;margin-right:auto}
@@ -94,7 +94,7 @@ main{max-width:640px;margin:0 auto;padding:32px 24px 64px}
 .crow .cl{color:var(--muted)}.crow .cv{font-weight:500}
 .help{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
 .help a{color:var(--sky);text-decoration:none}
-.public-sessions{background:white;border-radius:var(--r);border:1px solid var(--border);padding:22px 20px 16px;text-align:left;margin-bottom:16px}
+.public-sessions{background:white;border-radius:var(--r);border:1px solid var(--border);padding:22px 20px 16px;text-align:left}
 .public-sessions h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:4px;text-align:center}
 .public-sessions-lead{color:var(--muted);font-size:13px;text-align:center;margin:0 0 14px}
 .public-month{font-size:11px;font-weight:600;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
@@ -158,7 +158,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
 
 <div class="hero">
   <h1>Course <em>Registration</em></h1>
-  <p>Tap a public class to register, or enter a host or private code below.</p>
+  <p>Enter a host or private code, or tap a public class below to register.</p>
 </div>
 
 <div class="steps-wrap"><div class="steps">
@@ -171,20 +171,20 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
 <main>
 
 <div class="screen active" id="screen-code">
+  <div class="code-card" id="host-code-card">
+    <div class="code-icon">🔑</div>
+    <h2>Have a private or host code?</h2>
+    <p>Private classes and host sessions are not listed below. Enter the short code from your organizer.</p>
+    <input type="text" class="code-input" id="code-input" placeholder="e.g. SS-0612" maxlength="12" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+    <div class="error-msg" id="code-error"></div>
+    <button class="btn-p" id="code-btn" onclick="checkCode()">Continue →</button>
+    <div class="help">Need help finding a class? <a href="mailto:lindsay@mindfulbeginnings.org">Contact us</a>.</div>
+  </div>
   <div class="public-sessions" id="public-sessions">
     <h2>Upcoming public sessions</h2>
     <p class="public-sessions-lead">Tap a class to register — no code needed for these public sessions.</p>
     <div id="public-sessions-list"><div class="public-empty">Loading upcoming sessions…</div></div>
     <button type="button" class="public-more" id="public-show-more" style="display:none">Show more sessions</button>
-  </div>
-  <div class="code-card" id="host-code-card">
-    <div class="code-icon">🔑</div>
-    <h2>Have a private or host code?</h2>
-    <p>Private classes and host sessions are not listed above. Enter the short code from your organizer.</p>
-    <input type="text" class="code-input" id="code-input" placeholder="e.g. SS-0612" maxlength="12" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
-    <div class="error-msg" id="code-error"></div>
-    <button class="btn-p" id="code-btn" onclick="checkCode()">Continue →</button>
-    <div class="help">Need help finding a class? <a href="mailto:lindsay@mindfulbeginnings.org">Contact us</a>.</div>
   </div>
 </div>
 
@@ -891,10 +891,10 @@ function renderPublicSessions(){
   const moreBtn=document.getElementById('public-show-more');
   if(!box)return;
   const helpers=window.MBPublicSessions;
-  if(!helpers){box.innerHTML='<div class="public-empty">Upcoming sessions could not be loaded. If you have a private or host code, enter it below.</div>';return;}
+  if(!helpers){box.innerHTML='<div class="public-empty">Upcoming sessions could not be loaded. If you have a private or host code, enter it above.</div>';return;}
   const all=helpers.filterPublicSessions(publicSessionRows);
   if(!all.length){
-    box.innerHTML='<div class="public-empty">No upcoming public sessions are listed right now. If you have a private or host code, enter it below, or <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">contact us</a>.</div>';
+    box.innerHTML='<div class="public-empty">No upcoming public sessions are listed right now. If you have a private or host code, enter it above, or <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">contact us</a>.</div>';
     if(moreBtn)moreBtn.style.display='none';
     return;
   }
@@ -903,7 +903,7 @@ function renderPublicSessions(){
   const sliced=helpers.sliceForDisplay(filtered,publicShowAll);
   const caps=typeof MAX_STUDENTS!=='undefined'?MAX_STUDENTS:{};
   if(!filtered.length){
-    box.innerHTML='<div class="public-empty">No upcoming public sessions are listed in the next '+helpers.DEFAULT_WINDOW_DAYS+' days. If you have a private or host code, enter it below, or <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">contact us</a>.</div>';
+    box.innerHTML='<div class="public-empty">No upcoming public sessions are listed in the next '+helpers.DEFAULT_WINDOW_DAYS+' days. If you have a private or host code, enter it above, or <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">contact us</a>.</div>';
     if(moreBtn)moreBtn.style.display='none';
     return;
   }
@@ -957,7 +957,7 @@ async function loadPublicSessions(){
     }
     if(res&&res.error){
       console.error('Public session list failed:',res.error);
-      box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it below.</div>';
+      box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.</div>';
       return;
     }
     publicSessionCounts={};
@@ -970,7 +970,7 @@ async function loadPublicSessions(){
     renderPublicSessions();
   }catch(e){
     console.error('Public session list failed:',e);
-    box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it below.</div>';
+    box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.</div>';
   }
 }
 
@@ -2205,7 +2205,7 @@ async function startPayNow(code,name,amt,regId){
       if(stepsWrap)stepsWrap.style.display='';
       if(heroH1)heroH1.innerHTML='Course <em>Registration</em>';
       const err=document.getElementById('code-error');
-      if(err)err.textContent='We could not find that session. Please enter your session code below, or pick a public session from the list.';
+      if(err)err.textContent='We could not find that session. Please enter your session code, or pick a public session from the list.';
       const inp=document.getElementById('code-input');if(inp)inp.value=val;
       document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
       document.getElementById('screen-code').classList.add('active');
@@ -2263,7 +2263,7 @@ async function startPayNow(code,name,amt,regId){
     if(stepsWrap)stepsWrap.style.display='';
     if(heroH1)heroH1.innerHTML='Course <em>Registration</em>';
     const err=document.getElementById('code-error');
-    if(err)err.textContent='Sorry — something went wrong loading your payment page. Please enter your session code below, or pick a public session from the list.';
+    if(err)err.textContent='Sorry — something went wrong loading your payment page. Please enter your session code, or pick a public session from the list.';
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     document.getElementById('screen-code').classList.add('active');
   }
