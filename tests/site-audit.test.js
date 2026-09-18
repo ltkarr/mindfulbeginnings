@@ -53,6 +53,15 @@ test('pages request a real favicon and the file exists', () => {
   }
 });
 
+test('Mary Parks team headshot is published as a static JPEG', () => {
+  const headshot = path.join(root, 'team', 'mary-parks.jpg');
+  assert.equal(fs.existsSync(headshot), true);
+  const buf = fs.readFileSync(headshot);
+  assert.ok(buf.length > 1000);
+  assert.equal(buf[0], 0xff);
+  assert.equal(buf[1], 0xd8);
+});
+
 test('vercel.json caches payment/confirmation scripts as no-store and rewrites the old instructor config path', () => {
   const sources = (cfg.headers || []).map((h) => h.source);
   assert.ok(sources.includes('/js/payments.js'));
