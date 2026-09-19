@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Mindful Beginnings</title>
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
@@ -3877,6 +3876,20 @@ function classesTaughtBy(instrId){
     return isPrimary||isSecond;
   }).length;
 }
+// Classes still ahead for an instructor: same rules as classesTaughtBy (primary OR
+// second instructor, holds / cancelled / owner-taught primary slots excluded), but
+// for today and future dates. A class with no date set yet counts as pending.
+function classesPendingBy(instrId){
+  const now=new Date();
+  return sessions.filter(s=>{
+    if(s.isHold||s.isCancelled)return false;
+    if(s.date&&new Date(s.date+'T23:59:00')<now)return false; // past = taught, not pending
+    const jd=jobDataCache[s.id]||{};
+    const isPrimary=!s.ownerTaught&&jd.instructorId===instrId;
+    const isSecond=s.secondInstructorId===instrId;
+    return isPrimary||isSecond;
+  }).length;
+}
 // Milestones fire at 5, 10, 15, 20 classes taught (and every 5 after that).
 // Dismissals are remembered in this browser via localStorage; the alert
 // re-appears automatically when the instructor reaches the next milestone.
@@ -4292,7 +4305,7 @@ function renderSessions(){
           <td style="color:var(--muted)">${instrStatus}</td>
           <td style="color:var(--muted)">—</td>
           <td style="font-weight:500;color:#7a5c1e">${payAmt}<br><span style="font-size:13px;color:var(--muted)">flat pay</span>${f.extraCosts?`<br><span style="font-size:13px;color:#c0392b;white-space:nowrap">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit)}</td>
-          <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span><span style="font-size:14px;color:${instrPaid?'var(--success)':'var(--muted)'}">${instrPaid?'✓ Paid':'Unpaid'}</span></div>`:'<span style="font-size:14px;color:var(--muted)">Upcoming</span>'}</td>
+          <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${jdi.instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span><span style="font-size:14px;color:${jdi.instrPaid?'var(--success)':'var(--muted)'}">${jdi.instrPaid?'✓ Paid':'Unpaid'}</span></div>`:'<span style="font-size:14px;color:var(--muted)">Upcoming</span>'}</td>
           ${mgr('#fdf8f0')}</tr>`;
       }
       return`<tr style="${cxRowStyle}">
@@ -6158,8 +6171,7 @@ function renderFinances(){
 }
 
 // ─── CODES ───────────────────────────────────────────────────
-// Public parent/host registration URL. Used by copy-link, SMS, host letter, and host reminder emails.
-const REG_PAGE='https://register.mindfulbeginnings.org/register.html';
+const REG_PAGE='https://mindfulbeginnings.vercel.app/register.html';
 
 function renderCodes(){
   const el=document.getElementById('codes-list');
@@ -6346,7 +6358,7 @@ function renderInstructors(){
   if(aBtn)aBtn.innerHTML=`Active <span class="itg-count">${nActive}</span>`;
   if(iBtn)iBtn.innerHTML=`Inactive <span class="itg-count">${nInactive}</span>`;
   const showing=instructors.filter(i=>instrTab==='inactive'?!instrActive(i):instrActive(i));
-  t.innerHTML=`<thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Zelle</th><th>Rate/hr</th><th>PIN</th><th>Training date</th><th>Sweatshirt</th><th>Jobs</th><th>Pending pay</th><th>Total paid</th><th></th></tr></thead><tbody>`+
+  t.innerHTML=`<thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Zelle</th><th>Rate/hr</th><th>PIN</th><th>Training date</th><th>Sweatshirt</th><th title="Classes already taught (primary or second instructor, past dates only, cancelled classes excluded)">Classes taught</th><th title="Classes they are scheduled to teach today or later (primary or second instructor, cancelled classes excluded)">Classes pending</th><th>Pending pay</th><th>Total paid</th><th></th></tr></thead><tbody>`+
     (showing.length?showing.slice().sort(byInstrName).map(i=>{
       const myJobs=sessions.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.instructorId===i.id;});
       const paidAmt=myJobs.filter(s=>(jobDataCache[s.id]||{}).payStatus==='paid')
@@ -6424,7 +6436,7 @@ function renderInstructors(){
         <td><span class="pin-badge">${i.pin}</span>${i.pinChangeRequired?'<div style="font-size:13px;color:var(--warn);margin-top:3px">⏳ PIN change pending</div>':''}</td>
         <td style="font-size:15px">${i.safeSitterTrainingDate?trainDate:(i.safeSitterCertified===false?'<span style="color:var(--muted)">Not trained</span>':'<span style="color:var(--warn);font-weight:500" title="This instructor has not entered a Safe Sitter® training date in their portal yet">⚠ Needed</span>')}</td>
         <td style="font-size:15px;color:${i.sweatshirtSize?'var(--text)':'var(--muted)'}">${i.sweatshirtSize||'—'}</td>
-        <td style="font-weight:500">${myJobs.length||'—'}</td>
+        ${(()=>{const tc=classesTaughtBy(i.id),pc=classesPendingBy(i.id);return`<td style="font-weight:600;font-size:18px;color:${tc?'var(--success)':'var(--muted)'}">${tc||'—'}</td><td style="font-weight:600;font-size:18px;color:${pc?'var(--sky)':'var(--muted)'}">${pc||'—'}</td>`;})()}
         <td style="color:${totalPendingAmt>0?'var(--warn)':'var(--muted)'}">${totalPendingAmt?fmt(totalPendingAmt):'—'}</td>
         <td style="color:var(--success);font-weight:500">${totalPaidAmt?fmt(totalPaidAmt):'—'}</td>
         <td><div class="btn-row">
@@ -6435,10 +6447,10 @@ function renderInstructors(){
             :`<button class="btn sm success" onclick="event.stopPropagation();setInstructorActive('${i.id}',true)" title="Put them back on the roster">↩ Reactivate</button>
               <button class="btn sm danger" onclick="event.stopPropagation();deleteInstructor('${i.id}')" title="Delete the record permanently">Delete forever</button>`}
         </div></td></tr>
-        <tr class="instructor-jobs-row" style="display:none"><td colspan="12" style="padding:0">
+        <tr class="instructor-jobs-row" style="display:none"><td colspan="13" style="padding:0">
           <table style="width:100%;border-collapse:collapse">${jobRows||`<tr><td colspan="12" style="padding:10px 32px;font-size:15px;color:var(--muted);font-style:italic">No jobs assigned yet.</td></tr>`}</table>
         </td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="12">${instrTab==='inactive'?'Nobody is inactive. Use <strong>Make inactive</strong> on the Active tab to move someone off the roster.':'No active instructors yet.'}</td></tr>`)+'</tbody>';
+    }).join(''):`<tr class="empty-row"><td colspan="13">${instrTab==='inactive'?'Nobody is inactive. Use <strong>Make inactive</strong> on the Active tab to move someone off the roster.':'No active instructors yet.'}</td></tr>`)+'</tbody>';
 }
 function toggleInstructorJobs(row){
   const next=row.nextElementSibling;
@@ -6449,7 +6461,7 @@ function toggleInstructorJobs(row){
   }
 }
 function exportInstructorsCSV(){
-  const rows=[['Status','Name','Email','Phone','Zelle','Rate/hr','PIN','Training Date','Sweatshirt Size','Contract Signed','Jobs Taught','Pending Pay','Total Paid','--- Job Details ---','Course','Date','Location','Base Fee','Referral Bonus','Total Fee','Pay Status','Pay Date']];
+  const rows=[['Status','Name','Email','Phone','Zelle','Rate/hr','PIN','Training Date','Sweatshirt Size','Contract Signed','Classes Taught','Classes Pending','Pending Pay','Total Paid','--- Job Details ---','Course','Date','Location','Base Fee','Referral Bonus','Total Fee','Pay Status','Pay Date']];
   // Everyone is exported, active first, with a Status column — the CSV is the record
   // of who has ever taught for you, not just who is on the roster today.
   instructors.slice().sort((a,b)=>(instrActive(a)===instrActive(b))?byInstrName(a,b):(instrActive(a)?-1:1)).forEach(i=>{
@@ -6460,7 +6472,7 @@ function exportInstructorsCSV(){
       .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
     const trainDate=i.safeSitterTrainingDate||'';
     // Summary row
-    rows.push([instrActive(i)?'Active':'Inactive',i.name,i.email||'',i.phone||'',i.zelle||'','$'+(i.hourlyRate||50)+'/hr',i.pin,trainDate,i.sweatshirtSize||'',i.contractSigned?'Yes':'No',myJobs.length,'$'+pendingAmt.toFixed(2),'$'+paidAmt.toFixed(2),'','','','','','','','','']);
+    rows.push([instrActive(i)?'Active':'Inactive',i.name,i.email||'',i.phone||'',i.zelle||'','$'+(i.hourlyRate||50)+'/hr',i.pin,trainDate,i.sweatshirtSize||'',i.contractSigned?'Yes':'No',classesTaughtBy(i.id),classesPendingBy(i.id),'$'+pendingAmt.toFixed(2),'$'+paidAmt.toFixed(2),'','','','','','','','','']);
     // Job detail rows
     myJobs.forEach(s=>{
       const jd=jobDataCache[s.id]||{};
@@ -6469,7 +6481,7 @@ function exportInstructorsCSV(){
       const bonus=jd.referralBonus||0;
       const fee=baseFee+bonus;
       const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-      rows.push(['','','','','','','','','','','','','',s.course,d,(s.location||'')+(s.city?', '+s.city:''),'$'+baseFee.toFixed(2),'$'+bonus.toFixed(2),'$'+fee.toFixed(2),jd.payStatus==='paid'?'Paid':'Pending',jd.payDate||'']);
+      rows.push(['','','','','','','','','','','','','','','',s.course,d,(s.location||'')+(s.city?', '+s.city:''),'$'+baseFee.toFixed(2),'$'+bonus.toFixed(2),'$'+fee.toFixed(2),jd.payStatus==='paid'?'Paid':'Pending',jd.payDate||'']);
     });
     rows.push([]); // spacer
   });
@@ -7262,7 +7274,7 @@ The most important thing your child learned today is the Safety Signal. If you e
 
 We have also attached a letter from Safe Sitter, Inc. that we encourage you to read in full. A few points we consider especially important: Completing the course is a meaningful achievement, but it does not automatically mean your child is ready to babysit or stay home alone, so please assess their readiness based on their individual maturity. We ask students to take jobs only with friends, neighbors, and others you or they know personally, and never to advertise online. And a quick conversation after each job gives your child helpful guidance while keeping you informed about what they are experiencing.
 
-When your child is ready for the next step, they can build on these skills in our 60-minute virtual session, All Kids Welcome: Babysitting Children with Special Needs. This course helps experienced sitters confidently and competently care for neurodivergent, disabled, and differently-abled children, and it is a wonderful way to become the most trusted sitter on the block. View upcoming dates and reserve a spot: https://register.mindfulbeginnings.org/register.html
+When your child is ready for the next step, they can build on these skills in our 60-minute virtual session, All Kids Welcome: Babysitting Children with Special Needs. This course helps experienced sitters confidently and competently care for neurodivergent, disabled, and differently-abled children, and it is a wonderful way to become the most trusted sitter on the block. View upcoming dates and reserve a spot: http://mindfulbeginnings.org/register
 
 If you have a moment, three small things would mean a great deal to us. You can earn $50 for every family you refer who hosts a course; simply have them give your name and phone number when they schedule the class with us, and we will take care of the rest. A Google review helps other families find us: https://g.page/r/Ca2jsWW-MkfvEAE/review. And our short program evaluation helps us improve every session: https://forms.gle/3YkNJiaJyavjvSu49
 
@@ -10213,8 +10225,7 @@ Here is a quick reminder of your session details:
   Time: ${s.time||'To be confirmed'}
   Location: ${s.location?s.location+(s.city?', '+s.city:''):'Your home'}
   Instructor: ${instr}
-  Session code: ${s.code}
-  Registration link (share with parents): ${REG_PAGE}?code=${s.code}${s.wifiInfo?'\n  WiFi: '+s.wifiInfo:''}
+  Session code: ${s.code}${s.wifiInfo?'\n  WiFi: '+s.wifiInfo:''}
 
 We currently have ${studentCount} student${studentCount!==1?'s':''} registered — your class roster is attached so you know exactly who to expect.
 
