@@ -867,9 +867,11 @@ function rememberSessionCode(code){
 }
 
 // Upcoming public sessions on the code step. List logic lives in
-// /js/public-sessions.js. Private/host (has_host) sessions never appear here.
-const PUBLIC_SESSION_COLS='id,code,course,date,time,city,location,is_virtual,price_override,max_students_override,created_at,is_cancelled,is_hold,is_custom_job,has_host';
-const PUBLIC_SESSION_COLS_CORE='id,code,course,date,time,city,is_virtual,price_override,max_students_override,created_at,has_host';
+  // /js/public-sessions.js. Private/host (has_host) and private (is_private)
+  // sessions never appear here.
+
+const PUBLIC_SESSION_COLS='id,code,course,date,time,city,location,is_virtual,price_override,max_students_override,created_at,is_cancelled,is_hold,is_custom_job,has_host,is_private';
+const PUBLIC_SESSION_COLS_CORE='id,code,course,date,time,city,is_virtual,price_override,max_students_override,created_at,has_host,is_private';
 let publicSessionRows=[];
 let publicSessionCounts={};
 let publicShowAll=false;
@@ -941,19 +943,19 @@ async function loadPublicSessions(){
   const helpers=window.MBPublicSessions;
   const today=helpers?helpers.todayLocalISO():'';
   try{
-    // has_host is required so private/host home sessions never appear publicly.
-    // Fail closed if that column cannot be read.
-    let res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('has_host',false).gte('date',today).order('date',{ascending:true}).limit(200);
+    // has_host and is_private are required so private/host home sessions never
+    // appear publicly. Fail closed if those columns cannot be read.
+    let res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('has_host',false).eq('is_private',false).gte('date',today).order('date',{ascending:true}).limit(200);
     if(res&&res.error){
       console.warn('Public session list (has_host filter) failed, retrying without eq:',res.error);
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).gte('date',today).order('date',{ascending:true}).limit(200);
+      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('is_private',false).gte('date',today).order('date',{ascending:true}).limit(200);
     }
     if(res&&res.error){
       console.warn('Public session list (full columns) failed, retrying core columns:',res.error);
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('has_host',false).gte('date',today).order('date',{ascending:true}).limit(200);
+      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('has_host',false).eq('is_private',false).gte('date',today).order('date',{ascending:true}).limit(200);
     }
     if(res&&res.error){
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).gte('date',today).order('date',{ascending:true}).limit(200);
+      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('is_private',false).gte('date',today).order('date',{ascending:true}).limit(200);
     }
     if(res&&res.error){
       console.error('Public session list failed:',res.error);
@@ -2587,3 +2589,4 @@ window.addEventListener('load',function(){
 </script>
 </body>
 </html>
+X
