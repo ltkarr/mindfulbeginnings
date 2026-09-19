@@ -158,7 +158,7 @@ test('courseAudience prefers config.audience then the built-in map', () => {
   assert.equal(courseAudience('Unknown Course'), '');
 });
 
-test('applyBrowseFilters defaults to a 60-day upcoming window', () => {
+test('applyBrowseFilters defaults to a 365-day upcoming window', () => {
   const rows = [
     row({ code: 'SS-261002', date: '2026-10-02', city: 'Potomac', course: 'Safe Sitter®' }),
     row({ code: 'SAH-1016', date: '2026-10-16', city: 'Bethesda', course: 'Safe@Home' }),
@@ -167,10 +167,10 @@ test('applyBrowseFilters defaults to a 60-day upcoming window', () => {
   ];
   const windowed = applyBrowseFilters(rows, { windowDays: 60 }, { today: TODAY });
   assert.deepEqual(windowed.map((s) => s.code), ['SS-261002', 'SAH-1016', 'AKW-1003']);
-  assert.equal(DEFAULT_WINDOW_DAYS, 60);
+  assert.equal(DEFAULT_WINDOW_DAYS, 365);
 
   const defaulted = applyBrowseFilters(rows, {}, { today: TODAY });
-  assert.deepEqual(defaulted.map((s) => s.code), ['SS-261002', 'SAH-1016', 'AKW-1003']);
+  assert.deepEqual(defaulted.map((s) => s.code), ['SS-261002', 'SAH-1016', 'AKW-1003', 'SS-261201']);
 });
 
 test('sliceForDisplay defaults to the first six cards with a Show more remainder', () => {
