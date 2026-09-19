@@ -20,7 +20,7 @@
   var OPS_COURSE_RE = /represent|welcome event|\btrinity\b/i;
 
   // Default upcoming window and "show more" page size. No user-facing filters.
-  var DEFAULT_WINDOW_DAYS = 60;
+  var DEFAULT_WINDOW_DAYS = 365;
   var DEFAULT_VISIBLE = 6;
 
   // Parent-facing audience / age lines. config.js COURSES.audience wins when set.
@@ -226,7 +226,7 @@
   /**
    * Apply the default upcoming window (and optional internal filters).
    * The register page does not expose these as UI; it passes the default
-   * 60-day window only.
+   * 365-day window only.
    * filters: { course, city, price, windowDays }
    * opts: { today, getBasePrice }
    */
