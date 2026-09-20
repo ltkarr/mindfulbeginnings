@@ -18,6 +18,9 @@
     },
     {
       "source": "/",
+      "missing": [
+        { "type": "host", "value": "instructorportal.mindfulbeginnings.org" }
+      ],
       "destination": "/register.html",
       "permanent": false
     }
@@ -26,6 +29,13 @@
     {
       "source": "/configinstructor.js",
       "destination": "/config-instructor.js"
+    },
+    {
+      "source": "/",
+      "has": [
+        { "type": "host", "value": "instructorportal.mindfulbeginnings.org" }
+      ],
+      "destination": "/instructor.html"
     }
   ],
   "headers": [

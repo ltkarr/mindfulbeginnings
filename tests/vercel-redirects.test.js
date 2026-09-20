@@ -65,3 +65,30 @@ test('PayPal API routes on vercel.app are not redirected', () => {
     'host redirects should exclude /api/ so existing PayPal webhooks keep working'
   );
 });
+
+const INSTRUCTOR_HOST = 'instructorportal.mindfulbeginnings.org';
+
+test('root redirect to register.html does not fire on the instructor portal host', () => {
+  const rule = (cfg.redirects || []).find(
+    (r) => r.source === '/' && r.destination === '/register.html'
+  );
+  assert.ok(rule, 'expected the / -> /register.html redirect to still exist');
+  assert.ok(
+    (rule.missing || []).some(
+      (cond) => cond.type === 'host' && cond.value === INSTRUCTOR_HOST
+    ),
+    'the / -> /register.html redirect must exclude the instructor portal host'
+  );
+});
+
+test('instructor portal host rewrites / to instructor.html', () => {
+  const rule = (cfg.rewrites || []).find(
+    (r) =>
+      r.source === '/' &&
+      r.destination === '/instructor.html' &&
+      (r.has || []).some(
+        (cond) => cond.type === 'host' && cond.value === INSTRUCTOR_HOST
+      )
+  );
+  assert.ok(rule, 'expected a host-conditioned / -> /instructor.html rewrite');
+});
