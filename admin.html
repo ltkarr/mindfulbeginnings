@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Mindful Beginnings</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
@@ -6171,7 +6172,7 @@ function renderFinances(){
 }
 
 // ─── CODES ───────────────────────────────────────────────────
-const REG_PAGE='https://mindfulbeginnings.vercel.app/register.html';
+const REG_PAGE='https://register.mindfulbeginnings.org/register.html';
 
 function renderCodes(){
   const el=document.getElementById('codes-list');
@@ -7176,7 +7177,7 @@ function emailOpenJobs(){
   if(!recips.length){alert('No instructor email addresses are on file yet. Add each instructor\'s email on the Instructors tab (use Add instructor or edit an existing one), then try again.');return;}
   if(!open.length){alert('There are no open jobs right now, so there is nothing to send. A job counts as open when it is not taught by you, not on hold, not cancelled, dated today or later, and not yet claimed by an instructor.');return;}
 
-  const portalUrl=new URL('instructor.html',location.href).href;
+  const portalUrl='https://instructorportal.mindfulbeginnings.org/';
 
   /* ════════════════════════════════════════════════════════════════════
      ✏️  EDIT YOUR OPEN-JOBS EMAIL WORDING HERE  ✏️

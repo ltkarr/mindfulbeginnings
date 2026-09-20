@@ -1,6 +1,14 @@
 {
   "redirects": [
     {
+      "source": "/instructor.html",
+      "has": [
+        { "type": "host", "value": "register.mindfulbeginnings.org" }
+      ],
+      "destination": "https://instructorportal.mindfulbeginnings.org/",
+      "permanent": true
+    },
+    {
       "source": "/",
       "has": [
         { "type": "host", "value": "mindfulbeginnings.vercel.app" }

@@ -92,3 +92,16 @@ test('instructor portal host rewrites / to instructor.html', () => {
   );
   assert.ok(rule, 'expected a host-conditioned / -> /instructor.html rewrite');
 });
+
+test('old instructor.html URL on register host permanently redirects to the portal domain', () => {
+  const rule = (cfg.redirects || []).find(
+    (r) =>
+      r.source === '/instructor.html' &&
+      r.destination === 'https://instructorportal.mindfulbeginnings.org/' &&
+      r.permanent === true &&
+      (r.has || []).some(
+        (cond) => cond.type === 'host' && cond.value === 'register.mindfulbeginnings.org'
+      )
+  );
+  assert.ok(rule, 'expected a permanent /instructor.html -> instructorportal redirect on the register host');
+});
