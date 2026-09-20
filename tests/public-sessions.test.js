@@ -153,7 +153,7 @@ test('sessionPriceLabel is parent-facing (Free / whole dollars / cents)', () => 
 });
 
 test('courseAudience prefers config.audience then the built-in map', () => {
-  assert.equal(courseAudience('Safe Sitter®'), 'Grades 3–9');
+  assert.equal(courseAudience('Safe Sitter®'), 'Grades 6–8');
   assert.equal(courseAudience('Safe Sitter®', { 'Safe Sitter®': { audience: 'Grades 4–8' } }), 'Grades 4–8');
   assert.equal(courseAudience('Unknown Course'), '');
 });

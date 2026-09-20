@@ -6,7 +6,7 @@
 <title>Register for a Course — Mindful Beginnings</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/email-logo.png">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <!-- Shared course data / pricing / caps / promos. Must load before the inline script below. -->
@@ -24,17 +24,17 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#1a2744;--navy2:#253459;--sky:#4a8fc4;--sky-l:#d6e9f5;
-  --cream:#faf8f4;--text:#1a2744;--muted:#6b7a99;--border:#dde4ee;
+  --navy:#27467A;--navy2:#1B3358;--sky:#27467A;--sky-l:#E9EFF8;
+  --cream:#ffffff;--text:#575757;--muted:#757575;--border:#dde4ee;
   --success:#2d7a5e;--success-bg:#eaf5f0;--danger:#c0392b;
   --r:12px;--r-sm:8px;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
+body{font-family:'Source Sans Pro',arial,sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
 header{background:var(--navy);padding:18px 32px;display:flex;align-items:center;gap:14px}
 header img{height:44px;width:44px;object-fit:contain;border-radius:50%;background:white;padding:4px}
-.htext{color:white}.htext .brand{font-family:'DM Serif Display',serif;font-size:20px}.htext .tag{font-size:12px;opacity:.6;font-weight:300}
+.htext{color:white}.htext .brand{font-family:'Fjalla One',arial,sans-serif;font-size:20px}.htext .tag{font-size:12px;opacity:.6;font-weight:300}
 .hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 60%,#2d4a7a 100%);color:white;padding:48px 32px 40px;text-align:center}
-.hero h1{font-family:'DM Serif Display',serif;font-size:36px;margin-bottom:10px}.hero h1 em{font-style:italic;color:#a8ccec}
+.hero h1{font-family:'Fjalla One',arial,sans-serif;font-size:36px;margin-bottom:10px}.hero h1 em{font-style:italic;color:#ffffff}
 .hero p{font-size:15px;opacity:.8;font-weight:300;max-width:460px;margin:0 auto}
 .steps-wrap{background:white;border-bottom:1px solid var(--border)}
 .steps{max-width:600px;margin:0 auto;padding:0 24px;display:flex}
@@ -48,24 +48,24 @@ main{max-width:640px;margin:0 auto;padding:32px 24px 64px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .code-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:36px 32px;text-align:center;margin-bottom:16px}
 .code-icon{width:56px;height:56px;background:var(--sky-l);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px}
-.code-card h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:8px}
+.code-card h2{font-family:'Fjalla One',arial,sans-serif;font-size:24px;margin-bottom:8px}
 .code-card p{color:var(--muted);font-size:14px;margin-bottom:28px;max-width:340px;margin-left:auto;margin-right:auto}
-.code-input{width:100%;padding:14px 16px;font-size:22px;font-family:'DM Serif Display',serif;letter-spacing:4px;text-align:center;text-transform:uppercase;border:2px solid var(--border);border-radius:var(--r-sm);background:var(--cream);color:var(--navy);outline:none;transition:border-color .2s;margin-bottom:6px}
+.code-input{width:100%;padding:14px 16px;font-size:22px;font-family:'Fjalla One',arial,sans-serif;letter-spacing:4px;text-align:center;text-transform:uppercase;border:2px solid var(--border);border-radius:var(--r-sm);background:var(--cream);color:var(--navy);outline:none;transition:border-color .2s;margin-bottom:6px}
 .code-input:focus{border-color:var(--sky);background:white}.code-input.error{border-color:var(--danger)}
 .error-msg{color:var(--danger);font-size:13px;margin-bottom:12px;min-height:18px}
-.sess-banner{background:var(--sky-l);border-radius:var(--r-sm);border:1px solid #b8d8ee;padding:16px 20px;margin-bottom:24px;display:flex;gap:16px;align-items:flex-start}
+.sess-banner{background:var(--sky-l);border-radius:var(--r-sm);border:1px solid #C9D8EC;padding:16px 20px;margin-bottom:24px;display:flex;gap:16px;align-items:flex-start}
 .sess-dot{width:10px;height:10px;border-radius:50%;background:var(--sky);margin-top:6px;flex-shrink:0}
-.sess-banner .cname{font-weight:500;font-size:16px;color:var(--navy)}.sess-banner .cmeta{font-size:13px;color:#3a6a94;margin-top:2px}
+.sess-banner .cname{font-weight:500;font-size:16px;color:var(--navy)}.sess-banner .cmeta{font-size:13px;color:#27467A;margin-top:2px}
 .sess-price{margin-left:auto;font-weight:500;color:var(--navy);font-size:17px;white-space:nowrap}
 .fsec{margin-bottom:28px}
 .fsec-title{font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fgrid .full{grid-column:1/-1}
 .field{display:flex;flex-direction:column;gap:5px}
 .field label{font-size:13px;font-weight:500}
-.field input,.field select{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+.field input,.field select{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'Source Sans Pro',arial,sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
 .field input:focus,.field select:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,143,196,.12)}
 .field input.err,.field select.err{border-color:var(--danger)}
-.field textarea{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s;resize:vertical}
+.field textarea{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'Source Sans Pro',arial,sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s;resize:vertical}
 .field textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,143,196,.12)}
 .host-chk{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#f5f8fb;border-radius:var(--r-sm);border:1.5px solid var(--border);cursor:pointer;transition:border-color .2s}
 .host-chk:hover{border-color:var(--sky)}
@@ -74,20 +74,20 @@ main{max-width:640px;margin:0 auto;padding:32px 24px 64px}
 .pay-box{background:white;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px}
 .pay-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .pay-head .ptitle{font-weight:500;font-size:15px}
-.pay-total{font-family:'DM Serif Display',serif;font-size:24px;color:var(--navy)}
+.pay-total{font-family:'Fjalla One',arial,sans-serif;font-size:24px;color:var(--navy)}
 .pay-body{padding:20px}
 .prow{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;color:var(--muted)}
 .prow.total{border-top:1px solid var(--border);margin-top:8px;padding-top:10px;font-weight:500;color:var(--text);font-size:15px}
 #paypal-button-container{margin-top:20px;min-height:50px}
 .host-free{background:var(--success-bg);border:1px solid #a8d8c5;border-radius:var(--r-sm);padding:14px 16px;font-size:14px;color:var(--success);display:flex;gap:10px;align-items:flex-start}
-.btn-p{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:background .2s}
+.btn-p{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:background .2s}
 .btn-p:hover{background:var(--navy2)}
 .btn-p:disabled{opacity:.6;cursor:not-allowed}
-.btn-o{background:transparent;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--muted);cursor:pointer;transition:border-color .2s,color .2s}
+.btn-o{background:transparent;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 20px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;color:var(--muted);cursor:pointer;transition:border-color .2s,color .2s}
 .btn-o:hover{border-color:var(--navy);color:var(--navy)}
 .ok-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:40px 32px;text-align:center}
 .ok-circle{width:64px;height:64px;background:var(--success-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px}
-.ok-card h2{font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:10px}
+.ok-card h2{font-family:'Fjalla One',arial,sans-serif;font-size:26px;margin-bottom:10px}
 .ok-card p{color:var(--muted);font-size:14px;max-width:380px;margin:0 auto 8px}
 .conf-box{background:var(--cream);border-radius:var(--r-sm);padding:16px 20px;margin:24px 0;text-align:left}
 .crow{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
@@ -95,16 +95,16 @@ main{max-width:640px;margin:0 auto;padding:32px 24px 64px}
 .help{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
 .help a{color:var(--sky);text-decoration:none}
 .public-sessions{background:white;border-radius:var(--r);border:1px solid var(--border);padding:22px 20px 16px;text-align:left}
-.public-sessions h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:4px;text-align:center}
+.public-sessions h2{font-family:'Fjalla One',arial,sans-serif;font-size:24px;margin-bottom:4px;text-align:center}
 .public-sessions-lead{color:var(--muted);font-size:13px;text-align:center;margin:0 0 14px}
 .public-month{font-size:11px;font-weight:600;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
 .public-month:first-child{margin-top:0}
-.public-card{width:100%;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;background:#f8fafd;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:8px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text);transition:border-color .2s,background .2s}
-.public-card:hover{border-color:var(--sky);background:#eef6fb}
+.public-card{width:100%;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;background:#F5F6F7;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:8px;cursor:pointer;font-family:'Source Sans Pro',arial,sans-serif;color:var(--text);transition:border-color .2s,background .2s}
+.public-card:hover{border-color:var(--sky);background:var(--sky-l)}
 .public-card:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,143,196,.12)}
 .public-card .pname{font-weight:600;font-size:14.5px;color:var(--navy);line-height:1.3}
 .public-card .paudience{font-size:11.5px;color:var(--muted);margin-top:2px}
-.public-card .pmeta{font-size:12.5px;color:#3a6a94;margin-top:3px}
+.public-card .pmeta{font-size:12.5px;color:#27467A;margin-top:3px}
 .public-card .pplace{font-size:12.5px;color:var(--navy);margin-top:1px}
 .public-card .pside{text-align:right;flex-shrink:0}
 .public-card .pprice{font-weight:600;color:var(--navy);font-size:15px;white-space:nowrap}
@@ -112,26 +112,26 @@ main{max-width:640px;margin:0 auto;padding:32px 24px 64px}
 .public-card .pseats.full{color:#9a6800;font-weight:500}
 .public-card .pgo{display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:var(--sky)}
 .public-empty{font-size:13px;color:var(--muted);text-align:center;padding:8px 4px 12px;line-height:1.6}
-.public-more{width:100%;margin:4px 0 8px;padding:10px;background:white;border:1.5px dashed var(--border);border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--navy);cursor:pointer}
+.public-more{width:100%;margin:4px 0 8px;padding:10px;background:white;border:1.5px dashed var(--border);border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;font-weight:500;color:var(--navy);cursor:pointer}
 .public-more:hover{border-color:var(--sky);background:#f4f9fc}
 .trust-box{background:#f4f8fb;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:22px;font-size:13px;color:#3a4661;line-height:1.55}
 .trust-box .trust-title{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 .trust-box p{margin:0 0 8px}.trust-box p:last-child{margin-bottom:0}
-.pay-amount-callout{background:#eef6fb;border:1px solid #b8d8ee;border-radius:var(--r-sm);padding:12px 14px;text-align:center;font-size:14px;color:var(--navy);margin-bottom:12px}
-.pay-amount-callout strong{font-family:'DM Serif Display',serif;font-size:22px}
+.pay-amount-callout{background:var(--sky-l);border:1px solid #C9D8EC;border-radius:var(--r-sm);padding:12px 14px;text-align:center;font-size:14px;color:var(--navy);margin-bottom:12px}
+.pay-amount-callout strong{font-family:'Fjalla One',arial,sans-serif;font-size:22px}
 .waitlist-box{background:#fff7e6;border:1px solid #f0d090;border-radius:var(--r);padding:28px 24px;text-align:center}
-.waitlist-box h3{font-family:'DM Serif Display',serif;font-size:20px;color:#7a5000;margin-bottom:8px}
+.waitlist-box h3{font-family:'Fjalla One',arial,sans-serif;font-size:20px;color:#7a5000;margin-bottom:8px}
 .waitlist-box p{font-size:13px;color:#9a6800;margin-bottom:16px;line-height:1.6}
 .waitlist-form{text-align:left;max-width:360px;margin:0 auto}
 .waitlist-form .field{margin-bottom:12px}
 .notice-box{background:#fffbf0;border:1px solid #f0d88a;border-radius:var(--r-sm);padding:14px 16px;font-size:13px;color:#7a5c00;line-height:1.6}
-.perm-item{background:#f8fafd;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:14px 16px}
+.perm-item{background:#F5F6F7;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:14px 16px}
 .perm-title{font-size:14px;font-weight:500;margin-bottom:4px}
 .perm-desc{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:10px}
 .perm-radios{display:flex;flex-direction:column;gap:6px}
 .radio-lbl{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
 .radio-lbl input[type=radio]{accent-color:var(--sky);width:16px;height:16px;flex-shrink:0}
-.waiver-box{background:#f8fafd;border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 18px;font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:14px;max-height:220px;overflow-y:auto}
+.waiver-box{background:#F5F6F7;border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 18px;font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:14px;max-height:220px;overflow-y:auto}
 .waiver-box p{margin-bottom:10px}.waiver-box p:last-child{margin-bottom:0}
 .waiver-box .policy-sep{margin-top:26px;padding-top:18px;border-top:1px solid var(--border)}
 .waiver-check{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#f5f8fb;border-radius:var(--r-sm);border:1.5px solid var(--border);cursor:pointer;transition:border-color .2s;margin-bottom:12px}
@@ -421,14 +421,14 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       <div id="promo-entry">
         <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">Have a discount code?</label>
         <div style="display:flex;gap:8px">
-          <input type="text" id="promo-input" placeholder="Enter code" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter'){event.preventDefault();applyPromo();}" style="flex:1;padding:11px 12px;font-size:14px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);border-radius:var(--r-sm);background:white;color:var(--navy);outline:none;font-family:'DM Sans',sans-serif">
-          <button type="button" onclick="applyPromo()" style="padding:11px 18px;background:var(--navy);color:#fff;border:none;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">Apply</button>
+          <input type="text" id="promo-input" placeholder="Enter code" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter'){event.preventDefault();applyPromo();}" style="flex:1;padding:11px 12px;font-size:14px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);border-radius:var(--r-sm);background:white;color:var(--navy);outline:none;font-family:'Source Sans Pro',arial,sans-serif">
+          <button type="button" onclick="applyPromo()" style="padding:11px 18px;background:var(--navy);color:#fff;border:none;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">Apply</button>
         </div>
         <div id="promo-msg" style="font-size:12px;margin-top:6px;min-height:14px"></div>
       </div>
       <div id="promo-applied-banner" style="display:none;align-items:center;justify-content:space-between;gap:8px;background:#eaf6ef;border:1px solid #bfe3cd;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;color:#1d6b42">
         <span id="promo-applied-text">✓ &nbsp;Code <strong>MBGSCN</strong> applied — $10 off</span>
-        <button type="button" onclick="removePromo()" style="background:none;border:none;color:#1d6b42;font-size:12px;text-decoration:underline;cursor:pointer;font-family:'DM Sans',sans-serif">Remove</button>
+        <button type="button" onclick="removePromo()" style="background:none;border:none;color:#1d6b42;font-size:12px;text-decoration:underline;cursor:pointer;font-family:'Source Sans Pro',arial,sans-serif">Remove</button>
       </div>
     </div>
   </div>
@@ -444,7 +444,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       <span>OR</span>
       <div style="flex:1;height:1px;background:var(--border)"></div>
     </div>
-    <button id="venmo-btn" type="button" onclick="payWithVenmo()" style="width:100%;padding:15px;background:#3D95CE;color:#fff;border:none;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#2d7eb5'" onmouseout="this.style.background='#3D95CE'">
+    <button id="venmo-btn" type="button" onclick="payWithVenmo()" style="width:100%;padding:15px;background:#3D95CE;color:#fff;border:none;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#2d7eb5'" onmouseout="this.style.background='#3D95CE'">
       <span style="font-size:18px;font-weight:800;letter-spacing:-0.5px">V</span> &nbsp;Pay with Venmo
     </button>
     <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">You'll be sent to @mindfulbeginnings on Venmo with the exact amount filled in</p>
@@ -453,9 +453,9 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       <span>OR</span>
       <div style="flex:1;height:1px;background:var(--border)"></div>
     </div>
-    <button id="zelle-btn" type="button" onclick="payWithZelle()" style="width:100%;padding:13px;background:#fff;color:#6D1ED4;border:2px solid #6D1ED4;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s" onmouseover="this.style.background='#f5edff'" onmouseout="this.style.background='#fff'">Pay with Zelle</button>
+    <button id="zelle-btn" type="button" onclick="payWithZelle()" style="width:100%;padding:13px;background:#fff;color:#6D1ED4;border:2px solid #6D1ED4;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s" onmouseover="this.style.background='#f5edff'" onmouseout="this.style.background='#fff'">Pay with Zelle</button>
     <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Pay directly from your bank — no fees. Send the exact amount shown above.</p>
-    <button id="already-paid-btn" type="button" onclick="alreadyPaid()" style="width:100%;padding:13px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;margin-top:14px" onmouseover="this.style.background='#eef2f8'" onmouseout="this.style.background='#fff'">I already paid for this</button>
+    <button id="already-paid-btn" type="button" onclick="alreadyPaid()" style="width:100%;padding:13px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;margin-top:14px" onmouseover="this.style.background='#eef2f8'" onmouseout="this.style.background='#fff'">I already paid for this</button>
     <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Already paid (e.g. your earlier payment didn't record)? We'll verify it on our end.</p>
   </div>
   <div id="host-confirm-wrap" style="display:none;margin-top:8px"><button class="btn-p" id="host-confirm-btn" onclick="completeReg('host-free',null)">Confirm registration — no charge</button></div>
@@ -476,43 +476,43 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       We hit a snag automatically saving your registration, but <strong>nothing is lost</strong>. Please email the details below (including the PayPal/Transaction ID) to <strong>lindsay@mindfulbeginnings.org</strong> and your spot will be confirmed right away. You will not be charged again.
     </div>
     <div class="conf-box" id="conf-box"></div>
-    <button id="cal-btn" onclick="downloadCalendar()" style="width:100%;padding:13px;background:var(--sky-l);color:#1a5c8a;border:1px solid #b8d8ee;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:6px;transition:background .2s" onmouseover="this.style.background='#c4def2'" onmouseout="this.style.background='var(--sky-l)'">📅 Add to my calendar</button>
+    <button id="cal-btn" onclick="downloadCalendar()" style="width:100%;padding:13px;background:var(--sky-l);color:#27467A;border:1px solid #C9D8EC;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:6px;transition:background .2s" onmouseover="this.style.background='#D8E3F2'" onmouseout="this.style.background='var(--sky-l)'">📅 Add to my calendar</button>
     <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Using Apple Calendar or Outlook? <a id="cal-ics-link" href="#" style="color:var(--sky);font-weight:500">Download the .ics file</a></p>
     <p style="font-size:13px;color:var(--muted)">Questions? <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">Contact us</a></p>
   </div>
 </div>
 
 <!-- PAYPAL CHECKOUT MODAL -->
-<div id="paypal-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'DM Sans',sans-serif">
+<div id="paypal-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Source Sans Pro',arial,sans-serif">
   <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div style="font-size:19px;font-weight:700;color:#1a1a1a">Pay with Card or PayPal</div>
       <button onclick="closePayPalModal()" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 0 0 12px;line-height:1">&#x2715;</button>
     </div>
     <p style="font-size:14px;color:#444;margin:0 0 18px;line-height:1.55">If card checkout did not load on this page, you can pay <strong id="paypal-amount-1">$185</strong> on our payment page. The amount charged will match the total shown here.</p>
-    <a id="paypal-deeplink" href="/pay.html" target="_blank" rel="noopener" style="display:block;width:100%;padding:14px;background:#0070ba;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px;text-decoration:none;text-align:center;box-sizing:border-box">Open payment page →</a>
-    <div style="background:#f0f7fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 14px;font-size:13px;color:#1a5c8a;line-height:1.55;margin-bottom:14px">
+    <a id="paypal-deeplink" href="/pay.html" target="_blank" rel="noopener" style="display:block;width:100%;padding:14px;background:#0070ba;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px;text-decoration:none;text-align:center;box-sizing:border-box">Open payment page →</a>
+    <div style="background:var(--sky-l);border:1px solid #C9D8EC;border-radius:8px;padding:12px 14px;font-size:13px;color:#27467A;line-height:1.55;margin-bottom:14px">
       <strong>Amount:</strong> <span id="paypal-amount-2">$185</span><br>
       <strong>For:</strong> <span id="paypal-memo" style="word-break:break-word"></span>
     </div>
     <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
       ✓ &nbsp;<strong>Your registration is already saved and your spot is reserved.</strong> Finish paying on PayPal whenever you can — Lindsay matches it to your registration (usually within 24 hours). You do not need to return to this page.
     </div>
-    <button onclick="confirmPayPalPayment()" style="width:100%;padding:13px;background:#1a2744;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've completed my PayPal payment</button>
-    <button onclick="closePayPalModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+    <button onclick="confirmPayPalPayment()" style="width:100%;padding:13px;background:#1a2744;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've completed my PayPal payment</button>
+    <button onclick="closePayPalModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;cursor:pointer">Cancel</button>
   </div>
 </div>
 
 <!-- VENMO PAYMENT INSTRUCTIONS MODAL -->
-<div id="venmo-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'DM Sans',sans-serif">
+<div id="venmo-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Source Sans Pro',arial,sans-serif">
   <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div style="font-size:19px;font-weight:700;color:#1a1a1a">Pay with Venmo</div>
       <button onclick="closeVenmoModal()" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 0 0 12px;line-height:1">&#x2715;</button>
     </div>
     <p style="font-size:14px;color:#444;margin:0 0 18px;line-height:1.55">Click the button below to send your <strong id="venmo-amount-1">$185</strong> payment. Your Venmo app (or the Venmo website) will open with the amount and memo pre-filled.</p>
-    <a id="venmo-deeplink" href="#" target="_blank" rel="noopener" style="display:block;width:100%;padding:14px;background:#3D95CE;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px;text-decoration:none;text-align:center;box-sizing:border-box">Open Venmo to pay @mindfulbeginnings →</a>
-    <div style="background:#f0f7fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 14px;font-size:13px;color:#1a5c8a;line-height:1.55;margin-bottom:14px">
+    <a id="venmo-deeplink" href="#" target="_blank" rel="noopener" style="display:block;width:100%;padding:14px;background:#3D95CE;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px;text-decoration:none;text-align:center;box-sizing:border-box">Open Venmo to pay @mindfulbeginnings →</a>
+    <div style="background:var(--sky-l);border:1px solid #C9D8EC;border-radius:8px;padding:12px 14px;font-size:13px;color:#27467A;line-height:1.55;margin-bottom:14px">
       <strong>Send to:</strong> <span style="font-family:monospace;background:#fff;padding:2px 6px;border-radius:4px">@mindfulbeginnings</span><br>
       <strong>Amount:</strong> <span id="venmo-amount-2">$185</span><br>
       <strong>Memo:</strong> <span id="venmo-memo" style="word-break:break-word"></span>
@@ -520,13 +520,13 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
     <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
       ✓ &nbsp;<strong>Your registration is already saved and your spot is reserved.</strong> Send the Venmo whenever you can — Lindsay matches it to your registration (usually within 24 hours). You do not need to return to this page.
     </div>
-    <button onclick="confirmVenmoPayment()" style="width:100%;padding:13px;background:#1a2744;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've sent the Venmo payment</button>
-    <button onclick="closeVenmoModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+    <button onclick="confirmVenmoPayment()" style="width:100%;padding:13px;background:#1a2744;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've sent the Venmo payment</button>
+    <button onclick="closeVenmoModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;cursor:pointer">Cancel</button>
   </div>
 </div>
 
 <!-- ZELLE PAYMENT INSTRUCTIONS MODAL -->
-<div id="zelle-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'DM Sans',sans-serif">
+<div id="zelle-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Source Sans Pro',arial,sans-serif">
   <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div style="font-size:19px;font-weight:700;color:#1a1a1a">Pay with Zelle</div>
@@ -547,13 +547,13 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
     <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
       ✓ &nbsp;<strong>Your registration is already saved and your spot is reserved.</strong> Send the Zelle whenever you can — Lindsay matches it to your registration (usually within 24 hours). You do not need to return to this page.
     </div>
-    <button onclick="confirmZellePayment()" style="width:100%;padding:13px;background:#6D1ED4;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've sent the Zelle payment</button>
-    <button onclick="closeZelleModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+    <button onclick="confirmZellePayment()" style="width:100%;padding:13px;background:#6D1ED4;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've sent the Zelle payment</button>
+    <button onclick="closeZelleModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;cursor:pointer">Cancel</button>
   </div>
 </div>
 
 <!-- ALREADY-PAID CONFIRMATION MODAL -->
-<div id="already-paid-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'DM Sans',sans-serif">
+<div id="already-paid-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Source Sans Pro',arial,sans-serif">
   <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div style="font-size:19px;font-weight:700;color:#1a2744">Confirm: already paid</div>
@@ -563,8 +563,8 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
     <div style="background:#eef2f8;border:1px solid #c9d6e8;border-radius:8px;padding:12px 14px;color:#1a2744;font-size:13px;line-height:1.55;margin-bottom:20px">
       ✓ &nbsp;You will <strong>not</strong> be charged now. We'll reserve your spot and confirm your existing payment on our end (usually within 24 hours). You'll get a registration confirmation email either way.
     </div>
-    <button onclick="confirmAlreadyPaid()" style="width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">Yes, I already paid — reserve my spot</button>
-    <button onclick="closeAlreadyPaidModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+    <button onclick="confirmAlreadyPaid()" style="width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">Yes, I already paid — reserve my spot</button>
+    <button onclick="closeAlreadyPaidModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;cursor:pointer">Cancel</button>
   </div>
 </div>
 
@@ -1121,7 +1121,7 @@ function setBanner(id){
     ?'Virtual class (Zoom)'
     :`${escapeHtml(s.location||'')}${!addrLine&&s.city?', '+escapeHtml(s.city):''}${!addrLine&&s.state?' '+escapeHtml(s.state):''}`;
   const metaAddr=s.isVirtual
-    ?(s.zoomLink?`<br><span style="font-size:12px;color:#1a5c8a">🔗 Zoom link will be sent in your confirmation email</span>`:'')
+    ?(s.zoomLink?`<br><span style="font-size:12px;color:#27467A">🔗 Zoom link will be sent in your confirmation email</span>`:'')
     :(addrLine?'<br>'+escapeHtml(addrLine):'');
   const priceHTML=isDiscounted
     ?`<span style="text-decoration:line-through;color:#9aa5b8;font-weight:400;font-size:14px;margin-right:6px">$${basePrice}</span>$${price}`
@@ -1174,7 +1174,7 @@ function setBanner(id){
   }
 
   // Grade field — hidden entirely for Grandparents (no participant grade).
-  // Safe Sitter, Safe@Home, and All Kids Welcome use grades 3–9.
+  // Safe Sitter® is grades 6–8. Safe@Home and All Kids Welcome use grades 3–9.
   // Intro to Babysitting and Stay Ready keep their own ranges below.
   const gradeField=document.getElementById('grade-field');
   const gradeSel=document.getElementById('s-grade');
@@ -1186,7 +1186,9 @@ function setBanner(id){
     // current value and put it back if it still exists in the new option list.
     const prevGrade=gradeSel.value;
     const GRADES_3_9='<option value="">Select grade...</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
-    const is39=s.course==='Safe Sitter®'||isSafeAtHome||s.course==='All Kids Welcome';
+    const GRADES_6_8='<option value="">Select grade...</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
+    const isSafeSitter=s.course==='Safe Sitter®';
+    const is39=isSafeAtHome||s.course==='All Kids Welcome';
     const isStayReady=s.course==='Stay Ready: Choking Rescue and CPR';
     gradeSel.innerHTML=isCampusReady
       ?'<option value="">Select grade...</option><option>11th grade</option><option>12th grade</option><option>College student</option>'
@@ -1194,6 +1196,8 @@ function setBanner(id){
       ?'<option value="">Select grade...</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>'
       :isPeriod
       ?'<option value="">Select grade...</option><option>5th grade</option><option>6th grade</option><option>7th grade</option>'
+      :isSafeSitter
+      ?GRADES_6_8
       :is39
       ?GRADES_3_9
       :isStayReady

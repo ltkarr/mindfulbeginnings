@@ -49,7 +49,7 @@ test('public cards show price; private/host sessions are excluded from the list'
   assert.match(register, /sessionPriceLabel/);
   assert.match(register, /isPrivateHostSession|has_host/);
   assert.match(register, /\.eq\('has_host',false\)/);
-  assert.match(config, /audience:'Grades 3–9'/);
+  assert.match(config, /audience:'Grades 6–8'/);
 });
 
 test('Need help Contact us uses Lindsay mailto', () => {
@@ -58,7 +58,7 @@ test('Need help Contact us uses Lindsay mailto', () => {
 });
 
 test('course config still carries parent-facing audience lines', () => {
-  assert.match(config, /audience:'Grades 3–9'/);
+  assert.match(config, /audience:'Grades 6–8'/);
 });
 
 test('trust cues sit on the info screen before the waiver', () => {

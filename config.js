@@ -45,7 +45,7 @@ const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
      requiresSafeSitter → only Safe Sitter® certified instructors see these jobs
      requiresRN         → only Registered Nurse instructors see these jobs   */
 const COURSES={
-  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Grades 3–9'},
+  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
   'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Grades 4–8'},
   'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16,audience:'Kids home alone'},
   // Program guide (Aug 2026): Safe@Home is $65 as a 90-minute single session,

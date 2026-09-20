@@ -25,7 +25,7 @@
 
   // Parent-facing audience / age lines. config.js COURSES.audience wins when set.
   var COURSE_AUDIENCE = {
-    'Safe Sitter®': 'Grades 3–9',
+    'Safe Sitter®': 'Grades 6–8',
     'Intro to Babysitting': 'Grades 4–8',
     'Safe@Home': 'Kids home alone',
     'Safe@Home — Virtual': 'Kids home alone · Virtual',
