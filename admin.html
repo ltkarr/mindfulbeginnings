@@ -3531,13 +3531,13 @@ const PROMO_NOTE_RE=/\[Promo\s+([A-Za-z0-9]+)\s+applied:\s*[−-]\s*\$?(\d+(?:\.
 //
 // Two ways a partner's name reaches a registration:
 //   1. The family picks the partner by name in the "How did you hear about us?" list.
-//   2. The family picks "Other / Referral" and types a name, which register.html saves
-//      as "Other/Referral: NAME".
+//   2. The family picks "Other" and types a name, which register.html saves
+//      as "Other: NAME" (older registrations: "Other/Referral: NAME").
 // Both are handled here.
 function referrerName(r){
   const raw=(r.referralSource||'').trim();
   if(!raw)return '';
-  const m=/^Other\/Referral:\s*(.+)$/i.exec(raw);
+  const m=/^Other(?:\/Referral)?:\s*(.+)$/i.exec(raw);
   if(m)return m[1].trim();
   // A plain source only counts as a name if it matches somebody on the partner list.
   return partnerByReferralName(raw)?raw:'';

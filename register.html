@@ -215,24 +215,17 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       <div class="field full"><label>Please let us know how you found us</label>
         <select id="p-referral" onchange="toggleReferralOther()">
           <option value="">Select one...</option>
-          <option>Google</option>
-          <option>Facebook</option>
-          <option>Instagram</option>
-          <option>Word of Mouth</option>
+          <option>Facebook/Instagram</option>
           <option>Katy Greenberg</option>
           <option>Mary Parks</option>
           <option>Nextdoor</option>
-          <option>DC Urban Moms and Dads</option>
-          <option>MacaroniKID</option>
           <option>Girl Scouts</option>
-          <option>Girls on the Run</option>
-          <option>Jewish Grandparents Network</option>
           <option>School Auction</option>
-          <option value="Other/Referral">Other / Referral</option>
+          <option value="Other">Other</option>
         </select>
       </div>
       <div class="field full" id="referral-other-field" style="display:none">
-        <label>Who referred you, or where did you hear about us?</label>
+        <label>Where did you hear about us?</label>
         <input type="text" id="p-referral-other" placeholder="Name or source">
       </div>
     </div>
@@ -792,9 +785,9 @@ function registerAnotherChild(){
   const f=document.getElementById('s-first');if(f)f.focus();
 }
 
-// Show/hide the free-text "who referred you" box when "Other / Referral" is picked.
+// Show/hide the free-text "where did you hear about us" box when "Other" is picked.
 function toggleReferralOther(){
-  const show=document.getElementById('p-referral').value==='Other/Referral';
+  const show=document.getElementById('p-referral').value==='Other';
   document.getElementById('referral-other-field').style.display=show?'flex':'none';
   if(!show)document.getElementById('p-referral-other').value='';
 }
@@ -1986,11 +1979,11 @@ function buildRegistration(method,txId){
   const s=currentSession;
   const isGP=s.course==='Grandparents: Getting Started';
   const photoConsent=document.getElementById('chk-photo-consent').checked?'yes':'no';
-  // Build the "How did you hear about us?" answer (folds in the free-text name when "Other / Referral").
+  // Build the "How did you hear about us?" answer (folds in the free-text when "Other").
   const referralSel=document.getElementById('p-referral').value;
   const referralOther=document.getElementById('p-referral-other').value.trim();
-  const referralSource=referralSel==='Other/Referral'
-    ?(referralOther?'Other/Referral: '+referralOther:'Other/Referral')
+  const referralSource=referralSel==='Other'
+    ?(referralOther?'Other: '+referralOther:'Other')
     :referralSel;
   // Sitter referral list opt-in (All Kids Welcome) — fold into notes so it surfaces in the admin roster
   let sitterListNote='';
