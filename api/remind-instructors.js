@@ -20,7 +20,7 @@
 //
 // One-time setup for Lindsay is in docs/portal-reminder-setup.md.
 
-const { sendJson } = require('../../lib/http');
+const { sendJson } = require('../lib/http');
 
 const SUPABASE_URL = 'https://evninlytzhtacanrguhx.supabase.co';
 // Public anon key — the same one shipped in the site's page source. It can only
