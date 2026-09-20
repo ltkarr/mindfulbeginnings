@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/remind-instructors",
+      "schedule": "0 12 * * *"
+    }
+  ],
   "redirects": [
     {
       "source": "/instructor.html",
