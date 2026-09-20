@@ -73,18 +73,6 @@ header{background:var(--navy);padding:16px 24px;display:flex;align-items:center;
 .home-next .hn-go{margin-top:10px;font-size:13px;font-weight:500;color:var(--gold)}
 .progress{height:8px;background:#eef1f6;border-radius:100px;overflow:hidden;margin:10px 0 14px}
 .progress>div{height:100%;background:var(--gold);border-radius:100px;transition:width .3s}
-/* ── Announcements ──────────────────────────────────────────── */
-.annc{background:var(--gold-l);border:1px solid #e6d5a8;border-radius:var(--r);padding:16px 18px;margin-bottom:12px}
-.annc .annc-title{font-weight:500;font-size:15px;color:var(--text);margin-bottom:4px}
-.annc .annc-body{font-size:13px;color:#5c4d1a;line-height:1.6}
-.annc .annc-date{font-size:11px;color:#8a6d1f;margin-top:8px}
-/* ── Attendance ─────────────────────────────────────────────── */
-.att-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:.5px solid var(--border)}
-.att-row:last-child{border-bottom:none}
-.att-toggle{display:flex;border:1px solid var(--border);border-radius:100px;overflow:hidden;flex-shrink:0}
-.att-toggle button{border:none;background:#fff;padding:8px 18px;font-size:13px;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;min-height:40px}
-.att-toggle button.on-present{background:#e3f2e6;color:#1e7a34;font-weight:500}
-.att-toggle button.on-absent{background:#fdecea;color:#c0392b;font-weight:500}
 main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .screen{display:none}.screen.active{display:block;animation:fadeIn .2s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
@@ -402,10 +390,6 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
       <div class="section-sub" id="partner-sub">Your commission, how it was calculated, and what is still on its way.</div>
       <div id="partner-content"></div>
     </div>
-    <div class="screen" id="tab-attendance">
-      <button class="btn" style="margin-bottom:14px" onclick="backToMyJobs()">← Back to My jobs</button>
-      <div id="attendance-content"></div>
-    </div>
   </main>
 </div>
 
@@ -509,7 +493,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-20.1';
+const PORTAL_VERSION='v2026-09-20.2';
 
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
@@ -1601,41 +1585,9 @@ function renderHome(){
       </div>
     </div>
     ${nextHtml}
-    ${obHtml}
-    <div id="announcements-list"></div>`;
-  renderAnnouncements();
+    ${obHtml}`;
 }
 
-// Reads active announcements (newest first). Returns [] when the table does
-// not exist yet or the query fails, so the dashboard simply shows nothing.
-async function fetchAnnouncements(){
-  try{
-    const {data,error}=await sb.from('portal_announcements')
-      .select('title,body,created_at')
-      .eq('active',true)
-      .order('created_at',{ascending:false})
-      .limit(5);
-    if(error||!data)return [];
-    return data;
-  }catch(e){ return []; }
-}
-
-// Announcements from Lindsay. The list is filled from the portal_announcements
-// table when it exists; an empty/error state simply shows nothing.
-async function renderAnnouncements(){
-  const el=document.getElementById('announcements-list');
-  if(!el)return;
-  try{
-    const rows=await fetchAnnouncements();
-    if(!rows.length){el.innerHTML='';return;}
-    el.innerHTML=rows.map(a=>`
-      <div class="annc">
-        <div class="annc-title">${escapeHtml(a.title)}</div>
-        <div class="annc-body">${escapeHtml(a.body)}</div>
-        ${a.created_at?`<div class="annc-date">${escapeHtml(fmtDate(a.created_at.slice(0,10)))}</div>`:''}
-      </div>`).join('');
-  }catch(e){ el.innerHTML=''; }
-}
 
 // ─── JOB BOARDS (helpers) ────────────────────────────────────
 // Sessions this instructor can currently act on. Shared by the Open jobs tab
@@ -2057,88 +2009,10 @@ function renderMyJobs(){
       ${jdi.notes?`<div style="font-size:12px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:var(--r-sm)">📝 ${escapeHtml(jdi.notes)}</div>`:''}
       <div class="jc-actions" style="margin-top:12px">
         ${(s.isCustomJob||cx)?'':`<button class="btn" onclick="printRoster('${s.id}')">🖨️ Print roster</button>`}
-        ${(s.isCustomJob||cx)?'':`<button class="btn" onclick="openAttendance('${s.id}')">✓ Take attendance</button>`}
         ${(upcoming&&!cx)?`<button class="btn" onclick="cancelJob('${s.id}')">Cancel my acceptance</button>`:''}
       </div>
     </div>`;
   }).join('');
-}
-
-
-// ─── ATTENDANCE (digital check-in) ───────────────────────────
-// Instructors mark present/absent per student instead of printing a roster.
-// Storage: session_attendance table + instructor_get_attendance /
-// instructor_save_attendance RPCs (migrations/portal_attendance.sql). Both
-// RPCs verify the PIN and that the caller owns the job; if the migration has
-// not been run yet the RPC calls fail and the UI says so honestly.
-function backToMyJobs(){
-  showTab('myjobs',document.querySelector('.tab[onclick*="myjobs"]'));
-}
-let attSessionId=null;
-async function openAttendance(sessId){
-  attSessionId=sessId;
-  const s=allSessions.find(x=>x.id===sessId);
-  showTab('attendance');
-  const el=document.getElementById('attendance-content');
-  const head=s?escapeHtml(s.course||'Class')+' · '+escapeHtml(sessHeadline(s)):'';
-  el.innerHTML=`<div class="section-title">Take attendance</div>
-    <div class="section-sub">${head}</div>
-    <div style="color:var(--muted);font-size:13px;padding:12px 0">Loading roster…</div>`;
-  let regs=[];
-  try{
-    const{data}=await sb.rpc('instructor_get_roster',{p_pin:me.pin,p_session_id:sessId});
-    regs=(data||[]).sort((a,b)=>(a.student_name||'').localeCompare(b.student_name||''));
-  }catch(e){console.error(e);}
-  // Previously saved marks, so reopening the list shows the current state.
-  // A missing RPC (migration not run) just means everyone starts as present.
-  let saved={};
-  try{
-    const{data}=await sb.rpc('instructor_get_attendance',{p_pin:me.pin,p_session_id:sessId});
-    (data||[]).forEach(r=>{saved[r.student_name]=r.status;});
-  }catch(e){/* migration not run yet */}
-  const names=regs.map(r=>r.student_name).filter(Boolean);
-  if(!names.length){
-    el.innerHTML=`<div class="section-title">Take attendance</div>
-      <div class="section-sub">${head}</div>
-      <div class="empty"><div class="empty-icon">🗂️</div><div class="empty-msg">No students on the roster yet</div><div class="empty-sub">Once students register, they will appear here for check-in.</div></div>`;
-    return;
-  }
-  el.innerHTML=`<div class="section-title">Take attendance</div>
-    <div class="section-sub">${head} — tap Present or Absent for each student, then save.</div>
-    <div class="info-card" style="padding:6px 18px">
-      ${names.map(n=>{
-        const st=saved[n]||'present';
-        return`<div class="att-row">
-          <div style="font-size:14px;font-weight:500">${escapeHtml(n)}</div>
-          <div class="att-toggle" data-student="${escapeHtml(n)}">
-            <button class="${st==='present'?'on-present':''}" data-val="present" onclick="attSet(this)">Present</button>
-            <button class="${st==='absent'?'on-absent':''}" data-val="absent" onclick="attSet(this)">Absent</button>
-          </div>
-        </div>`;}).join('')}
-    </div>
-    <button class="btn primary" style="margin-top:16px" onclick="saveAttendance()">Save attendance</button>`;
-}
-function attSet(btn){
-  const wrap=btn.parentElement;
-  wrap.querySelectorAll('button').forEach(b=>b.classList.remove('on-present','on-absent'));
-  btn.classList.add(btn.dataset.val==='present'?'on-present':'on-absent');
-}
-async function saveAttendance(){
-  const rows=[...document.querySelectorAll('#attendance-content .att-toggle')].map(w=>{
-    const on=w.querySelector('.on-present,.on-absent');
-    return{student_name:w.dataset.student,status:on?on.dataset.val:'present'};
-  });
-  let ok=false;
-  try{
-    const{data,error}=await sb.rpc('instructor_save_attendance',{p_pin:me.pin,p_session_id:attSessionId,p_attendance:rows});
-    ok=!error&&!!data;
-  }catch(e){console.error(e);}
-  if(!ok){
-    showToast('Could not save attendance. The check-in setup may not be finished — text Lindsay.');
-    return;
-  }
-  showToast('Attendance saved ✓');
-  backToMyJobs();
 }
 
 

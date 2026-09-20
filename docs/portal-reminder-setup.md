@@ -7,9 +7,7 @@ reminder automatically. A session is never emailed twice in one day.
 ## Step 1 — Run the database migration (2 minutes)
 
 In Supabase: **SQL editor → New query**, paste the contents of
-`migrations/portal_reminders.sql`, and run it. (Same file also creates the
-`portal_announcements` table setup if you haven't run `migrations/portal_announcements.sql` yet —
-run that one too; it powers the announcement cards on the portal home screen.)
+`migrations/portal_reminders.sql`, and run it.
 
 ## Step 2 — Create the EmailJS template (5 minutes)
 
@@ -53,7 +51,7 @@ effect.
 ## How to check it's working
 
 - The next morning after setup, visit
-  `https://register.mindfulbeginnings.org/api/remind-instructors` — without the
+  `https://instructorportal.mindfulbeginnings.org/api/remind-instructors` — without the
   secret it should answer `{"error":"Unauthorized"}` (that means the guard works).
 - In Vercel → **Cron Jobs** you can see each run and trigger one manually.
 - If an instructor says they didn't get one, check Supabase `reminder_log` —
