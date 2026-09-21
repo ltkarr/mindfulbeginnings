@@ -95,3 +95,28 @@ test('deep links and waitlist stay on this page', () => {
   assert.match(register, /function goToWaitlist/);
   assert.match(register, /id="screen-waitlist"/);
 });
+
+test('Care Ready is priced and capped consistently across config and register fallbacks', () => {
+  assert.match(config, /'Care Ready':\{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2\.5,maxStudents:16/);
+  assert.match(config, /'Care Ready':185,/);
+  assert.match(register, /'Care Ready':185/);
+  assert.match(register, /'Care Ready':16/);
+});
+
+test('Care Ready gets the adult registration treatment (no grade, no parent/guardian)', () => {
+  assert.match(register, /const isCareReady=s\.course==='Care Ready'/);
+  assert.match(register, /const isAdult=isGP\|\|isCareReady/);
+  assert.match(register, /isAdult\?'Your information':'Student information'/);
+  assert.match(register, /isAdult\?'Your contact information':'Parent \/ guardian'/);
+  assert.match(register, /isAdult\?'Your full name \(electronic signature\) \*'/);
+  assert.match(register, /const isAdult=currentSession&&\(currentSession\.course==='Grandparents: Getting Started'\|\|currentSession\.course==='Care Ready'\)/);
+  assert.match(register, /document\.getElementById\('terms-grandparent'\)\.style\.display=isAdult\?'':'none'/);
+  assert.match(register, /isAdult\|\|isOwnRelease\)\?'none':''/);
+});
+
+test('Care Ready CPR notice is adult-worded with no certification claim', () => {
+  const i = indexOf(register, ':isCareReady');
+  const branch = register.slice(i, i + 400);
+  assert.match(branch, /This course is educational only and does not provide CPR certification/);
+  assert.doesNotMatch(branch, /child/i);
+});

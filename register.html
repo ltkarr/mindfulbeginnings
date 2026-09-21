@@ -598,12 +598,12 @@ const sb = createClient ? createClient(
 // NEW_PRICING_EFFECTIVE identical to the value in admin.html.
 if(typeof getSessionBasePrice==='undefined'){
   // Prices for sessions that existed BEFORE the Aug 2026 program-guide update.
-  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
-  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'Care Ready':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
   // Program-guide prices for sessions created on/after the cutover. (Steady and Ready
   // stays $65 — the guide's $50 is a confirmed typo. 2027 keeps the planned step-ups.)
-  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
-  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'Care Ready':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
   const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
   // Prices raised after the Aug 6 cutover — applied only to sessions CREATED on/after
   // each `from` moment, so nothing already scheduled re-prices. Keep identical to the
@@ -619,7 +619,7 @@ if(typeof getSessionBasePrice==='undefined'){
        'Safe@Home — Virtual':40,
        'Safe@Home — Series':125,
        'My First Babysitters Club':165,
-       'Grandparents: Getting Started':185,
+       'Grandparents: Getting Started':185,'Care Ready':185,
        'All Kids Welcome':25,
        'Intro to Babysitting':40,
        'Steady and Ready':65,
@@ -649,7 +649,7 @@ if(typeof getSessionBasePrice==='undefined'){
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20};
+  window.MAX_STUDENTS={'Safe Sitter®':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'Care Ready':16,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -1140,6 +1140,10 @@ function setBanner(id){
     if(prereqNotice)prereqNotice.style.display='none';
   }
   const isGP=s.course==='Grandparents: Getting Started';
+  const isCareReady=s.course==='Care Ready';
+  // Both adult-audience courses: the registrant is the participant, so the form
+  // drops the grade field and the parent/guardian framing entirely.
+  const isAdult=isGP||isCareReady;
   // Any Safe@Home variant (single session, Virtual, or Series) counts as Safe@Home here.
   const isSafeAtHome=/^Safe@Home/.test(s.course||'');
   const isNoCPR=s.course==='Intro to Babysitting'||isSafeAtHome||s.course==='All Kids Welcome'||s.course==='Ready. Period.';
@@ -1155,7 +1159,7 @@ function setBanner(id){
 
   // Accommodations section
   const accomSec=document.getElementById('accommodations-section');
-  if(accomSec)accomSec.style.display=isGP?'none':'';
+  if(accomSec)accomSec.style.display=isAdult?'none':'';
   // Accommodations notice — the default Safe Sitter wording does not apply to Campus Ready,
   // so show a short, course-appropriate note there instead.
   const accomNotice=document.getElementById('accom-notice');
@@ -1165,13 +1169,13 @@ function setBanner(id){
       :'A great deal of information is presented in a short period of time during the Safe Sitter\u00ae course. We want every child to succeed, and we will work with you to make alternate plans if your child has difficulty keeping up. Please let us know if there is anything we should know to help your child succeed. If your child needs accommodations, please let the Instructor or Site Coordinator know as soon as possible. <strong>Please note:</strong> Safe Sitter\u00ae does not provide CPR certification, release the names of graduates, or act as a referral source of babysitters.';
   }
 
-  // Grade field — hidden entirely for Grandparents (no participant grade).
+  // Grade field — hidden entirely for the adult courses (no participant grade).
   // Safe Sitter® is grades 6–8. Safe@Home and All Kids Welcome use grades 3–9.
   // Intro to Babysitting and Stay Ready keep their own ranges below.
   const gradeField=document.getElementById('grade-field');
   const gradeSel=document.getElementById('s-grade');
-  if(gradeField)gradeField.style.display=isGP?'none':'';
-  if(gradeSel&&!isGP){
+  if(gradeField)gradeField.style.display=isAdult?'none':'';
+  if(gradeSel&&!isAdult){
     // setBanner() runs a second time when the parent advances to the payment screen.
     // Rebuilding innerHTML below destroys the options and resets the select to the
     // blank first option, silently wiping whatever the parent chose. Remember the
@@ -1205,12 +1209,12 @@ function setBanner(id){
   if(hostSec)hostSec.style.display=noHost?'none':'';
 
   // Section titles and labels
-  document.getElementById('student-section-title').textContent=isGP?'Your information':'Student information';
-  document.getElementById('fname-label').textContent=isGP?'First name *':'Participant\'s first name *';
-  document.getElementById('lname-label').textContent=isGP?'Last name *':'Participant\'s last name *';
-  document.getElementById('guardian-title').textContent=isGP?'Emergency contact':'Parent / guardian';
-  document.getElementById('guardian-name-label').textContent=isGP?'Emergency contact name *':'Name *';
-  document.getElementById('signature-label').textContent=isGP?'Your full name (electronic signature) *':isCampusReady?'Full name of participant or parent / guardian (electronic signature) *':'Parent / guardian full name (electronic signature) *';
+  document.getElementById('student-section-title').textContent=isAdult?'Your information':'Student information';
+  document.getElementById('fname-label').textContent=isAdult?'First name *':'Participant\'s first name *';
+  document.getElementById('lname-label').textContent=isAdult?'Last name *':'Participant\'s last name *';
+  document.getElementById('guardian-title').textContent=isAdult?'Your contact information':'Parent / guardian';
+  document.getElementById('guardian-name-label').textContent=isAdult?'Full name *':'Name *';
+  document.getElementById('signature-label').textContent=isAdult?'Your full name (electronic signature) *':isCampusReady?'Full name of participant or parent / guardian (electronic signature) *':'Parent / guardian full name (electronic signature) *';
 
   // CPR notice box — hide for grandparents (no child language) and for courses with no CPR manikin use
   const cprNotice=document.getElementById('waiver-cpr-notice');
@@ -1224,6 +1228,8 @@ function setBanner(id){
         ?'<strong>📋 Please note:</strong> This workshop is taught by a registered nurse and includes hands-on practice of hands-only CPR on a manikin and practice with an AED trainer. <strong>This workshop is educational only and does not certify the participant in CPR, AED use, or first aid.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
         :isCampusReady
         ?'<strong>📋 Please note:</strong> This class is taught by a registered nurse and includes hands-on practice of CPR and rescue skills on manikins. <strong>This course is educational only and does not certify the participant in CPR, first aid, or naloxone (Narcan) administration.</strong> It is designed to build the confidence and basic skills to help a friend in an emergency.'
+        :isCareReady
+        ?'<strong>📋 Please note:</strong> This course includes hands-on practice of CPR and rescue skills on manikins. <strong>This course is educational only and does not provide CPR certification.</strong>'
         :isStayReady
         ?'<strong>📋 Please note:</strong> This session includes hands-on practice of choking rescue and CPR on manikins. <strong>This session does not provide CPR certification.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
         :'<strong>📋 Please note:</strong> Your child will practice CPR and rescue skills on manikins during this course. <strong>This course does not provide CPR certification.</strong> Upon successful completion, your child will receive a Safe Sitter® certificate of completion.';
@@ -1236,7 +1242,7 @@ function setBanner(id){
     const cprPermItem=permSec.querySelector('.perm-item');
     if(cprPermItem)cprPermItem.style.display=isNoCPR?'none':'';
     permSec.querySelector('.perm-title').textContent=isGP?'CPR manikin practice':'CPR manikin practice';
-    permSec.querySelectorAll('.perm-desc')[0].textContent=isGP
+    permSec.querySelectorAll('.perm-desc')[0].textContent=(isGP||isCareReady)
       ?'This course includes hands-on practice of rescue skills on CPR manikins. Do you give permission to participate?'
       :isSeasonReady
         ?'This workshop includes hands-on practice of hands-only CPR on a manikin. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikin?'
@@ -1247,7 +1253,7 @@ function setBanner(id){
         :'Safe Sitter® includes practice of rescue skills on CPR manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?');
     permSec.querySelectorAll('.radio-lbl')[0].childNodes[1].textContent=' Yes, I give permission';
     permSec.querySelectorAll('.radio-lbl')[1].childNodes[1].textContent=' No, I do not give permission';
-    permSec.querySelectorAll('.perm-desc')[1].textContent=isGP
+    permSec.querySelectorAll('.perm-desc')[1].textContent=(isGP||isCareReady)
       ?'In the event of a health emergency, do you authorize the instructor to seek emergency care on your behalf?'
       :isCampusReady
         ?'In the event of a health emergency during the class, do you authorize the instructor to seek emergency care for the participant?'
@@ -1257,8 +1263,8 @@ function setBanner(id){
   }
 
   // Waiver — swap between child and adult clause text inside the agreement box
-  document.getElementById('terms-standard').style.display=(isGP||isOwnRelease)?'none':'';
-  document.getElementById('terms-grandparent').style.display=isGP?'':'none';
+  document.getElementById('terms-standard').style.display=(isAdult||isOwnRelease)?'none':'';
+  document.getElementById('terms-grandparent').style.display=isAdult?'':'none';
   const crTerms=document.getElementById('terms-campus-ready');
   if(crTerms)crTerms.style.display=isCampusReady?'':'none';
   // The Campus Ready acknowledgment sits at the very end of the waiver box (after the
@@ -1277,7 +1283,7 @@ function setBanner(id){
   if(cprTerms)cprTerms.style.display=isNoCPR?'none':'';
   // Photo consent wording adapts for grandparents (no "my child" language)
   const photoSub=document.getElementById('photo-consent-sub');
-  if(photoSub)photoSub.textContent=(isGP||isCampusReady)
+  if(photoSub)photoSub.textContent=(isAdult||isCampusReady)
     ?'I consent to the use of photos or recordings taken during the program for publicity purposes by Mindful Beginnings.'
     :'I consent to the use of photos or recordings of my child taken during the program for publicity purposes by Mindful Beginnings.';
   // Sitter referral list opt-in — All Kids Welcome only
@@ -1338,13 +1344,13 @@ async function goToPayment(){
   const phoneEl=document.getElementById('p-phone');
   if(pp&&pp.replace(/\D/g,'').length<10){phoneEl.classList.add('err');ok=false;if(!firstBad)firstBad=phoneEl;}
   const isNoCPR=currentSession&&(currentSession.course==='Intro to Babysitting'||/^Safe@Home/.test(currentSession.course||'')||currentSession.course==='All Kids Welcome');
-  const isGP=currentSession&&currentSession.course==='Grandparents: Getting Started';
-  // Grade — required for every course except Grandparents, where the field is hidden.
+  const isAdult=currentSession&&(currentSession.course==='Grandparents: Getting Started'||currentSession.course==='Care Ready');
+  // Grade — required for every course except the adult courses, where the field is hidden.
   // Without this check the dropdown can be left on "Select grade..." and the roster
   // shows a blank grade for that student.
   const gradeEl=document.getElementById('s-grade');
   if(gradeEl){
-    if(!isGP&&!gradeEl.value){gradeEl.classList.add('err');ok=false;if(!firstBad)firstBad=gradeEl;}
+    if(!isAdult&&!gradeEl.value){gradeEl.classList.add('err');ok=false;if(!firstBad)firstBad=gradeEl;}
     else gradeEl.classList.remove('err');
   }
   // Permission radios — highlight the specific group that wasn't answered
@@ -1976,7 +1982,6 @@ async function saveRegistration(row){
 // rather than relying on them returning to the page to click a confirm button.
 function buildRegistration(method,txId){
   const s=currentSession;
-  const isGP=s.course==='Grandparents: Getting Started';
   const photoConsent=document.getElementById('chk-photo-consent').checked?'yes':'no';
   // Build the "How did you hear about us?" answer (folds in the free-text when "Other").
   const referralSel=document.getElementById('p-referral').value;
@@ -2148,6 +2153,7 @@ function showSuccessScreen(reg,s,price,method,skipEmail){
 // told (calmly) to email them; we also email Lindsay a copy for reconciliation.
 function showSaveFailureRecovery(reg,s,price,method,txId){
   const d=fmtSessDates(s);
+  const isAdultCourse=s.course==='Grandparents: Getting Started'||s.course==='Care Ready';
   document.getElementById('ok-circle').textContent='✓';
   document.getElementById('ok-circle').style.background='var(--success-bg)';
   document.getElementById('ok-title').textContent='Payment received';
@@ -2159,7 +2165,7 @@ function showSaveFailureRecovery(reg,s,price,method,txId){
     ${reg.grade?`<div class="crow"><span class="cl">Grade</span><span class="cv">${escapeHtml(reg.grade)}</span></div>`:''}
     <div class="crow"><span class="cl">Course</span><span class="cv">${s.course}</span></div>
     <div class="crow"><span class="cl">Date</span><span class="cv">${d}</span></div>
-    <div class="crow"><span class="cl">Parent / guardian</span><span class="cv">${escapeHtml(reg.parent_name)||'—'}</span></div>
+    <div class="crow"><span class="cl">${isAdultCourse?'Your name':'Parent / guardian'}</span><span class="cv">${escapeHtml(reg.parent_name)||'—'}</span></div>
     <div class="crow"><span class="cl">Contact</span><span class="cv">${escapeHtml(reg.contact)||'—'}</span></div>
     <div class="crow"><span class="cl">Amount paid</span><span class="cv" style="color:var(--success)">$${price} (${method})</span></div>
     ${txId?`<div class="crow"><span class="cl">PayPal / Transaction ID</span><span class="cv" style="font-size:11px">${txId}</span></div>`:''}`;

@@ -77,3 +77,9 @@ test('Venmo/Zelle memos on register include the registration id helper', () => {
   assert.match(register, /currentPayRegistrationId/);
   assert.match(register, /buildPaymentMemo/);
 });
+
+test('Care Ready is wired into the instructor config and the admin course list', () => {
+  assert.match(instructorCfg, /"Care Ready":\{hours:2\.5,maxStudents:16\}/);
+  assert.match(admin, /'Care Ready':\{price:185/);
+  assert.match(admin, /'Care Ready':185,/);
+});
