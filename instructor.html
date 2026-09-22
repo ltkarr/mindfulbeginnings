@@ -328,7 +328,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="screen" id="tab-open">
       <div class="section-title">Open jobs</div>
-      <div class="section-sub">Sessions you can act on. Accept a job to claim it, or join the waitlist if it's already taken. You only see jobs for the courses you're eligible to teach based on the credentials on your profile.</div>
+      <div class="section-sub">Accept an open job to claim it. If it's already taken and nobody is waiting yet, you can join the waitlist. Once someone is on the waitlist, the job leaves this board — if you are the one waiting, you'll still see it here so you can leave. You only see jobs for the courses you're eligible to teach based on the credentials on your profile.</div>
       <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px">
         <button class="btn" style="font-size:12px;padding:6px 14px" onclick="refreshData(true)">🔄 Refresh</button>
         <span id="refresh-status" style="font-size:12px;color:var(--muted)"></span>
@@ -1600,8 +1600,7 @@ function openJobs(){
     if(s.isCancelled)return false; // cancelled by the office — nothing to accept
     if(!canTeachSession(s))return false; // hide jobs this instructor is not credentialed for
     if(new Date(s.date+'T12:00:00')<startOfToday)return false;
-    // Taken by someone else and the admin turned the waitlist off: nothing to act on, hide it.
-    if(jdi.instructorId&&jdi.instructorId!==me.id&&!waitlistAllowed(s))return false;
+    if(hideTakenJobFromOpenBoard(s,jdi,me.id))return false;
     return jdi.instructorId!==me.id; // exclude jobs I already hold
   }).sort((a,b)=>a.date.localeCompare(b.date));
 }
@@ -1683,8 +1682,24 @@ function credentialPill(s){
 // Per-session waitlist toggle, set by the admin in the session / custom job form
 // (sessions.allow_waitlist, default true). When off, a job claimed by another
 // instructor is hidden from Open jobs entirely — no "Taken" card, no waitlist
-// button. Open (unclaimed) postings still appear and can be accepted as usual.
+// button. When on, a taken job stays visible as "Taken" until at least one
+// instructor joins the waitlist; after that it is hidden from everyone who is
+// not already on the waitlist. If the waitlist empties again, the Taken card
+// returns. Open (unclaimed) postings still appear and can be accepted as usual.
 function waitlistAllowed(s){return s.allowWaitlist!==false;}
+// True when a job another instructor already holds should be left off this
+// person's Open jobs board.
+//   waitlist off → hide as soon as it is taken
+//   waitlist on, nobody waiting → show Taken + Join waitlist
+//   waitlist on, someone waiting, and I am not one of them → hide
+//   I already hold it, or it is unclaimed (including a reopened 24-hour
+//   waitlist-priority window) → not hidden by this rule
+function hideTakenJobFromOpenBoard(s,jdi,meId){
+  if(!jdi||!jdi.instructorId||jdi.instructorId===meId)return false;
+  if(!waitlistAllowed(s))return true;
+  const wl=jdi.waitlist||[];
+  return wl.length>=1&&!wl.includes(meId);
+}
 
 // Re-render every job board at once. Cheap (the screens always exist in the DOM,
 // just hidden) and keeps Open and My jobs in sync after any mutation.
@@ -1721,9 +1736,11 @@ function renderOnboardingGate(el){
 }
 
 // ─── OPEN JOBS ───────────────────────────────────────────────
-// Upcoming sessions the instructor can act on: open postings to accept, and
-// jobs taken by someone else they can waitlist. Excludes jobs they already hold
-// (those live in My jobs) and anything in the past.
+// Upcoming sessions the instructor can act on: open postings to accept, taken
+// jobs whose waitlist is still empty (Join waitlist), and taken jobs this
+// instructor is already waiting on. Excludes jobs they already hold (those live
+// in My jobs), taken jobs with someone else already waiting, and anything in
+// the past. A reopened job keeps its 24-hour waitlist-priority window.
 function renderOpen(){
   const el=document.getElementById('open-list');
   if(renderOnboardingGate(el))return;
@@ -1804,7 +1821,11 @@ async function acceptJob(sessId){
   if(sElig&&!canTeachSession(sElig)){alert('This job requires a credential that is not on your profile. Please contact Lindsay if you believe this is a mistake.');refreshJobViews();return;}
   if(jobDataCache[sessId]&&jobDataCache[sessId].instructorId&&jobDataCache[sessId].instructorId!==me.id){
     const sTaken=allSessions.find(x=>x.id===sessId);
-    alert(sTaken&&!waitlistAllowed(sTaken)?'This job was just taken by another instructor.':'This job was just taken. Would you like to join the waitlist instead?');
+    const wl=(jobDataCache[sessId].waitlist||[]);
+    // Waitlist off, or someone is already waiting: this instructor will not see a
+    // Join button after refresh, so don't invite them onto a waitlist they can't reach.
+    const canStillJoin=!(sTaken&&!waitlistAllowed(sTaken))&&wl.length<1;
+    alert(canStillJoin?'This job was just taken. Would you like to join the waitlist instead?':'This job was just taken by another instructor.');
     refreshJobViews();return;
   }
   try{

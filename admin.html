@@ -4661,7 +4661,7 @@ function openAddSession(){
         <input type="checkbox" id="m-waitlist" checked style="width:16px;height:16px;cursor:pointer">
         Allow instructor waitlist for this class
       </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">When unchecked: once an instructor claims this job it disappears from everyone else's Open jobs board — no "Taken" card and no waitlist button.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">After someone claims the job, other instructors see a Taken card until one person joins the waitlist — then that Taken card disappears for everyone else (instructors already on the waitlist still see it). If the waitlist empties again, the Taken card comes back. Uncheck this to hide the job from everyone else as soon as it is claimed, with no Taken card and no waitlist button.</div>
     </div>
     <div class="fg full"><label>Class capacity override <span style="font-weight:400;color:var(--muted)">(optional — leave blank to use the course default)</span></label>
       <div style="display:flex;align-items:center;gap:10px">
@@ -4863,7 +4863,7 @@ function openAddCustomJob(){
         <input type="checkbox" id="cj-waitlist" checked style="width:16px;height:16px;cursor:pointer">
         Allow instructor waitlist for this job
       </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">When unchecked: once an instructor claims this job it disappears from everyone else's Open jobs board — no "Taken" card and no waitlist button.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">After someone claims the job, other instructors see a Taken card until one person joins the waitlist — then that Taken card disappears for everyone else (instructors already on the waitlist still see it). If the waitlist empties again, the Taken card comes back. Uncheck this to hide the job from everyone else as soon as it is claimed, with no Taken card and no waitlist button.</div>
     </div>
     <div class="fg full"><label>Notes / job description <span style="font-weight:400;color:var(--muted)">(optional — what the instructor needs to know)</span></label>
       <input type="text" id="cj-notes" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID"></div>
@@ -5097,7 +5097,7 @@ function openEditCustomJob(id){
         <input type="checkbox" id="cj-waitlist" ${s.allowWaitlist!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
         Allow instructor waitlist for this job
       </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">When unchecked: once an instructor claims this job it disappears from everyone else's Open jobs board — no "Taken" card and no waitlist button.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">After someone claims the job, other instructors see a Taken card until one person joins the waitlist — then that Taken card disappears for everyone else (instructors already on the waitlist still see it). If the waitlist empties again, the Taken card comes back. Uncheck this to hide the job from everyone else as soon as it is claimed, with no Taken card and no waitlist button.</div>
     </div>
     <div class="fg full"><label>Notes / job description</label>
       <input type="text" id="cj-notes" value="${escapeHtml(s.notes||'')}" placeholder="e.g. Wear MB shirt, check in at volunteer tent"></div>
@@ -5323,7 +5323,7 @@ function openEditSession(id){
         <input type="checkbox" id="m-waitlist" ${s.allowWaitlist!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
         Allow instructor waitlist for this class
       </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">When unchecked: once an instructor claims this job it disappears from everyone else's Open jobs board — no "Taken" card and no waitlist button.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">After someone claims the job, other instructors see a Taken card until one person joins the waitlist — then that Taken card disappears for everyone else (instructors already on the waitlist still see it). If the waitlist empties again, the Taken card comes back. Uncheck this to hide the job from everyone else as soon as it is claimed, with no Taken card and no waitlist button.</div>
     </div>
     <div class="fg full"><label>Class capacity override <span style="font-weight:400;color:var(--muted)">(optional — leave blank to use the course default of ${(COURSES[s.course]||{maxStudents:8}).maxStudents})</span></label>
       <div style="display:flex;align-items:center;gap:10px">
