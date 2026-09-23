@@ -78,6 +78,18 @@ test('Venmo/Zelle memos on register include the registration id helper', () => {
   assert.match(register, /buildPaymentMemo/);
 });
 
+test('admin expense categories include Curriculum Development', () => {
+  assert.match(admin, /<option>Curriculum Development<\/option>/);
+  assert.match(admin, /const EXP_CATS=\[[^\]]*Curriculum Development[^\]]*\]/);
+  const cats = admin.match(/const EXP_CATS=\[(.*)\];/);
+  assert.ok(cats);
+  const list = cats[1].split(',').map((c) => c.trim().replace(/^'|'$/g, ''));
+  assert.equal(list.at(-1), 'Other');
+  assert.ok(list.includes('Curriculum Development'));
+  assert.ok(list.includes('Business Development'));
+  assert.ok(list.includes('Charitable Donation'));
+});
+
 test('Care Ready is wired into the instructor config and the admin course list', () => {
   assert.match(instructorCfg, /"Care Ready":\{hours:2\.5,maxStudents:16\}/);
   assert.match(admin, /'Care Ready':\{price:185/);
