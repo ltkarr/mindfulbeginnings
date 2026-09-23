@@ -395,7 +395,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <option value="">All categories</option>
           <option>Business Development</option>
           <option>Equipment</option><option>Instructor Training</option><option>Insurance</option><option>Supplies</option>
-          <option>Marketing</option><option>Software</option><option>Travel</option><option>Charitable Donation</option><option>Other</option>
+          <option>Marketing</option><option>Software</option><option>Travel</option><option>Charitable Donation</option><option>Curriculum Development</option><option>Other</option>
         </select>
         <input type="text" id="ef-year" placeholder="Filter by year e.g. 2026" oninput="renderExpenses()" style="width:180px">
       </div>
@@ -8072,7 +8072,7 @@ function downloadAllWaivers(){
 }
 
 // ─── EXPENSES ────────────────────────────────────────────────
-const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Other'];
+const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Curriculum Development','Other'];
 
 function renderExpenses(){
   const catF=document.getElementById('ef-cat').value;
