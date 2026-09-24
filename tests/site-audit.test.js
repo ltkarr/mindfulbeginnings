@@ -13,6 +13,14 @@ const admin = fs.readFileSync(path.join(root, 'admin.html'), 'utf8');
 const instructorCfg = fs.readFileSync(path.join(root, 'config-instructor.js'), 'utf8');
 const cfg = require('../vercel.json');
 
+test('admin can set or clear an https external registration link', () => {
+  assert.match(admin, /id="m-external-url"/);
+  assert.match(admin, /function readExternalRegistrationUrl/);
+  assert.match(admin, /parsed\.protocol!=='https:'/);
+  assert.match(admin, /external_registration_url/);
+  assert.match(admin, /migrations\/external_registration_url\.sql/);
+});
+
 test('register.html no longer uses the fixed-amount PayPal hosted button', () => {
   assert.doesNotMatch(register, /V9QPR5SLN9DD4/);
   assert.doesNotMatch(register, /ncp\/payment/);

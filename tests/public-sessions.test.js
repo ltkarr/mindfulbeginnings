@@ -21,6 +21,8 @@ const {
   matchesPriceFilter,
   uniqueCourses,
   uniqueCities,
+  externalRegistrationUrl,
+  externalRegistrationLabel,
   DEFAULT_VISIBLE,
   DEFAULT_WINDOW_DAYS
 } = require('../js/public-sessions');
@@ -60,6 +62,57 @@ test('past, cancelled, hold, and custom-job sessions are excluded', () => {
   assert.equal(isPublicSession(row({ is_cancelled: true }), TODAY), false);
   assert.equal(isPublicSession(row({ is_hold: true }), TODAY), false);
   assert.equal(isPublicSession(row({ is_custom_job: true }), TODAY), false);
+});
+
+const DABBLE_URL = 'https://www.districtdabblelab.com/service-page/blinged-prepped-ready-period-3?referral=service_list_widget';
+
+test('externalRegistrationUrl keeps https links and drops blanks and other schemes', () => {
+  assert.equal(externalRegistrationUrl(row({ external_registration_url: '  ' + DABBLE_URL + '  ' })), DABBLE_URL);
+  assert.equal(externalRegistrationUrl(row({ external_registration_url: '' })), '');
+  assert.equal(externalRegistrationUrl(row({ external_registration_url: null })), '');
+  assert.equal(externalRegistrationUrl(row({ external_registration_url: 'http://example.com/book' })), '');
+  assert.equal(externalRegistrationUrl(row({ externalRegistrationUrl: 'https://example.com/book' })), 'https://example.com/book');
+  assert.equal(externalRegistrationUrl(null), '');
+});
+
+test('externalRegistrationLabel names District DabbleLab and stays generic otherwise', () => {
+  assert.equal(externalRegistrationLabel(DABBLE_URL), 'Register on District DabbleLab');
+  assert.equal(externalRegistrationLabel('https://partner.example/register'), 'Register externally');
+});
+
+test('partner-hosted custom jobs with an https registration link stay on the public list', () => {
+  assert.equal(isPublicSession(row({
+    code: 'RP-261023',
+    course: 'Ready. Period.',
+    date: '2026-10-23',
+    city: 'Bethesda',
+    location: 'District Dabble Lab',
+    is_custom_job: true,
+    has_host: false,
+    external_registration_url: DABBLE_URL
+  }), TODAY), true);
+  assert.equal(isPublicSession(row({ is_custom_job: true, external_registration_url: '   ' }), TODAY), false);
+  assert.equal(isPublicSession(row({ is_custom_job: true, external_registration_url: 'http://example.com/book' }), TODAY), false);
+  assert.equal(isPublicSession(row({
+    is_custom_job: true,
+    is_cancelled: true,
+    external_registration_url: DABBLE_URL
+  }), TODAY), false);
+  assert.equal(isPublicSession(row({
+    is_custom_job: true,
+    has_host: true,
+    external_registration_url: DABBLE_URL
+  }), TODAY), false);
+  assert.equal(isPublicSession(row({
+    is_custom_job: true,
+    is_private: true,
+    external_registration_url: DABBLE_URL
+  }), TODAY), false);
+  assert.equal(isPublicSession(row({ external_registration_url: DABBLE_URL }), TODAY), true);
+  assert.equal(sessionPrice(row({
+    course: 'Ready. Period.',
+    price_override: null
+  }), () => 75), 75);
 });
 
 test('private/host sessions are excluded from the public list', () => {
@@ -170,7 +223,7 @@ test('applyBrowseFilters defaults to a 365-day upcoming window', () => {
   assert.equal(DEFAULT_WINDOW_DAYS, 365);
 
   const defaulted = applyBrowseFilters(rows, {}, { today: TODAY });
-  assert.deepEqual(defaulted.map((s) => s.code), ['SS-261002', 'SAH-1016', 'AKW-1003', 'SS-261201']);
+  assert.deepEqual(defaulted.map((s) => s.code), ['SS-261002', 'SAH-1016', 'SS-261201', 'AKW-1003']);
 });
 
 test('sliceForDisplay defaults to the first six cards with a Show more remainder', () => {

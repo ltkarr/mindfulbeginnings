@@ -3,9 +3,11 @@
 
    Families without a host code can browse upcoming public classes. This file
    is the list + display logic so register.html and the unit tests stay in
-   sync. There is no is_public column on sessions — public means "a regular
+   sync.    There is no is_public column on sessions — public means "a regular
    upcoming course at a public venue," not a private/host home, ops, custom,
-   hold, or cancelled job.
+   hold, or cancelled job. A custom job is listed only when it has an https
+   external_registration_url, so a partner-hosted class can be booked on the
+   partner site without opening Mindful Beginnings payment.
 
    The register page does not expose Course / When / City / Price filters.
    applyBrowseFilters still applies a default upcoming window internally.
@@ -77,6 +79,28 @@
   // has_host false = "No host — public venue". Private/host sessions stay off
   // the family-facing list. If the column was not selected at all, do not hide
   // every row — the query fallback can omit has_host.
+  // Partner booking link. Only https is treated as a real redirect so a blank,
+  // http, or script-looking value cannot send a family off-site or into checkout.
+  function externalRegistrationUrl(row) {
+    if (!row) return '';
+    var raw = row.external_registration_url != null ? row.external_registration_url : row.externalRegistrationUrl;
+    var url = String(raw == null ? '' : raw).replace(/^\s+|\s+$/g, '');
+    if (!url || !/^https:\/\//i.test(url)) return '';
+    return url;
+  }
+
+  function externalRegistrationHost(url) {
+    var m = String(url || '').match(/^https:\/\/([^\/?#]+)/i);
+    if (!m) return '';
+    return m[1].replace(/^www\./i, '').toLowerCase();
+  }
+
+  function externalRegistrationLabel(url) {
+    var host = externalRegistrationHost(url);
+    if (host === 'districtdabblelab.com') return 'Register on District DabbleLab';
+    return 'Register externally';
+  }
+
   function isPrivateHostSession(row) {
     if (!row) return false;
     var hasCamel = Object.prototype.hasOwnProperty.call(row, 'hasHost');
@@ -92,7 +116,9 @@
     if (row.date && String(row.date) < day) return false;
     if (flagOn(row, 'is_cancelled') || flagOn(row, 'isCancelled')) return false;
     if (flagOn(row, 'is_hold') || flagOn(row, 'isHold')) return false;
-    if (flagOn(row, 'is_custom_job') || flagOn(row, 'isCustomJob')) return false;
+    // Custom jobs stay off the family list unless registration is handed to a
+    // partner site. Cancelled, hold, private, and host checks above still apply.
+    if ((flagOn(row, 'is_custom_job') || flagOn(row, 'isCustomJob')) && !externalRegistrationUrl(row)) return false;
      // Admin "private" flag (e.g. Beth El sessions): never listed publicly.
      if (flagOn(row, 'is_private') || flagOn(row, 'isPrivate')) return false;
     if (isPrivateHostSession(row)) return false;
@@ -270,6 +296,9 @@
     DEFAULT_VISIBLE: DEFAULT_VISIBLE,
     todayLocalISO: todayLocalISO,
     addDaysISO: addDaysISO,
+    externalRegistrationUrl: externalRegistrationUrl,
+    externalRegistrationHost: externalRegistrationHost,
+    externalRegistrationLabel: externalRegistrationLabel,
     isPrivateHostSession: isPrivateHostSession,
     isPublicSession: isPublicSession,
     filterPublicSessions: filterPublicSessions,

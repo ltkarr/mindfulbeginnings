@@ -52,6 +52,20 @@ test('public cards show price; private/host sessions are excluded from the list'
   assert.match(config, /audience:'Grades 6–8'/);
 });
 
+test('partner registration links open off-site and skip Mindful Beginnings payment', () => {
+  assert.match(register, /external_registration_url/);
+  assert.match(register, /function openExternalRegistration/);
+  assert.match(register, /noopener,noreferrer/);
+  assert.match(register, /externalRegistrationUrl\(r\)/);
+  assert.match(register, /externalRegistrationLabel\(externalUrl\)/);
+  assert.match(register, /data-external="1"/);
+  const click = register.slice(register.indexOf("list.addEventListener('click'"), register.indexOf("list.addEventListener('click'") + 900);
+  assert.match(click, /data-external/);
+  assert.ok(click.indexOf('openExternalRegistration') < click.indexOf('selectPublicSession'), 'external cards return before the MB registration flow');
+  const lookup = register.slice(register.indexOf('async function checkCode'), register.indexOf('async function checkCode') + 4000);
+  assert.ok(lookup.indexOf('externalRegistrationUrl') < lookup.indexOf('currentSession={'), 'a partner link must leave checkCode before payment state is set');
+});
+
 test('Need help Contact us uses Lindsay mailto', () => {
   assert.match(register, /Need help finding a class\? <a href="mailto:lindsay@mindfulbeginnings\.org">Contact us<\/a>\./);
   assert.doesNotMatch(register, /mindfulbeginnings\.org\/contact/);
