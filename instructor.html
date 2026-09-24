@@ -100,6 +100,12 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .pill-mat-ready{background:var(--success-bg);color:var(--success)}
 .pill-pay-ready{background:#f0e8ff;color:#6b3fa0}
 .pill-paid{background:var(--success-bg);color:var(--success)}
+.pill-level-started{background:#f0f0f0;color:#555}
+.pill-level-established{background:#eaf1f8;color:#2c5f8a}
+.pill-level-senior{background:var(--gold-l);color:var(--gold-d)}
+.pill-level-lead{background:var(--navy);color:#fff}
+.h-level{margin-top:4px}
+.h-level .pill{background:rgba(199,162,74,.18);color:#f6e7c2;border:1px solid rgba(199,162,74,.55)}
 .btn{padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:white;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;font-weight:500;transition:all .15s;white-space:nowrap}
 .btn:hover{background:var(--cream)}
 .btn.primary{background:var(--navy);color:white;border-color:transparent}
@@ -309,6 +315,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
       <div>
         <div class="h-brand">Mindful Beginnings</div>
         <div class="h-name" id="h-name">Instructor portal</div>
+        <div class="h-level" id="h-level" style="display:none"></div>
       </div>
     </div>
     <button class="h-logout" onclick="doLogout()">Sign out</button>
@@ -396,6 +403,19 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
 <script>
 // ─── HTML ESCAPING (XSS guard for user-submitted data) ───────
 function escapeHtml(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// Instructor level. Four values, in this order. Missing or unknown values
+// (including a database that has not run the migration yet) display as Started.
+// This portal only displays the level. It is never included in a profile save.
+const INSTRUCTOR_LEVELS=['Started','Established','Senior','Lead'];
+function normalizeInstructorLevel(v){
+  return INSTRUCTOR_LEVELS.indexOf(v)>=0?v:'Started';
+}
+function instructorLevelBadge(level){
+  const l=normalizeInstructorLevel(level);
+  const cls={Started:'pill-level-started',Established:'pill-level-established',Senior:'pill-level-senior',Lead:'pill-level-lead'}[l];
+  return `<span class="pill ${cls}" title="Your instructor level. Only Lindsay can change this.">${escapeHtml(l)}</span>`;
+}
 
 // ─── SUPABASE ────────────────────────────────────────────────
 const { createClient } = window.supabase;
@@ -988,6 +1008,16 @@ async function doLogin(){
     }
     // Keep the PIN client-side so we can authorize subsequent operations. It is also the password the user just typed; we are not learning anything they don't already know.
     me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||'',pinChangeRequired:(profile.pin_change_required===undefined||profile.pin_change_required===null)?null:!!profile.pin_change_required};
+    me.level=normalizeInstructorLevel(profile.instructor_level);
+    // instructor_login may predate the column. The helper RPC is the same pattern
+    // as instructor_is_rn. If that has not been created yet either, stay on Started
+    // so sign-in keeps working before the migration is applied.
+    if(profile.instructor_level==null||profile.instructor_level===''){
+      try{
+        const{data:lv,error:lvErr}=await sb.rpc('instructor_get_level',{p_pin:pin});
+        if(!lvErr&&lv)me.level=normalizeInstructorLevel(lv);
+      }catch(e){/* keep Started */}
+    }
     // Roster status. Lindsay can move someone to the Inactive tab in admin when they
     // stop teaching or never finish onboarding. An inactive person keeps their record
     // and their history, but must not be able to open the portal — the boards here
@@ -1092,6 +1122,11 @@ function enterApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('h-name').textContent='Welcome, '+me.name;
   applyPartnerAccess();
+  const lvlEl=document.getElementById('h-level');
+  if(lvlEl){
+    if(partnerOnly||!me||!me.level){lvlEl.style.display='none';lvlEl.innerHTML='';}
+    else{lvlEl.style.display='';lvlEl.innerHTML=instructorLevelBadge(me.level);}
+  }
   if(partnerOnly){
     showTab('partner',document.getElementById('tab-btn-partner'));
     return;
@@ -1498,6 +1533,8 @@ function doLogout(){
   partnerData=null;partnerOnly=false;partnerMonth=null;
   document.querySelectorAll('.tabs .tab').forEach(t=>{t.style.display=t.id==='tab-btn-partner'?'none':'';});
   document.getElementById('app').style.display='none';
+  const lvlEl=document.getElementById('h-level');
+  if(lvlEl){lvlEl.style.display='none';lvlEl.innerHTML='';}
   document.getElementById('pinchange-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('pin-input').value='';
@@ -1573,6 +1610,7 @@ function renderHome(){
 
   el.innerHTML=`
     <div class="home-hello">Hi ${escapeHtml(first)}.</div>
+    <div style="margin:-4px 0 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${instructorLevelBadge(me.level)}<span style="font-size:12px;color:var(--muted)">Your instructor level</span></div>
     <div class="home-sub">Here's what's happening with your classes.</div>
     <div class="home-grid">
       <div class="home-card" onclick="showTab('myjobs',document.querySelector('.tab[onclick*=\\'myjobs\\']'))">
@@ -2048,6 +2086,13 @@ async function renderMyProfile(){
   ]);
 
   el.innerHTML=`
+    <div class="info-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Instructor level</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.5">Lindsay sets this. You can see it here, and it cannot be changed from this portal.</div>
+      </div>
+      ${instructorLevelBadge(me.level)}
+    </div>
     ${safeSitterCardHTML()}
 
     <!-- Documents section -->
@@ -3410,6 +3455,7 @@ function renderMyInfo(){
   const sizes=['XS','S','M','L','XL','XXL','XXXL'];
   document.getElementById('myinfo-content').innerHTML=`
     <div class="info-card">
+      <div class="info-row"><span class="info-label">Level</span><span>${instructorLevelBadge(me.level)}</span></div>
       <div class="info-row"><span class="info-label">Name</span><span>${escapeHtml(me.name)}</span></div>
       <div class="info-row"><span class="info-label">Email</span><span>${escapeHtml(me.email)||'Not on file'}</span></div>
       <div class="info-row"><span class="info-label">Phone</span><span>${escapeHtml(me.phone)||'Not on file'}</span></div>
@@ -3426,7 +3472,7 @@ function renderMyInfo(){
       </div>
       ${me.sweatshirtSize?`<div style="font-size:13px;color:var(--success);font-weight:500">✓ Size on file: ${me.sweatshirtSize}</div>`:`<div style="font-size:12px;color:var(--muted)">No size selected yet.</div>`}
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-top:8px">To update your contact information, reach Lindsay at <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--gold-d)">lindsay@mindfulbeginnings.org</a>.</div>`;
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">To update your contact information or your instructor level, reach Lindsay at <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--gold-d)">lindsay@mindfulbeginnings.org</a>.</div>`;
 }
 
 async function selectSweatshirt(size){
