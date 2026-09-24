@@ -1387,8 +1387,9 @@ function renderPartner(){
 }
 
 // Under the amended Section 3 there is no ladder to show. What a partner actually
-// needs to see is the arithmetic: what came in, what it cost to deliver, and the
-// 20% taken from the difference.
+// needs to see is the arithmetic: what came in, what it cost to deliver, and their
+// flat rate taken from the difference (engine default 20% of net; a partner may
+// have an override published as flatRate / tiers).
 function partnerTierCardHtml(d,cur){
   const rate=Math.round((d.flatRate||0.20)*100);
   const gross=cur?cur.monthTotal:0;

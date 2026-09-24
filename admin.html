@@ -1064,7 +1064,7 @@ let orgPartners=[],orgPartnerPayouts=[],orgPartnersTableReady=true,orgPartnerPer
 let HOSTED_FOR_COL=true;
 // Set false when the database predates partner_portal_setup.sql, so the app keeps
 // working and simply does not publish anything to the partner portal yet.
-let PARTNER_INSTRUCTOR_COL=true, PARTNER_PORTAL_ON=true;
+let PARTNER_INSTRUCTOR_COL=true, PARTNER_COMMISSION_RATE_COL=true, PARTNER_PORTAL_ON=true;
 const _portalSigs={};
 // Set to false automatically if the database is missing sessions.originated_by,
 // so a session still saves (minus its attribution) instead of failing outright.
@@ -1298,6 +1298,7 @@ async function loadData(){
     if(pp.error)console.warn('Partner payouts table not loaded:',pp.error);
     // If the loaded rows have no instructor_id, the setup SQL has not been run.
     if((pt.data||[]).length&&!('instructor_id' in pt.data[0]))PARTNER_INSTRUCTOR_COL=false;
+    if((pt.data||[]).length&&!('commission_rate' in pt.data[0]))PARTNER_COMMISSION_RATE_COL=false;
     partners=(pt.data||[]).map(partnerFromDB);
     partnerPayouts=(pp.data||[]).map(payoutFromDB);
     // Supabase returns errors on the result object instead of throwing. If any table
@@ -1686,10 +1687,11 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 // number below is derived from data you already enter for a session — the only
 // new field you fill in is "Originated by" on the session form.
 //
-//  §3.A  A flat 20% of NET Originated Revenue. Net means Collected Revenue for a
-//        booking, less the direct cost of delivering it: instructor pay, materials
-//        and any job costs entered on that session. Company overhead is NOT
-//        deducted — only costs attached to the booking itself.
+//  §3.A  A flat rate of NET Originated Revenue (engine default 20%; a partner
+//        may have a commission_rate override, e.g. 40%). Net means Collected
+//        Revenue for a booking, less the direct cost of delivering it: instructor
+//        pay, materials and any job costs entered on that session. Company
+//        overhead is NOT deducted — only costs attached to the booking itself.
 //  §3.B  Retired. There is no volume ladder and no accelerator to sit on top of.
 //  §3.C  Retired. There is no new-organization bonus. Commission is the whole
 //        of the compensation.
@@ -1703,11 +1705,11 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 // that sat on top of it, are both retired. The single-entry list below keeps the
 // rest of the engine and every screen working unchanged.
 // Amended again: the same flat rate also applies to a single family the partner
-// refers into a class she did not originate. There, the 20% is taken on that one
-// registration's net — what the family paid, less the processing fee, less that
-// child's materials and their share of the instructor and job costs — not on the
-// whole room. See partnerBookingUnits().
-const PARTNER_FLAT_RATE=0.20;      // §3.A — 20% of net, originated or referred
+// refers into a class she did not originate. There, the partner's rate is taken
+// on that one registration's net — what the family paid, less the processing
+// fee, less that child's materials and their share of the instructor and job
+// costs — not on the whole room. See partnerBookingUnits().
+const PARTNER_FLAT_RATE=0.20;      // §3.A default — 20% of net unless partner.commissionRate is set
 const PARTNER_TIERS=[
   {min:0, max:Infinity, rate:PARTNER_FLAT_RATE, name:'Flat rate', label:'20% of net'}
 ];
@@ -1750,8 +1752,10 @@ function round2(n){return Math.round((Number(n)||0)*100)/100;}
 
 // ─── PARTNER RECORD MAPPING ──────────────────────────────────
 function partnerFromDB(r){
+  const cr=r.commission_rate;
   return{id:r.id,name:r.name||'',email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',
     pin:r.pin||'',instructorId:r.instructor_id||null,
+    commissionRate:(cr==null||cr==='')?null:(isFinite(Number(cr))?Number(cr):null),
     status:r.status||'active',startDate:r.start_date||'',endDate:r.end_date||'',
     contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',
     contractSignature:r.contract_signature||'',w9Submitted:r.w9_submitted||false,
@@ -1767,6 +1771,9 @@ function partnerToDB(p){
   // sending it would fail the whole upsert, so it is only included once the column
   // has actually been seen coming back from the database.
   if(PARTNER_INSTRUCTOR_COL)row.instructor_id=p.instructorId||null;
+  // commission_rate is nullable: null means use PARTNER_FLAT_RATE (0.20). Skip the
+  // column entirely on databases that predate partners_commission_rate.sql.
+  if(PARTNER_COMMISSION_RATE_COL)row.commission_rate=p.commissionRate==null?null:Number(p.commissionRate);
   return row;
 }
 function payoutFromDB(r){
@@ -1780,6 +1787,20 @@ function payoutToDB(p){
 }
 function partnerById(id){return partners.find(p=>p.id===id)||null;}
 function partnerName(id){const p=partnerById(id);return p?p.name:'';}
+
+// Per-partner §3.A rate. Null / missing / out-of-range commissionRate uses the
+// engine default PARTNER_FLAT_RATE (0.20). A stored 0.40 pays 40% of net.
+function partnerFlatRate(partnerOrId){
+  const p=partnerOrId&&typeof partnerOrId==='object'?partnerOrId:partnerById(partnerOrId);
+  const n=p==null||p.commissionRate==null||p.commissionRate===''?NaN:Number(p.commissionRate);
+  if(!isFinite(n)||n<0||n>1)return PARTNER_FLAT_RATE;
+  return n;
+}
+function partnerTiersFor(partnerOrId){
+  const rate=partnerFlatRate(partnerOrId);
+  const pct=Math.round(rate*100);
+  return[{min:0,max:Infinity,rate,name:'Flat rate',label:pct+'% of net'}];
+}
 
 // ─── WHO IS THE BOOKING WITH? ────────────────────────────────
 // The organization paying for a session, if it is organizational rather than a
@@ -1928,14 +1949,15 @@ function partnerRevenueEvents(s){
 //     and named her under "how did you hear about us". Only that family's money is
 //     hers to earn on, not the rest of the room.
 //
-// Both are paid at the same flat 20% of NET (§3.A), so they run through the same
-// engine. partnerRevenueEvents has already deducted the processing fee from each
-// family's payment and spread the session's direct costs — instructor pay, per-student
-// handbooks and materials, and any job costs you entered — across its revenue lines in
-// proportion to size. So one referred child in a class of eight carries their own
-// handbook plus their share of the instructor, and the commission is 20% of what is
-// left. If a session is BOTH originated and referred, origination wins and the whole
-// session counts once — never twice.
+// Both are paid at the same flat rate of NET (§3.A — engine default 20%, or that
+// partner's commission_rate override), so they run through the same engine.
+// partnerRevenueEvents has already deducted the processing fee from each family's
+// payment and spread the session's direct costs — instructor pay, per-student
+// handbooks and materials, and any job costs you entered — across its revenue
+// lines in proportion to size. So one referred child in a class of eight carries
+// their own handbook plus their share of the instructor, and the commission is
+// that partner's rate of what is left. If a session is BOTH originated and
+// referred, origination wins and the whole session counts once — never twice.
 function partnerBookingUnits(partnerId){
   const referredIds={};
   (registrations||[]).forEach(r=>{
@@ -1979,24 +2001,28 @@ function partyFirstPaidIndex(){
   return idx;
 }
 
-function tierFor(monthTotal){
+function tierFor(monthTotal,partnerOrId){
+  const tiers=partnerTiersFor(partnerOrId);
   const t=Number(monthTotal)||0;
-  for(let i=PARTNER_TIERS.length-1;i>=0;i--){if(t>=PARTNER_TIERS[i].min)return PARTNER_TIERS[i];}
-  return PARTNER_TIERS[0];
+  for(let i=tiers.length-1;i>=0;i--){if(t>=tiers[i].min)return tiers[i];}
+  return tiers[0];
 }
-function nextTierFor(monthTotal){
-  const cur=tierFor(monthTotal);
-  const i=PARTNER_TIERS.indexOf(cur);
-  return i<PARTNER_TIERS.length-1?PARTNER_TIERS[i+1]:null;
+function nextTierFor(monthTotal,partnerOrId){
+  const tiers=partnerTiersFor(partnerOrId);
+  const t=Number(monthTotal)||0;
+  let idx=0;
+  for(let i=tiers.length-1;i>=0;i--){if(t>=tiers[i].min){idx=i;break;}}
+  return idx<tiers.length-1?tiers[idx+1]:null;
 }
 
 // Assigns §3.A / §3.B / §3.F rates onto statement rows. monthTotal is the
 // volume that sets the tier — collected revenue for earned rows, or collected
 // plus pending for a not-yet-payable estimate. Mutates each row with rate,
-// reason, commission and accelerated.
-function applyPartnerRowRates(rows,monthTotal,cfg){
+// reason, commission and accelerated. Uses that partner's flat rate when set.
+function applyPartnerRowRates(rows,monthTotal,cfg,partnerOrId){
   cfg=cfg||partnerSettings();
-  const tier=tierFor(monthTotal);
+  const tier=tierFor(monthTotal,partnerOrId);
+  const accelRate=partnerFlatRate(partnerOrId);
   const groupKey=r=>cfg.accelGrouping==='org-month'&&r.isOrg?('org:'+(r.org||'').toLowerCase()):('sess:'+r.sessionId);
   const groupTotals={};
   rows.forEach(r=>{const k=groupKey(r);groupTotals[k]=round2((groupTotals[k]||0)+(Number(r.collected)||0));});
@@ -2008,9 +2034,9 @@ function applyPartnerRowRates(rows,monthTotal,cfg){
       rate=0.10;reason='Repeat / renewal booking — 10% baseline (§3.F)';
     }
     const gt=groupTotals[groupKey(r)]||0;
-    if(r.isOrg&&gt>=PARTNER_ACCEL_MIN&&rate<PARTNER_ACCEL_RATE){
-      rate=PARTNER_ACCEL_RATE;r.accelerated=true;
-      reason=`Large-scale organizational accelerator — ${fmtPlain(gt)} contract earns 20% (§3.B)`;
+    if(r.isOrg&&gt>=PARTNER_ACCEL_MIN&&rate<accelRate){
+      rate=accelRate;r.accelerated=true;
+      reason=`Large-scale organizational accelerator — ${fmtPlain(gt)} contract earns ${Math.round(accelRate*100)}% (§3.B)`;
     }
     // §3.A — the rate applies to NET, not to collected revenue. A booking that
     // cost more to deliver than it brought in pays no commission rather than a
@@ -2131,10 +2157,10 @@ function partnerStatement(partnerId,period){
   // §3.A — the tier is set by the month's TOTAL originated collected revenue, and
   // then applies to every dollar of it.
   const monthTotal=round2(rows.reduce((a,r)=>a+r.collected,0));
-  const tier=tierFor(monthTotal);
-  const next=nextTierFor(monthTotal);
+  const tier=tierFor(monthTotal,partnerId);
+  const next=nextTierFor(monthTotal,partnerId);
   const toNext=next?round2(next.min-monthTotal):0;
-  applyPartnerRowRates(rows,monthTotal,cfg);
+  applyPartnerRowRates(rows,monthTotal,cfg,partnerId);
 
   const commission=round2(rows.reduce((a,r)=>a+r.commission,0));
 
@@ -2174,7 +2200,7 @@ function partnerStatement(partnerId,period){
     applyPartnerRowRates([
       ...earned.map(r=>({sessionId:r.sessionId,collected:r.collected,isOrg:r.isOrg,org:r.org,isRepeat:r.isRepeat})),
       ...pendingRateRows
-    ],round2(collectedForM+pendingAmt),cfg);
+    ],round2(collectedForM+pendingAmt),cfg,partnerId);
     group.forEach((p,i)=>{
       const rr=pendingRateRows[i];
       p.estRate=rr.rate;p.estReason=rr.reason;p.estCommission=rr.commission;
@@ -3181,9 +3207,9 @@ function buildPartnerPortalPayload(p){
     publishedAt:new Date().toISOString(),
     payableMonth:lastMonth,currentMonth:thisMonth,
     settings:{repeatPolicy:cfg.repeatPolicy,accelGrouping:cfg.accelGrouping},
-    tiers:PARTNER_TIERS.map(t=>({name:t.name,label:t.label,rate:t.rate,min:t.min,
+    tiers:partnerTiersFor(p).map(t=>({name:t.name,label:t.label,rate:t.rate,min:t.min,
       max:t.max===Infinity?null:t.max})),
-    flatRate:PARTNER_FLAT_RATE,newOrgBonus:PARTNER_NEW_ORG_BONUS,
+    flatRate:partnerFlatRate(p),newOrgBonus:PARTNER_NEW_ORG_BONUS,
     lifetime:{revenue:lt.revenue,earned:lt.earned,paid:lt.paid,unpaid:lt.unpaid},
     months,
     pending:(live.pending||[]).map(portalPending),
@@ -3261,6 +3287,26 @@ function partnerPortalFieldsHtml(p){
   </div>`;
 }
 
+function partnerCommissionFieldHtml(p){
+  const defPct=Math.round(PARTNER_FLAT_RATE*100);
+  const stored=p&&p.commissionRate!=null&&p.commissionRate!==''?Number(p.commissionRate):NaN;
+  const pct=isFinite(stored)?String(+(stored*100).toFixed(2)).replace(/\.00$/,''):String(defPct);
+  return `<div class="fg"><label>Commission % of net after costs</label>
+    <input type="number" id="m-pcomm" min="0" max="100" step="1" value="${escapeHtml(pct)}">
+    <div style="font-size:14px;color:var(--muted);margin-top:4px">${defPct} is the standard agreement. Direct costs (processing fees, materials, instructor/job costs) come off first; the partner earns this share of what is left. Leave at ${defPct} to use the default.</div>
+  </div>`;
+}
+
+function parsePartnerCommissionInput(raw,existing){
+  const t=String(raw==null?'':raw).trim();
+  const frac=t===''?PARTNER_FLAT_RATE:Number(t)/100;
+  if(!isFinite(frac)||frac<0||frac>1)return{error:'Commission % of net after costs must be between 0 and 100.'};
+  // Blank/default keeps a null override as null so Travis (and anyone on the
+  // engine default) is not rewritten to a stored 0.20.
+  if((existing==null||existing==='')&&Math.abs(frac-PARTNER_FLAT_RATE)<1e-9)return{rate:null};
+  return{rate:frac};
+}
+
 function openAddPartner(){
   showModal(`<div class="modal-head"><h3>Add community partner</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
@@ -3270,6 +3316,7 @@ function openAddPartner(){
     <div class="fg full"><label>Zelle (mobile or email) *</label><input type="text" id="m-pzelle" placeholder="Where commission gets sent"><div style="font-size:14px;color:var(--muted);margin-top:4px">Copy this from the bottom of their signed agreement — it's how commission is remitted under §3.E.</div></div>
     <div class="fg"><label>Agreement effective date</label><input type="date" id="m-pstart"></div>
     <div class="fg"><label>Status</label><select id="m-pstatus" style="width:100%"><option value="active" selected>Active</option><option value="inactive">Inactive (agreement ended)</option></select></div>
+    ${partnerCommissionFieldHtml(null)}
     ${partnerPortalFieldsHtml(null)}
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Paperwork</div>
@@ -3291,6 +3338,7 @@ function openEditPartner(id){
     <div class="fg full"><label>Zelle (mobile or email) *</label><input type="text" id="m-pzelle" value="${escapeHtml(p.zelle)}"></div>
     <div class="fg"><label>Agreement effective date</label><input type="date" id="m-pstart" value="${p.startDate||''}"></div>
     <div class="fg"><label>Status</label><select id="m-pstatus" style="width:100%"><option value="active" ${p.status!=='inactive'?'selected':''}>Active</option><option value="inactive" ${p.status==='inactive'?'selected':''}>Inactive (agreement ended)</option></select></div>
+    ${partnerCommissionFieldHtml(p)}
     <div class="fg full"><label>Termination date <span style="font-weight:400;color:var(--muted)">(only if the agreement ended)</span></label><input type="date" id="m-pend" value="${p.endDate||''}"><div style="font-size:14px;color:var(--muted);margin-top:4px">After termination, commission is only payable on courses delivered or already scheduled as of this date (§7). Bookings made later earn nothing, so leave "Originated by" blank on those.</div></div>
     ${partnerPortalFieldsHtml(p)}
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
@@ -3308,6 +3356,9 @@ async function savePartner(editId){
   if(!name){showToast('Please enter the partner’s name.');return;}
   const contractSigned=!!document.getElementById('m-pcontract')?.checked;
   const wasSigned=editId?!!(partnerById(editId)||{}).contractSigned:false;
+  const existingRate=editId?(partnerById(editId)||{}).commissionRate:null;
+  const parsedRate=parsePartnerCommissionInput(document.getElementById('m-pcomm')?.value,existingRate);
+  if(parsedRate.error){showToast(parsedRate.error);return;}
   const data={
     name,
     email:(document.getElementById('m-pemail').value||'').trim(),
@@ -3320,7 +3371,8 @@ async function savePartner(editId){
     w9Submitted:!!document.getElementById('m-pw9')?.checked,
     notes:(document.getElementById('m-pnotes').value||'').trim(),
     instructorId:(document.getElementById('m-plinked')?.value||'')||null,
-    pin:(document.getElementById('m-ppin')?.value||'').trim()
+    pin:(document.getElementById('m-ppin')?.value||'').trim(),
+    commissionRate:parsedRate.rate
   };
   if(data.pin&&!/^\d{4,6}$/.test(data.pin)){showToast('A portal PIN must be 4 to 6 digits.');return;}
   // Two people cannot share a PIN, or the portal cannot tell them apart.
@@ -3349,6 +3401,11 @@ async function savePartner(editId){
     PARTNER_INSTRUCTOR_COL=false;
     ok=await dbWrite(sb.from('partners').upsert(partnerToDB(p)),'Partner');
     if(ok)showToast('Saved, but the instructor link needs partner_portal_setup.sql to be run first.');
+  }
+  if(!ok&&PARTNER_COMMISSION_RATE_COL){
+    PARTNER_COMMISSION_RATE_COL=false;
+    ok=await dbWrite(sb.from('partners').upsert(partnerToDB(p)),'Partner');
+    if(ok)showToast('Saved, but commission rate needs partners.commission_rate (see partners_commission_rate.sql).');
   }
   if(ok){
     publishPartnerPortal(p.id,true);
@@ -3624,10 +3681,11 @@ function referralRegEvent(r){
   if(!s)return null;
   return partnerRevenueEvents(s).find(e=>e.kind==='family'&&e.regId===r.id)||null;
 }
-// What the partner earns on one referred registration: the flat §3.A rate applied to
-// what is left after the processing fee, this child's materials and their share of
-// instructor pay and job costs. A session the partner originated is excluded — its
-// whole revenue already earns commission, and it must not be counted twice.
+// What the partner earns on one referred registration: that partner's §3.A rate
+// applied to what is left after the processing fee, this child's materials and
+// their share of instructor pay and job costs. A session the partner originated
+// is excluded — its whole revenue already earns commission, and it must not be
+// counted twice.
 function referralRegCommission(r){
   const q=referralPartner(r);
   if(!q)return{net:0,commission:0,earned:false,originated:false,event:null};
@@ -3636,7 +3694,7 @@ function referralRegCommission(r){
   const ev=referralRegEvent(r);
   if(!ev)return{net:0,commission:0,earned:false,originated:false,event:null};
   const net=round2(Math.max(0,Number(ev.net!=null?ev.net:ev.amount)||0));
-  return{net,commission:round2(net*PARTNER_FLAT_RATE),earned:!!ev.collected,originated:false,event:ev};
+  return{net,commission:round2(net*partnerFlatRate(q)),earned:!!ev.collected,originated:false,event:ev};
 }
 
 // ─── IN-KIND DONATIONS (auction prizes) ──────────────────────
@@ -3765,10 +3823,14 @@ function renderReports(){
   const partnerFams=partnerGroups.reduce((n,g)=>n+g.regs.length,0);
   const partnerRev=partnerGroups.reduce((n,g)=>n+g.revenue,0);
   const partnerComm=partnerGroups.reduce((n,g)=>n+g.comm,0);
+  const partnerRates=[...new Set(partnerGroups.map(g=>partnerFlatRate(g.partner)))];
+  const partnerRateSub=partnerRates.length===1
+    ?Math.round(partnerRates[0]*100)+'% of net, incl. not-yet-payable'
+    :'at each partner’s rate of net, incl. not-yet-payable';
   document.getElementById('rep-partner-ref-metrics').innerHTML=`
     <div class="metric"><div class="m-label">Families sent by a partner</div><div class="m-val">${partnerFams}</div><div class="m-sub">${partnerGroups.length} partner${partnerGroups.length===1?'':'s'} named</div></div>
     <div class="metric"><div class="m-label">Revenue from those families</div><div class="m-val">${fmt(partnerRev)}</div><div class="m-sub">paid registrations only</div></div>
-    <div class="metric"><div class="m-label">Commission on referrals</div><div class="m-val">${fmt(partnerComm)}</div><div class="m-sub">${Math.round(PARTNER_FLAT_RATE*100)}% of net, incl. not-yet-payable</div></div>
+    <div class="metric"><div class="m-label">Commission on referrals</div><div class="m-val">${fmt(partnerComm)}</div><div class="m-sub">${partnerRateSub}</div></div>
   `;
   document.getElementById('partner-ref-table').innerHTML=
     '<thead><tr><th>Named on the form</th><th style="text-align:center">Partner?</th><th style="text-align:right">Families</th><th style="text-align:right">Paid</th><th style="text-align:right">Collected</th><th style="text-align:right">Net after costs</th><th style="text-align:right">Commission</th><th style="text-align:right">Payable now</th></tr></thead><tbody>'+
@@ -3886,7 +3948,7 @@ function exportPartnerReferralCSV(){
     const rc=referralRegCommission(r);
     rows.push([referrerName(r),gp?'Yes':'No',r.parentName||r.studentName||'',s?s.course:'',s?(s.date||''):'',
       t?new Date(t).toISOString().slice(0,10):'',r.payStatus||'unpaid',referralRegRevenue(r).toFixed(2),
-      gp?rc.net.toFixed(2):'',gp&&!rc.originated?Math.round(PARTNER_FLAT_RATE*100)+'%':'',
+      gp?rc.net.toFixed(2):'',gp&&!rc.originated?Math.round(partnerFlatRate(gp)*100)+'%':'',
       gp?rc.commission.toFixed(2):'',rc.originated?'Counted in her originated booking':(rc.earned?'Yes':'Not yet')]);
   });
   reportDownloadCSV(rows,'partner-referrals');
