@@ -26,7 +26,7 @@ function extractFunction(src, name) {
 
 const names = [
   'fmtYMD', 'matToday', 'matPrevDay', 'coEnd', 'coActiveOn', 'coNoEquipment', 'coUsesExisting',
-  'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matOpenCheckouts', 'emailsInText'
+  'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matOpenCheckouts'
 ];
 const sandbox = { matCheckouts: [], Date, String, Number };
 vm.createContext(sandbox);
@@ -58,9 +58,4 @@ test('on hand ignores future reservations and kits already checked back in today
   } finally {
     sandbox.matToday = realToday;
   }
-});
-
-test('emailsInText pulls a host address out of the contact field', () => {
-  assert.equal(sandbox.emailsInText('301-555-0199 or Host.Parent@example.com').join('|'), 'Host.Parent@example.com');
-  assert.equal(sandbox.emailsInText('301-555-0199').join('|'), '');
 });

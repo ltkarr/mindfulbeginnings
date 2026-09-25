@@ -98,7 +98,7 @@ test('admin expense categories include Curriculum Development', () => {
   assert.ok(list.includes('Charitable Donation'));
 });
 
-test('dashboard materials show on hand vs checked out and check in against a session', () => {
+test('dashboard materials entry points at the existing Equipment flow', () => {
   assert.match(admin, /id="dash-materials"/);
   assert.match(admin, /function renderDashMaterials/);
   assert.match(admin, /function openCheckIn/);
@@ -107,37 +107,60 @@ test('dashboard materials show on hand vs checked out and check in against a ses
   assert.match(admin, />On hand</);
   assert.match(admin, />Checked out</);
   assert.match(admin, /Check out for this class/);
+  assert.match(admin, /reuse a kit instead of checking out a second one/);
+  assert.match(admin, /onclick="openCheckout\(\)"/);
   const sql = fs.readFileSync(path.join(root, 'migrations/infant_cpr_manikins_plus3.sql'), 'utf8');
+  assert.match(sql, /419e04a9-5916-450c-b2a3-65c292a235ec/);
   assert.match(sql, /Infant CPR Manikins/);
-  assert.match(sql, /qty = qty \+ 3/);
-  assert.match(sql, /purchased Sep 2026/);
-  assert.match(sql, /mb-infant-manikins-plus-3-2026-09/);
+  assert.match(sql, /qty = 7/);
+  assert.match(sql, /qty < 7/);
+  assert.match(sql, /was 4, plus 3 purchased Sep 2026/);
 });
 
-test('dashboard outreach opens the Google Doc and keeps recipient lists', () => {
+test('family BCC composers open the Google Doc and leave the message empty', () => {
   const doc = 'https://docs.google.com/document/d/1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/edit?tab=t.0';
   assert.match(admin, new RegExp(doc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(admin, /Open this Google Doc/);
-  assert.match(admin, /function openOutreachWindow/);
-  assert.match(admin, /This screen does not send mail and does not load the Doc/);
-  const slice = (a, b) => admin.slice(admin.indexOf(a), admin.indexOf(b));
-  const classMail = slice('function openClassReminder', 'function openHostReminder');
+  assert.match(admin, /function openFamilyDocEmail/);
+  assert.match(admin, /Copy BCC/);
+  assert.match(admin, /Nothing is sent from this screen/);
+  const slice = (a, b) => {
+    const start = admin.indexOf(a);
+    const end = admin.indexOf(b);
+    assert.ok(start >= 0 && end > start, a + ' .. ' + b);
+    return admin.slice(start, end);
+  };
+  const post = slice('function openPostCourseEmail', 'const MB_OUTREACH_DOC_URL');
+  const family = slice('function openFamilyDocEmail', 'function openClassReminder');
+  const classMail = slice('function openClassReminder', '// ─── INSTRUCTOR FOLLOW-UP');
+  const emailClassFn = slice('function emailClass', 'function openPostCourseEmail');
   const hostMail = slice('function openHostReminder', 'function openInstructorReminder');
-  const instrMail = slice('function openInstructorReminder', 'function openInstructorFollowup');
-  for (const fn of [classMail, hostMail, instrMail]) {
-    assert.doesNotMatch(fn, /EMAIL_BODY/);
-    assert.doesNotMatch(fn, /outlook\.office\.com/);
-    assert.doesNotMatch(fn, /mail\.google\.com/);
-    assert.match(fn, /openOutreachWindow/);
-  }
+  const instrMail = slice('function openInstructorReminder', '// ─── ERROR TRACKING');
+
+  assert.match(post, /openFamilyDocEmail/);
+  assert.match(post, /Post-course family email/);
+  assert.doesNotMatch(post, /EMAIL_BODY/);
+  assert.match(classMail, /openFamilyDocEmail/);
   assert.match(classMail, /Send reminder to the class/);
-  assert.match(classMail, /listLabel:'BCC'/);
-  assert.match(hostMail, /Send reminder to host/);
-  assert.match(instrMail, /Send reminder \+ roster to instructor/);
-  assert.match(instrMail, /listLabel:'To'/);
+  assert.doesNotMatch(classMail, /EMAIL_BODY/);
+  assert.match(family, /outlook\.office\.com\/mail\/deeplink\/compose\?bcc=/);
+  assert.match(family, /mail\.google\.com\/mail\/\?view=cm&fs=1&bcc=/);
+  assert.match(family, /&subject=/);
+  assert.match(family, /&su=/);
+  assert.doesNotMatch(family, /&body=/);
+  assert.doesNotMatch(family, /EMAIL_BODY/);
+
+  assert.match(hostMail, /coming up in one week! We are so excited/);
+  assert.match(hostMail, /const emailText=/);
+  assert.match(instrMail, /Just a reminder that you are scheduled to teach/);
+  assert.match(instrMail, /const emailText=/);
+
+  assert.match(emailClassFn, /bcc=/);
+  assert.doesNotMatch(emailClassFn, /openFamilyDocEmail/);
+  assert.doesNotMatch(emailClassFn, /MB_OUTREACH_DOC_URL/);
+  assert.doesNotMatch(emailClassFn, /EMAIL_BODY/);
   assert.doesNotMatch(admin, /Please review the important details below as you prepare for the class/);
-  assert.doesNotMatch(admin, /coming up in one week! We are so excited/);
-  assert.doesNotMatch(admin, /Just a reminder that you are scheduled to teach/);
+  assert.doesNotMatch(admin, /Thank you for trusting Mindful Beginnings/);
 });
 
 test('Care Ready is wired into the instructor config and the admin course list', () => {

@@ -1,53 +1,23 @@
 -- ============================================================================
---  Mindful Beginnings — three more infant CPR manikins (September 2026)
+--  Mindful Beginnings — Infant CPR Manikins owned quantity is 7
 --  Run in the Supabase SQL editor (Project → SQL editor → New query).
 --
 --  WHAT THIS DOES:
---    Adds 3 to the owned quantity of the infant CPR manikin kit.
---    The admin Equipment screen matches this kit by a name containing
---    "infant" (same rule as MAT_KIND_RX.infant in admin.html).
---    The live row is named "Infant CPR Manikins".
+--    Sets the owned quantity of the existing Infant CPR Manikins row to 7.
+--    Row id: 419e04a9-5916-450c-b2a3-65c292a235ec
+--    That kit was owned at 4. Lindsay bought 3 more in September 2026.
 --
---    If that row already notes the September 2026 purchase, the quantity
---    is left alone so the three new manikins are not counted twice.
---    If no infant kit exists yet, one is inserted as "Infant CPR Manikins"
---    with quantity 3, matching the other manikin names on the shelf
---    (Child Manikins, Adult Manikin, Infant CPR Manikins).
+--    A row already at 7 or higher is left alone, so this will not add
+--    another three and will not lower a higher count.
+--    Child Manikins, Adult Manikin, and the AV Kit are not touched.
+--    No second infant row is inserted.
 --
---  SAFE TO RE-RUN: yes. The purchase marker stops a second +3.
+--  SAFE TO RE-RUN: yes. The qty < 7 guard stops a second change.
 -- ============================================================================
 
-do $$
-declare
-  rec public.equipment%rowtype;
-  marker text := 'mb-infant-manikins-plus-3-2026-09';
-begin
-  select * into rec
-  from public.equipment
-  where name ~* 'infant'
-  order by sort nulls last, created_at
-  limit 1;
-
-  if rec.id is not null then
-    if coalesce(rec.notes, '') ilike '%purchased Sep 2026%'
-       or coalesce(rec.notes, '') ilike '%' || marker || '%' then
-      raise notice 'Infant manikins already include the Sep 2026 purchase (qty %). No change.', rec.qty;
-      return;
-    end if;
-
-    update public.equipment
-    set qty = qty + 3,
-        notes = trim(both ' ' from concat_ws(' ', notes, 'Owned qty +3 (purchased Sep 2026).', marker))
-    where id = rec.id;
-    return;
-  end if;
-
-  insert into public.equipment (id, name, qty, notes, sort)
-  values (
-    gen_random_uuid(),
-    'Infant CPR Manikins',
-    3,
-    'Owned qty +3 (purchased Sep 2026). ' || marker,
-    coalesce((select max(sort) + 1 from public.equipment), 1)
-  );
-end $$;
+update public.equipment
+set qty = 7,
+    notes = 'Owned qty 7 (was 4, plus 3 purchased Sep 2026).'
+where id = '419e04a9-5916-450c-b2a3-65c292a235ec'
+  and name = 'Infant CPR Manikins'
+  and qty < 7;
