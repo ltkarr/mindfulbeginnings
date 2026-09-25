@@ -106,6 +106,18 @@ test('create-session form reserves materials and the dashboard only marks kits r
   assert.match(admin, /function applySessionMaterials/);
   assert.match(admin, /Purchase more equipment/);
   assert.match(admin, /Purchase '\+p\.shortfall\+' more /);
+  assert.match(admin, /KEEP the durable kit/);
+  assert.match(admin, /Only deliver new/);
+  assert.match(admin, /Safe Sitter handbooks/);
+  assert.match(admin, /Safe@Home handbooks/);
+  assert.match(admin, /Grandparents handbooks/);
+  assert.match(admin, /Safe Sitter notebooks/);
+  assert.match(admin, /Order more /);
+  assert.match(admin, /reorder_at/);
+  const stockSql = fs.readFileSync(path.join(root, 'migrations/equipment_consumables_reorder.sql'), 'utf8');
+  assert.match(stockSql, /consumable/);
+  assert.match(stockSql, /reorder_at/);
+  assert.match(stockSql, /Safe Sitter handbooks/);
   assert.match(admin, /usesExisting — do not check out a second one/);
   assert.match(admin, /already has this equipment out for other sessions/);
   const add = admin.slice(admin.indexOf('function openAddSession'), admin.indexOf('function openEditSession'));

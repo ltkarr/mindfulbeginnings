@@ -466,7 +466,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
          renderJobs()/job-action functions below are kept but no-op without the screen. -->
     <div class="screen" id="screen-materials">
       <div class="page-header">
-        <div><div class="page-title">Equipment</div><div class="page-sub">Reusable teaching kits only — manikins and AV gear. On hand is what is on the shelf today. Checked out is what an instructor already has. Handbooks and note pads are not tracked here; they live on the pre-class checklist as "Handbooks &amp; supplies".</div></div>
+        <div><div class="page-title">Equipment</div><div class="page-sub">Manikins, AV kits, and consumable stock (handbooks and notebooks). On hand is what is on the shelf today. Durable kits check back in. Handbooks and notebooks stay off the shelf once a class is reserved.</div></div>
         <div class="btn-row">
           <button class="btn" onclick="openAddEquipment()">+ Add equipment type</button>
           <button class="btn primary" onclick="openCheckout()">📦 Check out equipment</button>
@@ -784,8 +784,8 @@ function jobToDB(sessId,j){
 // Equipment inventory (reusable teaching kits: manikins, AV kits) and their checkouts.
 // A checkout can bundle several items ({equipmentId, qty} pairs in the items jsonb),
 // spans an out-date → due-back-date range, and optionally ties to a session.
-function equipmentFromDB(r){return{id:r.id,name:r.name||'',qty:Number(r.qty)||0,notes:r.notes||'',sort:r.sort||0,createdAt:r.created_at||Date.now()};}
-function equipmentToDB(e){return{id:e.id,name:e.name,qty:Number(e.qty)||0,notes:e.notes||null,sort:e.sort||0};}
+function equipmentFromDB(r){return{id:r.id,name:r.name||'',qty:Number(r.qty)||0,notes:r.notes||'',sort:r.sort||0,createdAt:r.created_at||Date.now(),consumable:!!r.consumable,reorderAt:r.reorder_at==null||r.reorder_at===''?null:Number(r.reorder_at),reorderQty:r.reorder_qty==null||r.reorder_qty===''?null:Number(r.reorder_qty)};}
+function equipmentToDB(e){return{id:e.id,name:e.name,qty:Number(e.qty)||0,notes:e.notes||null,sort:e.sort||0,consumable:!!e.consumable,reorder_at:e.reorderAt==null||e.reorderAt===''?null:Number(e.reorderAt),reorder_qty:e.reorderQty==null||e.reorderQty===''?null:Number(e.reorderQty)};}
 function checkoutFromDB(r){return{id:r.id,sessionId:r.session_id||null,person:r.person||'',items:Array.isArray(r.items)?r.items:[],outDate:r.out_date||'',dueDate:r.due_date||'',returnedDate:r.returned_date||null,notes:r.notes||'',createdAt:r.created_at||Date.now()};}
 function checkoutToDB(c){return{id:c.id,session_id:c.sessionId||null,person:c.person||null,items:c.items||[],out_date:c.outDate||null,due_date:c.dueDate||null,returned_date:c.returnedDate||null,notes:c.notes||null};}
 
@@ -8005,10 +8005,11 @@ async function deleteExpense(id){
 }
 
 // ─── MATERIALS (equipment inventory + checkouts) ─────────────
-// Tracks the reusable teaching kits (manikins, AV kits). Each equipment row is a
-// TYPE with a total quantity owned. A checkout says "these items are gone from
-// out_date through due_date", optionally tied to a session and a person. One-time-use
-// supplies (handbooks etc.) are intentionally NOT tracked here.
+// Tracks reusable teaching kits (manikins, AV kits) and consumable stock
+// (handbooks and notebooks). Each equipment row is a TYPE with a total quantity
+// owned. A checkout says "these items are gone from out_date through due_date",
+// optionally tied to a session and a person. Consumable lines stay off the shelf
+// after the out date, even when the durable kit is checked back in.
 
 // Local date as YYYY-MM-DD. NOT toISOString() — that is UTC, which after ~8pm ET
 // rolls to tomorrow and would make kits look gone/returned a day early.
@@ -8052,9 +8053,14 @@ function syncCheckoutInstructors(){
     c.person=list[0].name;
     updated.push(c.person);
     dbWrite(sb.from('equipment_checkouts').update({person:c.person}).eq('id',c.id),'Checkout instructor sync');
+    const keepLine=matKeepSentence(matPlanForSession({course:s.course,isVirtual:!!s.isVirtual,date:s.date||'',extraDates:s.extraDates||[],person:c.person,sessionId:s.id,headcount:sessionHeadcount(s)}));
+    if(keepLine)updated.push(keepLine);
   });
   if(updated.length){
-    showToast('📦 Equipment checkout'+(updated.length>1?'s':'')+' updated — now assigned to '+[...new Set(updated)].join(', '));
+    const names=updated.filter(function(x){return x.indexOf('KEEP')<0&&x.indexOf('Keep it out')<0;});
+    showToast('📦 Equipment checkout'+(names.length>1?'s':'')+' updated — now assigned to '+[...new Set(names)].join(', '));
+    const keep=updated.find(function(x){return x.indexOf('KEEP')>=0||x.indexOf('Keep it out')>=0;});
+    if(keep)showToast(keep);
     renderMaterials();
   }
 }
@@ -8087,6 +8093,29 @@ const MAT_NEEDS={
 };
 const MAT_KIND_RX={infant:/infant/i,child:/child/i,adult:/adult/i,av:/\bav\b|laptop|projector/i};
 function matEqOfKind(kind){const rx=MAT_KIND_RX[kind];return rx?equipment.find(e=>rx.test(e.name)):null;}
+// A following class within two weeks counts as "soon" (Oct 3 and Oct 10 are 7 days).
+// The contractor agreement still calls out three days; this window is the keep-kit alert.
+const MAT_KEEP_DAYS=14;
+// One copy per student. Registered headcount wins; otherwise the class capacity.
+const MAT_BOOKS={
+  'Safe Sitter®':['ssHandbook','ssNotebook'],
+  'Safe@Home':['sahHandbook'],
+  'Safe@Home — Series':['sahHandbook'],
+  'Grandparents: Getting Started':['gpHandbook']
+};
+const MAT_BOOK_RX={
+  ssHandbook:/safe sitter handbook/i,
+  sahHandbook:/safe@home handbook/i,
+  gpHandbook:/grandparent handbook/i,
+  ssNotebook:/safe sitter notebook/i
+};
+const MAT_BOOK_LABEL={
+  ssHandbook:'Safe Sitter handbooks',
+  sahHandbook:'Safe@Home handbooks',
+  gpHandbook:'Grandparents handbooks',
+  ssNotebook:'Safe Sitter notebooks'
+};
+function matBookEq(kind){const rx=MAT_BOOK_RX[kind];return rx?(equipment||[]).find(function(e){return rx.test(e.name);}):null;}
 // The {kind:qty} needs for one SESSION — null when nothing is needed
 // (virtual session, own-materials course, or a course not in the table above).
 function sessionMatNeeds(s){
@@ -8102,44 +8131,205 @@ function matPersonOverlaps(person,outDate,dueDate,excludeId){
 }
 function matHeldQty(overlaps,eqId){
   let n=0;
-  (overlaps||[]).forEach(c=>(c.items||[]).forEach(it=>{if(it&&it.equipmentId===eqId)n+=Number(it.qty)||0;}));
+  (overlaps||[]).forEach(c=>(c.items||[]).forEach(it=>{if(it&&it.equipmentId===eqId&&!it.consumable)n+=Number(it.qty)||0;}));
   return n;
 }
+function sessionHeadcount(s,override){
+  if(override!=null&&override!=='')return Math.max(0,Number(override)||0);
+  let enrolled=0;
+  if(s&&s.id&&typeof seatsOnSession==='function'){
+    try{enrolled=seatsOnSession(s.id)||0;}catch(e){enrolled=0;}
+  }
+  if(enrolled>0)return enrolled;
+  if(s&&typeof sessionMaxStudents==='function'){
+    try{return sessionMaxStudents(s)||0;}catch(e){}
+  }
+  const course=s&&s.course;
+  if(typeof COURSES!=='undefined'&&COURSES[course]&&COURSES[course].maxStudents)return COURSES[course].maxStudents;
+  return 0;
+}
+function sessionBookNeeds(s,headcount){
+  if(!s||s.isVirtual)return null;
+  const kinds=MAT_BOOKS[s.course];
+  if(!kinds||!kinds.length)return null;
+  const n=sessionHeadcount(s,headcount);
+  if(!n)return null;
+  const out={};
+  kinds.forEach(function(k){out[k]=n;});
+  return out;
+}
+function matPersonTeaches(s,person){
+  const who=(person||'').trim().toLowerCase();
+  if(!who||!s||typeof sessionInstructorList!=='function')return false;
+  return sessionInstructorList(s).some(function(x){return (x.name||'').trim().toLowerCase()===who;});
+}
+function matSameDurable(kinds,need){
+  if(!need)return false;
+  if(!kinds||!kinds.length)return true;
+  return kinds.some(function(k){return need[k];});
+}
+function matLaterClasses(person,afterDate,skipId,kinds){
+  if(!person||!afterDate||typeof sessions==='undefined')return [];
+  return sessions.filter(function(s){
+    if(!s||s.id===skipId||s.isHold||s.isCancelled||s.isVirtual||!s.date)return false;
+    if(s.date<=afterDate)return false;
+    if(matDaysBetween(afterDate,s.date)>MAT_KEEP_DAYS)return false;
+    if(!matPersonTeaches(s,person))return false;
+    return matSameDurable(kinds,sessionMatNeeds(s));
+  }).map(function(s){return {id:s.id,course:s.course,date:s.date,end:sessionEndDate(s)};})
+    .sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+}
+function matEarlierClasses(person,outDate,skipId,kinds){
+  if(!person||!outDate||typeof sessions==='undefined')return [];
+  return sessions.filter(function(s){
+    if(!s||s.id===skipId||s.isHold||s.isCancelled||s.isVirtual||!s.date)return false;
+    if(!matPersonTeaches(s,person))return false;
+    if(s.date>=outDate)return false;
+    const end=sessionEndDate(s)||s.date;
+    if(end<outDate){
+      const gap=matDaysBetween(end,outDate);
+      if(gap<0||gap>MAT_KEEP_DAYS)return false;
+    }
+    return matSameDurable(kinds,sessionMatNeeds(s));
+  }).map(function(s){return {id:s.id,course:s.course,date:s.date,end:sessionEndDate(s)};})
+    .sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+}
+function matPersonKeepHits(person,outDate,dueDate,excludeId){
+  const overlaps=matPersonOverlaps(person,outDate,dueDate,excludeId);
+  const who=(person||'').trim().toLowerCase();
+  if(!who||!outDate)return overlaps;
+  const extra=(matCheckouts||[]).filter(function(c){
+    if(overlaps.some(function(x){return x.id===c.id;}))return false;
+    if(c.id===excludeId||c.returnedDate||coUsesExisting(c)||coNoEquipment(c))return false;
+    if((c.person||'').trim().toLowerCase()!==who)return false;
+    const end=coEnd(c);
+    if(!end||end>=outDate)return false;
+    const gap=matDaysBetween(end,outDate);
+    return gap>=0&&gap<=MAT_KEEP_DAYS;
+  });
+  return overlaps.concat(extra);
+}
+function matShortDate(d){
+  if(!d)return '';
+  return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function matBookPhrase(plan){
+  const names=(plan&&plan.lines||[]).filter(function(l){return l.consumable;}).map(function(l){return l.name;});
+  if(!names.length)return '';
+  if(names.length===1)return names[0];
+  return names.slice(0,-1).join(', ')+' and '+names[names.length-1];
+}
+function matKeepSentence(plan){
+  if(!plan||!plan.keep)return '';
+  const k=plan.keep;
+  const who=(plan.person||'').trim()||'This instructor';
+  const first=who.split(' ')[0];
+  const books=matBookPhrase(plan);
+  const later=k.later||[];
+  if(later.length){
+    const list=later.map(function(row){return row.course+' on '+matShortDate(row.date);}).join(', ');
+    const tail=books
+      ?' You only need to leave new '+books+' for the later date'+(later.length>1?'s':'')+'.'
+      :' Nothing else from the durable kit needs to go out for those dates.';
+    return first+' should KEEP the durable kit for the next class'+(later.length>1?'es':'')+' ('+list+').'+tail+' Due back stays after that class so the kit is not marked overdue in between.';
+  }
+  const earlier=k.earlier||[];
+  const from=earlier.length?(' from '+earlier.map(function(row){return row.course+' on '+matShortDate(row.date);}).join(', ')):'';
+  const tail=books?' Only deliver new '+books+'.':'';
+  if(plan.reuseOffer&&plan.fullyCovered)return first+' already has this durable kit'+from+'. Keep it out for this class.'+tail;
+  if(earlier.length)return first+' teaches '+earlier.map(function(row){return row.course+' on '+matShortDate(row.date);}).join(', ')+' just before this class. If the durable kit is still with them, KEEP it out.'+tail;
+  return '';
+}
+function matFreeForDemand(eq){
+  if(!eq)return 0;
+  if(eq.consumable){
+    let used=0;
+    (matCheckouts||[]).forEach(function(c){
+      (c.items||[]).forEach(function(it){
+        if(it&&it.consumable&&it.equipmentId===eq.id)used+=Number(it.qty)||0;
+      });
+    });
+    return eq.qty-used;
+  }
+  const t=matToday();
+  const endDt=new Date(t+'T12:00:00');
+  endDt.setDate(endDt.getDate()+120);
+  return minAvailInRange(eq.id,t,fmtYMD(endDt),null);
+}
+function matReorderLines(){
+  const out=[];
+  (equipment||[]).forEach(function(eq){
+    if(eq.reorderAt==null||eq.reorderAt==='')return;
+    const threshold=Number(eq.reorderAt);
+    if(isNaN(threshold))return;
+    const onHand=eq.qty-matPhysicallyOut(eq.id);
+    const freeSoon=matFreeForDemand(eq);
+    const low=Math.min(onHand,freeSoon);
+    if(low>threshold)return;
+    const suggested=eq.reorderQty!=null&&Number(eq.reorderQty)>0?Number(eq.reorderQty):Math.max(1,threshold-low);
+    out.push({name:eq.name,need:suggested,onHand:onHand,freeSoon:freeSoon,threshold:threshold});
+  });
+  return out;
+}
 // What creating or editing a session should reserve.
-// draft: course, isVirtual, date, extraDates, person, reuse, qtys {eqId:n}, excludeCheckoutId.
+// draft: course, isVirtual, date, extraDates, person, reuse, qtys {eqId:n}, excludeCheckoutId, headcount, sessionId.
 // purchase lists equipment whose requested qty is higher than what is free on those dates.
 function matPlanForSession(draft){
   draft=draft||{};
-  const s={course:draft.course,isVirtual:!!draft.isVirtual,date:draft.date||'',extraDates:draft.extraDates||[]};
+  const s={id:draft.sessionId||null,course:draft.course,isVirtual:!!draft.isVirtual,date:draft.date||'',extraDates:draft.extraDates||[]};
   const needs=sessionMatNeeds(s);
+  const books=sessionBookNeeds(s,draft.headcount);
   const outDate=draft.date||'';
   const dueDate=outDate?sessionEndDate(s):'';
-  if(!needs)return{skip:true,lines:[],purchase:[],overlaps:[],reuseOffer:false,fullyCovered:false,outDate:outDate,dueDate:dueDate};
-  const overlaps=matPersonOverlaps(draft.person,outDate,dueDate,draft.excludeCheckoutId||null);
+  const empty={skip:true,lines:[],purchase:[],overlaps:[],reuseOffer:false,fullyCovered:false,outDate:outDate,dueDate:dueDate,holdUntil:dueDate,keep:null,person:draft.person||''};
+  if(!needs&&!books)return empty;
+  const hits=matPersonKeepHits(draft.person,outDate,dueDate,draft.excludeCheckoutId||null);
   const reuse=!!draft.reuse;
   const lines=[];
   const purchase=[];
-  Object.entries(needs).forEach(function(pair){
-    const kind=pair[0],q=pair[1];
-    const eq=matEqOfKind(kind);
-    const held=eq?matHeldQty(overlaps,eq.id):0;
-    const covered=held>=q;
+  function pushLine(kind,q,eq,name,held,covered,consumable){
     let requested;
-    if(reuse&&covered)requested=0;
+    if(!consumable&&reuse&&covered)requested=0;
     else if(draft.qtys&&eq&&draft.qtys[eq.id]!=null)requested=Number(draft.qtys[eq.id])||0;
     else requested=q;
     const free=(eq&&outDate&&dueDate&&dueDate>=outDate)?minAvailInRange(eq.id,outDate,dueDate,draft.excludeCheckoutId||null):(eq?eq.qty:0);
     const shortfall=requested>free?requested-free:0;
-    const line={kind:kind,eqId:eq?eq.id:null,name:eq?eq.name:kind,owned:eq?eq.qty:0,need:q,requested:requested,free:free,shortfall:shortfall,held:held,covered:covered};
+    const line={kind:kind,eqId:eq?eq.id:null,name:name,owned:eq?eq.qty:0,need:q,requested:requested,free:free,shortfall:shortfall,held:held,covered:!!covered,consumable:!!consumable};
     lines.push(line);
-    if(shortfall>0)purchase.push({name:line.name,shortfall:shortfall,owned:line.owned,free:line.free});
-  });
-  return{skip:false,lines:lines,purchase:purchase,overlaps:overlaps,reuseOffer:lines.some(function(l){return l.held>0;}),fullyCovered:lines.length>0&&lines.every(function(l){return l.covered;}),outDate:outDate,dueDate:dueDate};
+    if(shortfall>0&&eq)purchase.push({name:line.name,shortfall:shortfall,owned:line.owned,free:line.free});
+  }
+  if(needs){
+    Object.entries(needs).forEach(function(pair){
+      const kind=pair[0],q=pair[1];
+      const eq=matEqOfKind(kind);
+      const held=eq?matHeldQty(hits,eq.id):0;
+      pushLine(kind,q,eq,eq?eq.name:kind,held,held>=q,false);
+    });
+  }
+  if(books){
+    Object.entries(books).forEach(function(pair){
+      const kind=pair[0],q=pair[1];
+      const eq=matBookEq(kind);
+      pushLine(kind,q,eq,eq?eq.name:(MAT_BOOK_LABEL[kind]||kind),0,false,true);
+    });
+  }
+  const durable=lines.filter(function(l){return !l.consumable;});
+  const kinds=durable.map(function(l){return l.kind;});
+  const later=kinds.length?matLaterClasses(draft.person,dueDate,draft.sessionId||null,kinds):[];
+  const earlier=kinds.length?matEarlierClasses(draft.person,outDate,draft.sessionId||null,kinds):[];
+  let holdUntil=dueDate;
+  later.forEach(function(row){if(row.end&&(!holdUntil||row.end>holdUntil))holdUntil=row.end;});
+  const extendIds=hits.filter(function(c){return c&&c.id&&c.dueDate&&dueDate&&c.dueDate<dueDate;}).map(function(c){return c.id;});
+  return{skip:false,lines:lines,purchase:purchase,overlaps:hits,reuseOffer:durable.some(function(l){return l.held>0;}),fullyCovered:durable.length>0&&durable.every(function(l){return l.covered;}),outDate:outDate,dueDate:dueDate,holdUntil:holdUntil,person:draft.person||'',keep:{later:later,earlier:earlier,extendIds:extendIds}};
 }
 function matCheckoutItemsFromPlan(plan,reuse){
   if(!plan||plan.skip)return null;
-  if(reuse&&plan.fullyCovered)return[{usesExisting:true,qty:0}];
-  const items=(plan.lines||[]).filter(function(l){return l.eqId&&l.requested>0;}).map(function(l){return{equipmentId:l.eqId,qty:l.requested};});
+  const books=(plan.lines||[]).filter(function(l){return l.consumable&&l.eqId&&l.requested>0;}).map(function(l){return{equipmentId:l.eqId,qty:l.requested,consumable:true};});
+  const durable=(plan.lines||[]).filter(function(l){return !l.consumable;});
+  const durableCovered=!!(reuse&&durable.length&&durable.every(function(l){return l.covered;}));
+  if(durableCovered)return[{usesExisting:true,qty:0}].concat(books);
+  const gear=durable.filter(function(l){return l.eqId&&l.requested>0;}).map(function(l){return{equipmentId:l.eqId,qty:l.requested};});
+  const items=gear.concat(books);
   if(!items.length&&reuse&&plan.reuseOffer)return[{usesExisting:true,qty:0}];
   return items.length?items:null;
 }
@@ -8187,12 +8377,19 @@ function matSessBadge(s){
 }
 
 // How many units of one equipment type are promised/out on a given day.
+// Consumables (handbooks, notebooks) leave the shelf on the out date and do not
+// come back when the durable kit is checked in.
 function qtyOutOn(eqId,d,excludeId){
   let n=0;
   matCheckouts.forEach(c=>{
     if(excludeId&&c.id===excludeId)return;
-    if(!coActiveOn(c,d))return;
-    (c.items||[]).forEach(it=>{if(it.equipmentId===eqId)n+=Number(it.qty)||0;});
+    (c.items||[]).forEach(it=>{
+      if(!it||it.equipmentId!==eqId)return;
+      const q=Number(it.qty)||0;
+      if(!q)return;
+      if(it.consumable){if(c.outDate&&c.outDate<=d)n+=q;return;}
+      if(coActiveOn(c,d))n+=q;
+    });
   });
   return n;
 }
@@ -8247,9 +8444,13 @@ function matReservedAhead(eqId){
   const t=matToday();
   let n=0;
   matCheckouts.forEach(c=>{
-    if(c.returnedDate||coNoEquipment(c)||coUsesExisting(c))return;
     if(!(c.outDate>t))return;
-    (c.items||[]).forEach(it=>{if(it.equipmentId===eqId)n+=Number(it.qty)||0;});
+    (c.items||[]).forEach(it=>{
+      if(!it||it.equipmentId!==eqId||!(Number(it.qty)>0))return;
+      if(it.consumable){n+=Number(it.qty);return;}
+      if(c.returnedDate||coNoEquipment(c)||coUsesExisting(c))return;
+      n+=Number(it.qty)||0;
+    });
   });
   return n;
 }
@@ -8271,7 +8472,7 @@ function matInventoryCardsInner(showEdit){
         <div><div class="m-label">Checked out</div><div class="m-val" style="font-size:28px">${out}</div></div>
         <div><div class="m-label">Owned</div><div class="m-val" style="font-size:28px;color:var(--muted)">${eq.qty}</div></div>
       </div>
-      <div class="m-sub">${onHand<0?'⚠ More are out than you own':ahead?ahead+' reserved ahead':'Nothing reserved ahead'}${next?' · '+next:''}</div>
+      <div class="m-sub">${onHand<0?'⚠ More are out than you own':ahead?ahead+' reserved ahead':'Nothing reserved ahead'}${next?' · '+next:''}${eq.reorderAt==null?'':(onHand<=Number(eq.reorderAt)?' · Order more (at or below '+eq.reorderAt+')':' · Reorder at '+eq.reorderAt)}</div>
       ${showEdit===false?'':`<div class="btn-row" style="margin-top:8px"><button class="btn sm" onclick="openEditEquipment('${eq.id}')">Edit</button></div>`}
     </div>`;
   }).join('');
@@ -8344,7 +8545,8 @@ function matOpenCheckouts(){
 function renderDashMaterials(){
   const el=document.getElementById('dash-materials');if(!el)return;
   const open=matOpenCheckouts();
-  if(!open.length){el.innerHTML='';return;}
+  const reorders=matReorderLines();
+  if(!open.length&&!reorders.length){el.innerHTML='';return;}
   const fd=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
   const shown=open.slice(0,4);
   const rows=shown.map(c=>{
@@ -8355,15 +8557,18 @@ function renderDashMaterials(){
     </div>`;
   }).join('');
   const more=open.length>shown.length?`<div style="font-size:14px;color:var(--muted);padding-top:6px">+ ${open.length-shown.length} more still out</div>`:'';
-  el.innerHTML=`<div class="card" style="padding:12px 16px"><div style="font-size:14px;color:var(--muted);margin-bottom:4px">Materials still out. Mark them returned when the session is done. New sessions reserve their kit on the Add session form.</div>${rows}${more}</div>`;
+  const orderBox=reorders.length?`<div class="alert warn" style="margin:0 0 8px"><strong>Order more stock.</strong><br>${reorders.map(r=>'Order more '+escapeHtml(r.name)+' (need '+r.need+').').join('<br>')}</div>`:'';
+  const returnBox=open.length?`<div style="font-size:14px;color:var(--muted);margin-bottom:4px">Materials still out. Mark them returned when the session is done. New sessions reserve their kit on the Add session form.</div>${rows}${more}`:'';
+  el.innerHTML=`<div class="card" style="padding:12px 16px">${orderBox}${returnBox}</div>`;
 }
 var _matWhoTouched=false;
 var _matSeedPerson='';
 var _matSeedReuse=false;
+var _matReuseTouched=false;
 var _matSeedQtys=null;
 var _sessionMatEditId=null;
 function sessionMaterialsPanelHtml(){
-  return '<div class="fg full" id="m-mat-panel" style="background:#f7f4ee;border:1px solid #e4dcc8;border-radius:var(--r-sm);padding:12px 14px"><label style="margin-bottom:4px">Materials for this session</label><div style="font-size:14px;color:var(--muted);margin-bottom:8px">Filled from the usual kit for this course. If this person already has the same equipment out, reuse it instead of taking a second kit.</div><div id="m-mat-body"></div></div>';
+  return '<div class="fg full" id="m-mat-panel" style="background:#f7f4ee;border:1px solid #e4dcc8;border-radius:var(--r-sm);padding:12px 14px"><label style="margin-bottom:4px">Materials for this session</label><div style="font-size:14px;color:var(--muted);margin-bottom:8px">Filled from the usual kit for this course. If this person already has the same equipment out, or teaches again within two weeks, keep that durable kit out. Handbooks and notebooks are new each class: one per registered student, or the class capacity if nobody is registered yet.</div><div id="m-mat-body"></div></div>';
 }
 function defaultMatPerson(){
   if(document.getElementById('m-owner')&&document.getElementById('m-owner').value==='yes')return 'Lindsay Karr (owner)';
@@ -8378,18 +8583,32 @@ function currentSessionCheckout(){
 function wireSessionMaterials(sessionId){
   _sessionMatEditId=sessionId||null;
   _matWhoTouched=false;
+  _matReuseTouched=false;
   const existing=currentSessionCheckout();
   _matSeedPerson=existing&&existing.person?existing.person:'';
   _matSeedReuse=!!(existing&&coUsesExisting(existing));
   _matSeedQtys={};
   if(existing)(existing.items||[]).forEach(function(it){if(it&&it.equipmentId)_matSeedQtys[it.equipmentId]=Number(it.qty)||0;});
-  ['m-course','m-date','m-owner','m-instr','m-virtual'].forEach(function(id){
+  ['m-course','m-date','m-owner','m-instr','m-virtual','m-maxoverride'].forEach(function(id){
     const el=document.getElementById(id);
     if(el)el.addEventListener('change',renderSessionMaterials);
   });
+  const maxEl=document.getElementById('m-maxoverride');
+  if(maxEl)maxEl.addEventListener('input',renderSessionMaterials);
   renderSessionMaterials();
 }
 function matWhoTyped(){_matWhoTouched=true;paintSessionMaterialsStatus();}
+function matReuseTyped(){_matReuseTouched=true;paintSessionMaterialsStatus();}
+function formMatHeadcount(){
+  if(_sessionMatEditId){
+    const n=seatsOnSession(_sessionMatEditId);
+    if(n>0)return n;
+  }
+  const ov=document.getElementById('m-maxoverride');
+  if(ov&&ov.value&&Number(ov.value)>0)return Number(ov.value);
+  const course=document.getElementById('m-course')?document.getElementById('m-course').value:'';
+  return (COURSES[course]||{maxStudents:0}).maxStudents||0;
+}
 function sessionMaterialsDraft(){
   const course=document.getElementById('m-course')?document.getElementById('m-course').value:'';
   const isVirtual=document.getElementById('m-virtual')&&document.getElementById('m-virtual').value==='yes';
@@ -8405,7 +8624,7 @@ function sessionMaterialsDraft(){
     if(inp&&!inp.disabled){qtys[eq.id]=parseInt(inp.value,10)||0;any=true;}
   });
   const existing=currentSessionCheckout();
-  return {course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:any?qtys:(_matSeedQtys&&Object.keys(_matSeedQtys).length?_matSeedQtys:null),excludeCheckoutId:existing?existing.id:null,personForField:person};
+  return {course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:any?qtys:(_matSeedQtys&&Object.keys(_matSeedQtys).length?_matSeedQtys:null),excludeCheckoutId:existing?existing.id:null,personForField:person,headcount:formMatHeadcount(),sessionId:_sessionMatEditId};
 }
 function renderSessionMaterials(){
   const body=document.getElementById('m-mat-body');if(!body)return;
@@ -8429,6 +8648,7 @@ function renderSessionMaterials(){
   body.innerHTML='<div class="fg" style="margin:0 0 8px"><label>Who has the materials</label><input type="text" id="m-mat-who" value="'+escapeHtml(draft.personForField)+'" placeholder="Instructor name" oninput="matWhoTyped()" style="width:100%"></div>'+rows+'<div id="m-mat-status" style="margin-top:8px"></div>';
   _matSeedPerson='';
   _matSeedQtys=null;
+  if(_matReuseTouched)_matSeedReuse=!!draft.reuse;
   paintSessionMaterialsStatus();
 }
 function paintSessionMaterialsStatus(){
@@ -8440,15 +8660,20 @@ function paintSessionMaterialsStatus(){
   const extraDates=(_editDays||[]).map(function(d){return d&&d.date;}).filter(Boolean);
   const person=whoEl?whoEl.value.trim():'';
   const reuseBox=document.getElementById('m-mat-reuse');
-  const reuseNow=!!((reuseBox&&reuseBox.checked)||_matSeedReuse);
-  _matSeedReuse=false;
   const qtys={};
   (equipment||[]).forEach(function(eq){
     const inp=document.getElementById('m-mat-qty-'+eq.id);
     if(inp&&!inp.disabled)qtys[eq.id]=parseInt(inp.value,10)||0;
   });
   const existing=currentSessionCheckout();
-  const plan=matPlanForSession({course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuseNow,qtys:qtys,excludeCheckoutId:existing?existing.id:null});
+  const planArgs={course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,qtys:qtys,excludeCheckoutId:existing?existing.id:null,headcount:formMatHeadcount(),sessionId:_sessionMatEditId};
+  let reuseNow=!!((reuseBox&&reuseBox.checked)||_matSeedReuse);
+  if(!reuseBox&&!_matReuseTouched&&!reuseNow){
+    const preview=matPlanForSession(Object.assign({reuse:false},planArgs));
+    if(preview.fullyCovered&&preview.reuseOffer)reuseNow=true;
+  }
+  _matSeedReuse=false;
+  const plan=matPlanForSession(Object.assign({reuse:reuseNow},planArgs));
   window._matPlan=plan;
   plan.lines.forEach(function(l){
     if(!l.eqId)return;
@@ -8460,20 +8685,22 @@ function paintSessionMaterialsStatus(){
       freeEl.style.fontWeight=l.shortfall>0?'600':'400';
     }
     if(inp){
-      const useHeld=!!(plan.reuseOffer&&reuseNow&&l.covered);
+      const useHeld=!!(!l.consumable&&plan.reuseOffer&&reuseNow&&l.covered);
       if(useHeld){inp.value=0;inp.disabled=true;}
       else if(inp.disabled){inp.disabled=false;if(inp.dataset.need)inp.value=inp.dataset.need;}
     }
   });
   const fd=function(d){return d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';};
   let html='';
+  const keepLine=matKeepSentence(plan);
+  if(keepLine)html+='<div class="alert info" style="margin:0 0 8px"><strong>'+escapeHtml(keepLine)+'</strong></div>';
   if(plan.reuseOffer){
     const bits=plan.overlaps.map(function(c){
       const sess=coSessionLabel(c);
       return escapeHtml(coItemsLabel(c))+' (out '+fd(c.outDate)+' – due '+fd(c.dueDate)+(sess?', '+escapeHtml(sess):'')+')';
     }).join('<br>');
     const checked=reuseNow;
-    html+='<div class="alert info" style="margin:0 0 8px"><strong>'+escapeHtml(person||'This person')+' already has this equipment out for other sessions.</strong><br>'+bits+'<label style="display:flex;align-items:flex-start;gap:8px;margin-top:8px;cursor:pointer;font-weight:500"><input type="checkbox" id="m-mat-reuse" '+(checked?'checked':'')+' onchange="paintSessionMaterialsStatus()" style="margin-top:3px"> Reuse that kit for this session (usesExisting — do not check out a second one)</label></div>';
+    html+='<div class="alert info" style="margin:0 0 8px"><strong>'+escapeHtml(person||'This person')+' already has this equipment out for other sessions.</strong><br>'+bits+'<label style="display:flex;align-items:flex-start;gap:8px;margin-top:8px;cursor:pointer;font-weight:500"><input type="checkbox" id="m-mat-reuse" '+(checked?'checked':'')+' onchange="matReuseTyped()" style="margin-top:3px"> Reuse that kit for this session (usesExisting — do not check out a second one)</label></div>';
   }
   if(plan.purchase.length){
     html+='<div class="alert" style="margin:0;background:#fdecea;border:1px solid #f0c4bc;color:#8c2f1e"><strong>Purchase more equipment.</strong><br>'+plan.purchase.map(function(p){return 'Purchase '+p.shortfall+' more '+escapeHtml(p.name)+' ('+p.free+' free of '+p.owned+' owned on these dates).';}).join('<br>')+'</div>';
@@ -8495,7 +8722,7 @@ function sessionMaterialsFromForm(editId){
     const inp=document.getElementById('m-mat-qty-'+eq.id);
     if(inp)qtys[eq.id]=parseInt(inp.value,10)||0;
   });
-  const plan=matPlanForSession({course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:qtys,excludeCheckoutId:existing?existing.id:null});
+  const plan=matPlanForSession({course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:qtys,excludeCheckoutId:existing?existing.id:null,headcount:formMatHeadcount(),sessionId:prevId});
   return {plan:plan,person:person,reuse:reuse,existingId:existing?existing.id:null};
 }
 function applySessionMaterials(sessionId,choice){
@@ -8504,8 +8731,19 @@ function applySessionMaterials(sessionId,choice){
   if(!items)return;
   const person=choice.person||'';
   const outDate=choice.plan.outDate;
-  const dueDate=choice.plan.dueDate||outDate;
-  const note=choice.reuse&&(choice.plan.fullyCovered||items.some(function(it){return it.usesExisting;}))?'Covered by equipment already out':'Reserved when the session was saved';
+  const dueDate=choice.plan.holdUntil||choice.plan.dueDate||outDate;
+  let note=choice.reuse&&(choice.plan.fullyCovered||items.some(function(it){return it.usesExisting;}))?'Covered by equipment already out':'Reserved when the session was saved';
+  if(choice.plan.keep&&choice.plan.keep.later&&choice.plan.keep.later.length)note='KEEP the durable kit for the next class. Only new handbooks and notebooks go out for later dates.';
+  if(choice.reuse&&choice.plan.keep&&choice.plan.keep.extendIds){
+    choice.plan.keep.extendIds.forEach(function(id){
+      const prev=matCheckouts.find(function(x){return x.id===id;});
+      if(!prev||prev.returnedDate)return;
+      if(prev.dueDate&&dueDate&&prev.dueDate<dueDate){
+        prev.dueDate=dueDate;
+        dbWrite(sb.from('equipment_checkouts').update({due_date:dueDate}).eq('id',prev.id),'Keep kit out for the next class');
+      }
+    });
+  }
   if(choice.existingId){
     const c=matCheckouts.find(function(x){return x.id===choice.existingId;});
     if(!c)return;
@@ -8517,6 +8755,8 @@ function applySessionMaterials(sessionId,choice){
     matCheckouts.push(c);
     dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(c)),'Session materials');
   }
+  const keepLine=matKeepSentence(choice.plan);
+  if(keepLine)showToast(keepLine);
   if(choice.plan.purchase&&choice.plan.purchase.length){
     showToast('Purchase '+choice.plan.purchase.map(function(p){return p.shortfall+' more '+p.name;}).join('; '));
   }
@@ -8624,6 +8864,10 @@ function renderMatAlerts(){
     bits.push(`<div class="alert warn">⚙️ &nbsp;<span>The Materials database tables haven't been set up yet. Run the one-time setup script (materials_setup.sql) in your Supabase dashboard → SQL Editor, then refresh this page.</span></div>`);
   }else if(!equipment.length){
     bits.push(`<div class="alert info">📦 &nbsp;<span>No equipment yet. Click <strong>+ Add equipment type</strong> to add your manikins and AV kits (or run the seed section of materials_setup.sql).</span></div>`);
+  }
+  const reorders=matReorderLines();
+  if(reorders.length){
+    bits.push(`<div class="alert warn">📦 &nbsp;<span><strong>Order more stock.</strong><br>${reorders.map(r=>'Order more '+escapeHtml(r.name)+' (need '+r.need+').').join('<br>')}</span></div>`);
   }
   const overdue=matCheckouts.filter(coIsOverdue);
   if(overdue.length){
@@ -8735,12 +8979,27 @@ function renderMatTable(){
 }
 
 // ── Equipment type add/edit ──
+function eqStockFields(eq){
+  const cons=eq&&eq.consumable?'checked':'';
+  const at=eq&&eq.reorderAt!=null?String(eq.reorderAt):'';
+  const suggested=eq&&eq.reorderQty!=null?String(eq.reorderQty):'';
+  return '<div class="fg full"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="m-eqcons" '+cons+'> Consumable (handbook or notebook — does not come back when a kit is returned)</label></div>'
+    +'<div class="fg"><label>Reorder when on hand is at or below</label><input type="number" id="m-eqreorder" min="0" step="1" value="'+escapeHtml(at)+'" placeholder="No alert"></div>'
+    +'<div class="fg"><label>Suggested order quantity</label><input type="number" id="m-eqordqty" min="0" step="1" value="'+escapeHtml(suggested)+'" placeholder="Optional"></div>';
+}
+function readOptionalQty(id){
+  const el=document.getElementById(id);
+  if(!el||el.value==='')return null;
+  const n=parseInt(el.value,10);
+  return isNaN(n)||n<0?null:n;
+}
 function openAddEquipment(){
   showModal(`<div class="modal-head"><h3>Add equipment type</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Name *</label><input type="text" id="m-eqname" placeholder="e.g. Infant CPR Manikins"></div>
-    <div class="fg"><label>How many you own *</label><input type="number" id="m-eqqty" min="1" step="1" value="1"></div>
+    <div class="fg"><label>How many you own *</label><input type="number" id="m-eqqty" min="0" step="1" value="1"></div>
     <div class="fg full"><label>Notes</label><input type="text" id="m-eqnotes" placeholder="Storage spot, condition, serial #s..."></div>
+    ${eqStockFields(null)}
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveEquipment()">Add equipment</button></div>`);
 }
@@ -8751,6 +9010,7 @@ function openEditEquipment(id){
     <div class="fg full"><label>Name *</label><input type="text" id="m-eqname" value="${escapeHtml(eq.name)}"></div>
     <div class="fg"><label>How many you own *</label><input type="number" id="m-eqqty" min="0" step="1" value="${eq.qty}"></div>
     <div class="fg full"><label>Notes</label><input type="text" id="m-eqnotes" value="${escapeHtml(eq.notes)}"></div>
+    ${eqStockFields(eq)}
   </div></div>
   <div class="modal-foot" style="justify-content:space-between">
     <button class="btn danger" onclick="deleteEquipment('${id}')">🗑 Delete</button>
@@ -8761,14 +9021,17 @@ async function saveEquipment(id){
   const name=document.getElementById('m-eqname').value.trim();
   const qty=parseInt(document.getElementById('m-eqqty').value,10);
   const notes=document.getElementById('m-eqnotes').value.trim();
+  const consumable=!!(document.getElementById('m-eqcons')&&document.getElementById('m-eqcons').checked);
+  const reorderAt=readOptionalQty('m-eqreorder');
+  const reorderQty=readOptionalQty('m-eqordqty');
   if(!name||isNaN(qty)||qty<0){alert('Please enter a name and how many you own.');return;}
   if(id){
     const eq=equipment.find(x=>x.id===id);if(!eq)return;
-    eq.name=name;eq.qty=qty;eq.notes=notes;
+    eq.name=name;eq.qty=qty;eq.notes=notes;eq.consumable=consumable;eq.reorderAt=reorderAt;eq.reorderQty=reorderQty;
     closeModal();renderMaterials();
     dbWrite(sb.from('equipment').update(equipmentToDB(eq)).eq('id',id),'Equipment edit');
   }else{
-    const eq={id:sid(),name,qty,notes,sort:(equipment.length?Math.max(...equipment.map(e=>e.sort||0)):0)+1};
+    const eq={id:sid(),name,qty,notes,sort:(equipment.length?Math.max(...equipment.map(e=>e.sort||0)):0)+1,consumable:consumable,reorderAt:reorderAt,reorderQty:reorderQty};
     equipment.push(eq);
     closeModal();renderMaterials();
     dbWrite(sb.from('equipment').insert(equipmentToDB(eq)),'New equipment');
@@ -8894,7 +9157,10 @@ function coSessChanged(){
     const nxt=matNextClassAfter(who.value,base,s.id);
     if(nxt){
       const gap=matDaysBetween(base,nxt.date);
-      if(gap>=0&&gap<=3){
+      const kinds=Object.keys(sessionMatNeeds(s)||{});
+      if(gap>=0&&gap<=MAT_KEEP_DAYS&&kinds.length&&matSameDurable(kinds,sessionMatNeeds(nxt))){
+        document.getElementById('m-co-due').value=sessionEndDate(nxt)||nxt.date;
+      }else if(gap>=0&&gap<=3){
         document.getElementById('m-co-due').value=sessionEndDate(nxt)||nxt.date;
         window._coDueNote=who.value.split(' ')[0]+' teaches '+nxt.course+' on '+fmtSessDate(nxt,{month:'short',day:'numeric'})+', '+gap+' day'+(gap===1?'':'s')+' later. Due back has been moved past that class so the kit is not flagged overdue in between — change it if you want the equipment back sooner.';
       }
@@ -8907,21 +9173,29 @@ function coSessChanged(){
 // Pre-fill the quantities this course usually needs (only fills inputs still at 0 —
 // never overwrites a quantity you've already typed).
 function coPrefillNeeds(s){
-  const needs=sessionMatNeeds(s);if(!needs)return;
+  const needs=sessionMatNeeds(s);
   // DON'T pre-fill kits the instructor already has out during these dates — that
   // nudges toward checking the same kit out twice. Only pre-fill what they'd
   // still be missing (the 💡 hint below covers the "use what they have" path).
+  // Handbooks and notebooks are always new copies, so they are not reduced by
+  // what the instructor already holds.
   const out=document.getElementById('m-co-out')?.value,due=document.getElementById('m-co-due')?.value;
   const who=(document.getElementById('m-co-who')?.value||'').trim().toLowerCase();
   const have={};
-  if(who&&out&&due&&out<=due)matCheckouts
+  if(needs&&who&&out&&due&&out<=due)matCheckouts
     .filter(x=>x.id!==(window._coEditId||null)&&!coUsesExisting(x)&&!coNoEquipment(x)&&!x.returnedDate&&(x.person||'').trim().toLowerCase()===who&&x.outDate<=due&&out<=coEnd(x))
-    .forEach(x=>(x.items||[]).forEach(it=>{if(it.equipmentId)have[it.equipmentId]=(have[it.equipmentId]||0)+(Number(it.qty)||0);}));
-  Object.entries(needs).forEach(([k,q])=>{
+    .forEach(x=>(x.items||[]).forEach(it=>{if(it.equipmentId&&!it.consumable)have[it.equipmentId]=(have[it.equipmentId]||0)+(Number(it.qty)||0);}));
+  if(needs)Object.entries(needs).forEach(([k,q])=>{
     const eq=matEqOfKind(k);if(!eq)return;
     const inp=document.getElementById('m-co-qty-'+eq.id);
     const still=Math.max(0,q-(have[eq.id]||0));
     if(inp&&!(parseInt(inp.value,10)>0)&&still>0)inp.value=still;
+  });
+  const books=sessionBookNeeds(s);
+  if(books)Object.entries(books).forEach(([k,q])=>{
+    const eq=matBookEq(k);if(!eq)return;
+    const inp=document.getElementById('m-co-qty-'+eq.id);
+    if(inp&&!(parseInt(inp.value,10)>0))inp.value=q;
   });
 }
 // Hint line under the session picker: what this course usually needs.
@@ -8933,6 +9207,8 @@ function coNeedsHint(s){
     if(needs)msg=`<div class="alert info" style="margin:0">🎒 &nbsp;<span>${escapeHtml(s.course)} usually needs: <strong>${escapeHtml(matNeedsLabel(needs))}</strong> — filled in below, adjust if this time is different.</span></div>`;
     else if(s.isVirtual)msg=`<div class="alert info" style="margin:0">🖥 &nbsp;<span>This session is virtual — no equipment needed.</span></div>`;
     else if(MAT_NEEDS[s.course]===null)msg=`<div class="alert info" style="margin:0">🎒 &nbsp;<span>${escapeHtml(s.course)} uses its own materials — usually nothing to check out.</span></div>`;
+    const keep=matKeepSentence(matPlanForSession({course:s.course,isVirtual:!!s.isVirtual,date:s.date||'',extraDates:s.extraDates||[],person:(document.getElementById('m-co-who')&&document.getElementById('m-co-who').value||'').trim(),sessionId:s.id,headcount:sessionHeadcount(s),excludeCheckoutId:window._coEditId||null,reuse:false}));
+    if(keep)msg+=`<div class="alert info" style="margin:${msg?'6px':'0'} 0 0"><strong>${escapeHtml(keep)}</strong></div>`;
   }
   if(window._coDueNote)msg+=`<div class="alert info" style="margin:${msg?'6px':'0'} 0 0">📅 &nbsp;<span>${escapeHtml(window._coDueNote)}</span></div>`;
   el.innerHTML=msg;
@@ -8964,7 +9240,7 @@ function coUpdateAvail(){
         msg=`<div class="alert info" style="margin:0">💡 &nbsp;<span><strong>${escapeHtml(whoRaw)} already has equipment during these dates</strong> — they can keep using it for this session too. Only check out anything they don't already have:<br>${overlaps.map(x=>{
           const sess=coSessionLabel(x);
           return escapeHtml(coItemsLabel(x))+' &nbsp;(out '+fd(x.outDate)+' – due back '+fd(x.dueDate)+(sess?', for '+escapeHtml(sess):'')+')';
-        }).join('<br>')}${canUseExisting?`<div style="margin-top:9px"><button class="btn sm primary" onclick="coUseExisting()">✓ ${first} will use what they already have — nothing else to check out</button></div>`:''}</span></div>`;
+        }).join('<br>')}${canUseExisting?`<div style="margin-top:9px"><button class="btn sm primary" onclick="coUseExisting()">✓ ${first} will keep the durable kit already out</button><div style="margin-top:6px">Handbooks and notebooks typed above are still new for this class.</div></div>`:''}</span></div>`;
       }
     }
     overlapEl.innerHTML=msg;
@@ -9014,10 +9290,16 @@ async function coUseExisting(){
     if(missing.length&&!confirm('🎒 Heads up: what '+(person||'they')+' already has out doesn\'t seem to include: '+missing.join(', ')+'.\n\nMark this session as covered anyway?'))return;
   }
   const notes=document.getElementById('m-co-notes').value.trim();
-  const c={id:sid(),sessionId,person,items:[{usesExisting:true,qty:0}],outDate,dueDate,returnedDate:null,notes,createdAt:Date.now()};
+  const items=[{usesExisting:true,qty:0}];
+  equipment.forEach(function(eq){
+    if(!eq.consumable)return;
+    const q=parseInt((document.getElementById('m-co-qty-'+eq.id)||{}).value,10)||0;
+    if(q>0)items.push({equipmentId:eq.id,qty:q,consumable:true});
+  });
+  const c={id:sid(),sessionId,person,items:items,outDate,dueDate,returnedDate:null,notes,createdAt:Date.now()};
   matCheckouts.push(c);
   closeModal();renderMaterials();
-  showToast('↩ Noted — '+(person||'they')+' will use the equipment they already have. Nothing new checked out.');
+  showToast('↩ Noted — '+(person||'they')+' will keep the durable kit already out.'+(items.length>1?' New handbooks and notebooks are reserved for this class.':''));
   dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(c)),'New checkout');
 }
 // ── "No equipment needed" ──
@@ -9049,7 +9331,13 @@ async function saveCheckout(editId){
   const dueDate=document.getElementById('m-co-due').value;
   if(!outDate||!dueDate){alert('Please set the out date and due-back date.');return;}
   if(dueDate<outDate){alert('The due-back date is before the out date.');return;}
-  const items=equipment.map(eq=>({equipmentId:eq.id,qty:parseInt(document.getElementById('m-co-qty-'+eq.id).value,10)||0})).filter(it=>it.qty>0);
+  const items=equipment.map(eq=>{
+    const qty=parseInt(document.getElementById('m-co-qty-'+eq.id).value,10)||0;
+    if(!qty)return null;
+    const row={equipmentId:eq.id,qty:qty};
+    if(eq.consumable)row.consumable=true;
+    return row;
+  }).filter(Boolean);
   if(!items.length){
     // Editing a "covered" record (instructor reuses equipment they already have)
     // with every quantity still 0 → keep it a covered record instead of erroring.
@@ -9081,6 +9369,11 @@ async function saveCheckout(editId){
   }
   const person=document.getElementById('m-co-who').value.trim();
   const notes=document.getElementById('m-co-notes').value.trim();
+  let keepToast='';
+  if(sessionId){
+    const sKeep=sessions.find(function(x){return x.id===sessionId;});
+    if(sKeep)keepToast=matKeepSentence(matPlanForSession({course:sKeep.course,isVirtual:!!sKeep.isVirtual,date:sKeep.date||'',extraDates:sKeep.extraDates||[],person:person,sessionId:sessionId,headcount:sessionHeadcount(sKeep),excludeCheckoutId:editId||null,reuse:false}));
+  }
   if(editId){
     const c=matCheckouts.find(x=>x.id===editId);if(!c)return;
     Object.assign(c,{sessionId,person,items,outDate,dueDate,notes});
@@ -9093,12 +9386,16 @@ async function saveCheckout(editId){
     showToast('📦 Checked out '+coItemsLabel(c));
     dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(c)),'New checkout');
   }
+  if(keepToast)showToast(keepToast);
 }
 function openCheckIn(id){
   const c=matCheckouts.find(x=>x.id===id);if(!c)return;
   if(coNoEquipment(c)||coUsesExisting(c)){alert('This row is not a physical checkout.');return;}
-  const lines=(c.items||[]).filter(it=>Number(it.qty)>0);
-  if(!lines.length){alert('Nothing is listed on this checkout.');return;}
+  const lines=(c.items||[]).filter(it=>Number(it.qty)>0&&!it.consumable);
+  if(!lines.length){
+    if((c.items||[]).some(it=>it&&it.consumable&&Number(it.qty)>0)){alert('Handbooks and notebooks on this checkout stay with the class. There is no durable kit to check in.');return;}
+    alert('Nothing is listed on this checkout.');return;
+  }
   const sess=coSessionLabel(c);
   const rows=lines.map(it=>{
     const eq=equipment.find(x=>x.id===it.equipmentId);
@@ -9112,14 +9409,15 @@ function openCheckIn(id){
   showModal(`<div class="modal-head"><h3>Check in</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">
     <div style="font-size:16px;margin-bottom:8px">${escapeHtml(c.person||'Not assigned')}${sess?' · '+escapeHtml(sess):''}</div>
-    <div style="font-size:15px;color:var(--muted);margin-bottom:8px">Confirm how many of each kit are back on the shelf. Leave a quantity at 0 if that item is staying out.</div>
+    <div style="font-size:15px;color:var(--muted);margin-bottom:8px">Confirm how many of each kit are back on the shelf. Leave a quantity at 0 if that item is staying out. Handbooks and notebooks are not listed — they do not come back.</div>
     ${rows}
   </div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCheckIn('${id}')">Check in</button></div>`);
 }
 async function saveCheckIn(id){
   const c=matCheckouts.find(x=>x.id===id);if(!c)return;
-  const lines=(c.items||[]).filter(it=>Number(it.qty)>0&&it.equipmentId);
+  const consumed=(c.items||[]).filter(it=>it&&it.consumable&&Number(it.qty)>0);
+  const lines=(c.items||[]).filter(it=>Number(it.qty)>0&&it.equipmentId&&!it.consumable);
   const back=[];
   const still=[];
   lines.forEach(it=>{
@@ -9136,13 +9434,14 @@ async function saveCheckIn(id){
   if(!back.length){alert('Enter at least one item that is coming back, or Cancel.');return;}
   if(!still.length){
     c.returnedDate=matToday();
+    if(consumed.length)c.items=consumed;
     closeModal();renderMaterials();
     showToast('✓ Checked in — back on the shelf');
-    dbWrite(sb.from('equipment_checkouts').update({returned_date:c.returnedDate}).eq('id',id),'Check in');
+    dbWrite(sb.from('equipment_checkouts').update(consumed.length?{returned_date:c.returnedDate,items:c.items}:{returned_date:c.returnedDate}).eq('id',id),'Check in');
     return;
   }
   const note=trimNote((c.notes?c.notes+' ':'')+'Partial check-in '+matToday()+': '+back.join(', '));
-  c.items=still;
+  c.items=still.concat(consumed);
   c.notes=note;
   closeModal();renderMaterials();
   showToast('✓ Partial check-in — '+still.map(it=>{const eq=equipment.find(x=>x.id===it.equipmentId);return it.qty+'× '+(eq?eq.name:'item');}).join(', ')+' still out');
