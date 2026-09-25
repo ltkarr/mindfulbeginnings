@@ -582,7 +582,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -632,6 +632,23 @@ let CANCEL_COLS=true;
 // The grant is required. Anon SELECT on sessions is column-level, so a missing
 // grant fails the whole public session query.)
 let EXTERNAL_URL_COL=true;
+// Lindsay's private notes. Separate from sessions.notes, which instructors see.
+// Anon is not granted this column (see migrations/admin_private_notes.sql).
+// Set false automatically if that SQL has not been run yet, so the rest of
+// the session still saves.
+let ADMIN_PRIVATE_NOTES_COL=true;
+const PRIVATE_NOTES_SQL_TOAST='⚠️ Saved, but WITHOUT private notes — run migrations/admin_private_notes.sql in the Supabase SQL editor, then re-save this session.';
+function adminPrivateNotesFieldHtml(value){
+  return `<div class="fg full" style="background:#f6f3ee;border:1px dashed #d9cfc0;border-radius:var(--r-sm);padding:10px 12px">
+      <label>Private notes <span style="font-weight:400;color:var(--muted)">(admin only)</span></label>
+      <textarea id="m-private-notes" rows="3" placeholder="Optional — org details, rates, anything instructors should not see." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(value||'')}</textarea>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Only you can see this. It is not on the instructor job board, in instructor emails, or on the public registration page.</div>
+    </div>`;
+}
+function readAdminPrivateNotes(){
+  const el=document.getElementById('m-private-notes');
+  return el?(el.value||''):'';
+}
 function externalRegistrationFieldHtml(s){
   const v=escapeHtml((s&&s.externalRegistrationUrl)||'');
   return `<div class="fg full"><label>External registration link <span style="font-weight:400;color:var(--muted)">(optional — leave blank to register on this site)</span></label>
@@ -674,6 +691,9 @@ function sessionToDB(s){
   if(REQUIRES_SS_COL)o.requires_safe_sitter=!!s.requiresSS;
   if(CANCEL_COLS){o.is_cancelled=!!s.isCancelled;o.cancel_reason=s.cancelReason||null;o.cancelled_at=s.cancelledAt||null;}
   if(EXTERNAL_URL_COL)o.external_registration_url=s.externalRegistrationUrl?String(s.externalRegistrationUrl).trim():null;
+  // Only written when the in-memory session actually has the field, so a
+  // partial update cannot blank notes that were never loaded.
+  if(ADMIN_PRIVATE_NOTES_COL&&s.adminPrivateNotes!==undefined)o.admin_private_notes=s.adminPrivateNotes?String(s.adminPrivateNotes):null;
   return o;
 }
 // Upsert a session row, retrying once without requires_rn if the database has not
@@ -707,8 +727,14 @@ async function upsertSessionRow(s){
       const retryU=await sb.from('sessions').upsert(sessionToDB(s));
       error=retryU.error||null;
     }
-    return{error:error||null,missingRnCol,missingSsCol,missingExternalUrl};
-  }catch(e){return{error:e,missingRnCol:false,missingSsCol:false,missingExternalUrl:false};}
+    let missingPrivateNotes=false;
+    if(error&&ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(error.message||'')){
+      ADMIN_PRIVATE_NOTES_COL=false;missingPrivateNotes=true;
+      const retryP=await sb.from('sessions').upsert(sessionToDB(s));
+      error=retryP.error||null;
+    }
+    return{error:error||null,missingRnCol,missingSsCol,missingExternalUrl,missingPrivateNotes};
+  }catch(e){return{error:e,missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false};}
 }
 const SS_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "Safe Sitter® instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_safe_sitter boolean default false; grant select (requires_safe_sitter) on public.sessions to anon;';
 const RN_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "RN instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_rn boolean default false; grant select (requires_rn) on public.sessions to anon;';
@@ -4782,6 +4808,7 @@ function openAddSession(){
       <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Anything an instructor needs in order to decide and prepare. Visible before they accept, so leave host phone numbers out — those are shared automatically once the job is claimed.</div>
     </div>
+    ${adminPrivateNotesFieldHtml('')}
     <div class="fg full">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <label style="margin-bottom:0">Additional costs <span style="font-weight:400;color:var(--muted)">(facility rental, parking, etc.)</span></label>
@@ -4940,6 +4967,7 @@ function openAddCustomJob(){
     ${externalRegistrationFieldHtml(null)}
     <div class="fg full"><label>Notes / job description <span style="font-weight:400;color:var(--muted)">(optional — what the instructor needs to know)</span></label>
       <input type="text" id="cj-notes" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID"></div>
+    ${adminPrivateNotesFieldHtml('')}
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCustomJob()">Add job</button></div>`);
   renderEditDates();renderEditClosures();renderEditCosts();
@@ -5046,11 +5074,11 @@ async function saveCustomJob(){
   if(!confirmNotDuplicate({course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,isVirtual:false,isCancelled:false},null))return;
   if(_savingSession)return; _savingSession=true;
   try{
-  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,externalRegistrationUrl,additionalCosts:_editCosts.filter(c=>c.label||c.amount),createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
+  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:_editCosts.filter(c=>c.label||c.amount),createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
-  let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false;
-  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;}
+  let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false;
+  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;}
   if(saveFailed){
     console.error('Save custom job failed:',saveErr);
     sessions=sessions.filter(x=>x.id!==s.id);
@@ -5062,7 +5090,7 @@ async function saveCustomJob(){
   jobDataCache[s.id].instructorId=preInstrId;
   if(preInstrId)jobDataCache[s.id].waitlist=(jobDataCache[s.id].waitlist||[]).filter(id=>id!==preInstrId);
   upsertJobData(s.id);
-  showToast(externalUrlMissing?EXTERNAL_URL_SQL_TOAST:ssColMissing?SS_COL_SQL_TOAST:rnColMissing?RN_COL_SQL_TOAST:('Custom job added'+(preInstrId?` and assigned to ${instructors.find(x=>x.id===preInstrId)?.name||'instructor'}`:'  — posted as open job')+'.'));
+  showToast(externalUrlMissing?EXTERNAL_URL_SQL_TOAST:ssColMissing?SS_COL_SQL_TOAST:rnColMissing?RN_COL_SQL_TOAST:privateNotesMissing?PRIVATE_NOTES_SQL_TOAST:('Custom job added'+(preInstrId?` and assigned to ${instructors.find(x=>x.id===preInstrId)?.name||'instructor'}`:'  — posted as open job')+'.'));
   }finally{_savingSession=false;}
 }
 
@@ -5177,6 +5205,7 @@ function openEditCustomJob(id){
     ${externalRegistrationFieldHtml(s)}
     <div class="fg full"><label>Notes / job description</label>
       <input type="text" id="cj-notes" value="${escapeHtml(s.notes||'')}" placeholder="e.g. Wear MB shirt, check in at volunteer tent"></div>
+    ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveEditCustomJob('${id}')">Save changes</button></div>`);
   renderEditDates();renderEditClosures();renderEditCosts();
@@ -5212,10 +5241,10 @@ async function saveEditCustomJob(id){
     code=reissueStaleCode(id,code,_prevDate,date,uniqueCustomJobCode(date,id,title,siteName,isRecurring));
   }
   const prevSnapshot={...s};
-  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),additionalCosts:_editCosts.filter(c=>c.label||c.amount),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,externalRegistrationUrl,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)});
+  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),additionalCosts:_editCosts.filter(c=>c.label||c.amount),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)});
   closeModal();renderSessions();renderDashboard();renderCodes();
-  let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false;
-  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;}
+  let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false;
+  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;}
   if(saveFailed){
     Object.assign(s,prevSnapshot);renderSessions();renderDashboard();renderCodes();
     showToast('⚠️ Could not save. '+(saveErr&&saveErr.message?saveErr.message:'Check your connection.'));return;
@@ -5223,7 +5252,7 @@ async function saveEditCustomJob(id){
   if(!jobDataCache[s.id])jobDataCache[s.id]={waitlist:[]};
   jobDataCache[s.id].instructorId=preInstrId;
   upsertJobData(s.id);
-  showToast(externalUrlMissing?EXTERNAL_URL_SQL_TOAST:ssColMissing?SS_COL_SQL_TOAST:rnColMissing?RN_COL_SQL_TOAST:'Custom job updated.');
+  showToast(externalUrlMissing?EXTERNAL_URL_SQL_TOAST:ssColMissing?SS_COL_SQL_TOAST:rnColMissing?RN_COL_SQL_TOAST:privateNotesMissing?PRIVATE_NOTES_SQL_TOAST:'Custom job updated.');
 }
 
 function toggleVirtualFields(val){
@@ -5459,6 +5488,7 @@ function openEditSession(id){
       })()}</textarea>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Anything an instructor needs in order to decide and prepare. Visible before they accept, so leave host phone numbers out — those are shared automatically once the job is claimed.</div>
     </div>
+    ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
     <div class="fg full">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <label style="margin-bottom:0">Additional costs <span style="font-weight:400;color:var(--muted)">(facility rental, parking, etc.)</span></label>
@@ -5579,9 +5609,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl};
     sessions.push(s);
   }
   const matChoice=sessionMaterialsFromForm(editId);
@@ -5598,7 +5628,7 @@ async function saveSession(editId){
   // If the database doesn't have the extra_dates / extra_days / originated_by columns yet,
   // retry without the missing column so the rest of the session still saves, and tell the
   // admin exactly what to run in Supabase. Up to three retries, since all could be missing.
-  for(let _attempt=0;saveFailed&&_attempt<5;_attempt++){
+  for(let _attempt=0;saveFailed&&_attempt<6;_attempt++){
     const _msg=(saveErr&&saveErr.message)||'';
     let _note='';
     if(EXTRA_DAYS_COL&&/extra_days/i.test(_msg)){EXTRA_DAYS_COL=false;_note='days';}
@@ -5610,6 +5640,7 @@ async function saveSession(editId){
     else if(REQUIRES_SS_COL&&/requires_safe_sitter/i.test(_msg)){REQUIRES_SS_COL=false;_note='ss';}
     else if(REQUIRES_RN_COL&&/requires_rn/i.test(_msg)){REQUIRES_RN_COL=false;_note='rn';}
     else if(EXTERNAL_URL_COL&&/external_registration_url/i.test(_msg)){EXTERNAL_URL_COL=false;_note='external';}
+    else if(ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(_msg)){ADMIN_PRIVATE_NOTES_COL=false;_note='private';}
     else break;
     saveFailed=false;saveErr=null;
     try{
@@ -5619,6 +5650,7 @@ async function saveSession(editId){
       else if(_note==='orgpartner')showToast('⚠️ Saved, but WITHOUT the partnership credit — run the setup SQL shown on the Partnerships tab, then re-save this session.');
       else if(_note==='rn')showToast(RN_COL_SQL_TOAST);
       else if(_note==='external')showToast(EXTERNAL_URL_SQL_TOAST);
+      else if(_note==='private')showToast(PRIVATE_NOTES_SQL_TOAST);
       else if(_note==='ss')showToast(SS_COL_SQL_TOAST);
       else if(_note==='detail')showToast("⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;");
       else showToast("⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';");
@@ -5675,7 +5707,16 @@ async function publishHold(id){
   s.isHold=false;
   renderSessions();renderDashboard();
   let failed=false,err=null;
-  try{const {error}=await sb.from('sessions').upsert(sessionToDB(s));if(error){failed=true;err=error;}}catch(e){failed=true;err=e;}
+  let privateNotesDropped=false;
+  try{
+    let {error}=await sb.from('sessions').upsert(sessionToDB(s));
+    if(error&&ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(error.message||'')){
+      ADMIN_PRIVATE_NOTES_COL=false;privateNotesDropped=true;
+      const retry=await sb.from('sessions').upsert(sessionToDB(s));
+      error=retry.error||null;
+    }
+    if(error){failed=true;err=error;}
+  }catch(e){failed=true;err=e;}
   if(failed){
     console.error('Publish hold failed:',err);
     s.isHold=prev;
@@ -5688,7 +5729,7 @@ async function publishHold(id){
     if(!jobDataCache[s.id])jobDataCache[s.id]={waitlist:[]};
     upsertJobData(s.id);
   }
-  showToast('Published to instructors.');
+  showToast(privateNotesDropped?PRIVATE_NOTES_SQL_TOAST:'Published to instructors.');
 }
 
 // ─── CANCEL A SESSION ────────────────────────────────────────
@@ -10628,6 +10669,7 @@ function openInstructorReminder(sessId,specificInstrId){
   }
   detailLines.push('Session code: '+s.code);
   detailLines.push('Students registered: '+regs.length);
+  // Instructor-facing notes only. adminPrivateNotes is never included in email.
   if(s.notes)detailLines.push('Notes: '+s.notes);
   const where=s.isVirtual?'Virtual (Zoom)':(s.location?(s.location+(s.city?', '+s.city:'')):'TBD');
   openDocEmail({
