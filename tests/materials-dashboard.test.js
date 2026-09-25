@@ -26,7 +26,7 @@ function extractFunction(src, name) {
 
 const names = [
   'fmtYMD', 'matToday', 'matPrevDay', 'coEnd', 'coActiveOn', 'coNoEquipment', 'coUsesExisting',
-  'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matOpenCheckouts'
+  'matEqIsConsumable', 'matItemIsConsumable', 'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matOpenCheckouts'
 ];
 const sandbox = { matCheckouts: [], Date, String, Number };
 vm.createContext(sandbox);
@@ -156,11 +156,16 @@ test('a following class keeps the durable kit and still reserves new handbooks',
   assert.equal(first.keep.later[0].date, '2026-10-10');
   assert.equal(first.holdUntil, '2026-10-10');
   assert.match(planSandbox.matKeepSentence(first), /KEEP the durable kit/);
-  assert.match(planSandbox.matKeepSentence(first), /only need to leave new Safe Sitter handbooks/);
+  assert.doesNotMatch(planSandbox.matKeepSentence(first), /handbook/i);
   assert.equal(line(first, 'infant').requested, 1);
-  assert.equal(line(first, 'ss-book').requested, 6);
-  assert.equal(line(first, 'ss-book').shortfall, 4);
-  assert.equal(first.purchase.some((p) => p.name === 'Safe Sitter handbooks' && p.shortfall === 4), true);
+  assert.equal(line(first, 'ss-book'), undefined);
+  assert.equal(first.lines.every((l) => !l.consumable), true);
+  const hb = first.books.find((b) => b.eqId === 'ss-book');
+  assert.equal(hb.requested, 6);
+  assert.equal(hb.shortfall, 4);
+  assert.equal(first.purchase.some((p) => p.name === 'Safe Sitter handbooks'), false);
+  assert.equal(first.bookBuy.some((p) => p.name === 'Safe Sitter handbooks' && p.shortfall === 4), true);
+  assert.equal(planSandbox.matBookBuySentence(first), 'Buy 4 more Safe Sitter handbooks.');
 
   planSandbox.matCheckouts = [{
     id: 'kit', person: 'Bronwen Kennedy', returnedDate: null,
@@ -177,27 +182,135 @@ test('a following class keeps the durable kit and still reserves new handbooks',
   });
   assert.equal(second.fullyCovered, true);
   assert.equal(line(second, 'infant').requested, 0);
-  assert.equal(line(second, 'ss-book').requested, 6);
+  assert.equal(second.books.find((b) => b.eqId === 'ss-book').requested, 6);
   assert.match(planSandbox.matKeepSentence(second), /Keep it out/);
-  assert.match(planSandbox.matKeepSentence(second), /Only deliver new Safe Sitter handbooks/);
+  assert.doesNotMatch(planSandbox.matKeepSentence(second), /handbook/i);
   const saved = planSandbox.matCheckoutItemsFromPlan(second, true);
+  assert.equal(saved.length, 1);
   assert.equal(saved[0].usesExisting, true);
-  assert.equal(saved.some((it) => it.equipmentId === 'ss-book' && it.qty === 6 && it.consumable === true), true);
+  assert.equal(saved.some((it) => it.consumable || it.equipmentId === 'ss-book'), false);
   assert.equal(saved.some((it) => it.equipmentId === 'infant'), false);
 });
 
-test('handbook stock stays consumed after check-in and can raise a reorder alert', () => {
-  planSandbox.equipment = [{ id: 'hb', name: 'Safe Sitter handbooks', qty: 10, consumable: true, reorderAt: 10, reorderQty: 16 }];
+function useRoster() {
+  planSandbox.COURSES = {
+    'Safe Sitter®': { maxStudents: 10 },
+    'Safe@Home': { maxStudents: 8 },
+    'Grandparents: Getting Started': { maxStudents: 12 }
+  };
+  planSandbox.registrations = [];
+  planSandbox.sessionMaxStudents = function (s) {
+    if (s && s.maxStudentsOverride && Number(s.maxStudentsOverride) > 0) return Number(s.maxStudentsOverride);
+    return (planSandbox.COURSES[s.course] || { maxStudents: 8 }).maxStudents;
+  };
+  planSandbox.seatsOnSession = function (id) {
+    return planSandbox.registrations.filter((r) => r.sessionId === id && r.payStatus !== 'cancelled' && r.payStatus !== 'waitlist').length;
+  };
+}
+
+test('handbook stock follows the roster and stays given out after a kit is checked in', () => {
+  useRoster();
+  planSandbox.equipment = [
+    { id: 'hb', name: 'Safe Sitter handbooks', qty: 20, consumable: true, reorderAt: 10, reorderQty: 16 },
+    { id: 'note', name: 'Safe Sitter notebooks', qty: 20, consumable: true, reorderAt: 10, reorderQty: 16 },
+    { id: 'sah', name: 'Safe@Home handbooks', qty: 20, consumable: true, reorderAt: 10, reorderQty: 16 },
+    { id: 'gp', name: 'Grandparents handbooks', qty: 20, consumable: true, reorderAt: 10, reorderQty: 16 }
+  ];
+  planSandbox.matCheckouts = [];
+  planSandbox.sessions = [{ id: 'oct', course: 'Safe Sitter®', date: '2026-10-10', isVirtual: false }];
+  planSandbox.registrations = [];
+  assert.equal(planSandbox.matBookCommitted('hb', null, 'ahead'), 10);
+  assert.equal(planSandbox.matBookCommitted('note', null, 'ahead'), 10);
+  assert.equal(planSandbox.matBookCommitted('sah', null, 'all'), 0);
+
+  planSandbox.registrations = [
+    { sessionId: 'oct', payStatus: 'paid' },
+    { sessionId: 'oct', payStatus: 'unpaid' },
+    { sessionId: 'oct', payStatus: 'pending' },
+    { sessionId: 'oct', payStatus: 'host' },
+    { sessionId: 'oct', payStatus: 'waitlist' }
+  ];
+  assert.equal(planSandbox.matBookCommitted('hb', null, 'all'), 4);
+
+  planSandbox.registrations[3].payStatus = 'cancelled';
+  assert.equal(planSandbox.matBookCommitted('hb', null, 'all'), 3);
+  assert.equal(planSandbox.matBookCommitted('note', null, 'all'), 3);
+
+  planSandbox.sessions.push({ id: 'old', course: 'Safe Sitter®', date: '2026-09-01', isVirtual: false });
+  planSandbox.registrations.push({ sessionId: 'old', payStatus: 'paid' }, { sessionId: 'old', payStatus: 'paid' });
+  assert.equal(planSandbox.matBookCommitted('hb', null, 'all'), 3);
+
+  planSandbox.sessions = [{ id: 'today', course: 'Safe Sitter®', date: '2026-09-25', isVirtual: false }];
+  planSandbox.registrations = [
+    { sessionId: 'today', payStatus: 'paid' },
+    { sessionId: 'today', payStatus: 'paid' },
+    { sessionId: 'today', payStatus: 'paid' },
+    { sessionId: 'today', payStatus: 'paid' }
+  ];
   planSandbox.matCheckouts = [{
-    id: 'used', outDate: '2026-09-01', dueDate: '2026-09-01', returnedDate: '2026-09-01',
-    items: [{ equipmentId: 'hb', qty: 4, consumable: true }]
+    id: 'kit', outDate: '2026-09-25', dueDate: '2026-09-25', returnedDate: '2026-09-25',
+    items: [{ equipmentId: 'infant', qty: 1 }]
   }];
-  assert.equal(planSandbox.qtyOutOn('hb', '2026-09-25'), 4);
-  assert.equal(planSandbox.matFreeForDemand(planSandbox.equipment[0]), 6);
+  assert.equal(planSandbox.matPhysicallyOut('hb'), 4);
+  assert.equal(planSandbox.qtyOutOn('hb', '2026-09-25'), 0);
+  assert.equal(planSandbox.matFreeForDemand(planSandbox.equipment[0]), 16);
+  planSandbox.equipment[0].qty = 10;
   const reorders = planSandbox.matReorderLines();
   assert.equal(reorders.length, 1);
   assert.equal(reorders[0].name, 'Safe Sitter handbooks');
   assert.equal(reorders[0].need, 16);
+  assert.equal(reorders[0].onHand, 6);
+});
+
+test('a class buy-more note names the shortfall and does not block a durable-only checkout', () => {
+  useRoster();
+  planSandbox.equipment = [
+    { id: 'infant', name: 'Infant CPR Manikins', qty: 5 },
+    { id: 'child', name: 'Child Manikins', qty: 5 },
+    { id: 'av', name: 'AV Kit', qty: 7 },
+    { id: 'hb', name: 'Safe Sitter handbooks', qty: 20, consumable: true, reorderAt: 10, reorderQty: 16 },
+    { id: 'note', name: 'Safe Sitter notebooks', qty: 4, consumable: true, reorderAt: 10, reorderQty: 16 },
+    { id: 'sah', name: 'Safe@Home handbooks', qty: 3, consumable: true, reorderAt: 10, reorderQty: 16 },
+    { id: 'gp', name: 'Grandparents handbooks', qty: 20, consumable: true, reorderAt: 10, reorderQty: 16 }
+  ];
+  planSandbox.matCheckouts = [];
+  planSandbox.sessions = [
+    { id: 'oct3', course: 'Safe Sitter®', date: '2026-10-03', isVirtual: false },
+    { id: 'home', course: 'Safe@Home', date: '2026-10-08', isVirtual: false },
+    { id: 'gp', course: 'Grandparents: Getting Started', date: '2026-10-09', isVirtual: false }
+  ];
+  planSandbox.registrations = [
+    { sessionId: 'oct3', payStatus: 'paid' },
+    { sessionId: 'oct3', payStatus: 'paid' },
+    { sessionId: 'oct3', payStatus: 'paid' },
+    { sessionId: 'oct3', payStatus: 'paid' },
+    { sessionId: 'oct3', payStatus: 'paid' },
+    { sessionId: 'oct3', payStatus: 'paid' }
+  ];
+  const plan = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-10-03', person: 'Bronwen Kennedy', sessionId: 'oct3', extraDates: [], headcount: 6
+  });
+  assert.equal(plan.lines.map((l) => l.eqId).join(','), 'infant,child,av');
+  assert.equal(plan.books.find((b) => b.eqId === 'hb').requested, 6);
+  assert.equal(plan.books.find((b) => b.eqId === 'hb').shortfall, 0);
+  assert.equal(plan.books.find((b) => b.eqId === 'note').shortfall, 2);
+  assert.equal(planSandbox.matBookBuySentence(plan), 'Buy 2 more Safe Sitter notebooks.');
+  const items = planSandbox.matCheckoutItemsFromPlan(plan, false);
+  assert.equal(items.some((it) => it.consumable || it.equipmentId === 'hb' || it.equipmentId === 'note'), false);
+
+  const home = planSandbox.matPlanForSession({
+    course: 'Safe@Home', date: '2026-10-08', sessionId: 'home', extraDates: [], headcount: 8
+  });
+  assert.equal(home.books.length, 1);
+  assert.equal(home.books[0].name, 'Safe@Home handbooks');
+  assert.equal(home.books[0].shortfall, 5);
+  assert.equal(planSandbox.matBookBuySentence(home), 'Buy 5 more Safe@Home handbooks.');
+
+  planSandbox.registrations.push(
+    { sessionId: 'gp', payStatus: 'paid' },
+    { sessionId: 'gp', payStatus: 'cancelled' }
+  );
+  assert.equal(planSandbox.matBookCommitted('gp', null, 'all'), 1);
 });
 
 test('on hand ignores future reservations and kits already checked back in today', () => {
