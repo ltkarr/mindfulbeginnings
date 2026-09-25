@@ -98,6 +98,48 @@ test('admin expense categories include Curriculum Development', () => {
   assert.ok(list.includes('Charitable Donation'));
 });
 
+test('dashboard materials show on hand vs checked out and check in against a session', () => {
+  assert.match(admin, /id="dash-materials"/);
+  assert.match(admin, /function renderDashMaterials/);
+  assert.match(admin, /function openCheckIn/);
+  assert.match(admin, /function saveCheckIn/);
+  assert.match(admin, /function matInstructorXrefHtml/);
+  assert.match(admin, />On hand</);
+  assert.match(admin, />Checked out</);
+  assert.match(admin, /Check out for this class/);
+  const sql = fs.readFileSync(path.join(root, 'migrations/infant_cpr_manikins_plus3.sql'), 'utf8');
+  assert.match(sql, /Infant CPR Manikins/);
+  assert.match(sql, /qty = qty \+ 3/);
+  assert.match(sql, /purchased Sep 2026/);
+  assert.match(sql, /mb-infant-manikins-plus-3-2026-09/);
+});
+
+test('dashboard outreach opens the Google Doc and keeps recipient lists', () => {
+  const doc = 'https://docs.google.com/document/d/1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/edit?tab=t.0';
+  assert.match(admin, new RegExp(doc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(admin, /Open this Google Doc/);
+  assert.match(admin, /function openOutreachWindow/);
+  assert.match(admin, /This screen does not send mail and does not load the Doc/);
+  const slice = (a, b) => admin.slice(admin.indexOf(a), admin.indexOf(b));
+  const classMail = slice('function openClassReminder', 'function openHostReminder');
+  const hostMail = slice('function openHostReminder', 'function openInstructorReminder');
+  const instrMail = slice('function openInstructorReminder', 'function openInstructorFollowup');
+  for (const fn of [classMail, hostMail, instrMail]) {
+    assert.doesNotMatch(fn, /EMAIL_BODY/);
+    assert.doesNotMatch(fn, /outlook\.office\.com/);
+    assert.doesNotMatch(fn, /mail\.google\.com/);
+    assert.match(fn, /openOutreachWindow/);
+  }
+  assert.match(classMail, /Send reminder to the class/);
+  assert.match(classMail, /listLabel:'BCC'/);
+  assert.match(hostMail, /Send reminder to host/);
+  assert.match(instrMail, /Send reminder \+ roster to instructor/);
+  assert.match(instrMail, /listLabel:'To'/);
+  assert.doesNotMatch(admin, /Please review the important details below as you prepare for the class/);
+  assert.doesNotMatch(admin, /coming up in one week! We are so excited/);
+  assert.doesNotMatch(admin, /Just a reminder that you are scheduled to teach/);
+});
+
 test('Care Ready is wired into the instructor config and the admin course list', () => {
   assert.match(instructorCfg, /"Care Ready":\{hours:2\.5,maxStudents:16\}/);
   assert.match(admin, /'Care Ready':\{price:185/);

@@ -287,6 +287,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <button class="btn primary" onclick="openAddSession()">+ New session</button>
       </div>
       <div class="metrics" id="dash-metrics"></div>
+      <div id="dash-materials" style="margin-bottom:16px"></div>
       <div id="org-billing" style="margin-bottom:16px"></div>
       <div id="instructor-milestones" style="margin-bottom:16px"></div>
       <div id="reminder-alerts" style="margin-bottom:16px"></div>
@@ -465,7 +466,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
          renderJobs()/job-action functions below are kept but no-op without the screen. -->
     <div class="screen" id="screen-materials">
       <div class="page-header">
-        <div><div class="page-title">Equipment</div><div class="page-sub">Reusable teaching kits only — manikins and AV gear: what's out, who has it, when it's due back, and whether you have enough. Handbooks and note pads are not tracked here; they live on the pre-class checklist as "Handbooks &amp; supplies".</div></div>
+        <div><div class="page-title">Equipment</div><div class="page-sub">Reusable teaching kits only — manikins and AV gear. On hand is what is on the shelf today. Checked out is what an instructor already has. Handbooks and note pads are not tracked here; they live on the pre-class checklist as "Handbooks &amp; supplies".</div></div>
         <div class="btn-row">
           <button class="btn" onclick="openAddEquipment()">+ Add equipment type</button>
           <button class="btn primary" onclick="openCheckout()">📦 Check out equipment</button>
@@ -493,7 +494,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         </div>
       </div>
       <div class="page-header" style="margin-top:24px;margin-bottom:12px">
-        <div><div class="page-title" style="font-size:23px">Checkouts</div><div class="page-sub">Mark equipment returned when it comes back so it frees up for the next session</div></div>
+        <div><div class="page-title" style="font-size:23px">Checkouts</div><div class="page-sub">Check items back in when they return. A partial check-in leaves the rest out with that instructor.</div></div>
         <select id="mat-filter" onchange="renderMaterials()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none">
           <option value="active">Out &amp; upcoming</option>
           <option value="all">All (incl. returned)</option>
@@ -4121,7 +4122,7 @@ function renderDashboard(){
           <label style="display:inline-flex;align-items:center;gap:7px;font-size:15px;color:${checked?'var(--success)':'var(--text)'};cursor:pointer">
             <input type="checkbox" ${checked?'checked':''} onchange="${onchange}" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">${checked?'✓ ':''}${label}
           </label>${btn||''}</div>`;
-        const sendBtn=(onclick,emoji,color,bg,border)=>`<button onclick="${onclick}" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid ${border};background:${bg};color:${color};cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;flex-shrink:0">${emoji} Send</button>`;
+        const sendBtn=(onclick,emoji,color,bg,border)=>`<button onclick="${onclick}" title="Opens the Google Doc and the recipient list. Nothing is emailed from here." style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid ${border};background:${bg};color:${color};cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;flex-shrink:0">${emoji} Open</button>`;
         const items=[];
         items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,'Put out handbooks &amp; supplies',''));
         if(hasInstr)items.push(item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,'Send reminder + roster to instructor',sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee')));
@@ -4191,6 +4192,7 @@ function renderDashboard(){
   }
   // ── Organization billing ("did I bill them yet?") ──
   renderOrgBilling();
+  renderDashMaterials();
 }
 
 
@@ -7450,124 +7452,143 @@ Thank you again for being part of the Mindful Beginnings community. We are so gl
 }
 
 
-// ─── CLASS REMINDER EMAIL (to all registered families, BCC) ──
-// Sent in the lead-up to a class. Auto-fills date/time, location, and the
-// assigned instructor, then BCCs every registered family. Outlook is the
-// primary one-click button; Gmail / mail app / copy are fallbacks.
-function openClassReminder(sessId){
-  const s=sessions.find(x=>x.id===sessId);if(!s)return;
-  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'To be confirmed';
-  const dateTime=d+(s.time?', '+s.time:'');
-  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
-  const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
-  const bccList=emails.join('; ')||'(no emails on file)';
-
-  // Location / address line
-  let locationAddress;
-  if(s.isVirtual){
-    locationAddress='Virtual (Zoom)'+(s.zoomLink?': '+s.zoomLink:' — link to follow');
-  }else{
-    const cityState=[s.city,s.state].filter(Boolean).join(', ');
-    const cszZip=(cityState+(s.zip?' '+s.zip:'')).trim();
-    const fullAddress=[s.hostAddress,cszZip].filter(Boolean).join(', ');
-    locationAddress=[s.location,fullAddress].filter(Boolean).join(', ')||'To be confirmed';
-  }
-
-  // Instructor name
-  const instrId=(jobDataCache[sessId]||{}).instructorId||s.instructorId;
-  const instrObj=instructors.find(x=>x.id===instrId);
-  const instrName=s.ownerTaught?'Lindsay Karr':(instrObj?instrObj.name:'your Mindful Beginnings instructor');
-
-  const EMAIL_SUBJECT=`Reminder: your ${s.course} class on `+(s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date');
-  const EMAIL_BODY=`Hi everyone,
-
-Please review the important details below as you prepare for the class:
-
-Class Logistics
-
-* Date and Time: ${dateTime}
-* Location: ${locationAddress}
-* What to Bring: Please send your child with a water bottle and a snack. (Please refer to your host regarding any additional meal information).
-
-Class Details & Attachments
-
-* Instructor: Your instructor for the day will be ${instrName}. You can learn more about our full team here on our website: https://mindfulbeginnings.org/our-team
-* Course Overview: Also attached is a course overview detailing everything your child will learn during the session.
-
-Certification
-
-Upon successful completion of the course, each participant will receive an official certificate from SafeSitter.org.
-
-Please let us know if you have any questions in the meantime. We can't wait for a great day of learning!
-
-Warmly,
-Lindsay Karr
-Mindful Beginnings
-703-987-5979 · mindfulbeginnings.org`;
-
-  const outlookUrl='https://outlook.office.com/mail/deeplink/compose?bcc='+encodeURIComponent(emails.join(';'))+'&subject='+encodeURIComponent(EMAIL_SUBJECT)+'&body='+encodeURIComponent(EMAIL_BODY);
-  const gmailUrl='https://mail.google.com/mail/?view=cm&fs=1&bcc='+encodeURIComponent(emails.join(';'))+'&su='+encodeURIComponent(EMAIL_SUBJECT)+'&body='+encodeURIComponent(EMAIL_BODY);
-  const mailtoUrl='mailto:?bcc='+encodeURIComponent(emails.join(';'))+'&subject='+encodeURIComponent(EMAIL_SUBJECT)+'&body='+encodeURIComponent(EMAIL_BODY);
-  const esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-  const win=window.open('','_blank','width=960,height=880');
+// ─── DASHBOARD OUTREACH (Google Doc + recipient lists) ──
+// Lindsay keeps the wording in one Google Doc. These windows do not send mail
+// and do not read the Doc. They open it and show which recipient list pairs
+// with which outreach label from the Dashboard checklist.
+const MB_OUTREACH_DOC_URL='https://docs.google.com/document/d/1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/edit?tab=t.0';
+function emailsInText(t){
+  const found=String(t||'').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi);
+  return found?[...new Set(found.map(e=>e.trim()))]:[];
+}
+function openOutreachWindow(opts){
+  const addresses=(opts.addresses||[]).map(a=>String(a||'').trim()).filter(a=>a.includes('@'));
+  const listText=addresses.join('; ');
+  const shown=listText||'(no email addresses on file)';
+  const listLabel=opts.listLabel||'Recipients';
+  const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const win=window.open('','_blank','width=860,height=820');
   if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(`<!DOCTYPE html><html><head><title>Class Reminder — ${s.course}</title>
+  const printBtn=opts.includeRosterPrint?'<button class="b-print" onclick="printRoster()">Print roster</button>':'';
+  const rosterTitle=JSON.stringify(opts.rosterTitle||'Roster');
+  win.document.write(`<!DOCTYPE html><html><head><title>${esc(opts.category)}</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.7;padding:0}
-    .toolbar{background:#1a2744;padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0}
-    .toolbar button{padding:9px 16px;border-radius:6px;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
-    .b-outlook{background:#0f6cbd;color:white}
-    .b-gmail{background:rgba(255,255,255,.12);color:white}
-    .b-mail{background:rgba(255,255,255,.12);color:white}
-    .b-copy{background:rgba(255,255,255,.12);color:white}
-    .b-bcc{background:rgba(255,255,255,.12);color:white}
-    .b-close{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.2)!important}
-    .toolbar .note{color:rgba(255,255,255,.55);font-size:15px}
-    .doc{max-width:680px;margin:28px auto;padding:0 32px 64px}
-    .pdf-reminder{background:#fff7e6;border:1px solid #f0d090;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:16px;color:#7a5000;font-weight:500}
-    .bcc-box{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:15px;color:#1a5c8a}
-    .bcc-box strong{display:block;margin-bottom:4px;font-size:14px;letter-spacing:.6px;text-transform:uppercase}
-    .bcc-addr{word-break:break-all;line-height:1.8;color:#27496b}
-    .subject-line{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:16px}
-    .email-box{background:white;border-radius:10px;border:1px solid #dde4ee;padding:28px 32px;white-space:pre-wrap;font-size:17px;line-height:1.85;color:#1a2744}
-    @media print{.toolbar{display:none}}
-  </style>
-  </head><body>
-  <div class="toolbar">
-    <button class="b-outlook" onclick="openOutlook()">📧 Open in Outlook (BCC filled)</button>
-    <button class="b-gmail" onclick="openGmail()">Open in Gmail</button>
-    <button class="b-mail" onclick="openMail()">Default mail app</button>
-    <button class="b-copy" onclick="copyEmail()">📋 Copy text</button>
-    <button class="b-bcc" onclick="copyBCC()">Copy BCC only</button>
+    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.6;padding:28px 26px}
+    h2{font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:4px}
+    .sub{color:#6b7a99;font-size:16px;margin-bottom:16px}
+    .docbtn{display:inline-block;background:#1a2744;color:white;text-decoration:none;font-weight:600;padding:12px 16px;border-radius:8px;margin:8px 0 14px}
+    .note{font-size:15px;color:#3a4a6b;margin-bottom:16px;max-width:640px}
+    .label{font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#6b7a99;margin-bottom:6px}
+    .addr{background:white;border:1px solid #dde4ee;border-radius:8px;padding:12px 14px;font-size:15px;word-break:break-all;line-height:1.8;margin-bottom:12px}
+    button{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;padding:10px 14px;border-radius:8px;cursor:pointer}
+    .b-copy{background:white;color:#1a5c8a;border:1.5px solid #b8d8ee}
+    .b-print{background:white;color:#1a2744;border:1.5px solid #c0c8d8;margin-left:8px}
+    .b-close{background:transparent;color:#6b7a99;border:none;margin-left:8px}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px 10px;border-bottom:1.5px solid #dde4ee;background:#f8f9fc}
+    td{padding:8px 10px;border-bottom:.5px solid #eee;vertical-align:middle}
+  </style></head><body>
+    <h2>${esc(opts.category)}</h2>
+    <div class="sub">${esc(opts.sessionLine||'')}</div>
+    <a class="docbtn" href="${MB_OUTREACH_DOC_URL}" target="_blank" rel="noopener noreferrer">Open this Google Doc</a>
+    <p class="note">Open the Doc in a new tab, edit the <strong>${esc(opts.category)}</strong> section there, then paste it into your own email. This screen does not send mail and does not load the Doc.</p>
+    <div class="label">${esc(listLabel)}</div>
+    <div class="addr" id="addr">${esc(shown)}</div>
+    <button class="b-copy" onclick="copyList()">Copy ${esc(listLabel)}</button>
+    ${printBtn}
     <button class="b-close" onclick="window.close()">Close</button>
-    <span class="note">📎 Attach the course overview before sending. If the BCC list does not carry into Outlook, click "Copy BCC only" and paste it.</span>
-  </div>
-  <div class="doc">
-    <div class="pdf-reminder">📎 Before sending — attach the course overview PDF (attachments can't be added automatically).</div>
-    <div class="bcc-box">
-      <strong>${emails.length} recipient${emails.length!==1?'s':''} — added as BCC</strong>
-      <div class="bcc-addr">${bccList}</div>
-    </div>
-    <div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>${esc(EMAIL_SUBJECT)}</strong></div>
-    <div class="email-box">${esc(EMAIL_BODY)}</div>
-  </div>
+    <div class="extra">${opts.extraHtml||''}</div>
   <script>
-    const OUTLOOK_URL=${JSON.stringify(outlookUrl)};
-    const GMAIL_URL=${JSON.stringify(gmailUrl)};
-    const MAILTO_URL=${JSON.stringify(mailtoUrl)};
-    const BODY_TEXT=${JSON.stringify(EMAIL_BODY)};
-    const BCC_TEXT=${JSON.stringify(emails.join('; '))};
-    function openOutlook(){window.open(OUTLOOK_URL,'_blank');}
-    function openGmail(){window.open(GMAIL_URL,'_blank');}
-    function openMail(){window.location.href=MAILTO_URL;}
-    function copyEmail(){navigator.clipboard.writeText(BODY_TEXT).then(()=>alert('Email text copied! Paste into your email, then attach the course overview.')).catch(()=>alert('Could not copy automatically — please select the text manually.'));}
-    function copyBCC(){navigator.clipboard.writeText(BCC_TEXT).then(()=>alert('BCC addresses copied!')).catch(()=>alert('Could not copy — please copy the addresses manually.'));}
+    const LIST=${JSON.stringify(listText)};
+    const ROSTER_TITLE=${rosterTitle};
+    function copyList(){
+      const text=LIST||document.getElementById('addr').innerText;
+      navigator.clipboard.writeText(text).then(()=>alert('Copied. Paste it into BCC or To in your own email.')).catch(()=>alert('Could not copy automatically — select the addresses and copy them.'));
+    }
+    function printRoster(){
+      const el=document.getElementById('roster-section');
+      if(!el){alert('No roster to print.');return;}
+      const w=window.open('','_blank','width=960,height=660');
+      if(!w){alert('Allow popups to print the roster.');return;}
+      w.document.write('<!DOCTYPE html><html><head><title>'+String(ROSTER_TITLE).replace(/[<>]/g,'')+'</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;padding:24px;color:#1a2744;font-size:16px}.roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px;font-weight:500}table{width:100%;border-collapse:collapse}th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px;border-bottom:1.5px solid #1a2744;background:#f8f9fc}td{padding:7px 8px;border-bottom:.5px solid #eee}</style></head><body>'+el.outerHTML+'<div style="margin-top:16px"><button onclick="window.print()" style="background:#1a2744;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:16px;cursor:pointer">Print roster</button></div></body></html>');
+      w.document.close();
+    }
   <\/script>
   </body></html>`);
   win.document.close();
+}
+function reminderRosterHtml(s, regs, kind){
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
+  const instr=(()=>{const list=sessionInstructorList(s);return list.length?list.map(x=>x.name.replace(' (owner)','')).join(' and '):'your instructor';})();
+  const studentCount=regs.length;
+  const hostCols=kind==='host';
+  const head=hostCols
+    ?'<th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th>'
+    :'<th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th><th>Contact</th><th style="text-align:center">CPR</th><th style="text-align:center">Waiver</th><th style="text-align:center">Photo</th>';
+  const body=regs.length?regs.map((r,i)=>{
+    const base=`<td style="color:#aaa;font-size:14px">${i+1}</td><td style="font-weight:500">${escapeHtml(r.studentName)}</td><td>${escapeHtml(r.grade)||'—'}</td><td>${escapeHtml(r.parentName)||'—'}</td>`;
+    const extra=hostCols?'':`<td style="font-size:15px">${escapeHtml(r.contact)||'—'}</td><td style="text-align:center">${r.cprPermission==='yes'?'✓':'—'}</td><td style="text-align:center">${r.waiverSigned?'✓':'—'}</td><td style="text-align:center">${r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—'}</td>`;
+    return `<tr style="background:${i%2===0?'white':'#f9fafb'}">${base}${extra}</tr>`;
+  }).join(''):`<tr><td colspan="${hostCols?4:8}" style="text-align:center;padding:16px;color:#aaa;font-style:italic">No students registered yet</td></tr>`;
+  return `<div style="font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#6b7a99;margin:18px 0 8px">Class roster — print and attach</div>
+    <div id="roster-section" style="background:white;border:1px solid #dde4ee;border-radius:10px;overflow:hidden">
+      <div class="roster-hdr" style="background:#1a2744;color:white;padding:10px 16px;font-size:16px">${escapeHtml(s.course)} · ${escapeHtml(d)} · ${studentCount} student${studentCount!==1?'s':''}</div>
+      <div style="padding:14px 16px">
+        <div style="font-size:15px;margin-bottom:12px;color:#3a4a6b">Location: <strong>${s.isVirtual?'Virtual':escapeHtml(s.location||'TBD')}</strong> · Instructor: <strong>${escapeHtml(instr)}</strong> · Code: <strong>${escapeHtml(s.code)}</strong></div>
+        <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+      </div>
+    </div>`;
+}
+function openClassReminder(sessId){
+  const s=sessions.find(x=>x.id===sessId);if(!s)return;
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Date to be confirmed';
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
+  const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
+  openOutreachWindow({
+    category:'Send reminder to the class',
+    sessionLine:s.course+' · '+d,
+    listLabel:'BCC',
+    addresses:emails
+  });
+}
+function openHostReminder(sessId){
+  const s=sessions.find(x=>x.id===sessId);if(!s)return;
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Date to be confirmed';
+  const dFile=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r)).sort((a,b)=>String(a.studentName||'').localeCompare(String(b.studentName||'')));
+  const contact=[s.contactName,s.hostPhone].filter(Boolean).join(' · ');
+  const emails=emailsInText([s.hostPhone,s.contactName].filter(Boolean).join(' '));
+  const contactHtml=contact?`<div style="font-size:15px;margin-bottom:8px">Host contact on file: <strong>${escapeHtml(contact)}</strong></div>`:'<div style="font-size:15px;margin-bottom:8px">No host contact is on file for this session.</div>';
+  openOutreachWindow({
+    category:'Send reminder to host',
+    sessionLine:s.course+' · '+d,
+    listLabel:'Recipient',
+    addresses:emails,
+    includeRosterPrint:true,
+    rosterTitle:'Roster - '+dFile,
+    extraHtml:contactHtml+reminderRosterHtml(s,regs,'host')
+  });
+}
+function openInstructorReminder(sessId,specificInstrId){
+  const s=sessions.find(x=>x.id===sessId);if(!s)return;
+  const targetId=specificInstrId||(jobDataCache[sessId]||{}).instructorId||s.instructorId;
+  const instr=instructors.find(x=>x.id===targetId);
+  if(!instr){alert('No instructor assigned to this session yet.');return;}
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Date to be confirmed';
+  const dFile=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
+  const whoHtml=`<div style="font-size:15px;margin-bottom:8px">Instructor: <strong>${escapeHtml(instr.name)}</strong>${instr.email?' · '+escapeHtml(instr.email):' · no email on file'}${instr.phone?' · '+escapeHtml(instr.phone):''}</div>`;
+  openOutreachWindow({
+    category:'Send reminder + roster to instructor',
+    sessionLine:s.course+' · '+d+' · '+instr.name,
+    listLabel:'To',
+    addresses:instr.email?[instr.email]:[],
+    includeRosterPrint:true,
+    rosterTitle:'Roster - '+dFile,
+    extraHtml:whoHtml+reminderRosterHtml(s,regs,'instructor')
+  });
 }
 
 
@@ -8440,6 +8461,168 @@ function coSessionLabel(c){
   return s.course+' — '+fmtSessDate(s,{month:'short',day:'numeric'})+(s.isCancelled?' · CANCELLED':'');
 }
 
+// Units physically off the shelf today (out date has arrived and they are not checked back in).
+function matPhysicallyOut(eqId){return qtyOutOn(eqId,matToday());}
+// Units promised on a future out-date. They are still on the shelf until that date.
+function matReservedAhead(eqId){
+  const t=matToday();
+  let n=0;
+  matCheckouts.forEach(c=>{
+    if(c.returnedDate||coNoEquipment(c)||coUsesExisting(c))return;
+    if(!(c.outDate>t))return;
+    (c.items||[]).forEach(it=>{if(it.equipmentId===eqId)n+=Number(it.qty)||0;});
+  });
+  return n;
+}
+function matInventoryCardsInner(showEdit){
+  const t=matToday();
+  return equipment.map(eq=>{
+    const out=matPhysicallyOut(eq.id);
+    const onHand=eq.qty-out;
+    const ahead=matReservedAhead(eq.id);
+    let next='';
+    matCheckouts.filter(c=>!c.returnedDate&&!coNoEquipment(c)&&!coUsesExisting(c)&&c.outDate>t&&(c.items||[]).some(it=>it.equipmentId===eq.id&&Number(it.qty)>0))
+      .sort((a,b)=>a.outDate.localeCompare(b.outDate)).slice(0,1)
+      .forEach(c=>{next='Next out '+new Date(c.outDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});});
+    const cls=onHand<0?'red':onHand===0?'red':'green';
+    return`<div class="metric">
+      <div class="m-label">${escapeHtml(eq.name)}</div>
+      <div style="display:flex;gap:14px;align-items:flex-end;margin-top:4px">
+        <div><div class="m-label">On hand</div><div class="m-val ${cls}" style="font-size:28px">${onHand}</div></div>
+        <div><div class="m-label">Checked out</div><div class="m-val" style="font-size:28px">${out}</div></div>
+        <div><div class="m-label">Owned</div><div class="m-val" style="font-size:28px;color:var(--muted)">${eq.qty}</div></div>
+      </div>
+      <div class="m-sub">${onHand<0?'⚠ More are out than you own':ahead?ahead+' reserved ahead':'Nothing reserved ahead'}${next?' · '+next:''}</div>
+      ${showEdit===false?'':`<div class="btn-row" style="margin-top:8px"><button class="btn sm" onclick="openEditEquipment('${eq.id}')">Edit</button></div>`}
+    </div>`;
+  }).join('');
+}
+function matInstructorChoices(){
+  return [...new Set(['Lindsay Karr (owner)',...instructors.filter(instrActive).map(i=>i.name).filter(Boolean)])];
+}
+function matUpcomingForPerson(name){
+  const nm=(name||'').trim().toLowerCase();
+  if(!nm)return[];
+  const t=matToday();
+  return sessions.filter(s=>!s.isHold&&!s.isCancelled&&s.date&&sessionEndDate(s)>=t
+      &&sessionInstructorList(s).some(x=>(x.name||'').trim().toLowerCase()===nm))
+    .sort((a,b)=>a.date.localeCompare(b.date)||String(a.time||'').localeCompare(String(b.time||'')));
+}
+function matPersonKitLines(name){
+  const nm=(name||'').trim().toLowerCase();
+  if(!nm)return[];
+  return matCheckouts.filter(c=>!c.returnedDate&&!coNoEquipment(c)&&!coUsesExisting(c)&&(c.person||'').trim().toLowerCase()===nm)
+    .sort((a,b)=>(a.outDate||'').localeCompare(b.outDate||''));
+}
+function matSessionReserveLabel(s){
+  const cos=matCheckouts.filter(c=>c.sessionId===s.id&&!c.returnedDate);
+  if(!cos.length)return 'Nothing reserved yet';
+  return cos.map(c=>{
+    if(coNoEquipment(c))return 'No equipment needed';
+    if(coUsesExisting(c))return 'Using a kit already out'+(c.person?' ('+c.person+')':'');
+    return coItemsLabel(c)+(c.person?' with '+c.person:'');
+  }).join('; ');
+}
+// Upcoming classes for one instructor, plus every kit already out or reserved in their name.
+// mode 'modal' wires the buttons into the open checkout form; 'dash' opens checkout from the Dashboard.
+function matInstructorXrefHtml(name, mode){
+  const upcoming=matUpcomingForPerson(name);
+  const kits=matPersonKitLines(name);
+  const fd=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
+  const t=matToday();
+  const kitBlock=kits.length
+    ?`<div style="font-size:15px;margin-bottom:8px"><strong>Already out or reserved for ${escapeHtml(name)}</strong><br>${kits.map(c=>{
+        const sess=coSessionLabel(c);
+        const where=c.outDate&&c.outDate<=t?'checked out':'reserved ahead';
+        return escapeHtml(coItemsLabel(c))+' · '+where+' '+fd(c.outDate)+'–'+fd(c.dueDate)+(sess?' · '+escapeHtml(sess):'');
+      }).join('<br>')}</div>`
+    :`<div style="font-size:15px;margin-bottom:8px"><strong>${escapeHtml(name)}</strong> has nothing checked out or reserved.</div>`;
+  const shown=upcoming.slice(0,12);
+  const rows=shown.length?shown.map(s=>{
+    const reserved=matSessionReserveLabel(s);
+    const none=reserved==='Nothing reserved yet';
+    const co=matCheckouts.find(c=>c.sessionId===s.id&&!c.returnedDate);
+    let btn='';
+    if(mode==='modal'){
+      btn=`<button type="button" class="btn sm ${none?'primary':''}" onclick="coPickSession('${s.id}')">${none?'Check out for this class':'Open reservation'}</button>`;
+    }else if(co&&coNoEquipment(co)){
+      btn='';
+    }else if(co){
+      btn=`<button type="button" class="btn sm" onclick="openEditCheckout('${co.id}')">Open reservation</button>`;
+    }else{
+      btn=`<button type="button" class="btn sm primary" onclick="openCheckout('${s.id}')">Check out for this class</button>`;
+    }
+    return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:7px 0;border-top:0.5px solid var(--border)">
+      <div style="font-size:15px;min-width:0"><span style="font-weight:600">${escapeHtml(s.course)}</span> <span style="color:var(--muted)">${fmtSessDate(s,{month:'short',day:'numeric'})}${s.location?' · '+escapeHtml(s.location):''}</span><br><span style="color:${none?'#b86a00':'var(--muted)'}">${escapeHtml(reserved)}</span></div>
+      <div style="flex-shrink:0">${btn}</div>
+    </div>`;
+  }).join(''):`<div style="font-size:15px;color:var(--muted)">No upcoming classes are assigned to ${escapeHtml(name)}.</div>`;
+  const more=upcoming.length>shown.length?`<div style="font-size:14px;color:var(--muted);padding-top:4px">+ ${upcoming.length-shown.length} more upcoming class${upcoming.length-shown.length===1?'':'es'}</div>`:'';
+  return `<div class="alert info" style="margin:0"><div style="font-weight:600;margin-bottom:6px">Classes ${escapeHtml((name||'').split(' ')[0]||'they')} ${mode==='modal'?'is teaching':'is teaching — reuse a kit already out instead of booking a second one'}</div>${kitBlock}${rows}${more}</div>`;
+}
+function matOpenCheckouts(){
+  const t=matToday();
+  return matCheckouts.filter(c=>!c.returnedDate&&!coNoEquipment(c)&&!coUsesExisting(c)&&c.outDate&&c.outDate<=t)
+    .sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||'')||(a.person||'').localeCompare(b.person||''));
+}
+function dashMatWhoChanged(v){
+  window._dashMatWho=v||'';
+  renderDashMaterials();
+}
+function renderDashMaterials(){
+  const el=document.getElementById('dash-materials');if(!el)return;
+  if(!equipmentTablesReady){
+    el.innerHTML=`<div class="alert warn">The equipment list has not loaded yet. Open Equipment after the one-time materials setup, then refresh.</div>`;
+    return;
+  }
+  if(!equipment.length){
+    el.innerHTML=`<div class="card"><div class="card-title">Materials</div><div style="font-size:16px;color:var(--muted)">No kits on the shelf yet. Add manikins and AV gear on the Equipment screen.</div></div>`;
+    return;
+  }
+  const who=window._dashMatWho||'';
+  const opts=matInstructorChoices().map(n=>`<option value="${escapeHtml(n)}" ${n===who?'selected':''}>${escapeHtml(n)}</option>`).join('');
+  const open=matOpenCheckouts();
+  const fd=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
+  const rows=open.length?open.map(c=>{
+    const sess=coSessionLabel(c);
+    const overdue=coIsOverdue(c);
+    return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <div style="font-size:15px;min-width:0"><span style="font-weight:600">${escapeHtml(c.person||'Not assigned')}</span> · ${escapeHtml(coItemsLabel(c))}<br><span style="color:${overdue?'var(--danger)':'var(--muted)'}">${sess?escapeHtml(sess)+' · ':''}due ${fd(c.dueDate)}${overdue?' · overdue':''}</span></div>
+      <button class="btn sm success" style="flex-shrink:0" onclick="openCheckIn('${c.id}')">Check in</button>
+    </div>`;
+  }).join(''):`<div style="font-size:15px;color:var(--muted);padding:6px 0">Nothing is checked out today. Everything listed above is on hand.</div>`;
+  const xref=who?matInstructorXrefHtml(who,'dash'):`<div style="font-size:15px;color:var(--muted)">Choose an instructor to see the classes they are teaching and any kits already out to them.</div>`;
+  el.innerHTML=`<div class="card">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px">
+      <div>
+        <div class="card-title" style="margin-bottom:2px">Materials</div>
+        <div style="font-size:15px;color:var(--muted)">On hand is on the shelf today. Checked out is with an instructor. Owned is the full count for each kit, including infant CPR manikins.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="showScreen('materials',document.getElementById('nav-materials'))">Equipment</button>
+        <button class="btn primary" onclick="openCheckout()">Check out</button>
+      </div>
+    </div>
+    <div class="mat-eq-cards">${matInventoryCardsInner(false)}</div>
+    <div style="font-size:14px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:4px 0 6px">Checked out now</div>
+    ${rows}
+    <div style="margin-top:14px">
+      <label style="font-size:15px;font-weight:500;color:var(--muted)">Check out to an instructor</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">
+        <select id="dash-mat-who" onchange="dashMatWhoChanged(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;min-width:220px">
+          <option value="">Choose an instructor</option>${opts}
+        </select>
+        ${who?`<button class="btn sm" onclick="openCheckoutTo(decodeURIComponent('${encodeURIComponent(who)}'))">Check out to ${escapeHtml(who.split(' ')[0])}</button>`:''}
+      </div>
+      <div style="margin-top:10px">${xref}</div>
+    </div>
+  </div>`;
+}
+function openCheckoutTo(person){
+  window._coPresetWho=person||'';
+  openCheckout('');
+}
+
 function renderMaterials(){
   if(!document.getElementById('mat-table'))return;
   if(matCalYM==null){const n=new Date();matCalYM=n.getFullYear()*12+n.getMonth();}
@@ -8448,6 +8631,7 @@ function renderMaterials(){
   renderMatCards();
   renderMatCal();
   renderMatTable();
+  renderDashMaterials();
 }
 
 // Every class an instructor is teaching between two dates. Matches on the name shown
@@ -8585,23 +8769,8 @@ function renderMatAlerts(){
 }
 
 function renderMatCards(){
-  const t=matToday();
-  document.getElementById('mat-eq-cards').innerHTML=equipment.map(eq=>{
-    const out=qtyOutOn(eq.id,t);
-    const avail=eq.qty-out;
-    // Next date after today when any of this kit goes out (helps her plan ahead).
-    let next='';
-    matCheckouts.filter(c=>!c.returnedDate&&c.outDate>t&&(c.items||[]).some(it=>it.equipmentId===eq.id&&Number(it.qty)>0))
-      .sort((a,b)=>a.outDate.localeCompare(b.outDate)).slice(0,1)
-      .forEach(c=>{next='Next out '+new Date(c.outDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});});
-    const cls=avail<0?'red':avail===0?'red':out>0?'':'green';
-    return`<div class="metric">
-      <div class="m-label">${escapeHtml(eq.name)}</div>
-      <div class="m-val ${cls}">${avail}<span style="font-size:17px;color:var(--muted);font-family:'DM Sans',sans-serif"> of ${eq.qty} in</span></div>
-      <div class="m-sub">${avail<0?'⚠ Overbooked today':out>0?out+' out today':'All in today'}${next?' · '+next:''}</div>
-      <div class="btn-row" style="margin-top:8px"><button class="btn sm" onclick="openEditEquipment('${eq.id}')">Edit</button></div>
-    </div>`;
-  }).join('');
+  const el=document.getElementById('mat-eq-cards');if(!el)return;
+  el.innerHTML=equipment.length?matInventoryCardsInner():'';
 }
 
 function matCalShift(n){matCalYM+=n;renderMatCal();}
@@ -8658,7 +8827,7 @@ function renderMatTable(){
         <td>${status}</td>
         <td style="color:var(--muted);font-size:15px;max-width:140px">${escapeHtml(c.notes)||'—'}</td>
         <td><div class="btn-row">
-          ${coUsesExisting(c)||coNoEquipment(c)?'':c.returnedDate?`<button class="btn sm" onclick="undoReturn('${c.id}')">Undo return</button>`:`<button class="btn sm success" onclick="markReturned('${c.id}')">✓ Returned</button>`}
+          ${coUsesExisting(c)||coNoEquipment(c)?'':c.returnedDate?`<button class="btn sm" onclick="undoReturn('${c.id}')">Undo return</button>`:`<button class="btn sm success" onclick="openCheckIn('${c.id}')">Check in</button>`}
           ${coNoEquipment(c)?'':`<button class="btn sm" onclick="openEditCheckout('${c.id}')">Edit</button>`}
           <button class="btn sm danger" onclick="deleteCheckout('${c.id}')" title="${coNoEquipment(c)?'Removing this puts the session back in the checkout list and reminders':''}">Remove</button>
         </div></td></tr>`;
@@ -8717,9 +8886,22 @@ async function deleteEquipment(id){
 // openCheckout(sessId) → new checkout, optionally pre-tied to a session (from the
 // session "Manage ▾" menu). openEditCheckout(id) → edit an existing one.
 function openCheckout(sessId){buildCheckoutModal(null,sessId||'');}
+function coPickSession(sessId){
+  const sel=document.getElementById('m-co-sess');
+  if(!sel){openCheckout(sessId);return;}
+  const listed=[...sel.options].some(o=>o.value===sessId);
+  if(!listed){
+    const co=matCheckouts.find(c=>c.sessionId===sessId&&!c.returnedDate)||matCheckouts.find(c=>c.sessionId===sessId);
+    if(co){closeModal();openEditCheckout(co.id);return;}
+  }
+  sel.value=sessId;
+  coSessChanged();
+}
 function openEditCheckout(id){const c=matCheckouts.find(x=>x.id===id);if(c)buildCheckoutModal(c);}
 function buildCheckoutModal(c,presetSessId){
   if(!equipment.length){alert('Add your equipment types first (+ Add equipment type).');return;}
+  const presetWho=!c&&window._coPresetWho?String(window._coPresetWho):'';
+  window._coPresetWho='';
   const today=matToday();
   const selId=c?c.sessionId:presetSessId;
   // Sessions worth attaching: dated, not holds, and NOT already over. A recurring
@@ -8754,7 +8936,8 @@ function buildCheckoutModal(c,presetSessId){
       <div class="fg full" id="m-co-needs" style="display:none"></div>
       <div class="fg"><label>Out (leaves you) *</label><input type="date" id="m-co-out" value="${c?c.outDate:today}" onchange="coUpdateAvail()"></div>
       <div class="fg"><label>Due back *</label><input type="date" id="m-co-due" value="${c?c.dueDate:today}" onchange="coUpdateAvail()"></div>
-      <div class="fg full"><label>Who has it</label><input type="text" id="m-co-who" list="who-datalist" value="${c?escapeHtml(c.person):''}" placeholder="Instructor name..." oninput="coUpdateAvail()"><datalist id="who-datalist">${whoList}</datalist></div>
+      <div class="fg full"><label>Who has it</label><input type="text" id="m-co-who" list="who-datalist" value="${c?escapeHtml(c.person):escapeHtml(presetWho)}" placeholder="Instructor name..." oninput="coUpdateAvail()"><datalist id="who-datalist">${whoList}</datalist></div>
+      <div class="fg full" id="m-co-teach" style="display:none"></div>
       <div class="fg full" id="m-co-overlap" style="display:none"></div>
     </div>
     ${c&&coUsesExisting(c)?`<div class="alert info" style="margin:14px 0 0">↩ &nbsp;<span><strong>This session is covered</strong> — ${escapeHtml(c.person||'the instructor')} is using equipment they already have, so nothing extra went out. Enter quantities below only if something extra needs to go out after all.</span></div>`:''}
@@ -8886,6 +9069,12 @@ function coUpdateAvail(){
     overlapEl.innerHTML=msg;
     overlapEl.style.display=msg?'block':'none';
   }
+  const teachEl=document.getElementById('m-co-teach');
+  if(teachEl){
+    const whoRaw=(document.getElementById('m-co-who')?.value||'').trim();
+    if(!whoRaw){teachEl.innerHTML='';teachEl.style.display='none';}
+    else{teachEl.innerHTML=matInstructorXrefHtml(whoRaw,'modal');teachEl.style.display='block';}
+  }
   equipment.forEach(eq=>{
     const el=document.getElementById('m-co-avail-'+eq.id);if(!el)return;
     const want=parseInt(document.getElementById('m-co-qty-'+eq.id)?.value,10)||0;
@@ -9004,6 +9193,61 @@ async function saveCheckout(editId){
     dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(c)),'New checkout');
   }
 }
+function openCheckIn(id){
+  const c=matCheckouts.find(x=>x.id===id);if(!c)return;
+  if(coNoEquipment(c)||coUsesExisting(c)){alert('This row is not a physical checkout.');return;}
+  const lines=(c.items||[]).filter(it=>Number(it.qty)>0);
+  if(!lines.length){alert('Nothing is listed on this checkout.');return;}
+  const sess=coSessionLabel(c);
+  const rows=lines.map(it=>{
+    const eq=equipment.find(x=>x.id===it.equipmentId);
+    const name=eq?eq.name:'(deleted equipment)';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <div style="flex:1"><div style="font-weight:500">${escapeHtml(name)}</div><div style="font-size:14px;color:var(--muted)">${it.qty} checked out</div></div>
+      <label style="font-size:14px;color:var(--muted);white-space:nowrap">Coming back</label>
+      <input type="number" id="m-in-${it.equipmentId}" min="0" max="${it.qty}" step="1" value="${it.qty}" style="width:72px;padding:7px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+    </div>`;
+  }).join('');
+  showModal(`<div class="modal-head"><h3>Check in</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">
+    <div style="font-size:16px;margin-bottom:8px">${escapeHtml(c.person||'Not assigned')}${sess?' · '+escapeHtml(sess):''}</div>
+    <div style="font-size:15px;color:var(--muted);margin-bottom:8px">Confirm how many of each kit are back on the shelf. Leave a quantity at 0 if that item is staying out.</div>
+    ${rows}
+  </div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCheckIn('${id}')">Check in</button></div>`);
+}
+async function saveCheckIn(id){
+  const c=matCheckouts.find(x=>x.id===id);if(!c)return;
+  const lines=(c.items||[]).filter(it=>Number(it.qty)>0&&it.equipmentId);
+  const back=[];
+  const still=[];
+  lines.forEach(it=>{
+    const raw=document.getElementById('m-in-'+it.equipmentId);
+    let n=parseInt(raw&&raw.value,10);
+    if(isNaN(n)||n<0)n=0;
+    if(n>Number(it.qty))n=Number(it.qty);
+    const eq=equipment.find(x=>x.id===it.equipmentId);
+    const label=eq?eq.name:'item';
+    if(n>0)back.push(n+'× '+label);
+    const remain=Number(it.qty)-n;
+    if(remain>0)still.push({equipmentId:it.equipmentId,qty:remain});
+  });
+  if(!back.length){alert('Enter at least one item that is coming back, or Cancel.');return;}
+  if(!still.length){
+    c.returnedDate=matToday();
+    closeModal();renderMaterials();
+    showToast('✓ Checked in — back on the shelf');
+    dbWrite(sb.from('equipment_checkouts').update({returned_date:c.returnedDate}).eq('id',id),'Check in');
+    return;
+  }
+  const note=trimNote((c.notes?c.notes+' ':'')+'Partial check-in '+matToday()+': '+back.join(', '));
+  c.items=still;
+  c.notes=note;
+  closeModal();renderMaterials();
+  showToast('✓ Partial check-in — '+still.map(it=>{const eq=equipment.find(x=>x.id===it.equipmentId);return it.qty+'× '+(eq?eq.name:'item');}).join(', ')+' still out');
+  dbWrite(sb.from('equipment_checkouts').update({items:c.items,notes:c.notes}).eq('id',id),'Partial check-in');
+}
+function trimNote(t){return String(t||'').replace(/\s+/g,' ').trim();}
 async function markReturned(id){
   const c=matCheckouts.find(x=>x.id===id);if(!c)return;
   c.returnedDate=matToday();
@@ -10299,284 +10543,6 @@ function printSessionReport(){
   </div></body></html>`;
 
   const win=window.open('','_blank','width=1190,height=810');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(html);
-  win.document.close();
-}
-
-// ─── HOST REMINDER ───────────────────────────────────────────
-function openHostReminder(sessId){
-  const s=sessions.find(x=>x.id===sessId);if(!s)return;
-  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
-  const dFile=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
-  const rosterTitle='Roster - '+dFile;
-  const instr=(()=>{const list=sessionInstructorList(s);return list.length?list.map(x=>x.name.replace(' (owner)','')).join(' and '):'your instructor';})();
-  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r)).sort((a,b)=>a.studentName.localeCompare(b.studentName));
-  const studentCount=regs.length;
-  const firstName=s.contactName?s.contactName.split(' ')[0]:'';
-  const greeting=firstName?`Hi ${firstName},`:'Hi there,';
-
-  const emailText=`${greeting}
-
-Your ${s.course} course is coming up in one week! We are so excited and want to make sure you have everything you need for a smooth day.
-
-Here is a quick reminder of your session details:
-
-  Course: ${s.course}
-  Date: ${d||'To be confirmed'}
-  Time: ${s.time||'To be confirmed'}
-  Location: ${s.location?s.location+(s.city?', '+s.city:''):'Your home'}
-  Instructor: ${instr}
-  Session code: ${s.code}${s.wifiInfo?'\n  WiFi: '+s.wifiInfo:''}
-
-We currently have ${studentCount} student${studentCount!==1?'s':''} registered — your class roster is attached so you know exactly who to expect.
-
-Please also review the attached Host Info Sheet for a full checklist of how to prepare your space. If you have any questions at all before the course, please do not hesitate to reach out!
-
-See you soon,
-Lindsay Karr
-Owner & Instructor, Mindful Beginnings
-703-987-5979 · mindfulbeginnings.org`;
-
-  // Build roster table rows as plain text — host gets a privacy-trimmed view (no contact info, no CPR/waiver status)
-  const rosterLines=regs.length
-    ?regs.map((r,i)=>`  ${String(i+1).padStart(2,'0')}. ${r.studentName||''}  |  Grade: ${r.grade||'—'}  |  Parent: ${r.parentName||'—'}`).join('\n')
-    :'  No students registered yet';
-
-  const html=`<!DOCTYPE html><html><head><title>Host Reminder — ${s.course}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.7}
-    .toolbar{background:#1a2744;padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .toolbar span{color:rgba(255,255,255,.45);font-size:15px}
-    .wrap{max-width:700px;margin:24px auto}
-    .email-box{background:white;border-radius:10px;border:1px solid #dde4ee;padding:28px 32px;margin-bottom:20px;white-space:pre-wrap;font-family:'DM Sans',sans-serif;font-size:17px;line-height:1.8;color:#1a2744}
-    .section-label{font-size:14px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#6b7a99;margin-bottom:10px}
-    .roster-box{background:white;border-radius:10px;border:1px solid #dde4ee;overflow:hidden;margin-bottom:20px}
-    .roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px;font-weight:500}
-    table{width:100%;border-collapse:collapse;font-size:15px}
-    th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px 12px;border-bottom:1.5px solid #dde4ee;background:#f8f9fc;white-space:nowrap}
-    td{padding:8px 12px;border-bottom:.5px solid #eee;vertical-align:middle}
-    tr:last-child td{border-bottom:none}
-    .empty{text-align:center;padding:20px;color:#aaa;font-style:italic}
-    .copy-hint{font-size:15px;color:#6b7a99;margin-top:8px}
-  </style></head><body>
-  <div class="toolbar">
-    <button onclick="copyEmail()" style="background:#4a8fc4;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:17px;cursor:pointer;font-weight:500">📋 Copy email text</button>
-    <button onclick="printRosterOnly()" style="background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">🖨️ Print roster</button>
-    <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.2);padding:8px 14px;border-radius:6px;font-size:16px;cursor:pointer">Close</button>
-    <span>Copy the email text, then paste into Gmail or your email client</span>
-  </div>
-  <div class="wrap">
-    <div class="section-label" style="margin-left:4px">Email body — copy and paste into your email client</div>
-    <div class="email-box" id="email-text">${emailText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-    <div class="copy-hint" style="margin-left:4px;margin-bottom:20px">Subject suggestion: <strong>Your ${s.course} is one week away — class roster &amp; details inside</strong></div>
-
-    <div class="section-label" style="margin-left:4px;margin-top:4px">Class roster — print and/or attach as PDF</div>
-    <div class="roster-box" id="roster-section">
-      <div class="roster-hdr">${s.course} · ${d} · ${studentCount} student${studentCount!==1?'s':''} registered</div>
-      <div style="padding:16px 20px">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:15px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee">
-          <div><span style="color:#6b7a99">Location:</span> <strong>${s.location||'TBD'}${s.city?', '+s.city:''}</strong></div>
-          <div><span style="color:#6b7a99">Instructor:</span> <strong>${instr}</strong></div>
-          <div><span style="color:#6b7a99">Session code:</span> <strong style="font-family:monospace">${s.code}</strong></div>
-        </div>
-        <table>
-          <thead><tr>
-            <th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th>
-          </tr></thead>
-          <tbody>${regs.length?regs.map((r,i)=>`
-            <tr style="background:${i%2===0?'white':'#f9fafb'}">
-              <td style="color:#aaa;font-size:14px">${i+1}</td>
-              <td style="font-weight:500">${escapeHtml(r.studentName)}</td>
-              <td>${r.grade||'—'}</td>
-              <td>${escapeHtml(r.parentName)||'—'}</td>
-            </tr>`).join(''):`<tr><td colspan="4" class="empty">No students registered yet</td></tr>`}</tbody>
-        </table>
-        <div style="margin-top:12px;font-size:13px;color:#aaa">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Mindful Beginnings</div>
-      </div>
-    </div>
-  </div>
-  <script>
-  function copyEmail(){
-    const text=${JSON.stringify(emailText)};
-    navigator.clipboard.writeText(text)
-      .then(()=>{const b=document.querySelector('button');b.textContent='✅ Copied!';setTimeout(()=>{b.textContent='📋 Copy email text';},2500);})
-      .catch(()=>{window.getSelection().removeAllRanges();const el=document.getElementById('email-text');const range=document.createRange();range.selectNodeContents(el);window.getSelection().addRange(range);alert('Text selected — press Ctrl+C / Cmd+C to copy.');});
-  }
-  function printRosterOnly(){
-    const roster=document.getElementById('roster-section').outerHTML;
-    const w=window.open('','_blank','width=960,height=660');
-    if(!w){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-    w.document.write('<!DOCTYPE html><html><head><title>${rosterTitle}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;padding:24px;color:#1a2744;font-size:16px}.roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px;font-weight:500;border-radius:6px 6px 0 0}table{width:100%;border-collapse:collapse}th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px;border-bottom:1.5px solid #1a2744;background:#f8f9fc}td{padding:7px 8px;border-bottom:.5px solid #eee}@media print{body{padding:0}}</style></head><body>'+roster+'<div style="margin-top:20px"><button onclick="window.print()" style="background:#1a2744;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:16px;cursor:pointer">🖨️ Print roster</button></div></body></html>');
-    w.document.close();
-    try{w.document.title='${rosterTitle}';}catch(e){}
-  }
-  <\/script>
-  </body></html>`;
-
-  const win=window.open('','_blank','width=960,height=840');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(html);
-  win.document.close();
-}
-
-// ─── INSTRUCTOR REMINDER ─────────────────────────────────────
-function openInstructorReminder(sessId,specificInstrId){
-  const s=sessions.find(x=>x.id===sessId);if(!s)return;
-  // If a specific instructor ID is passed (e.g. from the second-instructor button), use them. Otherwise default to the primary assigned via job data, falling back to session.instructorId.
-  const targetId=specificInstrId||(jobDataCache[sessId]||{}).instructorId||s.instructorId;
-  const instr=instructors.find(x=>x.id===targetId);
-  if(!instr){alert('No instructor assigned to this session yet.');return;}
-  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
-  const dFile=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
-  const rosterTitle='Roster - '+dFile;
-  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
-  const studentCount=regs.length;
-  const firstName=instr.name?instr.name.split(' ')[0]:'there';
-
-  // Build the full street address (omits any blank pieces)
-  const cityState=[s.city,s.state].filter(Boolean).join(', ');
-  const cszZip=(cityState+(s.zip?' '+s.zip:'')).trim();
-  const fullAddress=[s.hostAddress,cszZip].filter(Boolean).join(', ');
-  // On-site contact: host for a private home, site coordinator for a public venue
-  const contactLabel=s.hasHost!==false?'Host contact':'Site contact';
-  const contactBits=[s.contactName,s.hostPhone].filter(Boolean).join(', ');
-
-  // Assemble the session detail lines (only include what is on file)
-  const detailLines=[];
-  detailLines.push('Course: '+s.course);
-  detailLines.push('Date: '+(d||'To be confirmed'));
-  detailLines.push('Time: '+(s.time||'To be confirmed'));
-  if(s.isVirtual){
-    detailLines.push('Format: Virtual (Zoom)');
-    detailLines.push('Zoom link: '+(s.zoomLink||'Link to be provided'));
-  }else{
-    detailLines.push('Location: '+(s.location?s.location+(s.city?', '+s.city:''):'To be confirmed'));
-    if(fullAddress)detailLines.push('Address: '+fullAddress);
-    if(contactBits)detailLines.push(contactLabel+': '+contactBits);
-    if(s.wifiInfo)detailLines.push('WiFi: '+s.wifiInfo);
-  }
-  detailLines.push('Session code: '+s.code);
-  if(s.notes)detailLines.push('Notes: '+s.notes);
-  const details=detailLines.join('\n  ');
-
-  const emailText=`Hi ${firstName},
-
-Just a reminder that you are scheduled to teach a ${s.course} course coming up in one week. Here are your session details:
-
-  ${details}
-
-You currently have ${studentCount} student${studentCount!==1?'s':''} registered. A copy of the class roster is attached.
-
-Please make sure your materials are packed and ready to go. If anything has come up or you have any questions before the course, please do not hesitate to reach out: 703-987-5979.
-
-Thank you so much! We really appreciate you.`;
-
-  // Pre-filled compose links. Outlook (web) for the Microsoft 365 work account,
-  // mailto for the desktop Outlook app when it is the default mail program.
-  const emailSubject='Reminder: your upcoming '+s.course+' course'+(d?' on '+d:'');
-  const toAddr=instr.email||'';
-  const outlookUrl='https://outlook.office.com/mail/deeplink/compose?to='+encodeURIComponent(toAddr)+'&subject='+encodeURIComponent(emailSubject)+'&body='+encodeURIComponent(emailText);
-  const mailtoUrl='mailto:'+toAddr+'?subject='+encodeURIComponent(emailSubject)+'&body='+encodeURIComponent(emailText);
-
-  const rosterRows=regs.length?regs.map((r,i)=>`
-    <tr style="background:${i%2===0?'white':'#f9fafb'}">
-      <td style="color:#aaa;font-size:14px">${i+1}</td>
-      <td style="font-weight:500">${escapeHtml(r.studentName)}</td>
-      <td>${r.grade||'—'}</td>
-      <td>${escapeHtml(r.parentName)||'—'}</td>
-      <td style="font-size:15px">${escapeHtml(r.contact)||'—'}</td>
-      <td style="text-align:center">${r.cprPermission==='yes'?'✓':'—'}</td>
-      <td style="text-align:center">${r.waiverSigned?'✓':'—'}</td>
-      <td style="text-align:center">${r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—'}</td>
-    </tr>`).join('')
-    :'<tr><td colspan="8" style="text-align:center;padding:16px;color:#aaa;font-style:italic">No students registered yet</td></tr>';
-
-  const html=`<!DOCTYPE html><html><head><title>Instructor Reminder — ${s.course}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.7}
-    .toolbar{background:#1a2744;padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .toolbar span{color:rgba(255,255,255,.45);font-size:15px}
-    .wrap{max-width:700px;margin:24px auto}
-    .instr-badge{background:#d6e9f5;border:1px solid #b8d8ee;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:16px;display:flex;align-items:center;gap:12px}
-    .instr-badge .name{font-weight:500;color:#1a2744}
-    .instr-badge .contact{color:#6b7a99;font-size:15px}
-    .section-label{font-size:14px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#6b7a99;margin-bottom:10px}
-    .email-box{background:white;border-radius:10px;border:1px solid #dde4ee;padding:28px 32px;margin-bottom:8px;white-space:pre-wrap;font-family:'DM Sans',sans-serif;font-size:17px;line-height:1.8;color:#1a2744}
-    .subject-line{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:10px 16px;margin-bottom:20px;font-size:16px}
-    .subject-line span{color:#6b7a99;margin-right:8px}
-    .roster-box{background:white;border-radius:10px;border:1px solid #dde4ee;overflow:hidden;margin-bottom:20px}
-    .roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px;font-weight:500}
-    table{width:100%;border-collapse:collapse;font-size:15px}
-    th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px 12px;border-bottom:1.5px solid #dde4ee;background:#f8f9fc;white-space:nowrap}
-    td{padding:8px 12px;border-bottom:.5px solid #eee;vertical-align:middle}
-    tr:last-child td{border-bottom:none}
-  </style></head><body>
-  <div class="toolbar">
-    <button onclick="openOutlook()" style="background:#0f6cbd;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:17px;cursor:pointer;font-weight:500">📧 Open in Outlook</button>
-    <button onclick="openMail()" style="background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">💌 Open in mail app</button>
-    <button id="copyEmailBtn" onclick="copyEmail()" style="background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">📋 Copy email text</button>
-    <button onclick="printRoster()" style="background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">🖨️ Print roster</button>
-    <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.2);padding:8px 14px;border-radius:6px;font-size:16px;cursor:pointer">Close</button>
-    <span>Open in Outlook fills in the To, subject, and message. Print the roster and attach it as a PDF before you send.</span>
-  </div>
-  <div class="wrap">
-    <div class="instr-badge">
-      <div>
-        <div class="name">${instr.name}</div>
-        <div class="contact">${instr.email?'✉️ '+instr.email:'No email on file'} ${instr.phone?' · 📞 '+instr.phone:''}</div>
-      </div>
-    </div>
-    <div class="section-label" style="margin-left:4px">Email body</div>
-    <div class="subject-line"><span>Subject:</span><strong>${emailSubject.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</strong></div>
-    <div class="email-box" id="email-text">${emailText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-    <div style="font-size:15px;color:#6b7a99;margin:0 4px 24px">${instr.email?`Send to: <strong>${instr.email}</strong>`:'⚠️ No email address on file for this instructor — add one in the Instructors tab.'}</div>
-
-    <div class="section-label" style="margin-left:4px">Class roster</div>
-    <div class="roster-box" id="roster-section">
-      <div class="roster-hdr">${s.course} · ${d} · ${studentCount} student${studentCount!==1?'s':''} registered</div>
-      <div style="padding:16px 20px">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:15px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee">
-          <div><span style="color:#6b7a99">Location:</span> <strong>${s.isVirtual?'🖥 Virtual (Zoom)':s.location||'TBD'}${!s.isVirtual&&s.city?', '+s.city:''}</strong></div>
-          <div><span style="color:#6b7a99">Instructor:</span> <strong>${instr.name}</strong></div>
-          <div><span style="color:#6b7a99">Session code:</span> <strong style="font-family:monospace">${s.code}</strong></div>
-        </div>
-        <table>
-          <thead><tr><th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th><th>Contact</th><th style="text-align:center">CPR</th><th style="text-align:center">Waiver</th><th style="text-align:center">Photo</th></tr></thead>
-          <tbody>${rosterRows}</tbody>
-        </table>
-        <div style="margin-top:12px;font-size:13px;color:#aaa">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Mindful Beginnings</div>
-      </div>
-    </div>
-  </div>
-  <script>
-  const OUTLOOK_URL=${JSON.stringify(outlookUrl)};
-  const MAILTO_URL=${JSON.stringify(mailtoUrl)};
-  function openOutlook(){window.open(OUTLOOK_URL,'_blank');}
-  function openMail(){window.location.href=MAILTO_URL;}
-  function copyEmail(){
-    const text=${JSON.stringify(emailText)};
-    const b=document.getElementById('copyEmailBtn');
-    navigator.clipboard.writeText(text)
-      .then(()=>{if(b){b.textContent='✅ Copied!';setTimeout(()=>{b.textContent='📋 Copy email text';},2500);}})
-      .catch(()=>{const el=document.getElementById('email-text');const r=document.createRange();r.selectNodeContents(el);window.getSelection().removeAllRanges();window.getSelection().addRange(r);alert('Text selected — press Ctrl+C / Cmd+C to copy.');});
-  }
-  function printRoster(){
-    const r=document.getElementById('roster-section').outerHTML;
-    const w=window.open('','_blank','width=960,height=660');
-    if(!w){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-    w.document.write('<!DOCTYPE html><html><head><title>${rosterTitle}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;padding:24px;color:#1a2744;font-size:16px}.roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px;font-weight:500;border-radius:6px 6px 0 0}table{width:100%;border-collapse:collapse}th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px;border-bottom:1.5px solid #1a2744;background:#f8f9fc}td{padding:7px 8px;border-bottom:.5px solid #eee}@media print{body{padding:0}}</style></head><body>'+r+'<div style="margin-top:16px"><button onclick="window.print()" style="background:#1a2744;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:16px;cursor:pointer">🖨️ Print roster</button></div></body></html>');
-    w.document.close();
-    try{w.document.title='${rosterTitle}';}catch(e){}
-  }
-  <\/script>
-  </body></html>`;
-
-  const win=window.open('','_blank','width=960,height=840');
   if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
   win.document.write(html);
   win.document.close();
