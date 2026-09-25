@@ -5787,134 +5787,51 @@ async function uncancelSession(id){
 }
 
 // ─── CANCELLATION EMAILS ─────────────────────────────────────
-// One popup with two ready-to-send emails: the instructor notice and the family notice.
-// Same send-anywhere toolbar as the other composers (Outlook, Gmail, default mail app,
-// copy). Nothing sends automatically — you review each one and hit send yourself.
+// Instructor notice and family notice. Wording is in the Google Doc.
+// This window keeps the recipient lists, refund checklist, and compose
+// links (To or BCC + subject, empty body). Nothing is sent from here.
 function openCancellationEmails(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const reason=s.cancelReason||'low enrollment';
-  const lowEnroll=/enroll/i.test(reason);
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'the scheduled date';
-  const where=s.isVirtual?'online':((s.location||'')+(s.city?', '+s.city:'')||'the scheduled location');
-  const timeBit=s.time?' at '+s.time:'';
-
-  // ── Instructor notice ──
+  const shortD=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date';
   const instrList=sessionInstructorList(s).filter(x=>x.id&&x.instr);
-  const instrAddrs=instrList.map(x=>x.instr.email).filter(Boolean);
-  const firstName=instrList.length===1?(instrList[0].name.split(' ')[0]):'there';
-  const contractLine=lowEnroll
-    ?' Per Section 6 of your contractor agreement, no compensation is due for a course cancelled under this provision, and a course cancelled by Mindful Beginnings for low enrollment does not count toward your course minimum.'
-    :'';
-  const INSTR_SUBJECT='Cancelled: '+s.course+' on '+(s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date');
-  const INSTR_BODY='Hi '+firstName+', I am writing to let you know that the '+s.course+' session scheduled for '+d+timeBit+' at '+where+' has been cancelled due to '+reason+'.'+(lowEnroll?' Enrollment did not reach the minimum required to run the course.':'')+' Please take this date off your calendar.'+contractLine+' The job has already been removed from your instructor portal, so there is nothing for you to do on your end. I will let you know as soon as another session in your area opens up. Thank you for holding the date, and I am sorry for the change. Warm regards, Lindsay Karr, Owner, Mindful Beginnings, 703-987-5979, lindsay@mindfulbeginnings.org';
-
-  // ── Family notice ──
+  const instrAddrs=instrList.map(x=>x.instr&&x.instr.email).filter(e=>e&&String(e).includes('@'));
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const famAddrs=regs.map(r=>(r.contact||'').split(' / ')[0].trim()).filter(x=>x.includes('@'));
   const paidRegs=regs.filter(r=>r.payStatus==='paid');
-  const minLine=lowEnroll?' Mindful Beginnings requires a minimum enrollment of six students to run a course, and we did not reach that number for this date.':'';
-  const FAM_SUBJECT='Cancelled: '+s.course+' on '+(s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date');
-  const FAM_BODY='Hello, I am writing with disappointing news about the '+s.course+' class scheduled for '+d+timeBit+' at '+where+'. We have to cancel this session due to '+reason+'.'+minLine+' Every family who paid will receive a full refund, returned the same way you paid, within five business days. You do not need to do anything to request it. If you would prefer to move to a different date instead of taking the refund, simply reply to this email and I will hold a seat for you at no additional cost. Our upcoming classes are listed at mindfulbeginnings.org. I am sorry for the change to your plans, and I hope we get the chance to work with your family soon. Warm regards, Lindsay Karr, Owner, Mindful Beginnings, 703-987-5979, lindsay@mindfulbeginnings.org';
-
-  const enc=encodeURIComponent;
-  const instrTo=instrAddrs.join(';');
-  const famBcc=famAddrs.join(';');
-  const links={
-    instrOutlook:'https://outlook.office.com/mail/deeplink/compose?to='+enc(instrTo)+'&subject='+enc(INSTR_SUBJECT)+'&body='+enc(INSTR_BODY),
-    instrGmail:'https://mail.google.com/mail/?view=cm&fs=1&to='+enc(instrTo)+'&su='+enc(INSTR_SUBJECT)+'&body='+enc(INSTR_BODY),
-    instrMailto:'mailto:'+instrTo+'?subject='+enc(INSTR_SUBJECT)+'&body='+enc(INSTR_BODY),
-    famOutlook:'https://outlook.office.com/mail/deeplink/compose?bcc='+enc(famBcc)+'&subject='+enc(FAM_SUBJECT)+'&body='+enc(FAM_BODY),
-    famGmail:'https://mail.google.com/mail/?view=cm&fs=1&bcc='+enc(famBcc)+'&su='+enc(FAM_SUBJECT)+'&body='+enc(FAM_BODY),
-    famMailto:'mailto:?bcc='+enc(famBcc)+'&subject='+enc(FAM_SUBJECT)+'&body='+enc(FAM_BODY)
-  };
-  const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const refundRows=paidRegs.length
-    ?paidRegs.map(r=>`<li>${esc(r.studentName||'—')}${r.parentName?' — '+esc(r.parentName):''} · ${fmt(regEffectivePrice(r,s))}${r.contact?' · '+esc(r.contact):''}</li>`).join('')
+    ?paidRegs.map(r=>'<li>'+esc(r.studentName||'—')+(r.parentName?' — '+esc(r.parentName):'')+' · '+fmt(regEffectivePrice(r,s))+(r.contact?' · '+esc(r.contact):'')+'</li>').join('')
     :'<li style="color:#6b7a99">No paid registrations on this session.</li>';
-
-  const win=window.open('','_blank','width=960,height=880');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(`<!DOCTYPE html><html><head><title>Cancellation emails — ${esc(s.course)}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.7}
-    .tabs{background:#1a2744;padding:12px 24px;display:flex;gap:8px;align-items:center;position:sticky;top:0;z-index:5}
-    .tabs button{padding:8px 16px;border-radius:6px;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.12);color:white}
-    .tabs button.on{background:white;color:#1a2744}
-    .tabs .sp{flex:1}
-    .tabs .close{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.2)!important}
-    .toolbar{padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#ffffff;border-bottom:1px solid #dde4ee}
-    .toolbar button{padding:9px 16px;border-radius:6px;border:1px solid #dde4ee;font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744}
-    .toolbar button.pri{background:#0f6cbd;color:white;border-color:#0f6cbd}
-    .doc{max-width:680px;margin:26px auto;padding:0 32px 64px}
-    .to-box{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:16px;color:#1a5c8a;word-break:break-all}
-    .warn-box{background:#fdf0ee;border:1px solid #f0c4bc;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:16px;color:#8c2f1e}
-    .subject-line{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:16px}
-    .email-box{background:white;border-radius:10px;border:1px solid #dde4ee;padding:26px 30px;white-space:pre-wrap;font-size:17px;line-height:1.85}
-    .refunds{background:white;border-radius:10px;border:1px solid #dde4ee;padding:18px 30px;margin-top:18px}
-    .refunds h3{font-size:15px;text-transform:uppercase;letter-spacing:.7px;color:#6b7a99;font-weight:600;margin-bottom:10px}
-    .refunds ul{margin-left:18px;font-size:16px;line-height:1.9}
-    .hidden{display:none}
-  </style></head><body>
-  <div class="tabs">
-    <button id="t1" class="on" onclick="showTab(1)">📩 Instructor notice</button>
-    <button id="t2" onclick="showTab(2)">👨‍👩‍👧 Family notice${famAddrs.length?' ('+famAddrs.length+')':''}</button>
-    <span class="sp"></span>
-    <button class="close" onclick="window.close()">Close</button>
-  </div>
-
-  <div id="p1">
-    <div class="toolbar">
-      <button class="pri" onclick="go('instrOutlook')">📧 Open in Outlook</button>
-      <button onclick="go('instrGmail')">Gmail</button>
-      <button onclick="mail('instrMailto')">Default mail app</button>
-      <button onclick="copyText(INSTR_BODY)">📋 Copy text</button>
-    </div>
-    <div class="doc">
-      ${instrAddrs.length?'<div class="to-box">To: <strong>'+esc(instrAddrs.join('; '))+'</strong></div>':'<div class="warn-box">⚠️ No instructor email address on file'+(instrList.length?' for '+esc(instrList.map(x=>x.name).join(' and ')):' — no instructor is assigned to this session')+'. Add one in the Instructors tab, or copy the text below and send it yourself.</div>'}
-      <div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>${esc(INSTR_SUBJECT)}</strong></div>
-      <div class="email-box">${esc(INSTR_BODY)}</div>
-    </div>
-  </div>
-
-  <div id="p2" class="hidden">
-    <div class="toolbar">
-      <button class="pri" onclick="go('famOutlook')">📧 Open in Outlook</button>
-      <button onclick="go('famGmail')">Gmail</button>
-      <button onclick="mail('famMailto')">Default mail app</button>
-      <button onclick="copyText(FAM_BODY)">📋 Copy text</button>
-      <button onclick="copyText(BCC_LIST)">📋 Copy BCC list</button>
-    </div>
-    <div class="doc">
-      ${famAddrs.length?'<div class="to-box">BCC (everyone is hidden from each other): <strong>'+esc(famAddrs.join('; '))+'</strong></div>':'<div class="warn-box">⚠️ No family email addresses on file for this session.</div>'}
-      <div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>${esc(FAM_SUBJECT)}</strong></div>
-      <div class="email-box">${esc(FAM_BODY)}</div>
-      <div class="refunds">
-        <h3>💸 Refunds to issue (${paidRegs.length})</h3>
-        <ul>${refundRows}</ul>
-        <div style="font-size:15px;color:#6b7a99;margin-top:10px">Refund each of these through the same method the family paid, then change their status on the Registrations tab so your books stay accurate.</div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const L=${JSON.stringify(links)};
-    const INSTR_BODY=${JSON.stringify(INSTR_BODY)};
-    const FAM_BODY=${JSON.stringify(FAM_BODY)};
-    const BCC_LIST=${JSON.stringify(famAddrs.join('; '))};
-    function showTab(n){
-      document.getElementById('p1').className=n===1?'':'hidden';
-      document.getElementById('p2').className=n===2?'':'hidden';
-      document.getElementById('t1').className=n===1?'on':'';
-      document.getElementById('t2').className=n===2?'on':'';
-    }
-    function go(k){window.open(L[k],'_blank');}
-    function mail(k){window.location.href=L[k];}
-    function copyText(t){navigator.clipboard.writeText(t).then(()=>alert('Copied!')).catch(()=>alert('Could not copy automatically — please select the text manually.'));}
-  <\/script>
-  </body></html>`);
-  win.document.close();
+  const refundHtml='<div class="facts"><strong>Refunds to issue ('+paidRegs.length+')</strong><ul>'+refundRows+'</ul><div class="facts-note">Refund each of these through the same method the family paid, then update their status on the Registrations tab. This list stays here — it is not placed in the email.</div></div>';
+  const sessionLine=s.course+' · '+d+' · '+reason;
+  const subject='Cancelled: '+s.course+' on '+shortD;
+  openDocEmail({
+    panes:[
+      {
+        type:'cancellationInstructor',
+        label:'Instructor notice',
+        category:'Cancellation — instructor',
+        sessionLine:sessionLine,
+        field:'to',
+        emails:instrAddrs,
+        subject:subject,
+        note:'Paste the instructor cancellation from the Google Doc. The message is left empty.'
+      },
+      {
+        type:'cancellationFamily',
+        label:'Family notice'+(famAddrs.length?' ('+famAddrs.length+')':''),
+        category:'Cancellation — families',
+        sessionLine:sessionLine,
+        field:'bcc',
+        emails:famAddrs,
+        subject:subject,
+        note:'Paste the family cancellation from the Google Doc. The message is left empty.',
+        extraHtml:refundHtml
+      }
+    ]
+  });
 }
 
 // ─── REGISTRATIONS ───────────────────────────────────────────
@@ -7211,150 +7128,220 @@ function markOwnerTaughtFromWrap(sessId){
   openWrapup(sessId);
 }
 
+// ─── EMAIL COMPOSERS ─────────────────────────────────────────
+// Every admin email opens the Google Doc for that type and leaves the
+// message empty so Lindsay can paste. Recipient lists and copy buttons stay.
+// Point a key at its own Doc (or a tab on the same Doc) when she sends the URL.
+// Until then every type uses EMAIL_DOC_DEFAULT. The Doc is not loaded here.
+const EMAIL_DOC_DEFAULT='https://docs.google.com/document/d/1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/edit?tab=t.0';
+const EMAIL_DOCS={
+  classEmail: EMAIL_DOC_DEFAULT,
+  openJobs: EMAIL_DOC_DEFAULT,
+  postCourse: EMAIL_DOC_DEFAULT,
+  classReminder: EMAIL_DOC_DEFAULT,
+  instructorFollowup: EMAIL_DOC_DEFAULT,
+  hostLetter: EMAIL_DOC_DEFAULT,
+  hostReminder: EMAIL_DOC_DEFAULT,
+  instructorReminder: EMAIL_DOC_DEFAULT,
+  cancellationInstructor: EMAIL_DOC_DEFAULT,
+  cancellationFamily: EMAIL_DOC_DEFAULT
+};
+function emailDocUrl(type){
+  return EMAIL_DOCS[type]||EMAIL_DOC_DEFAULT;
+}
+function emailsInField(text){
+  const found=String(text||'').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig)||[];
+  const out=[];
+  found.forEach(e=>{if(!out.some(x=>x.toLowerCase()===e.toLowerCase()))out.push(e);});
+  return out;
+}
+function classRosterSection(s, regs, opts){
+  opts=opts||{};
+  const when=opts.when||'';
+  const where=opts.where||'';
+  const who=opts.who||'';
+  const privateCols=!!opts.privateCols;
+  const n=regs.length;
+  const cols=privateCols?8:4;
+  const head=privateCols
+    ?'<th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th><th>Contact</th><th style="text-align:center">CPR</th><th style="text-align:center">Waiver</th><th style="text-align:center">Photo</th>'
+    :'<th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th>';
+  const body=n?regs.map((r,i)=>{
+    let row='<tr style="background:'+(i%2===0?'white':'#f9fafb')+'"><td style="color:#aaa">'+(i+1)+'</td><td style="font-weight:500">'+escapeHtml(r.studentName)+'</td><td>'+(escapeHtml(r.grade)||'—')+'</td><td>'+(escapeHtml(r.parentName)||'—')+'</td>';
+    if(privateCols){
+      row+='<td>'+(escapeHtml(r.contact)||'—')+'</td><td style="text-align:center">'+(r.cprPermission==='yes'?'✓':'—')+'</td><td style="text-align:center">'+(r.waiverSigned?'✓':'—')+'</td><td style="text-align:center">'+(r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—')+'</td>';
+    }
+    return row+'</tr>';
+  }).join(''):'<tr><td colspan="'+cols+'" style="text-align:center;color:#aaa;font-style:italic;padding:16px">No students registered yet</td></tr>';
+  return '<div class="section-label">Class roster — print and attach</div><div class="roster-section"><div class="roster-hdr">'+escapeHtml(s.course)+' · '+escapeHtml(when)+' · '+n+' student'+(n!==1?'s':'')+' registered</div><div class="roster-body"><div class="roster-meta"><div><span style="color:#6b7a99">Location:</span> <strong>'+(escapeHtml(where)||'TBD')+'</strong></div><div><span style="color:#6b7a99">Instructor:</span> <strong>'+(escapeHtml(who)||'—')+'</strong></div><div><span style="color:#6b7a99">Session code:</span> <strong style="font-family:monospace">'+escapeHtml(s.code)+'</strong></div></div><table class="roster"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table><div class="facts-note">Generated '+escapeHtml(new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}))+' · Mindful Beginnings</div></div></div>';
+}
+function emailFactsHtml(title, text){
+  return '<div class="section-label">'+escapeHtml(title)+'</div><div class="facts" style="white-space:pre-wrap">'+escapeHtml(text)+'</div>';
+}
+// One composer window. opts or opts.panes[]: type, category, sessionLine, subject,
+// emails, field ('bcc' or 'to'), note, extraHtml, copyExtra, copyExtraLabel, hasRoster.
+function openDocEmail(opts){
+  const panesIn=(opts&&Array.isArray(opts.panes)&&opts.panes.length)?opts.panes:[opts||{}];
+  const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const safeHtml=h=>String(h||'').replace(/<\/script/ig,'<\\/script');
+  const panes=panesIn.map(p=>{
+    const emails=(p.emails||[]).map(e=>String(e||'').trim()).filter(e=>e.includes('@'));
+    const uniq=[];
+    emails.forEach(e=>{if(!uniq.some(x=>x.toLowerCase()===e.toLowerCase()))uniq.push(e);});
+    const field=p.field==='to'?'to':'bcc';
+    const joined=uniq.join(';');
+    const subject=p.subject||'';
+    const docUrl=emailDocUrl(p.type);
+    const outlook=field==='to'
+      ?'https://outlook.office.com/mail/deeplink/compose?to='+encodeURIComponent(joined)+'&subject='+encodeURIComponent(subject)
+      :'https://outlook.office.com/mail/deeplink/compose?bcc='+encodeURIComponent(joined)+'&subject='+encodeURIComponent(subject);
+    const gmail=field==='to'
+      ?'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(joined)+'&su='+encodeURIComponent(subject)
+      :'https://mail.google.com/mail/?view=cm&fs=1&bcc='+encodeURIComponent(joined)+'&su='+encodeURIComponent(subject);
+    const mailto=field==='to'
+      ?'mailto:'+joined+'?subject='+encodeURIComponent(subject)
+      :'mailto:?bcc='+encodeURIComponent(joined)+'&subject='+encodeURIComponent(subject);
+    return {
+      label:p.label||p.category||'Email',
+      category:p.category||p.label||'Email',
+      sessionLine:p.sessionLine||'',
+      note:p.note||'Paste this email from the Google Doc. The compose window is left empty on purpose.',
+      subject:subject,
+      field:field,
+      emails:uniq,
+      listText:uniq.join('; ')||'(no emails on file)',
+      docUrl:docUrl,
+      outlook:outlook,
+      gmail:gmail,
+      mailto:mailto,
+      extraHtml:p.extraHtml||'',
+      copyExtra:p.copyExtra||'',
+      copyExtraLabel:p.copyExtraLabel||'Copy details',
+      hasRoster:!!p.hasRoster
+    };
+  });
+  const data=panes.map(p=>({docUrl:p.docUrl,outlook:p.outlook,gmail:p.gmail,mailto:p.mailto,listText:p.emails.join('; '),copyExtra:p.copyExtra,copyExtraLabel:p.copyExtraLabel,field:p.field,hasRoster:p.hasRoster}));
+  const panesJson=JSON.stringify(data).replace(/</g,'\\u003c');
+  const tabBtns=panes.length>1?panes.map((p,i)=>'<button type="button" class="tab'+(i===0?' on':'')+'" onclick="showPane('+i+')">'+esc(p.label)+'</button>').join(''):'';
+  const paneHtml=panes.map((p,i)=>{
+    const who=p.field==='to'?'To':'BCC';
+    return '<div class="pane'+(i===0?'':' hidden')+'" id="pane-'+i+'"><h2>'+esc(p.category)+'</h2>'+(p.sessionLine?'<div class="sub">'+esc(p.sessionLine)+'</div>':'')+'<div class="note">'+esc(p.note)+' Nothing is sent from this screen.</div><div class="bcc-box"><strong>'+p.emails.length+' recipient'+(p.emails.length!==1?'s':'')+' — '+who+'</strong><div class="bcc-addr">'+esc(p.listText)+'</div></div><div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>'+esc(p.subject)+'</strong></div>'+safeHtml(p.extraHtml)+'</div>';
+  }).join('');
+  const first=panes[0];
+  const html=[
+    '<!DOCTYPE html><html><head><title>',esc(first.category),'</title>',
+    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">',
+    '<style>',
+    '*{box-sizing:border-box;margin:0;padding:0}',
+    'body{font-family:\'DM Sans\',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.6}',
+    '.toolbar{background:#1a2744;padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0}',
+    '.toolbar button{padding:9px 16px;border-radius:6px;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif}',
+    '.b-doc{background:#fff;color:#1a2744}',
+    '.b-outlook{background:#0f6cbd;color:white}',
+    '.b-gmail,.b-mail,.b-bcc,.b-extra{background:rgba(255,255,255,.12);color:white}',
+    '.b-close{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.2)!important}',
+    '.tab{background:rgba(255,255,255,.12);color:white}',
+    '.tab.on{background:#fff;color:#1a2744}',
+    '.wrap{max-width:760px;margin:28px auto;padding:0 32px 64px}',
+    'h2{font-family:\'DM Serif Display\',serif;font-size:26px;margin-bottom:4px}',
+    '.sub{color:#6b7a99;font-size:16px;margin-bottom:14px}',
+    '.note{background:#fff7e6;border:1px solid #f0d090;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:15px;color:#7a5000}',
+    '.bcc-box{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:15px;color:#1a5c8a}',
+    '.bcc-box strong{display:block;margin-bottom:4px;font-size:13px;letter-spacing:.6px;text-transform:uppercase}',
+    '.bcc-addr{word-break:break-all;line-height:1.8;color:#27496b}',
+    '.subject-line{background:white;border:1px solid #dde4ee;border-radius:8px;padding:10px 16px;font-size:16px}',
+    '.section-label{font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#6b7a99;margin:18px 0 8px}',
+    '.facts{background:white;border:1px solid #dde4ee;border-radius:8px;padding:14px 16px;font-size:15px;line-height:1.7}',
+    '.facts ul{margin:8px 0 0 18px}',
+    '.facts-note{font-size:14px;color:#6b7a99;margin-top:8px}',
+    '.roster-section{background:white;border:1px solid #dde4ee;border-radius:10px;overflow:hidden;margin-bottom:12px}',
+    '.roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px}',
+    '.roster-body{padding:16px 20px}',
+    '.roster-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:15px;margin-bottom:14px}',
+    'table.roster{width:100%;border-collapse:collapse;font-size:15px}',
+    'table.roster th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#6b7a99;padding:8px;border-bottom:1px solid #dde4ee;background:#f8f9fc}',
+    'table.roster td{padding:8px;border-bottom:0.5px solid #eee;vertical-align:middle}',
+    '.hidden{display:none}',
+    '</style></head><body>',
+    '<div class="toolbar">',tabBtns,
+    '<button class="b-doc" onclick="openDoc()">Open this Google Doc</button>',
+    '<button class="b-outlook" onclick="openOutlook()">Open in Outlook</button>',
+    '<button class="b-gmail" onclick="openGmail()">Open in Gmail</button>',
+    '<button class="b-mail" onclick="openMail()">Default mail app</button>',
+    '<button class="b-bcc" id="copy-list" onclick="copyList()">',esc(first.field==='to'?'Copy To':'Copy BCC'),'</button>',
+    '<button class="b-extra" id="copy-extra" style="display:none" onclick="copyExtra()">Copy details</button>',
+    '<button class="b-extra" id="print-roster" style="display:none" onclick="printRoster()">Print roster</button>',
+    '<button class="b-close" onclick="window.close()">Close</button>',
+    '</div><div class="wrap">',paneHtml,'</div>',
+    '<script>',
+    'const PANES=',panesJson,';',
+    'let active=0;',
+    'function showPane(n){active=n;document.querySelectorAll(".pane").forEach((el,i)=>{el.className="pane"+(i===n?"":" hidden");});document.querySelectorAll(".tab").forEach((el,i)=>{el.className="tab"+(i===n?" on":"");});const p=PANES[n];const copyBtn=document.getElementById("copy-list");if(copyBtn)copyBtn.textContent=p.field==="to"?"Copy To":"Copy BCC";const extraBtn=document.getElementById("copy-extra");if(extraBtn){extraBtn.style.display=p.copyExtra?"":"none";extraBtn.textContent=p.copyExtraLabel||"Copy details";}const rosterBtn=document.getElementById("print-roster");if(rosterBtn)rosterBtn.style.display=p.hasRoster?"":"none";}',
+    'function openDoc(){window.open(PANES[active].docUrl,"_blank","noopener,noreferrer,width=1100,height=800");}',
+    'function openOutlook(){window.open(PANES[active].outlook,"_blank");}',
+    'function openGmail(){window.open(PANES[active].gmail,"_blank");}',
+    'function openMail(){window.location.href=PANES[active].mailto;}',
+    'function copyList(){const p=PANES[active];const t=p.listText||"";navigator.clipboard.writeText(t).then(()=>alert((p.field==="to"?"To":"BCC")+" addresses copied.")).catch(()=>alert("Could not copy automatically — select the list and copy it."));}',
+    'function copyExtra(){const t=PANES[active].copyExtra||"";if(!t)return;navigator.clipboard.writeText(t).then(()=>alert("Copied.")).catch(()=>alert("Could not copy automatically — select the details and copy them."));}',
+    'function printRoster(){const pane=document.getElementById("pane-"+active);const roster=pane&&pane.querySelector(".roster-section");if(!roster){alert("No roster on this email.");return;}const w=window.open("","_blank","width=960,height=660");if(!w){alert("Your browser blocked the popup window.");return;}w.document.write("<!DOCTYPE html><html><head><title>Roster</title><style>body{font-family:sans-serif;padding:24px;color:#1a2744}.roster-hdr{background:#1a2744;color:white;padding:10px 20px}table{width:100%;border-collapse:collapse}th,td{padding:7px 8px;border-bottom:1px solid #eee;text-align:left}.roster-meta{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;font-size:14px}</style></head><body>"+roster.outerHTML+"<div style=\\"margin-top:16px\\"><button onclick=\\"window.print()\\">Print roster</button></div></body></html>");w.document.close();}',
+    'showPane(0);',
+    '<'+'/script></body></html>'
+  ].join('');
+  const win=window.open('','_blank','width=920,height=840');
+  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
+  win.document.write(html);
+  win.document.close();
+}
+
 // ─── EMAIL THE WHOLE CLASS (one click, everyone BCC'd) ──────
-// Opens your email with every participant already in the BCC field, so you
-// never have to download the roster or copy/paste addresses. Works with Gmail
-// (opens a compose window in the browser) or your computer's default mail app.
+// Opens with every participant in BCC. The message itself is in the Google Doc.
 function emailClass(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
   if(!emails.length){alert('No participant email addresses are on file for this session yet.');return;}
   const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-  const subject=`${s.course} — ${d}`;
-  const bcc=emails.join(';');
-  const gmailUrl='https://mail.google.com/mail/?view=cm&fs=1&bcc='+encodeURIComponent(bcc)+'&su='+encodeURIComponent(subject);
-  const mailtoUrl='mailto:?bcc='+encodeURIComponent(bcc)+'&subject='+encodeURIComponent(subject);
-  const bccList=emails.join('; ');
-  const win=window.open('','_blank','width=700,height=700');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(`<!DOCTYPE html><html><head><title>Email class — ${s.course}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#faf8f4;color:#1a2744;padding:28px 26px;font-size:17px;line-height:1.6}
-    h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:4px}
-    .sub{color:#6b7a99;font-size:16px;margin-bottom:20px}
-    .count{display:inline-block;background:#eaf5f0;color:#2d7a5e;border:1px solid #a8d8c5;border-radius:100px;padding:3px 12px;font-size:15px;font-weight:600;margin-bottom:14px}
-    .addr{background:white;border:1px solid #dde4ee;border-radius:8px;padding:12px 14px;font-size:15px;color:#3a4a6b;word-break:break-all;line-height:1.9;max-height:160px;overflow-y:auto;margin-bottom:22px}
-    .btns{display:flex;flex-direction:column;gap:10px}
-    button{font-family:'DM Sans',sans-serif;font-size:17px;font-weight:600;padding:13px 16px;border-radius:8px;border:none;cursor:pointer;text-align:center}
-    .b-gmail{background:#1a2744;color:white}
-    .b-mail{background:white;color:#1a2744;border:1.5px solid #c0c8d8}
-    .b-copy{background:white;color:#4a8fc4;border:1.5px solid #b8d8ee}
-    .b-close{background:transparent;color:#6b7a99;border:none;font-weight:500;font-size:16px;margin-top:4px}
-    .hint{font-size:15px;color:#6b7a99;margin-top:16px;line-height:1.6}
-  </style></head><body>
-    <h2>Email the class</h2>
-    <div class="sub">${s.course} · ${d}</div>
-    <div class="count">${emails.length} recipient${emails.length!==1?'s':''}</div>
-    <div class="addr">${bccList}</div>
-    <div class="btns">
-      <button class="b-gmail" onclick="openGmail()">📧 Open in Gmail — everyone BCC'd</button>
-      <button class="b-mail" onclick="openMail()">✉️ Open in my default mail app</button>
-      <button class="b-copy" onclick="copyBCC()">📋 Copy the BCC addresses</button>
-      <button class="b-close" onclick="window.close()">Close</button>
-    </div>
-    <div class="hint">Everyone is added as <strong>BCC</strong> so recipients can't see each other's addresses. Just write your message and send. (Attachments can't be added automatically — add any files in your email.)</div>
-  <script>
-    const GMAIL_URL=${JSON.stringify(gmailUrl)};
-    const MAILTO_URL=${JSON.stringify(mailtoUrl)};
-    const BCC_TEXT=${JSON.stringify(bccList)};
-    function openGmail(){window.open(GMAIL_URL,'_blank');}
-    function openMail(){window.location.href=MAILTO_URL;}
-    function copyBCC(){navigator.clipboard.writeText(BCC_TEXT).then(()=>alert('BCC addresses copied!')).catch(()=>alert('Could not copy automatically — please select the addresses above and copy manually.'));}
-  <\/script>
-  </body></html>`);
-  win.document.close();
+  openDocEmail({
+    type:'classEmail',
+    category:'Email the class',
+    sessionLine:s.course+' · '+d,
+    subject:s.course+' — '+d,
+    emails:emails,
+    field:'bcc',
+    note:'Paste the message from the Google Doc. Everyone is BCC so families cannot see each other. Add any files in your mail app.'
+  });
 }
 
-// One-click weekly digest: emails every instructor (BCC'd) the list of jobs that
-// are currently OPEN — meaning not taught by you, not on hold, NOT CANCELLED,
-// dated today or later, and not yet claimed by any instructor (exactly what the
-// portal shows as "Open"). Opens your email with everything prefilled; you just
-// review and send.
+// Weekly digest of jobs instructors can claim. The wording is in the Google Doc.
+// The live job list stays on this screen so it can be copied into that message.
 function emailOpenJobs(){
   const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
   const open=sessions.filter(s=>!s.ownerTaught&&!s.isHold&&!s.isCancelled&&s.date&&new Date(s.date+'T12:00:00')>=startOfToday&&!(jobDataCache[s.id]||{}).instructorId).sort((a,b)=>a.date.localeCompare(b.date));
   const recips=[...new Set(instructors.filter(i=>instrActive(i)&&i.email&&i.email.includes('@')).map(i=>i.email.trim()))];
   if(!recips.length){alert('No instructor email addresses are on file yet. Add each instructor\'s email on the Instructors tab (use Add instructor or edit an existing one), then try again.');return;}
   if(!open.length){alert('There are no open jobs right now, so there is nothing to send. A job counts as open when it is not taught by you, not on hold, not cancelled, dated today or later, and not yet claimed by an instructor.');return;}
-
-  const portalUrl='https://instructorportal.mindfulbeginnings.org/';
-
-  /* ════════════════════════════════════════════════════════════════════
-     ✏️  EDIT YOUR OPEN-JOBS EMAIL WORDING HERE  ✏️
-     Whatever you type below fills the preview, the Copy button, and the
-     one-click Gmail / mail-app buttons all at once. The job list is inserted
-     automatically between the intro and the closing.
-     ════════════════════════════════════════════════════════════════════ */
-  const EMAIL_SUBJECT = 'Open babysitting jobs available now';
-  const EMAIL_INTRO = 'Hi team,\n\nHere are the jobs currently open and available to claim. Log in to the instructor portal to accept any that fit your schedule. Jobs are first come, first served.';
-  const EMAIL_CLOSING = 'Log in to claim a job:\n'+portalUrl+'\n\nThank you,\nLindsay';
-  /* ════════════════════════════════════════════════════════════════════ */
-
   const fmtD=s=>new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const lines=open.map((s,idx)=>{
     const loc=s.isVirtual?'Virtual (Zoom)':([s.location,s.city].filter(Boolean).join(', ')||'Location to be confirmed');
     const time=s.time?'\n   Time: '+s.time:'';
-    return `${idx+1}. ${s.course}\n   ${fmtD(s)}${time}\n   ${loc}`;
+    return (idx+1)+'. '+s.course+'\n   '+fmtD(s)+time+'\n   '+loc;
   });
-  const body=EMAIL_INTRO+'\n\n'+lines.join('\n\n')+'\n\n'+EMAIL_CLOSING;
-
-  const bcc=recips.join(';');
-  const gmailUrl='https://mail.google.com/mail/?view=cm&fs=1&bcc='+encodeURIComponent(bcc)+'&su='+encodeURIComponent(EMAIL_SUBJECT)+'&body='+encodeURIComponent(body);
-  const mailtoUrl='mailto:?bcc='+encodeURIComponent(bcc)+'&subject='+encodeURIComponent(EMAIL_SUBJECT)+'&body='+encodeURIComponent(body);
-  const bccList=recips.join('; ');
-  const previewHtml=open.map((s,idx)=>{
+  const preview=open.map((s,idx)=>{
     const loc=s.isVirtual?'Virtual (Zoom)':([s.location,s.city].filter(Boolean).join(', ')||'Location to be confirmed');
-    return `<div style="margin-bottom:10px"><strong>${idx+1}. ${escapeHtml(s.course)}</strong><br>${escapeHtml(fmtD(s))}${s.time?' · '+escapeHtml(s.time):''}<br><span style="color:#6b7a99">${escapeHtml(loc)}</span></div>`;
+    return '<div style="margin-bottom:10px"><strong>'+(idx+1)+'. '+escapeHtml(s.course)+'</strong><br>'+escapeHtml(fmtD(s))+(s.time?' · '+escapeHtml(s.time):'')+'<br><span style="color:#6b7a99">'+escapeHtml(loc)+'</span></div>';
   }).join('');
-
-  const win=window.open('','_blank','width=700,height=780');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(`<!DOCTYPE html><html><head><title>Email open jobs</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#faf8f4;color:#1a2744;padding:28px 26px;font-size:17px;line-height:1.6}
-    h2{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:4px}
-    .sub{color:#6b7a99;font-size:16px;margin-bottom:18px}
-    .count{display:inline-block;background:#eaf5f0;color:#2d7a5e;border:1px solid #a8d8c5;border-radius:100px;padding:3px 12px;font-size:15px;font-weight:600;margin-bottom:14px}
-    .label{font-size:14px;font-weight:600;color:#6b7a99;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 6px}
-    .box{background:white;border:1px solid #dde4ee;border-radius:8px;padding:12px 14px;font-size:16px;color:#3a4a6b;line-height:1.7;max-height:200px;overflow-y:auto;margin-bottom:6px}
-    .addr{background:white;border:1px solid #dde4ee;border-radius:8px;padding:10px 12px;font-size:15px;color:#3a4a6b;word-break:break-all;line-height:1.8;max-height:110px;overflow-y:auto;margin-bottom:6px}
-    .btns{display:flex;flex-direction:column;gap:10px;margin-top:18px}
-    button{font-family:'DM Sans',sans-serif;font-size:17px;font-weight:600;padding:13px 16px;border-radius:8px;border:none;cursor:pointer;text-align:center}
-    .b-gmail{background:#1a2744;color:white}
-    .b-mail{background:white;color:#1a2744;border:1.5px solid #c0c8d8}
-    .b-copy{background:white;color:#4a8fc4;border:1.5px solid #b8d8ee}
-    .b-close{background:transparent;color:#6b7a99;border:none;font-weight:500;font-size:16px;margin-top:4px}
-    .hint{font-size:15px;color:#6b7a99;margin-top:16px;line-height:1.6}
-  </style></head><body>
-    <h2>Email open jobs</h2>
-    <div class="sub">A digest of every job instructors can currently claim.</div>
-    <div class="count">${open.length} open job${open.length!==1?'s':''} · ${recips.length} recipient${recips.length!==1?'s':''}</div>
-    <div class="label">Jobs included</div>
-    <div class="box">${previewHtml}</div>
-    <div class="label">Instructors (BCC'd)</div>
-    <div class="addr">${bccList}</div>
-    <div class="btns">
-      <button class="b-gmail" onclick="openGmail()">📧 Open in Gmail — everyone BCC'd</button>
-      <button class="b-mail" onclick="openMail()">✉️ Open in my default mail app</button>
-      <button class="b-copy" onclick="copyBody()">📋 Copy the email text</button>
-      <button class="b-close" onclick="window.close()">Close</button>
-    </div>
-    <div class="hint">Everyone is added as <strong>BCC</strong> so instructors can't see each other's addresses. Review the message and send. If a long list gets cut off in your mail app, use the Gmail button or the Copy button instead.</div>
-  <script>
-    const GMAIL_URL=${JSON.stringify(gmailUrl)};
-    const MAILTO_URL=${JSON.stringify(mailtoUrl)};
-    const BODY_TEXT=${JSON.stringify(body)};
-    function openGmail(){window.open(GMAIL_URL,'_blank');}
-    function openMail(){window.location.href=MAILTO_URL;}
-    function copyBody(){navigator.clipboard.writeText(BODY_TEXT).then(()=>alert('Email text copied! Paste it into a new email and add your instructors to BCC.')).catch(()=>alert('Could not copy automatically — please select the text above and copy manually.'));}
-  <\/script>
-  </body></html>`);
-  win.document.close();
+  openDocEmail({
+    type:'openJobs',
+    category:'Open jobs digest',
+    sessionLine:open.length+' open job'+(open.length===1?'':'s'),
+    subject:'Open babysitting jobs available now',
+    emails:recips,
+    field:'bcc',
+    note:'Paste the open-jobs note from the Google Doc. Copy the live job list below into that message. Instructors claim jobs at instructorportal.mindfulbeginnings.org.',
+    extraHtml:'<div class="section-label">Jobs open right now</div><div class="facts">'+preview+'</div>',
+    copyExtra:lines.join('\n\n'),
+    copyExtraLabel:'Copy job list'
+  });
 }
 
 function openPostCourseEmail(sessId){
@@ -7362,103 +7349,35 @@ function openPostCourseEmail(sessId){
   const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
-  openFamilyDocEmail({
+  openDocEmail({
+    type:'postCourse',
     category:'Post-course family email',
     sessionLine:s.course+' · '+d,
     subject:'Your Safe Sitter® Babysitting Course Follow-up',
-    emails,
-    note:'Attach Letter-to-Parents_English-and-Spanish.pdf before sending. The message is left empty so you can paste the post-course section from the Google Doc.'
+    emails:emails,
+    field:'bcc',
+    note:'Attach Letter-to-Parents_English-and-Spanish.pdf before sending. Paste the post-course section from the Google Doc into the empty message.'
   });
 }
 
-// Family BCC outreach. The wording lives in Lindsay's Google Doc. These windows
-// keep the BCC list and open Outlook or Gmail with that list and the subject.
-// The body stays empty so she can paste from the Doc. Nothing is sent from here,
-// and the Doc is not loaded into the app.
-const MB_OUTREACH_DOC_URL='https://docs.google.com/document/d/1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/edit?tab=t.0';
-function openFamilyDocEmail(opts){
-  const emails=(opts.emails||[]).map(e=>String(e||'').trim()).filter(e=>e.includes('@'));
-  const bcc=emails.join(';');
-  const bccList=emails.join('; ')||'(no emails on file)';
-  const subject=opts.subject||'';
-  const outlookUrl='https://outlook.office.com/mail/deeplink/compose?bcc='+encodeURIComponent(bcc)+'&subject='+encodeURIComponent(subject);
-  const gmailUrl='https://mail.google.com/mail/?view=cm&fs=1&bcc='+encodeURIComponent(bcc)+'&su='+encodeURIComponent(subject);
-  const mailtoUrl='mailto:?bcc='+encodeURIComponent(bcc)+'&subject='+encodeURIComponent(subject);
-  const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const win=window.open('','_blank','width=860,height=720');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(`<!DOCTYPE html><html><head><title>${esc(opts.category||'Email')}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.6}
-    .toolbar{background:#1a2744;padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0}
-    .toolbar button,.toolbar a.docbtn{padding:9px 16px;border-radius:6px;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-block}
-    .b-doc{background:#fff;color:#1a2744}
-    .b-outlook{background:#0f6cbd;color:white}
-    .b-gmail{background:rgba(255,255,255,.12);color:white}
-    .b-mail{background:rgba(255,255,255,.12);color:white}
-    .b-bcc{background:rgba(255,255,255,.12);color:white}
-    .b-close{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.2)!important}
-    .wrap{max-width:680px;margin:28px auto;padding:0 32px 64px}
-    .sub{color:#6b7a99;font-size:16px;margin-bottom:14px}
-    .note{background:#fff7e6;border:1px solid #f0d090;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:15px;color:#7a5000}
-    .bcc-box{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:15px;color:#1a5c8a}
-    .bcc-box strong{display:block;margin-bottom:4px;font-size:13px;letter-spacing:.6px;text-transform:uppercase}
-    .bcc-addr{word-break:break-all;line-height:1.8;color:#27496b}
-    .subject-line{background:white;border:1px solid #dde4ee;border-radius:8px;padding:10px 16px;font-size:16px}
-  </style></head><body>
-  <div class="toolbar">
-    <button class="b-doc" onclick="openDoc()">Open this Google Doc</button>
-    <button class="b-outlook" onclick="openOutlook()">Open in Outlook (BCC + subject)</button>
-    <button class="b-gmail" onclick="openGmail()">Open in Gmail</button>
-    <button class="b-mail" onclick="openMail()">Default mail app</button>
-    <button class="b-bcc" onclick="copyBCC()">Copy BCC</button>
-    <button class="b-close" onclick="window.close()">Close</button>
-  </div>
-  <div class="wrap">
-    <h2 style="font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:4px">${esc(opts.category||'')}</h2>
-    <div class="sub">${esc(opts.sessionLine||'')}</div>
-    <div class="note">${esc(opts.note||'Paste the matching section from the Google Doc into your email. The compose window is left empty on purpose.')} Nothing is sent from this screen.</div>
-    <div class="bcc-box">
-      <strong>${emails.length} recipient${emails.length!==1?'s':''} — BCC</strong>
-      <div class="bcc-addr" id="bcc">${esc(bccList)}</div>
-    </div>
-    <div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>${esc(subject)}</strong></div>
-  </div>
-  <script>
-    const DOC_URL=${JSON.stringify(MB_OUTREACH_DOC_URL)};
-    const OUTLOOK_URL=${JSON.stringify(outlookUrl)};
-    const GMAIL_URL=${JSON.stringify(gmailUrl)};
-    const MAILTO_URL=${JSON.stringify(mailtoUrl)};
-    const BCC_TEXT=${JSON.stringify(emails.join('; '))};
-    function openDoc(){window.open(DOC_URL,'_blank','noopener,noreferrer,width=1100,height=800');}
-    function openOutlook(){window.open(OUTLOOK_URL,'_blank');}
-    function openGmail(){window.open(GMAIL_URL,'_blank');}
-    function openMail(){window.location.href=MAILTO_URL;}
-    function copyBCC(){navigator.clipboard.writeText(BCC_TEXT).then(()=>alert('BCC addresses copied.')).catch(()=>alert('Could not copy automatically — select the BCC list and copy it.'));}
-  <\/script>
-  </body></html>`);
-  win.document.close();
-}
 function openClassReminder(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Date to be confirmed';
   const shortD=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date';
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
-  openFamilyDocEmail({
+  openDocEmail({
+    type:'classReminder',
     category:'Send reminder to the class',
     sessionLine:s.course+' · '+d,
     subject:'Reminder: your '+s.course+' class on '+shortD,
-    emails,
+    emails:emails,
+    field:'bcc',
     note:'Attach the course overview if this class uses one. Paste the class-reminder section from the Google Doc into the empty message.'
   });
 }
 
-
 // ─── INSTRUCTOR FOLLOW-UP EMAIL (post-session, from wrap-up) ──
-// Thank-you and payment confirmation to the instructor who taught the session.
 function openInstructorFollowup(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   if(s.ownerTaught){alert('You taught this session yourself, so there is no instructor to follow up with. You can simply check this step.');return;}
@@ -7466,76 +7385,15 @@ function openInstructorFollowup(sessId){
   const instr=instructors.find(x=>x.id===instrId);
   if(!instr){alert('No instructor is assigned to this session yet. Assign one first, or check this step if it does not apply.');return;}
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'the scheduled date';
-  const firstName=instr.name?instr.name.split(' ')[0]:'there';
-
-  const EMAIL_SUBJECT=`Thank you for teaching ${s.course}`;
-  const EMAIL_BODY=`Hi ${firstName},
-
-Thank you for teaching the ${s.course} session on ${d}. We are grateful for the care and energy you brought to the students, and we hope the day went smoothly for you.
-
-A few quick items. Your payment has been sent through Zelle, so please confirm that it arrived. If you collected any completed evaluations or have materials to return, let me know and we will arrange the handoff. If anything came up during the session that we should be aware of, please share it so we can follow up with the family.
-
-As a reminder, you earn fifty dollars for every host family you refer who books a course. If you meet a family who is interested in hosting, have them add your name when they register and we will take care of the rest.
-
-Thank you again for being part of the Mindful Beginnings team. We look forward to working with you on the next session.
-
-Warm regards,
-Lindsay Karr
-Owner, Mindful Beginnings
-703-987-5979 · mindfulbeginnings.org`;
-
-  const toAddr=instr.email||'';
-  const outlookUrl='https://outlook.office.com/mail/deeplink/compose?to='+encodeURIComponent(toAddr)+'&subject='+encodeURIComponent(EMAIL_SUBJECT)+'&body='+encodeURIComponent(EMAIL_BODY);
-  const gmailUrl='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(toAddr)+'&su='+encodeURIComponent(EMAIL_SUBJECT)+'&body='+encodeURIComponent(EMAIL_BODY);
-  const mailtoUrl='mailto:'+toAddr+'?subject='+encodeURIComponent(EMAIL_SUBJECT)+'&body='+encodeURIComponent(EMAIL_BODY);
-  const esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-  const win=window.open('','_blank','width=920,height=820');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(`<!DOCTYPE html><html><head><title>Instructor Follow-up — ${s.course}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.7;padding:0}
-    .toolbar{background:#1a2744;padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0}
-    .toolbar button{padding:9px 16px;border-radius:6px;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
-    .b-outlook{background:#0f6cbd;color:white}
-    .b-gmail{background:rgba(255,255,255,.12);color:white}
-    .b-mail{background:rgba(255,255,255,.12);color:white}
-    .b-copy{background:rgba(255,255,255,.12);color:white}
-    .b-close{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.2)!important}
-    .toolbar .note{color:rgba(255,255,255,.55);font-size:15px}
-    .doc{max-width:640px;margin:28px auto;padding:0 32px 64px}
-    .to-box{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:16px;color:#1a5c8a}
-    .subject-line{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:16px}
-    .email-box{background:white;border-radius:10px;border:1px solid #dde4ee;padding:28px 32px;white-space:pre-wrap;font-size:17px;line-height:1.85;color:#1a2744}
-    @media print{.toolbar{display:none}}
-  </style>
-  </head><body>
-  <div class="toolbar">
-    <button class="b-outlook" onclick="openOutlook()">📧 Open in Outlook</button>
-    <button class="b-gmail" onclick="openGmail()">Open in Gmail</button>
-    <button class="b-mail" onclick="openMail()">Default mail app</button>
-    <button class="b-copy" onclick="copyEmail()">📋 Copy text</button>
-    <button class="b-close" onclick="window.close()">Close</button>
-  </div>
-  <div class="doc">
-    <div class="to-box">${toAddr?'To: <strong>'+esc(toAddr)+'</strong>':'⚠️ No email address on file for this instructor — add one in the Instructors tab.'}</div>
-    <div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>${esc(EMAIL_SUBJECT)}</strong></div>
-    <div class="email-box">${esc(EMAIL_BODY)}</div>
-  </div>
-  <script>
-    const OUTLOOK_URL=${JSON.stringify(outlookUrl)};
-    const GMAIL_URL=${JSON.stringify(gmailUrl)};
-    const MAILTO_URL=${JSON.stringify(mailtoUrl)};
-    const BODY_TEXT=${JSON.stringify(EMAIL_BODY)};
-    function openOutlook(){window.open(OUTLOOK_URL,'_blank');}
-    function openGmail(){window.open(GMAIL_URL,'_blank');}
-    function openMail(){window.location.href=MAILTO_URL;}
-    function copyEmail(){navigator.clipboard.writeText(BODY_TEXT).then(()=>alert('Email text copied!')).catch(()=>alert('Could not copy automatically — please select the text manually.'));}
-  <\/script>
-  </body></html>`);
-  win.document.close();
+  openDocEmail({
+    type:'instructorFollowup',
+    category:'Instructor follow-up',
+    sessionLine:s.course+' · '+d+' · '+(instr.name||''),
+    field:'to',
+    emails:instr.email?[instr.email]:[],
+    subject:'Thank you for teaching '+s.course,
+    note:'Paste the instructor follow-up from the Google Doc. Confirm the payment before you send.'
+  });
 }
 
 
@@ -10149,405 +10007,86 @@ function printMonthReport(){
 }
 
 // ─── HOST LETTER ─────────────────────────────────────────────
+// The letter wording lives in the Google Doc. This window keeps the host
+// address (when we have one), the registration link, and the session facts.
 function openHostLetter(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
   const instr=sessionInstructorList(s).map(x=>x.name.replace(' (owner)','')).join(' and ')||'Lindsay Karr';
   const regLink=REG_PAGE+'?code='+s.code;
-
-  const win=window.open('','_blank','width=960,height=810');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(`<!DOCTYPE html><html><head><title>Host Letter — ${s.course}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.7}
-    .no-print{background:#1a2744;padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .letter-wrap{max-width:680px;margin:32px auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,.08)}
-    .letter-header{background:#1a2744;padding:28px 36px;display:flex;align-items:center;justify-content:space-between}
-    .letter-header .brand{font-family:'DM Serif Display',serif;font-size:25px;color:white}
-    .letter-header .sub{font-size:15px;color:rgba(255,255,255,.5);margin-top:3px}
-    .letter-body{padding:36px}
-    .date-line{font-size:16px;color:#6b7a99;margin-bottom:24px}
-    .greeting{font-family:'DM Serif Display',serif;font-size:23px;margin-bottom:20px}
-    p{margin-bottom:16px;font-size:17px;line-height:1.75;color:#2a3a54}
-    .detail-box{background:#f0f6fc;border-left:3px solid #4a8fc4;border-radius:0 8px 8px 0;padding:16px 20px;margin:20px 0}
-    .detail-box .row{display:flex;gap:12px;padding:5px 0;font-size:16px}
-    .detail-box .lbl{color:#6b7a99;min-width:100px;flex-shrink:0}
-    .detail-box .val{font-weight:500;color:#1a2744}
-    .reg-box{background:#eaf5f0;border:1px solid #a8d8c5;border-radius:8px;padding:16px 20px;margin:20px 0}
-    .reg-box .rtitle{font-weight:500;font-size:17px;color:#2d7a5e;margin-bottom:6px}
-    .reg-box .rlink{font-family:monospace;font-size:16px;color:#1a5c8a;word-break:break-all}
-    .reg-box .rcode{display:inline-block;background:#1a2744;color:white;padding:3px 10px;border-radius:100px;font-size:15px;font-family:monospace;letter-spacing:1px;margin-top:6px}
-    .free-badge{display:inline-flex;align-items:center;gap:6px;background:#fff7e6;border:1px solid #f0d090;border-radius:100px;padding:5px 12px;font-size:15px;font-weight:500;color:#b86a00;margin-bottom:16px}
-    .sign-off{margin-top:28px;padding-top:20px;border-top:1px solid #dde4ee}
-    .sign-name{font-family:'DM Serif Display',serif;font-size:20px;margin-top:4px}
-    .sign-title{font-size:15px;color:#6b7a99;margin-top:2px}
-    .faq-note{background:#faf8f4;border:1px solid #dde4ee;border-radius:8px;padding:14px 18px;margin:20px 0;font-size:16px;color:#6b7a99}
-    .letter-footer{background:#f8f9fc;border-top:1px solid #dde4ee;padding:16px 36px;font-size:14px;color:#aaa;text-align:center}
-    @media print{
-      .no-print{display:none}
-      body{background:white}
-      .letter-wrap{box-shadow:none;border-radius:0;margin:0}
-      body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    }
-  </style>
-  </head><body>
-  <div class="no-print">
-    <button onclick="window.print()" style="background:#4a8fc4;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:17px;cursor:pointer;font-weight:500">🖨️ Print / Save as PDF</button>
-    <button onclick="copyLetterText()" style="background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">📋 Copy as text</button>
-    <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.2);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">Close</button>
-    <span style="color:rgba(255,255,255,.4);font-size:15px">Tip: Print → Save as PDF to email to your host family</span>
-  </div>
-
-  <div class="letter-wrap" id="letter-content">
-    <div class="letter-header">
-      <div>
-        <div class="brand">Mindful Beginnings</div>
-        <div class="sub">Safe Sitter® Certified Provider</div>
-      </div>
-      <div style="text-align:right;font-size:14px;color:rgba(255,255,255,.45)">
-        <div>mindfulbeginnings.org</div>
-      </div>
-    </div>
-    <div class="letter-body">
-      <div class="date-line">${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
-
-      <div class="greeting">Dear Host Family,</div>
-
-      <p>Thank you so much for opening your home to host an upcoming <strong>${s.course}</strong> course! We are so grateful for your generosity and for making this experience possible for the children in your community.</p>
-
-      <p>Here are the details for your upcoming session:</p>
-
-      <div class="detail-box">
-        <div class="row"><span class="lbl">Course</span><span class="val">${s.course}</span></div>
-        <div class="row"><span class="lbl">Date</span><span class="val">${d||'<em style="color:#aaa">To be confirmed</em>'}</span></div>
-        <div class="row"><span class="lbl">Time</span><span class="val">${s.time||'<em style="color:#aaa">To be confirmed</em>'}</span></div>
-        <div class="row"><span class="lbl">Location</span><span class="val">${s.location?s.location+(s.city?', '+s.city:''):'<em style="color:#aaa">Your home</em>'}</span></div>
-        <div class="row"><span class="lbl">Instructor</span><span class="val">${instr||'<em style="color:#aaa">To be confirmed</em>'}</span></div>
-      </div>
-
-      <p>As we get closer to the course date, I will be in touch with your instructor's contact information, cell phone number, and a short bio so you can connect ahead of time!</p>
-
-      <div class="free-badge">🎉 As our host family, your child's registration is completely free!</div>
-
-      <p>Please register your child using the link below. When you get to the registration form, simply check the box that says <strong>"I am the host family for this session"</strong> — your spot will be marked as complimentary automatically.</p>
-
-      <div class="reg-box">
-        <div class="rtitle">Registration link for parents</div>
-        <div class="rlink">${regLink}</div>
-        <div style="margin-top:8px;font-size:15px;color:#3a7a5a">Session code: <span class="rcode">${s.code}</span></div>
-        <div style="font-size:15px;color:#6b7a99;margin-top:6px">Parents will enter this code at the registration page to sign up for your session.</div>
-      </div>
-
-      <div class="faq-note">
-        📎 &nbsp;I have attached our <strong>Host Family FAQ</strong> to this letter with everything you need to know — what to expect on the day, how to prepare your space, and answers to the most common questions. Please don't hesitate to reach out if anything comes up!
-      </div>
-
-      <p>If you have any questions at all, please don't hesitate to reach out to me directly. I am always happy to help and I want this to be a smooth and enjoyable experience for your whole family.</p>
-
-      <div class="sign-off">
-        <p style="margin-bottom:6px">With gratitude,</p>
-        <div class="sign-name">Lindsay Karr</div>
-        <div class="sign-title">Owner & Instructor, Mindful Beginnings</div>
-        <div style="font-size:15px;color:#6b7a99;margin-top:4px">mindfulbeginnings.org</div>
-      </div>
-    </div>
-    <div class="letter-footer">Mindful Beginnings · Safe Sitter® Certified Provider · mindfulbeginnings.org</div>
-  </div>
-
-  <script>
-  function copyLetterText(){
-    const text = \`Dear Host Family,
-
-Thank you so much for opening your home to host an upcoming ${s.course} course! We are so grateful for your generosity and for making this experience possible for the children in your community.
-
-Here are the details for your upcoming session:
-
-  Course: ${s.course}
-  Date: ${d||'To be confirmed'}
-  Time: ${s.time||'To be confirmed'}
-  Location: ${s.location?s.location+(s.city?', '+s.city:''):'Your home'}
-  Instructor: ${instr||'To be confirmed'}
-
-As we get closer to the course date, I will be in touch with your instructor's contact information, cell phone number, and a short bio so you can connect ahead of time!
-
-As our host family, your child's registration is completely free! Please register using the link below and check the box that says "I am the host family for this session."
-
-Registration link: ${regLink}
-Session code: ${s.code}
-
-I have attached our Host Family FAQ to this letter with everything you need to know. Please don't hesitate to reach out if you have any questions!
-
-With gratitude,
-Lindsay Karr
-Owner & Instructor, Mindful Beginnings
-mindfulbeginnings.org\`;
-    navigator.clipboard.writeText(text).then(()=>alert('Letter text copied to clipboard! You can paste it into an email.')).catch(()=>alert('Could not copy — please use Print / Save as PDF instead.'));
-  }
-  <\/script>
-  </body></html>`);
-  win.document.close();
-}
-
-// ─── SESSION REPORT PDF ──────────────────────────────────────
-function printSessionReport(){
-  const now=new Date();
-  const filter=document.getElementById('report-filter')?.value||'upcoming';
-  const upcoming=sessions.filter(s=>!s.isCancelled&&new Date(s.date+'T12:00:00')>=now).sort((a,b)=>a.date.localeCompare(b.date));
-  const completed=sessions.filter(s=>!s.isCancelled&&new Date(s.date+'T12:00:00')<now).sort((a,b)=>b.date.localeCompare(a.date));
-  const cancelled=sessions.filter(s=>s.isCancelled).sort((a,b)=>b.date.localeCompare(a.date));
-  const all=sessions.filter(s=>!s.isHold).sort((a,b)=>a.date.localeCompare(b.date));
-  const listMap={upcoming,completed,cancelled,all};
-  const labelMap={upcoming:'Upcoming Sessions',completed:'Completed Sessions',cancelled:'Cancelled Sessions',all:'All Sessions'};
-  const list=listMap[filter]||upcoming;
-  const reportTitle=labelMap[filter]||'Upcoming Sessions';
-
-  function sessionRows(list,showStatus){
-    if(!list.length)return'<tr><td colspan="9" style="text-align:center;padding:16px;color:#aaa;font-style:italic">No sessions</td></tr>';
-    return list.map((s,i)=>{
-      const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-      const regs=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r));
-      const max=sessionMaxStudents(s);
-      const instr=sessionInstructorNames(s,'TBD');
-      const f=calcFin(s);
-      const isPast=new Date(s.date+'T12:00:00')<now;
-      const statusLabel=s.isCancelled?'Cancelled':(isPast?'Completed':'Upcoming');
-      const statusColor=s.isCancelled?'#c0392b':(isPast?'#6b7a99':'#2d7a5e');
-      return`<tr style="background:${i%2===0?'white':'#f9fafb'}">
-        <td>${d}</td>
-        <td style="font-weight:500">${s.course}</td>
-        <td style="font-family:monospace;font-size:14px">${s.code}</td>
-        <td>${s.location||'—'}${s.city?'<br><span style="font-size:14px;color:#aaa">'+s.city+'</span>':''}</td>
-        <td>${instr}</td>
-        <td style="text-align:center">${regs.length} / ${max}</td>
-        <td style="text-align:right;font-weight:500">$${f.revenue.toFixed(2)}</td>
-        <td style="text-align:right;font-weight:600;color:${f.profit<0?'#c0392b':'#2d7a5e'}">${f.profit<0?'-$'+Math.abs(f.profit).toFixed(2):'$'+f.profit.toFixed(2)}</td>
-        ${showStatus?`<td style="text-align:center;color:${statusColor};font-size:14px;font-weight:500">${statusLabel}</td>`:''}
-      </tr>`;
-    }).join('');
-  }
-
-  function sectionHTML(title,list,showStatus){
-    const cols=showStatus?9:8;
-    return`
-      <div style="margin-bottom:32px">
-        <div style="background:#1a2744;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:14px;font-weight:600;letter-spacing:.8px;text-transform:uppercase">${title} (${list.length})</div>
-        <table style="width:100%;border-collapse:collapse;font-size:15px">
-          <thead><tr style="background:#f0f3f8">
-            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #dde4ee;white-space:nowrap">Date</th>
-            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #dde4ee">Course</th>
-            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #dde4ee">Code</th>
-            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #dde4ee">Location</th>
-            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #dde4ee">Instructor</th>
-            <th style="padding:8px 10px;text-align:center;border-bottom:1px solid #dde4ee">Students</th>
-            <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #dde4ee">Revenue</th>
-            <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #dde4ee">Profit</th>
-            ${showStatus?'<th style="padding:8px 10px;text-align:center;border-bottom:1px solid #dde4ee">Status</th>':''}
-          </tr></thead>
-          <tbody>${sessionRows(list,showStatus)}</tbody>
-        </table>
-      </div>`;
-  }
-
-  const listRev=list.reduce((sum,s)=>sum+calcFin(s).revenue,0);
-  const listProfit=list.reduce((sum,s)=>sum+calcFin(s).profit,0);
-  const listCost=list.reduce((sum,s)=>sum+calcFin(s).totalCost,0);
-  const fmtMoney=n=>(n<0?'-$'+Math.abs(n).toFixed(2):'$'+n.toFixed(2));
-  const listStudents=list.reduce((sum,s)=>sum+registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length,0);
-
-  const html=`<!DOCTYPE html><html><head><title>${reportTitle} — Mindful Beginnings</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Georgia,serif;background:white;color:#1a2744;font-size:16px;line-height:1.5}
-    .no-print{background:#1a2744;padding:12px 24px;display:flex;align-items:center;gap:12px}
-    .pg{max-width:960px;margin:0 auto;padding:32px 28px}
-    td{padding:8px 10px;border-bottom:0.5px solid #eee;vertical-align:top}
-    .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:20px 0 28px}
-    .kpi{background:#f8f9fc;border:1px solid #dde4ee;border-radius:8px;padding:12px 14px}
-    .kpi .lbl{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:#6b7a99;margin-bottom:4px;font-family:sans-serif}
-    .kpi .val{font-size:22px;font-weight:bold;white-space:nowrap}
-    .footer{margin-top:24px;padding-top:12px;border-top:1px solid #dde4ee;font-size:13px;color:#aaa;display:flex;justify-content:space-between}
-    @media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{padding:16px 0}}
-  </style></head><body>
-  <div class="no-print">
-    <button onclick="window.print()" style="background:#4a8fc4;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:17px;cursor:pointer;font-weight:500">🖨️ Print / Save as PDF</button>
-    <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">Close</button>
-  </div>
-  <div class="pg">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-      <div>
-        <div style="font-size:29px;font-weight:bold;color:#1a2744">${reportTitle}</div>
-        <div style="font-size:15px;color:#6b7a99;margin-top:4px">Mindful Beginnings · Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
-      </div>
-      <div style="text-align:right;font-size:14px;color:#6b7a99"><div style="font-weight:bold;font-size:17px;color:#1a2744">Mindful Beginnings</div><div>mindfulbeginnings.org</div></div>
-    </div>
-    <div class="kpi-row">
-      <div class="kpi"><div class="lbl">Sessions</div><div class="val">${list.length}</div></div>
-      <div class="kpi"><div class="lbl">Students</div><div class="val">${listStudents}</div></div>
-      <div class="kpi"><div class="lbl">Revenue</div><div class="val">$${listRev.toFixed(2)}</div></div>
-      <div class="kpi"><div class="lbl">Costs</div><div class="val">$${listCost.toFixed(2)}</div></div>
-      <div class="kpi"><div class="lbl">Profit</div><div class="val" style="color:${listProfit<0?'#c0392b':'#2d7a5e'}">${fmtMoney(listProfit)}</div></div>
-    </div>
-    <div style="font-size:14px;color:#6b7a99;margin:-18px 0 24px;font-style:italic">Revenue is net of payment processing fees. Profit subtracts instructor pay, materials, referral payouts, and any additional costs.</div>
-    ${sectionHTML(reportTitle,list,filter==='all')}
-    <div class="footer">
-      <span>Mindful Beginnings · ${reportTitle}</span>
-      <span>Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</span>
-    </div>
-  </div></body></html>`;
-
-  const win=window.open('','_blank','width=1190,height=810');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(html);
-  win.document.close();
+  const hostRegs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus==='host');
+  const emails=[...emailsInField(s.hostPhone),...hostRegs.flatMap(r=>emailsInField(r.contact))];
+  const facts=[
+    'Course: '+s.course,
+    'Date: '+(d||'To be confirmed'),
+    'Time: '+(s.time||'To be confirmed'),
+    'Location: '+(s.location?s.location+(s.city?', '+s.city:''):'Your home'),
+    'Instructor: '+(instr||'To be confirmed'),
+    'Registration link: '+regLink,
+    'Session code: '+s.code
+  ].join('\n');
+  openDocEmail({
+    type:'hostLetter',
+    category:'Host letter',
+    sessionLine:s.course+' · '+(d||'Date to be confirmed'),
+    field:'to',
+    emails:emails,
+    subject:'Hosting your '+s.course+' course',
+    note:'Paste the host letter from the Google Doc and attach the Host Family FAQ. Copy the registration link below into the letter.',
+    extraHtml:emailFactsHtml('Details for this session', facts),
+    copyExtra:facts,
+    copyExtraLabel:'Copy details'
+  });
 }
 
 // ─── HOST REMINDER ───────────────────────────────────────────
 function openHostReminder(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
-  const dFile=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
-  const rosterTitle='Roster - '+dFile;
   const instr=(()=>{const list=sessionInstructorList(s);return list.length?list.map(x=>x.name.replace(' (owner)','')).join(' and '):'your instructor';})();
-  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r)).sort((a,b)=>a.studentName.localeCompare(b.studentName));
-  const studentCount=regs.length;
-  const firstName=s.contactName?s.contactName.split(' ')[0]:'';
-  const greeting=firstName?`Hi ${firstName},`:'Hi there,';
-
-  const emailText=`${greeting}
-
-Your ${s.course} course is coming up in one week! We are so excited and want to make sure you have everything you need for a smooth day.
-
-Here is a quick reminder of your session details:
-
-  Course: ${s.course}
-  Date: ${d||'To be confirmed'}
-  Time: ${s.time||'To be confirmed'}
-  Location: ${s.location?s.location+(s.city?', '+s.city:''):'Your home'}
-  Instructor: ${instr}
-  Session code: ${s.code}${s.wifiInfo?'\n  WiFi: '+s.wifiInfo:''}
-
-We currently have ${studentCount} student${studentCount!==1?'s':''} registered — your class roster is attached so you know exactly who to expect.
-
-Please also review the attached Host Info Sheet for a full checklist of how to prepare your space. If you have any questions at all before the course, please do not hesitate to reach out!
-
-See you soon,
-Lindsay Karr
-Owner & Instructor, Mindful Beginnings
-703-987-5979 · mindfulbeginnings.org`;
-
-  // Build roster table rows as plain text — host gets a privacy-trimmed view (no contact info, no CPR/waiver status)
-  const rosterLines=regs.length
-    ?regs.map((r,i)=>`  ${String(i+1).padStart(2,'0')}. ${r.studentName||''}  |  Grade: ${r.grade||'—'}  |  Parent: ${r.parentName||'—'}`).join('\n')
-    :'  No students registered yet';
-
-  const html=`<!DOCTYPE html><html><head><title>Host Reminder — ${s.course}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.7}
-    .toolbar{background:#1a2744;padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .toolbar span{color:rgba(255,255,255,.45);font-size:15px}
-    .wrap{max-width:700px;margin:24px auto}
-    .email-box{background:white;border-radius:10px;border:1px solid #dde4ee;padding:28px 32px;margin-bottom:20px;white-space:pre-wrap;font-family:'DM Sans',sans-serif;font-size:17px;line-height:1.8;color:#1a2744}
-    .section-label{font-size:14px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#6b7a99;margin-bottom:10px}
-    .roster-box{background:white;border-radius:10px;border:1px solid #dde4ee;overflow:hidden;margin-bottom:20px}
-    .roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px;font-weight:500}
-    table{width:100%;border-collapse:collapse;font-size:15px}
-    th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px 12px;border-bottom:1.5px solid #dde4ee;background:#f8f9fc;white-space:nowrap}
-    td{padding:8px 12px;border-bottom:.5px solid #eee;vertical-align:middle}
-    tr:last-child td{border-bottom:none}
-    .empty{text-align:center;padding:20px;color:#aaa;font-style:italic}
-    .copy-hint{font-size:15px;color:#6b7a99;margin-top:8px}
-  </style></head><body>
-  <div class="toolbar">
-    <button onclick="copyEmail()" style="background:#4a8fc4;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:17px;cursor:pointer;font-weight:500">📋 Copy email text</button>
-    <button onclick="printRosterOnly()" style="background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">🖨️ Print roster</button>
-    <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.2);padding:8px 14px;border-radius:6px;font-size:16px;cursor:pointer">Close</button>
-    <span>Copy the email text, then paste into Gmail or your email client</span>
-  </div>
-  <div class="wrap">
-    <div class="section-label" style="margin-left:4px">Email body — copy and paste into your email client</div>
-    <div class="email-box" id="email-text">${emailText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-    <div class="copy-hint" style="margin-left:4px;margin-bottom:20px">Subject suggestion: <strong>Your ${s.course} is one week away — class roster &amp; details inside</strong></div>
-
-    <div class="section-label" style="margin-left:4px;margin-top:4px">Class roster — print and/or attach as PDF</div>
-    <div class="roster-box" id="roster-section">
-      <div class="roster-hdr">${s.course} · ${d} · ${studentCount} student${studentCount!==1?'s':''} registered</div>
-      <div style="padding:16px 20px">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:15px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee">
-          <div><span style="color:#6b7a99">Location:</span> <strong>${s.location||'TBD'}${s.city?', '+s.city:''}</strong></div>
-          <div><span style="color:#6b7a99">Instructor:</span> <strong>${instr}</strong></div>
-          <div><span style="color:#6b7a99">Session code:</span> <strong style="font-family:monospace">${s.code}</strong></div>
-        </div>
-        <table>
-          <thead><tr>
-            <th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th>
-          </tr></thead>
-          <tbody>${regs.length?regs.map((r,i)=>`
-            <tr style="background:${i%2===0?'white':'#f9fafb'}">
-              <td style="color:#aaa;font-size:14px">${i+1}</td>
-              <td style="font-weight:500">${escapeHtml(r.studentName)}</td>
-              <td>${r.grade||'—'}</td>
-              <td>${escapeHtml(r.parentName)||'—'}</td>
-            </tr>`).join(''):`<tr><td colspan="4" class="empty">No students registered yet</td></tr>`}</tbody>
-        </table>
-        <div style="margin-top:12px;font-size:13px;color:#aaa">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Mindful Beginnings</div>
-      </div>
-    </div>
-  </div>
-  <script>
-  function copyEmail(){
-    const text=${JSON.stringify(emailText)};
-    navigator.clipboard.writeText(text)
-      .then(()=>{const b=document.querySelector('button');b.textContent='✅ Copied!';setTimeout(()=>{b.textContent='📋 Copy email text';},2500);})
-      .catch(()=>{window.getSelection().removeAllRanges();const el=document.getElementById('email-text');const range=document.createRange();range.selectNodeContents(el);window.getSelection().addRange(range);alert('Text selected — press Ctrl+C / Cmd+C to copy.');});
-  }
-  function printRosterOnly(){
-    const roster=document.getElementById('roster-section').outerHTML;
-    const w=window.open('','_blank','width=960,height=660');
-    if(!w){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-    w.document.write('<!DOCTYPE html><html><head><title>${rosterTitle}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;padding:24px;color:#1a2744;font-size:16px}.roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px;font-weight:500;border-radius:6px 6px 0 0}table{width:100%;border-collapse:collapse}th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px;border-bottom:1.5px solid #1a2744;background:#f8f9fc}td{padding:7px 8px;border-bottom:.5px solid #eee}@media print{body{padding:0}}</style></head><body>'+roster+'<div style="margin-top:20px"><button onclick="window.print()" style="background:#1a2744;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:16px;cursor:pointer">🖨️ Print roster</button></div></body></html>');
-    w.document.close();
-    try{w.document.title='${rosterTitle}';}catch(e){}
-  }
-  <\/script>
-  </body></html>`;
-
-  const win=window.open('','_blank','width=960,height=840');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(html);
-  win.document.close();
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r)).sort((a,b)=>(a.studentName||'').localeCompare(b.studentName||''));
+  const where=s.location?(s.location+(s.city?', '+s.city:'')):'Your home';
+  const facts=[
+    'Course: '+s.course,
+    'Date: '+(d||'To be confirmed'),
+    'Time: '+(s.time||'To be confirmed'),
+    'Location: '+where,
+    'Instructor: '+instr,
+    'Session code: '+s.code,
+    'Students registered: '+regs.length
+  ];
+  if(s.wifiInfo)facts.push('WiFi: '+s.wifiInfo);
+  const hostRegs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus==='host');
+  const emails=[...emailsInField(s.hostPhone),...hostRegs.flatMap(r=>emailsInField(r.contact))];
+  openDocEmail({
+    type:'hostReminder',
+    category:'Send reminder to host',
+    sessionLine:s.course+' · '+(d||'Date to be confirmed'),
+    field:'to',
+    emails:emails,
+    subject:'Your '+s.course+' is one week away — class roster and details inside',
+    note:'Paste the host reminder from the Google Doc. Print the roster and attach it. The session facts below are for this class only.',
+    extraHtml:emailFactsHtml('Session facts', facts.join('\n'))+classRosterSection(s, regs, {when:d, where:where, who:instr, privateCols:false}),
+    copyExtra:facts.join('\n'),
+    copyExtraLabel:'Copy details',
+    hasRoster:true
+  });
 }
 
 // ─── INSTRUCTOR REMINDER ─────────────────────────────────────
 function openInstructorReminder(sessId,specificInstrId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
-  // If a specific instructor ID is passed (e.g. from the second-instructor button), use them. Otherwise default to the primary assigned via job data, falling back to session.instructorId.
   const targetId=specificInstrId||(jobDataCache[sessId]||{}).instructorId||s.instructorId;
   const instr=instructors.find(x=>x.id===targetId);
   if(!instr){alert('No instructor assigned to this session yet.');return;}
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
-  const dFile=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
-  const rosterTitle='Roster - '+dFile;
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
-  const studentCount=regs.length;
-  const firstName=instr.name?instr.name.split(' ')[0]:'there';
-
-  // Build the full street address (omits any blank pieces)
   const cityState=[s.city,s.state].filter(Boolean).join(', ');
   const cszZip=(cityState+(s.zip?' '+s.zip:'')).trim();
   const fullAddress=[s.hostAddress,cszZip].filter(Boolean).join(', ');
-  // On-site contact: host for a private home, site coordinator for a public venue
   const contactLabel=s.hasHost!==false?'Host contact':'Site contact';
   const contactBits=[s.contactName,s.hostPhone].filter(Boolean).join(', ');
-
-  // Assemble the session detail lines (only include what is on file)
-  const detailLines=[];
-  detailLines.push('Course: '+s.course);
-  detailLines.push('Date: '+(d||'To be confirmed'));
-  detailLines.push('Time: '+(s.time||'To be confirmed'));
+  const detailLines=['Course: '+s.course,'Date: '+(d||'To be confirmed'),'Time: '+(s.time||'To be confirmed')];
   if(s.isVirtual){
     detailLines.push('Format: Virtual (Zoom)');
     detailLines.push('Zoom link: '+(s.zoomLink||'Link to be provided'));
@@ -10558,127 +10097,22 @@ function openInstructorReminder(sessId,specificInstrId){
     if(s.wifiInfo)detailLines.push('WiFi: '+s.wifiInfo);
   }
   detailLines.push('Session code: '+s.code);
+  detailLines.push('Students registered: '+regs.length);
   if(s.notes)detailLines.push('Notes: '+s.notes);
-  const details=detailLines.join('\n  ');
-
-  const emailText=`Hi ${firstName},
-
-Just a reminder that you are scheduled to teach a ${s.course} course coming up in one week. Here are your session details:
-
-  ${details}
-
-You currently have ${studentCount} student${studentCount!==1?'s':''} registered. A copy of the class roster is attached.
-
-Please make sure your materials are packed and ready to go. If anything has come up or you have any questions before the course, please do not hesitate to reach out: 703-987-5979.
-
-Thank you so much! We really appreciate you.`;
-
-  // Pre-filled compose links. Outlook (web) for the Microsoft 365 work account,
-  // mailto for the desktop Outlook app when it is the default mail program.
-  const emailSubject='Reminder: your upcoming '+s.course+' course'+(d?' on '+d:'');
-  const toAddr=instr.email||'';
-  const outlookUrl='https://outlook.office.com/mail/deeplink/compose?to='+encodeURIComponent(toAddr)+'&subject='+encodeURIComponent(emailSubject)+'&body='+encodeURIComponent(emailText);
-  const mailtoUrl='mailto:'+toAddr+'?subject='+encodeURIComponent(emailSubject)+'&body='+encodeURIComponent(emailText);
-
-  const rosterRows=regs.length?regs.map((r,i)=>`
-    <tr style="background:${i%2===0?'white':'#f9fafb'}">
-      <td style="color:#aaa;font-size:14px">${i+1}</td>
-      <td style="font-weight:500">${escapeHtml(r.studentName)}</td>
-      <td>${r.grade||'—'}</td>
-      <td>${escapeHtml(r.parentName)||'—'}</td>
-      <td style="font-size:15px">${escapeHtml(r.contact)||'—'}</td>
-      <td style="text-align:center">${r.cprPermission==='yes'?'✓':'—'}</td>
-      <td style="text-align:center">${r.waiverSigned?'✓':'—'}</td>
-      <td style="text-align:center">${r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—'}</td>
-    </tr>`).join('')
-    :'<tr><td colspan="8" style="text-align:center;padding:16px;color:#aaa;font-style:italic">No students registered yet</td></tr>';
-
-  const html=`<!DOCTYPE html><html><head><title>Instructor Reminder — ${s.course}</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Sans',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.7}
-    .toolbar{background:#1a2744;padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .toolbar span{color:rgba(255,255,255,.45);font-size:15px}
-    .wrap{max-width:700px;margin:24px auto}
-    .instr-badge{background:#d6e9f5;border:1px solid #b8d8ee;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:16px;display:flex;align-items:center;gap:12px}
-    .instr-badge .name{font-weight:500;color:#1a2744}
-    .instr-badge .contact{color:#6b7a99;font-size:15px}
-    .section-label{font-size:14px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#6b7a99;margin-bottom:10px}
-    .email-box{background:white;border-radius:10px;border:1px solid #dde4ee;padding:28px 32px;margin-bottom:8px;white-space:pre-wrap;font-family:'DM Sans',sans-serif;font-size:17px;line-height:1.8;color:#1a2744}
-    .subject-line{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:10px 16px;margin-bottom:20px;font-size:16px}
-    .subject-line span{color:#6b7a99;margin-right:8px}
-    .roster-box{background:white;border-radius:10px;border:1px solid #dde4ee;overflow:hidden;margin-bottom:20px}
-    .roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px;font-weight:500}
-    table{width:100%;border-collapse:collapse;font-size:15px}
-    th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px 12px;border-bottom:1.5px solid #dde4ee;background:#f8f9fc;white-space:nowrap}
-    td{padding:8px 12px;border-bottom:.5px solid #eee;vertical-align:middle}
-    tr:last-child td{border-bottom:none}
-  </style></head><body>
-  <div class="toolbar">
-    <button onclick="openOutlook()" style="background:#0f6cbd;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:17px;cursor:pointer;font-weight:500">📧 Open in Outlook</button>
-    <button onclick="openMail()" style="background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">💌 Open in mail app</button>
-    <button id="copyEmailBtn" onclick="copyEmail()" style="background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">📋 Copy email text</button>
-    <button onclick="printRoster()" style="background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">🖨️ Print roster</button>
-    <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.2);padding:8px 14px;border-radius:6px;font-size:16px;cursor:pointer">Close</button>
-    <span>Open in Outlook fills in the To, subject, and message. Print the roster and attach it as a PDF before you send.</span>
-  </div>
-  <div class="wrap">
-    <div class="instr-badge">
-      <div>
-        <div class="name">${instr.name}</div>
-        <div class="contact">${instr.email?'✉️ '+instr.email:'No email on file'} ${instr.phone?' · 📞 '+instr.phone:''}</div>
-      </div>
-    </div>
-    <div class="section-label" style="margin-left:4px">Email body</div>
-    <div class="subject-line"><span>Subject:</span><strong>${emailSubject.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</strong></div>
-    <div class="email-box" id="email-text">${emailText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-    <div style="font-size:15px;color:#6b7a99;margin:0 4px 24px">${instr.email?`Send to: <strong>${instr.email}</strong>`:'⚠️ No email address on file for this instructor — add one in the Instructors tab.'}</div>
-
-    <div class="section-label" style="margin-left:4px">Class roster</div>
-    <div class="roster-box" id="roster-section">
-      <div class="roster-hdr">${s.course} · ${d} · ${studentCount} student${studentCount!==1?'s':''} registered</div>
-      <div style="padding:16px 20px">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:15px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee">
-          <div><span style="color:#6b7a99">Location:</span> <strong>${s.isVirtual?'🖥 Virtual (Zoom)':s.location||'TBD'}${!s.isVirtual&&s.city?', '+s.city:''}</strong></div>
-          <div><span style="color:#6b7a99">Instructor:</span> <strong>${instr.name}</strong></div>
-          <div><span style="color:#6b7a99">Session code:</span> <strong style="font-family:monospace">${s.code}</strong></div>
-        </div>
-        <table>
-          <thead><tr><th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th><th>Contact</th><th style="text-align:center">CPR</th><th style="text-align:center">Waiver</th><th style="text-align:center">Photo</th></tr></thead>
-          <tbody>${rosterRows}</tbody>
-        </table>
-        <div style="margin-top:12px;font-size:13px;color:#aaa">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Mindful Beginnings</div>
-      </div>
-    </div>
-  </div>
-  <script>
-  const OUTLOOK_URL=${JSON.stringify(outlookUrl)};
-  const MAILTO_URL=${JSON.stringify(mailtoUrl)};
-  function openOutlook(){window.open(OUTLOOK_URL,'_blank');}
-  function openMail(){window.location.href=MAILTO_URL;}
-  function copyEmail(){
-    const text=${JSON.stringify(emailText)};
-    const b=document.getElementById('copyEmailBtn');
-    navigator.clipboard.writeText(text)
-      .then(()=>{if(b){b.textContent='✅ Copied!';setTimeout(()=>{b.textContent='📋 Copy email text';},2500);}})
-      .catch(()=>{const el=document.getElementById('email-text');const r=document.createRange();r.selectNodeContents(el);window.getSelection().removeAllRanges();window.getSelection().addRange(r);alert('Text selected — press Ctrl+C / Cmd+C to copy.');});
-  }
-  function printRoster(){
-    const r=document.getElementById('roster-section').outerHTML;
-    const w=window.open('','_blank','width=960,height=660');
-    if(!w){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-    w.document.write('<!DOCTYPE html><html><head><title>${rosterTitle}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;padding:24px;color:#1a2744;font-size:16px}.roster-hdr{background:#1a2744;color:white;padding:10px 20px;font-size:16px;font-weight:500;border-radius:6px 6px 0 0}table{width:100%;border-collapse:collapse}th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99;padding:8px;border-bottom:1.5px solid #1a2744;background:#f8f9fc}td{padding:7px 8px;border-bottom:.5px solid #eee}@media print{body{padding:0}}</style></head><body>'+r+'<div style="margin-top:16px"><button onclick="window.print()" style="background:#1a2744;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:16px;cursor:pointer">🖨️ Print roster</button></div></body></html>');
-    w.document.close();
-    try{w.document.title='${rosterTitle}';}catch(e){}
-  }
-  <\/script>
-  </body></html>`;
-
-  const win=window.open('','_blank','width=960,height=840');
-  if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
-  win.document.write(html);
-  win.document.close();
+  const where=s.isVirtual?'Virtual (Zoom)':(s.location?(s.location+(s.city?', '+s.city:'')):'TBD');
+  openDocEmail({
+    type:'instructorReminder',
+    category:'Send reminder + roster to instructor',
+    sessionLine:s.course+' · '+(d||'Date to be confirmed')+' · '+(instr.name||''),
+    field:'to',
+    emails:instr.email?[instr.email]:[],
+    subject:'Reminder: your upcoming '+s.course+' course'+(d?' on '+d:''),
+    note:'Paste the instructor reminder from the Google Doc. Print the roster and attach it before you send. Session facts for this class are below.',
+    extraHtml:emailFactsHtml('Session facts', detailLines.join('\n'))+classRosterSection(s, regs, {when:d, where:where, who:instr.name, privateCols:true}),
+    copyExtra:detailLines.join('\n'),
+    copyExtraLabel:'Copy details',
+    hasRoster:true
+  });
 }
 
 // ─── ERROR TRACKING ──────────────────────────────────────────

@@ -117,48 +117,63 @@ test('dashboard materials entry points at the existing Equipment flow', () => {
   assert.match(sql, /was 4, plus 3 purchased Sep 2026/);
 });
 
-test('family BCC composers open the Google Doc and leave the message empty', () => {
+test('every admin email composer opens its Google Doc with an empty message', () => {
   const doc = 'https://docs.google.com/document/d/1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/edit?tab=t.0';
   assert.match(admin, new RegExp(doc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(admin, /const EMAIL_DOC_DEFAULT=/);
+  assert.match(admin, /const EMAIL_DOCS=\{/);
+  assert.match(admin, /function emailDocUrl/);
+  assert.match(admin, /function openDocEmail/);
   assert.match(admin, /Open this Google Doc/);
-  assert.match(admin, /function openFamilyDocEmail/);
   assert.match(admin, /Copy BCC/);
+  assert.match(admin, /Copy To/);
   assert.match(admin, /Nothing is sent from this screen/);
+  assert.match(admin, /outlook\.office\.com\/mail\/deeplink\/compose\?bcc=/);
+  assert.match(admin, /outlook\.office\.com\/mail\/deeplink\/compose\?to=/);
+  assert.match(admin, /mail\.google\.com\/mail\/\?view=cm&fs=1&bcc=/);
+  assert.match(admin, /&subject=/);
+  assert.match(admin, /&su=/);
+  assert.doesNotMatch(admin, /&body=/);
+  for (const key of [
+    'classEmail', 'openJobs', 'postCourse', 'classReminder', 'instructorFollowup',
+    'hostLetter', 'hostReminder', 'instructorReminder', 'cancellationInstructor', 'cancellationFamily'
+  ]) {
+    assert.match(admin, new RegExp(key + ': EMAIL_DOC_DEFAULT'));
+  }
   const slice = (a, b) => {
     const start = admin.indexOf(a);
     const end = admin.indexOf(b);
     assert.ok(start >= 0 && end > start, a + ' .. ' + b);
     return admin.slice(start, end);
   };
-  const post = slice('function openPostCourseEmail', 'const MB_OUTREACH_DOC_URL');
-  const family = slice('function openFamilyDocEmail', 'function openClassReminder');
-  const classMail = slice('function openClassReminder', '// ─── INSTRUCTOR FOLLOW-UP');
-  const emailClassFn = slice('function emailClass', 'function openPostCourseEmail');
-  const hostMail = slice('function openHostReminder', 'function openInstructorReminder');
-  const instrMail = slice('function openInstructorReminder', '// ─── ERROR TRACKING');
-
-  assert.match(post, /openFamilyDocEmail/);
-  assert.match(post, /Post-course family email/);
-  assert.doesNotMatch(post, /EMAIL_BODY/);
-  assert.match(classMail, /openFamilyDocEmail/);
-  assert.match(classMail, /Send reminder to the class/);
-  assert.doesNotMatch(classMail, /EMAIL_BODY/);
-  assert.match(family, /outlook\.office\.com\/mail\/deeplink\/compose\?bcc=/);
-  assert.match(family, /mail\.google\.com\/mail\/\?view=cm&fs=1&bcc=/);
-  assert.match(family, /&subject=/);
-  assert.match(family, /&su=/);
-  assert.doesNotMatch(family, /&body=/);
-  assert.doesNotMatch(family, /EMAIL_BODY/);
-
-  assert.match(hostMail, /coming up in one week! We are so excited/);
-  assert.match(hostMail, /const emailText=/);
-  assert.match(instrMail, /Just a reminder that you are scheduled to teach/);
-  assert.match(instrMail, /const emailText=/);
-
-  assert.match(emailClassFn, /bcc=/);
-  assert.doesNotMatch(emailClassFn, /openFamilyDocEmail/);
-  assert.doesNotMatch(emailClassFn, /MB_OUTREACH_DOC_URL/);
-  assert.doesNotMatch(emailClassFn, /EMAIL_BODY/);
+  const composers = [
+    ['function emailClass', 'function emailOpenJobs', "type:'classEmail'"],
+    ['function emailOpenJobs', 'function openPostCourseEmail', "type:'openJobs'"],
+    ['function openPostCourseEmail', 'function openClassReminder', "type:'postCourse'"],
+    ['function openClassReminder', 'function openInstructorFollowup', "type:'classReminder'"],
+    ['function openInstructorFollowup', '// ─── PRINT CONTRACT', "type:'instructorFollowup'"],
+    ['function openHostLetter', 'function openHostReminder', "type:'hostLetter'"],
+    ['function openHostReminder', 'function openInstructorReminder', "type:'hostReminder'"],
+    ['function openInstructorReminder', '// ─── ERROR TRACKING', "type:'instructorReminder'"],
+    ['function openCancellationEmails', '// ─── REGISTRATIONS', "type:'cancellationInstructor'"]
+  ];
+  for (const [start, end, typeKey] of composers) {
+    const fn = slice(start, end);
+    assert.match(fn, /openDocEmail\(/);
+    assert.match(fn, new RegExp(typeKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.doesNotMatch(fn, /EMAIL_BODY/);
+    assert.doesNotMatch(fn, /const emailText=/);
+  }
+  assert.match(slice('function openCancellationEmails', '// ─── REGISTRATIONS'), /type:'cancellationFamily'/);
+  assert.match(slice('function openClassReminder', 'function openInstructorFollowup'), /Send reminder to the class/);
+  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /Send reminder to host/);
+  assert.match(slice('function openInstructorReminder', '// ─── ERROR TRACKING'), /Send reminder \+ roster to instructor/);
+  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /hasRoster:true/);
+  assert.match(slice('function openInstructorReminder', '// ─── ERROR TRACKING'), /hasRoster:true/);
+  assert.doesNotMatch(admin, /coming up in one week! We are so excited/);
+  assert.doesNotMatch(admin, /Just a reminder that you are scheduled to teach/);
+  assert.doesNotMatch(admin, /Thank you so much for opening your home/);
+  assert.doesNotMatch(admin, /Here are the jobs currently open and available to claim/);
   assert.doesNotMatch(admin, /Please review the important details below as you prepare for the class/);
   assert.doesNotMatch(admin, /Thank you for trusting Mindful Beginnings/);
 });
