@@ -98,17 +98,32 @@ test('admin expense categories include Curriculum Development', () => {
   assert.ok(list.includes('Charitable Donation'));
 });
 
-test('dashboard materials entry points at the existing Equipment flow', () => {
+test('create-session form reserves materials and the dashboard only marks kits returned', () => {
+  assert.match(admin, /function sessionMaterialsPanelHtml/);
+  assert.match(admin, /id="m-mat-panel"/);
+  assert.match(admin, /function matPlanForSession/);
+  assert.match(admin, /function wireSessionMaterials/);
+  assert.match(admin, /function applySessionMaterials/);
+  assert.match(admin, /Purchase more equipment/);
+  assert.match(admin, /Purchase '\+p\.shortfall\+' more /);
+  assert.match(admin, /usesExisting — do not check out a second one/);
+  assert.match(admin, /already has this equipment out for other sessions/);
+  const add = admin.slice(admin.indexOf('function openAddSession'), admin.indexOf('function openEditSession'));
+  const edit = admin.slice(admin.indexOf('function openEditSession'), admin.indexOf('function saveSession'));
+  assert.match(add, /sessionMaterialsPanelHtml\(\)/);
+  assert.match(add, /wireSessionMaterials\(null\)/);
+  assert.match(edit, /sessionMaterialsPanelHtml\(\)/);
+  assert.match(edit, /wireSessionMaterials\(id\)/);
+  const save = admin.slice(admin.indexOf('function saveSession'), admin.indexOf('function deleteSession'));
+  assert.match(save, /sessionMaterialsFromForm\(editId\)/);
+  assert.match(save, /applySessionMaterials\(s\.id,matChoice\)/);
+  const dash = admin.slice(admin.indexOf('function renderDashMaterials'), admin.indexOf('var _matWhoTouched'));
+  assert.match(dash, /markReturned\('/);
+  assert.match(dash, /Mark returned/);
+  assert.doesNotMatch(dash, /openCheckout/);
   assert.match(admin, /id="dash-materials"/);
-  assert.match(admin, /function renderDashMaterials/);
   assert.match(admin, /function openCheckIn/);
   assert.match(admin, /function saveCheckIn/);
-  assert.match(admin, /function matInstructorXrefHtml/);
-  assert.match(admin, />On hand</);
-  assert.match(admin, />Checked out</);
-  assert.match(admin, /Check out for this class/);
-  assert.match(admin, /reuse a kit instead of checking out a second one/);
-  assert.match(admin, /onclick="openCheckout\(\)"/);
   const sql = fs.readFileSync(path.join(root, 'migrations/infant_cpr_manikins_plus3.sql'), 'utf8');
   assert.match(sql, /419e04a9-5916-450c-b2a3-65c292a235ec/);
   assert.match(sql, /Infant CPR Manikins/);

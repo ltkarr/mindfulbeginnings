@@ -4539,11 +4539,12 @@ function renderEditDates(){
   el.innerHTML=_editDays.length?_editDays.map((d,i)=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
       <span style="font-size:15px;color:var(--muted);white-space:nowrap">Day ${i+2}</span>
-      <input type="date" value="${d.date||''}" onchange="_editDays[${i}].date=this.value" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+      <input type="date" value="${d.date||''}" onchange="_editDays[${i}].date=this.value;if(document.getElementById('m-mat-body'))renderSessionMaterials()" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
       <input type="text" value="${(d.time||'').replace(/"/g,'&quot;')}" placeholder="e.g. 4:00 PM – 6:30 PM" oninput="_editDays[${i}].time=this.value" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white">
       <button type="button" class="btn sm" onclick="removeEditDate(${i})" title="Remove this day">✕</button>
     </div>`).join(''):'<div style="font-size:14px;color:var(--muted)">This class meets once. Use “+ Add another day” for courses that meet on more than one day (e.g. Safe Sitter split over two afternoons).</div>';
   renderSeriesWarning();
+  if(document.getElementById('m-mat-body'))renderSessionMaterials();
 }
 function addEditDate(){
   // Pre-fill the new day's time with the main class time — multi-day courses
@@ -4719,6 +4720,7 @@ function openAddSession(){
       <label id="m-instr2-label">Second instructor <span style="font-weight:400;color:var(--muted)">(optional — for large classes needing two instructors)</span></label>
       <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option></select>
     </div>
+    ${sessionMaterialsPanelHtml()}
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="m-waitlist" checked style="width:16px;height:16px;cursor:pointer">
@@ -4819,6 +4821,7 @@ function openAddSession(){
   toggleVirtualFields('no');
   updateRnNotice();
   toggleInstrSelect('no');
+  wireSessionMaterials(null);
 }
 
 // ─── CUSTOM JOB ──────────────────────────────────────────────
@@ -5388,6 +5391,7 @@ function openEditSession(id){
       <label id="m-instr2-label">Second instructor <span style="font-weight:400;color:var(--muted)">(optional — for large classes needing two instructors)</span></label>
       <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option>${instrPickList(s.secondInstructorId).map(i=>`<option value="${i.id}" ${s.secondInstructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}${instrInactiveMark(i)}</option>`).join('')}</select>
     </div>
+    ${sessionMaterialsPanelHtml()}
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="m-waitlist" ${s.allowWaitlist!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
@@ -5469,6 +5473,7 @@ function openEditSession(id){
   document.getElementById('m-course').addEventListener('change',()=>{updateRnNotice();renderSeriesWarning();});
   updateRnNotice();
   renderSeriesWarning();
+  wireSessionMaterials(id);
 }
 
 // Set while a save is in flight, so a second click cannot create a second row.
@@ -5574,6 +5579,7 @@ async function saveSession(editId){
     s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl};
     sessions.push(s);
   }
+  const matChoice=sessionMaterialsFromForm(editId);
   closeModal();renderSessions();renderDashboard();renderCodes();
   // Save session first, then job data (so foreign key is satisfied).
   // Supabase returns errors on the result object (it does not throw for RLS / constraint failures),
@@ -5633,6 +5639,7 @@ async function saveSession(editId){
   // If this save assigned an instructor, let any blank equipment checkout for
   // this session pick up their name.
   syncCheckoutInstructors();
+  applySessionMaterials(s.id,matChoice);
   }finally{_savingSession=false;}
 }
 
@@ -8087,6 +8094,55 @@ function sessionMatNeeds(s){
   const n=MAT_NEEDS[s.course];
   return n&&Object.keys(n).length?n:null;
 }
+// Checkouts this person already has that overlap the session dates.
+function matPersonOverlaps(person,outDate,dueDate,excludeId){
+  const who=(person||'').trim().toLowerCase();
+  if(!who||!outDate||!dueDate||dueDate<outDate)return[];
+  return matCheckouts.filter(c=>c.id!==excludeId&&!c.returnedDate&&!coUsesExisting(c)&&!coNoEquipment(c)&&(c.person||'').trim().toLowerCase()===who&&c.outDate<=dueDate&&outDate<=coEnd(c));
+}
+function matHeldQty(overlaps,eqId){
+  let n=0;
+  (overlaps||[]).forEach(c=>(c.items||[]).forEach(it=>{if(it&&it.equipmentId===eqId)n+=Number(it.qty)||0;}));
+  return n;
+}
+// What creating or editing a session should reserve.
+// draft: course, isVirtual, date, extraDates, person, reuse, qtys {eqId:n}, excludeCheckoutId.
+// purchase lists equipment whose requested qty is higher than what is free on those dates.
+function matPlanForSession(draft){
+  draft=draft||{};
+  const s={course:draft.course,isVirtual:!!draft.isVirtual,date:draft.date||'',extraDates:draft.extraDates||[]};
+  const needs=sessionMatNeeds(s);
+  const outDate=draft.date||'';
+  const dueDate=outDate?sessionEndDate(s):'';
+  if(!needs)return{skip:true,lines:[],purchase:[],overlaps:[],reuseOffer:false,fullyCovered:false,outDate:outDate,dueDate:dueDate};
+  const overlaps=matPersonOverlaps(draft.person,outDate,dueDate,draft.excludeCheckoutId||null);
+  const reuse=!!draft.reuse;
+  const lines=[];
+  const purchase=[];
+  Object.entries(needs).forEach(function(pair){
+    const kind=pair[0],q=pair[1];
+    const eq=matEqOfKind(kind);
+    const held=eq?matHeldQty(overlaps,eq.id):0;
+    const covered=held>=q;
+    let requested;
+    if(reuse&&covered)requested=0;
+    else if(draft.qtys&&eq&&draft.qtys[eq.id]!=null)requested=Number(draft.qtys[eq.id])||0;
+    else requested=q;
+    const free=(eq&&outDate&&dueDate&&dueDate>=outDate)?minAvailInRange(eq.id,outDate,dueDate,draft.excludeCheckoutId||null):(eq?eq.qty:0);
+    const shortfall=requested>free?requested-free:0;
+    const line={kind:kind,eqId:eq?eq.id:null,name:eq?eq.name:kind,owned:eq?eq.qty:0,need:q,requested:requested,free:free,shortfall:shortfall,held:held,covered:covered};
+    lines.push(line);
+    if(shortfall>0)purchase.push({name:line.name,shortfall:shortfall,owned:line.owned,free:line.free});
+  });
+  return{skip:false,lines:lines,purchase:purchase,overlaps:overlaps,reuseOffer:lines.some(function(l){return l.held>0;}),fullyCovered:lines.length>0&&lines.every(function(l){return l.covered;}),outDate:outDate,dueDate:dueDate};
+}
+function matCheckoutItemsFromPlan(plan,reuse){
+  if(!plan||plan.skip)return null;
+  if(reuse&&plan.fullyCovered)return[{usesExisting:true,qty:0}];
+  const items=(plan.lines||[]).filter(function(l){return l.eqId&&l.requested>0;}).map(function(l){return{equipmentId:l.eqId,qty:l.requested};});
+  if(!items.length&&reuse&&plan.reuseOffer)return[{usesExisting:true,qty:0}];
+  return items.length?items:null;
+}
 function matNeedsLabel(needs){
   return Object.entries(needs).map(([k,q])=>{const eq=matEqOfKind(k);return q+'× '+(eq?eq.name:k.toUpperCase());}).join(', ');
 }
@@ -8287,52 +8343,184 @@ function matOpenCheckouts(){
 }
 function renderDashMaterials(){
   const el=document.getElementById('dash-materials');if(!el)return;
-  if(!equipmentTablesReady){
-    el.innerHTML=`<div class="alert warn">Equipment has not loaded yet. Open the Equipment screen after the materials setup, then refresh.</div>`;
-    return;
-  }
-  const openEq=()=>`showScreen('materials',document.getElementById('nav-materials'))`;
-  if(!equipment.length){
-    el.innerHTML=`<div class="card"><div class="card-title">Materials</div><div style="font-size:16px;color:var(--muted);margin-bottom:8px">No kits yet. Add them on the Equipment screen.</div><button class="btn" onclick="${openEq()}">Open Equipment</button></div>`;
-    return;
-  }
-  const lines=equipment.map(eq=>{
-    const out=matPhysicallyOut(eq.id);
-    const onHand=eq.qty-out;
-    const cls=onHand<0?'var(--danger)':onHand===0?'var(--warn)':'var(--success)';
-    return `<div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:15px">
-      <span style="font-weight:600">${escapeHtml(eq.name)}</span>
-      <span style="white-space:nowrap"><strong style="color:${cls}">${onHand} on hand</strong> · ${out} checked out · ${eq.qty} owned</span>
-    </div>`;
-  }).join('');
   const open=matOpenCheckouts();
+  if(!open.length){el.innerHTML='';return;}
   const fd=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
-  const shown=open.slice(0,5);
+  const shown=open.slice(0,4);
   const rows=shown.map(c=>{
     const sess=coSessionLabel(c);
-    const overdue=coIsOverdue(c);
-    return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border)">
-      <div style="font-size:15px;min-width:0"><span style="font-weight:600">${escapeHtml(c.person||'Not assigned')}</span> · ${escapeHtml(coItemsLabel(c))}<br><span style="color:${overdue?'var(--danger)':'var(--muted)'}">${sess?escapeHtml(sess)+' · ':''}due ${fd(c.dueDate)}${overdue?' · overdue':''}</span></div>
-      <button class="btn sm success" style="flex-shrink:0" onclick="openCheckIn('${c.id}')">Check in</button>
+    return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border)">
+      <div style="font-size:15px;min-width:0"><span style="font-weight:600">${escapeHtml(c.person||'Not assigned')}</span> · ${escapeHtml(coItemsLabel(c))}<br><span style="color:var(--muted)">${sess?escapeHtml(sess)+' · ':''}due ${fd(c.dueDate)}</span></div>
+      <button class="btn sm" style="flex-shrink:0" onclick="markReturned('${c.id}')">Mark returned</button>
     </div>`;
   }).join('');
-  const more=open.length>shown.length?`<div style="font-size:14px;color:var(--muted);padding-top:6px">+ ${open.length-shown.length} more on the Equipment screen</div>`:'';
-  el.innerHTML=`<div class="card">
-    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px">
-      <div>
-        <div class="card-title" style="margin-bottom:2px">Materials</div>
-        <div style="font-size:15px;color:var(--muted)">On hand is on the shelf today. Check out and the calendar live on Equipment. Picking an instructor in checkout shows the classes they teach and kits they already have.</div>
-      </div>
-      <div class="btn-row">
-        <button class="btn" onclick="${openEq()}">Equipment</button>
-        <button class="btn primary" onclick="openCheckout()">Check out</button>
-      </div>
-    </div>
-    ${lines}
-    <div style="font-size:14px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:12px 0 4px">Checked out now</div>
-    ${rows||'<div style="font-size:15px;color:var(--muted);padding:6px 0">Nothing is checked out today.</div>'}
-    ${more}
-  </div>`;
+  const more=open.length>shown.length?`<div style="font-size:14px;color:var(--muted);padding-top:6px">+ ${open.length-shown.length} more still out</div>`:'';
+  el.innerHTML=`<div class="card" style="padding:12px 16px"><div style="font-size:14px;color:var(--muted);margin-bottom:4px">Materials still out. Mark them returned when the session is done. New sessions reserve their kit on the Add session form.</div>${rows}${more}</div>`;
+}
+var _matWhoTouched=false;
+var _matSeedPerson='';
+var _matSeedReuse=false;
+var _matSeedQtys=null;
+var _sessionMatEditId=null;
+function sessionMaterialsPanelHtml(){
+  return '<div class="fg full" id="m-mat-panel" style="background:#f7f4ee;border:1px solid #e4dcc8;border-radius:var(--r-sm);padding:12px 14px"><label style="margin-bottom:4px">Materials for this session</label><div style="font-size:14px;color:var(--muted);margin-bottom:8px">Filled from the usual kit for this course. If this person already has the same equipment out, reuse it instead of taking a second kit.</div><div id="m-mat-body"></div></div>';
+}
+function defaultMatPerson(){
+  if(document.getElementById('m-owner')&&document.getElementById('m-owner').value==='yes')return 'Lindsay Karr (owner)';
+  const id=document.getElementById('m-instr')?document.getElementById('m-instr').value:'';
+  const instr=(typeof instructors!=='undefined'?instructors:[]).find(function(i){return i.id===id;});
+  return instr?instr.name:'';
+}
+function currentSessionCheckout(){
+  if(!_sessionMatEditId)return null;
+  return (matCheckouts||[]).find(function(c){return c.sessionId===_sessionMatEditId&&!c.returnedDate;})||null;
+}
+function wireSessionMaterials(sessionId){
+  _sessionMatEditId=sessionId||null;
+  _matWhoTouched=false;
+  const existing=currentSessionCheckout();
+  _matSeedPerson=existing&&existing.person?existing.person:'';
+  _matSeedReuse=!!(existing&&coUsesExisting(existing));
+  _matSeedQtys={};
+  if(existing)(existing.items||[]).forEach(function(it){if(it&&it.equipmentId)_matSeedQtys[it.equipmentId]=Number(it.qty)||0;});
+  ['m-course','m-date','m-owner','m-instr','m-virtual'].forEach(function(id){
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('change',renderSessionMaterials);
+  });
+  renderSessionMaterials();
+}
+function matWhoTyped(){_matWhoTouched=true;paintSessionMaterialsStatus();}
+function sessionMaterialsDraft(){
+  const course=document.getElementById('m-course')?document.getElementById('m-course').value:'';
+  const isVirtual=document.getElementById('m-virtual')&&document.getElementById('m-virtual').value==='yes';
+  const date=document.getElementById('m-date')?document.getElementById('m-date').value:'';
+  const extraDates=(_editDays||[]).map(function(d){return d&&d.date;}).filter(Boolean);
+  const whoEl=document.getElementById('m-mat-who');
+  const person=_matWhoTouched&&whoEl?whoEl.value.trim():(_matSeedPerson||defaultMatPerson());
+  const reuse=document.getElementById('m-mat-reuse')?document.getElementById('m-mat-reuse').checked:!!_matSeedReuse;
+  const qtys={};
+  let any=false;
+  (equipment||[]).forEach(function(eq){
+    const inp=document.getElementById('m-mat-qty-'+eq.id);
+    if(inp&&!inp.disabled){qtys[eq.id]=parseInt(inp.value,10)||0;any=true;}
+  });
+  const existing=currentSessionCheckout();
+  return {course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:any?qtys:(_matSeedQtys&&Object.keys(_matSeedQtys).length?_matSeedQtys:null),excludeCheckoutId:existing?existing.id:null,personForField:person};
+}
+function renderSessionMaterials(){
+  const body=document.getElementById('m-mat-body');if(!body)return;
+  const draft=sessionMaterialsDraft();
+  const plan=matPlanForSession(draft);
+  if(plan.skip){
+    const why=draft.isVirtual?'This session is virtual, so nothing is checked out.':(MAT_NEEDS[draft.course]===null?'This course uses its own materials. Nothing is checked out.':'This course has no kit to reserve.');
+    body.innerHTML='<div style="font-size:15px;color:var(--muted)">'+escapeHtml(why)+'</div>';
+    window._matPlan=plan;
+    return;
+  }
+  if(!draft.date){
+    body.innerHTML='<div style="font-size:15px;color:var(--muted)">Add a date and the usual kit ('+escapeHtml(matNeedsLabel(sessionMatNeeds({course:draft.course,isVirtual:false})||{}))+') will be reserved for those days.</div>';
+    window._matPlan=plan;
+    return;
+  }
+  const rows=plan.lines.map(function(l){
+    if(!l.eqId)return '<div style="font-size:15px;padding:4px 0">'+escapeHtml(l.name)+' is not on the equipment list yet.</div>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border)"><div style="flex:1;font-size:16px;font-weight:500">'+escapeHtml(l.name)+'</div><div id="m-mat-free-'+l.eqId+'" style="font-size:14px;color:var(--muted);white-space:nowrap"></div><input type="number" id="m-mat-qty-'+l.eqId+'" data-need="'+l.need+'" min="0" max="99" step="1" value="'+l.requested+'" oninput="paintSessionMaterialsStatus()" style="width:64px;padding:7px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:\'DM Sans\',sans-serif;outline:none"></div>';
+  }).join('');
+  body.innerHTML='<div class="fg" style="margin:0 0 8px"><label>Who has the materials</label><input type="text" id="m-mat-who" value="'+escapeHtml(draft.personForField)+'" placeholder="Instructor name" oninput="matWhoTyped()" style="width:100%"></div>'+rows+'<div id="m-mat-status" style="margin-top:8px"></div>';
+  _matSeedPerson='';
+  _matSeedQtys=null;
+  paintSessionMaterialsStatus();
+}
+function paintSessionMaterialsStatus(){
+  const status=document.getElementById('m-mat-status');if(!status)return;
+  const whoEl=document.getElementById('m-mat-who');
+  const course=document.getElementById('m-course')?document.getElementById('m-course').value:'';
+  const isVirtual=document.getElementById('m-virtual')&&document.getElementById('m-virtual').value==='yes';
+  const date=document.getElementById('m-date')?document.getElementById('m-date').value:'';
+  const extraDates=(_editDays||[]).map(function(d){return d&&d.date;}).filter(Boolean);
+  const person=whoEl?whoEl.value.trim():'';
+  const reuseBox=document.getElementById('m-mat-reuse');
+  const reuseNow=!!((reuseBox&&reuseBox.checked)||_matSeedReuse);
+  _matSeedReuse=false;
+  const qtys={};
+  (equipment||[]).forEach(function(eq){
+    const inp=document.getElementById('m-mat-qty-'+eq.id);
+    if(inp&&!inp.disabled)qtys[eq.id]=parseInt(inp.value,10)||0;
+  });
+  const existing=currentSessionCheckout();
+  const plan=matPlanForSession({course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuseNow,qtys:qtys,excludeCheckoutId:existing?existing.id:null});
+  window._matPlan=plan;
+  plan.lines.forEach(function(l){
+    if(!l.eqId)return;
+    const freeEl=document.getElementById('m-mat-free-'+l.eqId);
+    const inp=document.getElementById('m-mat-qty-'+l.eqId);
+    if(freeEl){
+      freeEl.textContent=l.free+' of '+l.owned+' free';
+      freeEl.style.color=l.shortfall>0?'var(--danger)':'var(--muted)';
+      freeEl.style.fontWeight=l.shortfall>0?'600':'400';
+    }
+    if(inp){
+      const useHeld=!!(plan.reuseOffer&&reuseNow&&l.covered);
+      if(useHeld){inp.value=0;inp.disabled=true;}
+      else if(inp.disabled){inp.disabled=false;if(inp.dataset.need)inp.value=inp.dataset.need;}
+    }
+  });
+  const fd=function(d){return d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';};
+  let html='';
+  if(plan.reuseOffer){
+    const bits=plan.overlaps.map(function(c){
+      const sess=coSessionLabel(c);
+      return escapeHtml(coItemsLabel(c))+' (out '+fd(c.outDate)+' – due '+fd(c.dueDate)+(sess?', '+escapeHtml(sess):'')+')';
+    }).join('<br>');
+    const checked=reuseNow;
+    html+='<div class="alert info" style="margin:0 0 8px"><strong>'+escapeHtml(person||'This person')+' already has this equipment out for other sessions.</strong><br>'+bits+'<label style="display:flex;align-items:flex-start;gap:8px;margin-top:8px;cursor:pointer;font-weight:500"><input type="checkbox" id="m-mat-reuse" '+(checked?'checked':'')+' onchange="paintSessionMaterialsStatus()" style="margin-top:3px"> Reuse that kit for this session (usesExisting — do not check out a second one)</label></div>';
+  }
+  if(plan.purchase.length){
+    html+='<div class="alert" style="margin:0;background:#fdecea;border:1px solid #f0c4bc;color:#8c2f1e"><strong>Purchase more equipment.</strong><br>'+plan.purchase.map(function(p){return 'Purchase '+p.shortfall+' more '+escapeHtml(p.name)+' ('+p.free+' free of '+p.owned+' owned on these dates).';}).join('<br>')+'</div>';
+  }
+  status.innerHTML=html;
+}
+function sessionMaterialsFromForm(editId){
+  if(!document.getElementById('m-mat-body'))return null;
+  const course=document.getElementById('m-course').value;
+  const isVirtual=document.getElementById('m-virtual')&&document.getElementById('m-virtual').value==='yes';
+  const date=document.getElementById('m-date')?document.getElementById('m-date').value:'';
+  const extraDates=(_editDays||[]).map(function(d){return d&&d.date;}).filter(Boolean);
+  const person=(document.getElementById('m-mat-who')&&document.getElementById('m-mat-who').value||'').trim();
+  const reuse=!!(document.getElementById('m-mat-reuse')&&document.getElementById('m-mat-reuse').checked);
+  const prevId=editId||_sessionMatEditId;
+  const existing=prevId?(matCheckouts||[]).find(function(c){return c.sessionId===prevId&&!c.returnedDate;}):null;
+  const qtys={};
+  (equipment||[]).forEach(function(eq){
+    const inp=document.getElementById('m-mat-qty-'+eq.id);
+    if(inp)qtys[eq.id]=parseInt(inp.value,10)||0;
+  });
+  const plan=matPlanForSession({course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:qtys,excludeCheckoutId:existing?existing.id:null});
+  return {plan:plan,person:person,reuse:reuse,existingId:existing?existing.id:null};
+}
+function applySessionMaterials(sessionId,choice){
+  if(!choice||!choice.plan||choice.plan.skip||!choice.plan.outDate)return;
+  const items=matCheckoutItemsFromPlan(choice.plan,choice.reuse);
+  if(!items)return;
+  const person=choice.person||'';
+  const outDate=choice.plan.outDate;
+  const dueDate=choice.plan.dueDate||outDate;
+  const note=choice.reuse&&(choice.plan.fullyCovered||items.some(function(it){return it.usesExisting;}))?'Covered by equipment already out':'Reserved when the session was saved';
+  if(choice.existingId){
+    const c=matCheckouts.find(function(x){return x.id===choice.existingId;});
+    if(!c)return;
+    c.person=person;c.items=items;c.outDate=outDate;c.dueDate=dueDate;
+    if(!c.notes)c.notes=note;
+    dbWrite(sb.from('equipment_checkouts').update(checkoutToDB(c)).eq('id',c.id),'Session materials');
+  }else{
+    const c={id:sid(),sessionId:sessionId,person:person,items:items,outDate:outDate,dueDate:dueDate,returnedDate:null,notes:note,createdAt:Date.now()};
+    matCheckouts.push(c);
+    dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(c)),'Session materials');
+  }
+  if(choice.plan.purchase&&choice.plan.purchase.length){
+    showToast('Purchase '+choice.plan.purchase.map(function(p){return p.shortfall+' more '+p.name;}).join('; '));
+  }
+  renderMaterials();
 }
 
 function renderMaterials(){
