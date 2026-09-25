@@ -1205,9 +1205,10 @@ async function submitNewPin(){
 // in. loadData() is now reusable and re-run automatically (see refreshData).
 async function loadData(){
   // Columns the job board needs. Deliberately EXCLUDES host_address, host_phone,
-  // contact_name, wifi_info and zoom_link: this table is read with the anon key, so
-  // anything listed here is effectively public. Those private site details are fetched
-  // per-job through the instructor_session_private RPC once a job is accepted.
+  // contact_name, wifi_info, zoom_link, and admin_private_notes: this table is read
+  // with the anon key, so anything listed here is effectively public. Site details
+  // are fetched per-job through the instructor_session_private RPC once a job is
+  // accepted. admin_private_notes is not granted to anon and must never be selected.
   const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,is_cancelled,cancel_reason,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,extra_days,closures,instructor_info,requires_rn';
   // Fallback tier: drops only the newest columns (extra_days / closures / instructor_info),
   // so a database that has not run the latest SQL still gets everything else.
