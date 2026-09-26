@@ -653,49 +653,79 @@ function sessionToDB(s){
   if(ADMIN_PRIVATE_NOTES_COL&&s.adminPrivateNotes!==undefined)o.admin_private_notes=s.adminPrivateNotes?String(s.adminPrivateNotes):null;
   return o;
 }
-// Upsert a session row, retrying once without requires_rn if the database has not
-// had that column added yet. Used by the custom-job save paths, which do a single
-// upsert rather than the multi-column retry loop in saveSession().
+// Which optional column PostgREST rejected, if any. A missing column fails the
+// ENTIRE upsert (flat pay, hold fields, notes, instructor — nothing is written),
+// so the caller drops that one column and tries again. '' means the error is
+// something else and must be shown to the admin.
+function sessionUpsertRejectColumn(msg){
+  msg=String(msg||'');
+  if(CANCEL_COLS&&/is_cancelled|cancel_reason|cancelled_at/i.test(msg))return 'cancel';
+  if(REQUIRES_SS_COL&&/requires_safe_sitter/i.test(msg))return 'ss';
+  if(REQUIRES_RN_COL&&/requires_rn/i.test(msg))return 'rn';
+  if(EXTERNAL_URL_COL&&/external_registration_url/i.test(msg))return 'external';
+  if(ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(msg))return 'private';
+  if(HOSTED_FOR_COL&&/hosted_for/i.test(msg))return 'hosted_for';
+  if(ORIGINATED_COL&&/originated_by|origination_note/i.test(msg))return 'origin';
+  if(EXTRA_DAYS_COL&&/extra_days/i.test(msg))return 'extra_days';
+  if(EXTRA_DATES_COL&&/extra_dates/i.test(msg))return 'extra_dates';
+  if(CLOSURES_COL&&/closures/i.test(msg))return 'closures';
+  if(INSTR_INFO_COL&&/instructor_info/i.test(msg))return 'instructor_info';
+  return '';
+}
+function applySessionUpsertReject(which,flags){
+  if(which==='cancel')CANCEL_COLS=false;
+  else if(which==='ss'){REQUIRES_SS_COL=false;flags.missingSsCol=true;}
+  else if(which==='rn'){REQUIRES_RN_COL=false;flags.missingRnCol=true;}
+  else if(which==='external'){EXTERNAL_URL_COL=false;flags.missingExternalUrl=true;}
+  else if(which==='private'){ADMIN_PRIVATE_NOTES_COL=false;flags.missingPrivateNotes=true;}
+  else if(which==='hosted_for'){HOSTED_FOR_COL=false;flags.missingHostedFor=true;}
+  else if(which==='origin'){ORIGINATED_COL=false;flags.missingOrigin=true;}
+  else if(which==='extra_days'){EXTRA_DAYS_COL=false;flags.missingDays=true;}
+  else if(which==='extra_dates'){EXTRA_DATES_COL=false;flags.missingDays=true;}
+  else if(which==='closures'){CLOSURES_COL=false;flags.missingDetail=true;}
+  else if(which==='instructor_info'){INSTR_INFO_COL=false;flags.missingDetail=true;}
+  return !!which;
+}
+function blankSessionUpsertFlags(){
+  return{missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false};
+}
+// Every session write goes through here: course sessions, custom jobs, holds,
+// publish, cancel. One unknown column used to abort custom-job and hold saves
+// (the course form retried; these paths did not), so a flat-pay change or a
+// hold edit looked like it never happened.
 async function upsertSessionRow(s){
+  const flags=blankSessionUpsertFlags();
   try{
-    let{error}=await sb.from('sessions').upsert(sessionToDB(s));
-    // Older database without the cancellation columns: drop them and retry, so
-    // ordinary session saves keep working until the migration is run.
-    if(error&&CANCEL_COLS&&/is_cancelled|cancel_reason|cancelled_at/i.test(error.message||'')){
-      CANCEL_COLS=false;
-      const retryC=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retryC.error||null;
+    let error=null;
+    for(let attempt=0;attempt<8;attempt++){
+      let res;
+      try{res=await sb.from('sessions').upsert(sessionToDB(s));}
+      catch(e){return Object.assign({error:e},flags);}
+      error=res&&res.error||null;
+      if(!error)return Object.assign({error:null},flags);
+      const which=sessionUpsertRejectColumn(error.message||'');
+      if(!applySessionUpsertReject(which,flags))return Object.assign({error},flags);
     }
-    let missingRnCol=false,missingSsCol=false;
-    // Older database without the per-job Safe Sitter® column: drop it and retry.
-    if(error&&REQUIRES_SS_COL&&/requires_safe_sitter/i.test(error.message||'')){
-      REQUIRES_SS_COL=false;missingSsCol=true;
-      const retryS=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retryS.error||null;
-    }
-    if(error&&REQUIRES_RN_COL&&/requires_rn/i.test(error.message||'')){
-      REQUIRES_RN_COL=false;missingRnCol=true;
-      const retry=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retry.error||null;
-    }
-    let missingExternalUrl=false;
-    if(error&&EXTERNAL_URL_COL&&/external_registration_url/i.test(error.message||'')){
-      EXTERNAL_URL_COL=false;missingExternalUrl=true;
-      const retryU=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retryU.error||null;
-    }
-    let missingPrivateNotes=false;
-    if(error&&ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(error.message||'')){
-      ADMIN_PRIVATE_NOTES_COL=false;missingPrivateNotes=true;
-      const retryP=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retryP.error||null;
-    }
-    return{error:error||null,missingRnCol,missingSsCol,missingExternalUrl,missingPrivateNotes};
-  }catch(e){return{error:e,missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false};}
+    return Object.assign({error:error||new Error('Could not save session')},flags);
+  }catch(e){return Object.assign({error:e},flags);}
 }
 const SS_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "Safe Sitter® instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_safe_sitter boolean default false; grant select (requires_safe_sitter) on public.sessions to anon;';
 const RN_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "RN instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_rn boolean default false; grant select (requires_rn) on public.sessions to anon;';
 const EXTERNAL_URL_SQL_TOAST='⚠️ Saved, but WITHOUT the external registration link — run migrations/external_registration_url.sql in the Supabase SQL editor, then re-save this session.';
+// Toast when a save landed but an optional column had to be left off. Empty when
+// nothing optional was dropped (including a missing hosted_for, which is normal
+// until the Partnerships setup SQL has been run — that must not look like a failure).
+function sessionOptionalColToast(f){
+  if(!f)return '';
+  if(f.missingOrigin)return '⚠️ Saved, but WITHOUT the "Originated by" partner credit — run partners_setup.sql once in the Supabase SQL editor, then re-save this session.';
+  if(f.missingRnCol)return RN_COL_SQL_TOAST;
+  if(f.missingExternalUrl)return EXTERNAL_URL_SQL_TOAST;
+  if(f.missingPrivateNotes)return PRIVATE_NOTES_SQL_TOAST;
+  if(f.missingSsCol)return SS_COL_SQL_TOAST;
+  if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
+  if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
+  return '';
+}
 
 function regFromDB(r){
   return{id:r.id,sessionId:r.session_id,studentName:r.student_name||'',parentName:r.parent_name||'',contact:r.contact||'',grade:r.grade||'',cprPermission:r.cpr_permission||'',emergencyAuth:r.emergency_auth||'',photoConsent:r.photo_consent||'',waiverSigned:r.waiver_signed||false,signature:r.signature||'',payStatus:r.pay_status||'unpaid',paypalTxId:r.paypal_tx_id||'',referralSource:r.referral_source||'',pricePaid:r.price_paid==null?null:Number(r.price_paid),notes:r.notes||'',createdAt:r.created_at||Date.now()};
@@ -5576,42 +5606,10 @@ async function saveSession(editId){
   // Supabase returns errors on the result object (it does not throw for RLS / constraint failures),
   // so check `error` explicitly. If the save fails, roll back the local state and surface a toast
   // so the admin UI does not silently disagree with the database.
-  let saveFailed=false, saveErr=null;
-  try{
-    const {error}=await sb.from('sessions').upsert(sessionToDB(s));
-    if(error){saveFailed=true;saveErr=error;}
-  }catch(e){saveFailed=true;saveErr=e;}
-  // If the database doesn't have the extra_dates / extra_days / originated_by columns yet,
-  // retry without the missing column so the rest of the session still saves, and tell the
-  // admin exactly what to run in Supabase. Up to three retries, since all could be missing.
-  for(let _attempt=0;saveFailed&&_attempt<6;_attempt++){
-    const _msg=(saveErr&&saveErr.message)||'';
-    let _note='';
-    if(EXTRA_DAYS_COL&&/extra_days/i.test(_msg)){EXTRA_DAYS_COL=false;_note='days';}
-    else if(EXTRA_DATES_COL&&/extra_dates/i.test(_msg)){EXTRA_DATES_COL=false;_note='days';}
-    else if(CLOSURES_COL&&/closures/i.test(_msg)){CLOSURES_COL=false;_note='detail';}
-    else if(INSTR_INFO_COL&&/instructor_info/i.test(_msg)){INSTR_INFO_COL=false;_note='detail';}
-    else if(ORIGINATED_COL&&/originated_by|origination_note/i.test(_msg)){ORIGINATED_COL=false;_note='partner';}
-    else if(HOSTED_FOR_COL&&/hosted_for/i.test(_msg)){HOSTED_FOR_COL=false;_note='orgpartner';}
-    else if(REQUIRES_SS_COL&&/requires_safe_sitter/i.test(_msg)){REQUIRES_SS_COL=false;_note='ss';}
-    else if(REQUIRES_RN_COL&&/requires_rn/i.test(_msg)){REQUIRES_RN_COL=false;_note='rn';}
-    else if(EXTERNAL_URL_COL&&/external_registration_url/i.test(_msg)){EXTERNAL_URL_COL=false;_note='external';}
-    else if(ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(_msg)){ADMIN_PRIVATE_NOTES_COL=false;_note='private';}
-    else break;
-    saveFailed=false;saveErr=null;
-    try{
-      const {error}=await sb.from('sessions').upsert(sessionToDB(s));
-      if(error){saveFailed=true;saveErr=error;}
-      else if(_note==='partner')showToast('⚠️ Saved, but WITHOUT the "Originated by" partner credit — run partners_setup.sql once in the Supabase SQL editor, then re-save this session.');
-      else if(_note==='orgpartner')showToast('⚠️ Saved, but WITHOUT the partnership credit — run the setup SQL shown on the Partnerships tab, then re-save this session.');
-      else if(_note==='rn')showToast(RN_COL_SQL_TOAST);
-      else if(_note==='external')showToast(EXTERNAL_URL_SQL_TOAST);
-      else if(_note==='private')showToast(PRIVATE_NOTES_SQL_TOAST);
-      else if(_note==='ss')showToast(SS_COL_SQL_TOAST);
-      else if(_note==='detail')showToast("⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;");
-      else showToast("⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';");
-    }catch(e){saveFailed=true;saveErr=e;}
-  }
+  // Same retry as custom jobs and holds. A missing optional column (hosted_for
+  // until the Partnerships SQL is run) must not roll back pay, date, or notes.
+  const saved=await upsertSessionRow(s);
+  const saveFailed=!!saved.error, saveErr=saved.error;
   if(saveFailed){
     console.error('Save session failed:',saveErr);
     if(editId&&prevSnapshot){
@@ -5623,6 +5621,8 @@ async function saveSession(editId){
     showToast('⚠️ Could not save session. '+(saveErr&&saveErr.message?saveErr.message:'Check your connection and try again.'));
     return;
   }
+  const dropNote=sessionOptionalColToast(saved);
+  if(dropNote)showToast(dropNote);
   if(!isOwner){
     if(!jobDataCache[s.id])jobDataCache[s.id]={waitlist:[]};
     jobDataCache[s.id].instructorId=preInstrId;
@@ -5662,22 +5662,12 @@ async function publishHold(id){
   const prev=s.isHold;
   s.isHold=false;
   renderSessions();renderDashboard();
-  let failed=false,err=null;
-  let privateNotesDropped=false;
-  try{
-    let {error}=await sb.from('sessions').upsert(sessionToDB(s));
-    if(error&&ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(error.message||'')){
-      ADMIN_PRIVATE_NOTES_COL=false;privateNotesDropped=true;
-      const retry=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retry.error||null;
-    }
-    if(error){failed=true;err=error;}
-  }catch(e){failed=true;err=e;}
-  if(failed){
-    console.error('Publish hold failed:',err);
+  const saved=await upsertSessionRow(s);
+  if(saved.error){
+    console.error('Publish hold failed:',saved.error);
     s.isHold=prev;
     renderSessions();renderDashboard();
-    showToast('⚠️ Could not publish. '+(err&&err.message?err.message:'Check your connection and try again.'));
+    showToast('⚠️ Could not publish. '+(saved.error.message?saved.error.message:'Check your connection and try again.'));
     return;
   }
   // Ensure a job_data row exists so it surfaces as an open job (unless you are teaching it).
@@ -5685,7 +5675,7 @@ async function publishHold(id){
     if(!jobDataCache[s.id])jobDataCache[s.id]={waitlist:[]};
     upsertJobData(s.id);
   }
-  showToast(privateNotesDropped?PRIVATE_NOTES_SQL_TOAST:'Published to instructors.');
+  showToast(saved.missingPrivateNotes?PRIVATE_NOTES_SQL_TOAST:'Published to instructors.');
 }
 
 // ─── CANCEL A SESSION ────────────────────────────────────────
