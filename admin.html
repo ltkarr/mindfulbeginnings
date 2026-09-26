@@ -9409,6 +9409,18 @@ function renderMatCards(){
   el.innerHTML=equipment.length?matInventoryCardsInner():'';
 }
 
+// Status pill for one checkout row. A usesExisting row is not a future loan,
+// so it must not say Upcoming even when the class date is still ahead.
+function matCheckoutStatusLabel(c, today){
+  const t=today||matToday();
+  if(!c)return '';
+  if(coNoEquipment(c))return 'No equipment needed';
+  if(coUsesExisting(c))return 'Already with instructor';
+  if(c.returnedDate)return 'Returned';
+  if(c.dueDate&&c.dueDate<t)return 'Overdue';
+  if(c.outDate&&c.outDate<=t)return 'Out now';
+  return 'Upcoming';
+}
 function renderMatTable(){
   const filter=(document.getElementById('mat-filter')||{}).value||'active';
   const today=matToday();
@@ -9421,12 +9433,13 @@ function renderMatTable(){
   document.getElementById('mat-table').innerHTML=
     `<thead><tr><th>Equipment</th><th>Session</th><th>Who has it</th><th>Out</th><th>Due back</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>`+
     (list.length?list.map(c=>{
+      const label=matCheckoutStatusLabel(c, today);
       let status;
-      if(coNoEquipment(c))status=`<span class="tag host" title="You marked this class as needing no equipment — remove this row to undo">🚫 No equipment needed</span>`;
-      else if(coUsesExisting(c))status=`<span class="tag host" title="No extra equipment went out — the instructor is using kit(s) from another checkout">↩ Shared kit</span>`;
-      else if(c.returnedDate)status=`<span class="tag paid">✓ Returned ${new Date(c.returnedDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
-      else if(coIsOverdue(c))status=`<span class="tag" style="background:var(--danger-bg);color:var(--danger)">⏰ Overdue</span>`;
-      else if(c.outDate<=today)status=`<span class="tag unpaid">Out now</span>`;
+      if(label==='No equipment needed')status=`<span class="tag host" title="You marked this class as needing no equipment — remove this row to undo">🚫 No equipment needed</span>`;
+      else if(label==='Already with instructor')status=`<span class="tag host" title="Keeping kit already with this instructor. Nothing extra leaves the shelf.">Keeping kit</span>`;
+      else if(label==='Returned')status=`<span class="tag paid">✓ Returned ${new Date(c.returnedDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
+      else if(label==='Overdue')status=`<span class="tag" style="background:var(--danger-bg);color:var(--danger)">⏰ Overdue</span>`;
+      else if(label==='Out now')status=`<span class="tag unpaid">Out now</span>`;
       else status=`<span class="tag host">Upcoming</span>`;
       return`<tr>
         <td style="font-weight:500">${escapeHtml(coItemsLabel(c))}</td>

@@ -26,9 +26,10 @@ function extractFunction(src, name) {
 
 const names = [
   'fmtYMD', 'matToday', 'matPrevDay', 'coEnd', 'coActiveOn', 'coNoEquipment', 'coUsesExisting',
-  'matEqIsConsumable', 'matItemIsConsumable', 'matDurableDemand', 'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matKitIsOutNow', 'matOpenCheckouts'
+  'matEqIsConsumable', 'matItemIsConsumable', 'matDurableDemand', 'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matKitIsOutNow', 'matOpenCheckouts',
+  'coItemsLabel', 'matCheckoutStatusLabel'
 ];
-const sandbox = { matCheckouts: [], Date, String, Number };
+const sandbox = { matCheckouts: [], equipment: [], MAT_BOOK_RX: {}, Date, String, Number };
 vm.createContext(sandbox);
 vm.runInContext(names.map((n) => extractFunction(admin, n)).join('\n'), sandbox);
 
@@ -348,6 +349,40 @@ test('a future kit stays off Who has what until the out date is today or earlier
   } finally {
     sandbox.matToday = realToday;
   }
+});
+
+test('a kept kit says it is already with the instructor and does not repeat quantities', () => {
+  sandbox.equipment = [
+    { id: 'infant', name: 'Infant CPR Manikins', qty: 1 },
+    { id: 'child', name: 'Child Manikins', qty: 1 },
+    { id: 'av', name: 'AV Kit', qty: 1 }
+  ];
+  const kept = {
+    id: 'ashira-oct2', person: 'Ashira Lavine',
+    items: [{ usesExisting: true, qty: 0 }],
+    outDate: '2026-10-02', dueDate: '2026-10-02', returnedDate: null
+  };
+  assert.equal(sandbox.matCheckoutStatusLabel(kept, '2026-09-26'), 'Already with instructor');
+  assert.equal(sandbox.coItemsLabel(kept), 'Keeping kit already with Ashira Lavine');
+  assert.doesNotMatch(sandbox.coItemsLabel(kept), /1×/);
+  const physical = {
+    id: 'ashira-physical', person: 'Ashira Lavine',
+    items: [
+      { equipmentId: 'infant', qty: 1 },
+      { equipmentId: 'child', qty: 1 },
+      { equipmentId: 'av', qty: 1 }
+    ],
+    outDate: '2026-10-02', dueDate: '2026-10-02', returnedDate: null
+  };
+  assert.equal(sandbox.matCheckoutStatusLabel(physical, '2026-09-26'), 'Upcoming');
+  assert.match(sandbox.coItemsLabel(physical), /1× Infant CPR Manikins/);
+  const table = admin.slice(admin.indexOf('function renderMatTable'), admin.indexOf('function eqStockFields'));
+  assert.match(table, /Keeping kit/);
+  assert.match(table, /coItemsLabel\(c\)/);
+  const keepAt = table.indexOf('Already with instructor');
+  const upcomingAt = table.indexOf('>Upcoming<');
+  assert.ok(keepAt > 0 && upcomingAt > keepAt);
+  sandbox.equipment = [];
 });
 
 test('the equipment screen has no checkout calendar', () => {
