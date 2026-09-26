@@ -26,9 +26,10 @@ function extractFunction(src, name) {
 
 const names = [
   'fmtYMD', 'matToday', 'matPrevDay', 'coEnd', 'coActiveOn', 'coNoEquipment', 'coUsesExisting',
-  'matEqIsConsumable', 'matItemIsConsumable', 'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matOpenCheckouts'
+  'matEqIsConsumable', 'matItemIsConsumable', 'matDurableDemand', 'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matKitIsOutNow', 'matOpenCheckouts',
+  'coItemsLabel', 'matCheckoutStatusLabel'
 ];
-const sandbox = { matCheckouts: [], Date, String, Number };
+const sandbox = { matCheckouts: [], equipment: [], MAT_BOOK_RX: {}, Date, String, Number };
 vm.createContext(sandbox);
 vm.runInContext(names.map((n) => extractFunction(admin, n)).join('\n'), sandbox);
 
@@ -41,8 +42,8 @@ function kit(id, extra) {
 }
 
 const planNames = [
-  'sessionEndDate', 'sessionInstructorList', 'fmtYMD', 'matToday', 'matPrevDay', 'coEnd', 'coActiveOn',
-  'coUsesExisting', 'coNoEquipment', 'qtyOutOn', 'matPhysicallyOut', 'matDateRange', 'minAvailInRange', 'matDaysBetween'
+  'sessionEndDate', 'sessionInstructorList', 'fmtYMD', 'matToday', 'matPrevDay', 'matAddDays', 'coEnd', 'coActiveOn',
+  'coUsesExisting', 'coNoEquipment', 'matKitIsOutNow', 'matDurableDemand', 'qtyOutOn', 'matPhysicallyOut', 'matDateRange', 'minAvailInRange', 'matDaysBetween'
 ];
 const needsStart = admin.indexOf('const MAT_NEEDS={');
 const needsEnd = admin.indexOf('function matNeedsLabel(');
@@ -154,7 +155,9 @@ test('a following class keeps the durable kit and still reserves new handbooks',
   });
   assert.equal(first.keep.later.length, 1);
   assert.equal(first.keep.later[0].date, '2026-10-10');
-  assert.equal(first.holdUntil, '2026-10-10');
+  assert.equal(first.outDate, '2026-09-26');
+  assert.equal(first.dueDate, '2026-10-10');
+  assert.equal(first.holdUntil, '2026-10-17');
   assert.match(planSandbox.matKeepSentence(first), /KEEP the durable kit/);
   assert.doesNotMatch(planSandbox.matKeepSentence(first), /handbook/i);
   assert.equal(line(first, 'infant').requested, 1);
@@ -331,4 +334,310 @@ test('on hand ignores future reservations and kits already checked back in today
   } finally {
     sandbox.matToday = realToday;
   }
+});
+
+test('a future kit stays off Who has what until the out date is today or earlier', () => {
+  const realToday = sandbox.matToday;
+  sandbox.matToday = () => '2026-09-26';
+  sandbox.matCheckouts = [
+    kit('bronwen-oct3', { person: 'Bronwen Kennedy', outDate: '2026-10-03', dueDate: '2026-10-03' })
+  ];
+  try {
+    assert.equal(sandbox.matKitIsOutNow(sandbox.matCheckouts[0]), false);
+    assert.deepEqual(sandbox.matOpenCheckouts().map((c) => c.id), []);
+    sandbox.matCheckouts[0].outDate = '2026-09-26';
+    assert.equal(sandbox.matKitIsOutNow(sandbox.matCheckouts[0]), true);
+    assert.deepEqual(sandbox.matOpenCheckouts().map((c) => c.id), ['bronwen-oct3']);
+  } finally {
+    sandbox.matToday = realToday;
+  }
+});
+
+test('a kept kit says it is already with the instructor and does not repeat quantities', () => {
+  sandbox.equipment = [
+    { id: 'infant', name: 'Infant CPR Manikins', qty: 1 },
+    { id: 'child', name: 'Child Manikins', qty: 1 },
+    { id: 'av', name: 'AV Kit', qty: 1 }
+  ];
+  const kept = {
+    id: 'ashira-oct2', person: 'Ashira Lavine',
+    items: [{ usesExisting: true, qty: 0 }],
+    outDate: '2026-10-02', dueDate: '2026-10-02', returnedDate: null
+  };
+  assert.equal(sandbox.matCheckoutStatusLabel(kept, '2026-09-26'), 'Already with instructor');
+  assert.equal(sandbox.coItemsLabel(kept), 'Keeping kit already with Ashira Lavine');
+  assert.doesNotMatch(sandbox.coItemsLabel(kept), /1×/);
+  const physical = {
+    id: 'ashira-physical', person: 'Ashira Lavine',
+    items: [
+      { equipmentId: 'infant', qty: 1 },
+      { equipmentId: 'child', qty: 1 },
+      { equipmentId: 'av', qty: 1 }
+    ],
+    outDate: '2026-10-02', dueDate: '2026-10-02', returnedDate: null
+  };
+  assert.equal(sandbox.matCheckoutStatusLabel(physical, '2026-09-26'), 'Upcoming');
+  assert.match(sandbox.coItemsLabel(physical), /1× Infant CPR Manikins/);
+  const table = admin.slice(admin.indexOf('function renderMatTable'), admin.indexOf('function eqStockFields'));
+  assert.match(table, /Keeping kit/);
+  assert.match(table, /coItemsLabel\(c\)/);
+  const keepAt = table.indexOf('Already with instructor');
+  const upcomingAt = table.indexOf('>Upcoming<');
+  assert.ok(keepAt > 0 && upcomingAt > keepAt);
+  sandbox.equipment = [];
+});
+
+test('the equipment screen has no checkout calendar', () => {
+  assert.doesNotMatch(admin, /Checkout calendar/);
+  assert.doesNotMatch(admin, /id="mat-cal"/);
+  assert.doesNotMatch(admin, /function renderMatCal/);
+  assert.match(admin, /Who has what right now/);
+  assert.match(admin, /id="mat-holders"/);
+  assert.match(admin, /id="mat-table"/);
+  assert.match(admin, /function markOutToday/);
+  assert.match(admin, /Mark out today/);
+  assert.match(admin, /function matKitIsOutNow/);
+});
+
+test('the same instructor’s overlapping kits count as one physical unit', () => {
+  const realToday = sandbox.matToday;
+  sandbox.matToday = () => '2026-09-25';
+  sandbox.matCheckouts = [
+    kit('kim-a', { person: 'Kim Varner', outDate: '2026-09-20', dueDate: '2026-10-04' }),
+    kit('kim-b', { person: 'Kim Varner', sessionId: 'sess-b', outDate: '2026-09-22', dueDate: '2026-09-28' }),
+    kit('bronwen', { person: 'Bronwen Kennedy', sessionId: 'sess-c', outDate: '2026-09-21', dueDate: '2026-09-29' }),
+    kit('kim-later', { person: 'Kim Varner', sessionId: 'sess-d', outDate: '2026-10-08', dueDate: '2026-10-10' }),
+    kit('kim-later-2', { person: 'Kim Varner', sessionId: 'sess-e', outDate: '2026-10-12', dueDate: '2026-10-14' })
+  ];
+  try {
+    assert.equal(sandbox.qtyOutOn('infant', '2026-09-25'), 2);
+    assert.equal(sandbox.matPhysicallyOut('infant'), 2);
+    assert.equal(sandbox.matReservedAhead('infant'), 1);
+  } finally {
+    sandbox.matToday = realToday;
+  }
+});
+
+test('Intro to Babysitting reserves its handbooks, and Safe Sitter-like titles map to a kit', () => {
+  useRoster();
+  planSandbox.equipment = [
+    { id: 'infant', name: 'Infant CPR Manikins', qty: 7 },
+    { id: 'child', name: 'Child Manikins', qty: 5 },
+    { id: 'av', name: 'AV Kit', qty: 7 },
+    { id: '11111111-1111-4111-8111-111111111105', name: 'Intro to Babysitting handbooks', qty: 66, consumable: true, reorderAt: 10, reorderQty: 16 },
+    { id: 'hb', name: 'Safe Sitter handbooks', qty: 40, consumable: true },
+    { id: 'note', name: 'Safe Sitter notebooks', qty: 40, consumable: true },
+    { id: 'sah', name: 'Safe@Home handbooks', qty: 40, consumable: true }
+  ];
+  planSandbox.matCheckouts = [];
+  planSandbox.registrations = [];
+  planSandbox.sessions = [
+    { id: 'itb', course: 'Intro to Babysitting — Greenwood', date: '2026-10-16', isVirtual: false },
+    { id: 'club', course: 'My First Babysitters Club', date: '2026-10-16', isVirtual: false },
+    { id: 'welcome', course: 'Service Unit Welcome Event', date: '2026-10-16', isVirtual: false }
+  ];
+  planSandbox.registrations = [
+    { sessionId: 'itb', payStatus: 'paid' },
+    { sessionId: 'itb', payStatus: 'pending' },
+    { sessionId: 'itb', payStatus: 'waitlist' },
+    { sessionId: 'club', payStatus: 'paid' },
+    { sessionId: 'welcome', payStatus: 'paid' }
+  ];
+  const intro = planSandbox.matPlanForSession({
+    course: 'Intro to Babysitting — Greenwood', date: '2026-10-16', sessionId: 'itb', extraDates: [], headcount: 2
+  });
+  assert.equal(intro.skip, false);
+  assert.equal(intro.lines.length, 0);
+  assert.equal(intro.books.length, 1);
+  assert.equal(intro.books[0].name, 'Intro to Babysitting handbooks');
+  assert.equal(intro.books[0].requested, 2);
+  assert.equal(planSandbox.matBookCommitted('11111111-1111-4111-8111-111111111105', null, 'all'), 2);
+
+  const club = planSandbox.matPlanForSession({
+    course: 'My First Babysitters Club', date: '2026-10-16', sessionId: 'club', extraDates: [], headcount: 8
+  });
+  assert.equal(club.skip, true);
+  const welcome = planSandbox.matPlanForSession({
+    course: 'Service Unit Welcome Event', date: '2026-10-16', sessionId: 'welcome', extraDates: [], headcount: 8
+  });
+  assert.equal(welcome.skip, true);
+  const instructorsOnly = planSandbox.matPlanForSession({
+    course: 'Babysitting Course *8 Week Series, in person* Safe Sitter instructors only',
+    date: '2026-10-16', extraDates: [], headcount: 8
+  });
+  assert.equal(instructorsOnly.skip, true);
+
+  const norwood = planSandbox.matPlanForSession({
+    course: 'SafeSitter @Norwood School (after school program)', date: '2026-10-20', extraDates: [], headcount: 4
+  });
+  assert.equal(norwood.lines.map((l) => l.kind).join(','), 'infant,child,av');
+  assert.equal(norwood.books.some((b) => b.eqId === 'hb'), true);
+  assert.equal(norwood.books.some((b) => b.kind === 'ssNotebook'), true);
+
+  const home = planSandbox.matPlanForSession({
+    course: 'Safe@Home at Beth El', date: '2026-10-16', extraDates: [], headcount: 3
+  });
+  assert.equal(home.lines.map((l) => l.kind).join(','), 'av');
+  assert.equal(home.books.length, 1);
+  assert.equal(home.books[0].name, 'Safe@Home handbooks');
+  assert.equal(home.lines.some((l) => l.kind === 'infant' || l.kind === 'child'), false);
+});
+
+test('a nearby class for the same instructor keeps the kit already out', () => {
+  shelf();
+  planSandbox.matCheckouts = [{
+    id: 'home-kit', person: 'Kim Varner', returnedDate: null,
+    items: [
+      { equipmentId: 'av', qty: 1 }
+    ],
+    outDate: '2026-10-01', dueDate: '2026-10-03'
+  }];
+  const plan = planSandbox.matPlanForSession({
+    course: 'All Kids Welcome', date: '2026-10-10', person: 'Kim Varner', extraDates: [], reuse: false
+  });
+  assert.equal(plan.fullyCovered, true);
+  assert.equal(plan.reuseOffer, true);
+  const saved = planSandbox.matCheckoutItemsFromPlan(plan, true);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].usesExisting, true);
+  assert.equal(saved[0].qty, 0);
+  assert.match(planSandbox.matKeepSentence(plan), /already has this durable kit/);
+});
+
+test('dashboard materials cues name the next action and hide a class with nothing to do', () => {
+  planSandbox.matToday = () => '2026-09-26';
+  planSandbox.equipment = [
+    { id: 'infant', name: 'Infant CPR Manikins', qty: 1 },
+    { id: 'child', name: 'Child Manikins', qty: 1 },
+    { id: 'av', name: 'AV Kit', qty: 1 },
+    { id: 'hb', name: 'Safe Sitter handbooks', qty: 85, consumable: true },
+    { id: 'note', name: 'Safe Sitter notebooks', qty: 35, consumable: true },
+    { id: 'gp', name: 'Grandparents handbooks', qty: 4, consumable: true }
+  ];
+  planSandbox.instructors = [
+    { id: 'kim', name: 'Kim Varner' },
+    { id: 'alex', name: 'Alex Nguyen' }
+  ];
+  planSandbox.jobDataCache = {
+    keep: { instructorId: 'kim', materialsSent: false },
+    short: { instructorId: 'alex', materialsSent: false },
+    pull: { instructorId: 'alex', materialsSent: true },
+    kept: { instructorId: 'kim', materialsSent: true },
+    intro: { instructorId: 'alex', materialsSent: false }
+  };
+  planSandbox.registrations = [];
+  planSandbox.seatsOnSession = function (id) {
+    return planSandbox.registrations.filter((r) => r.sessionId === id && r.payStatus !== 'cancelled' && r.payStatus !== 'waitlist').length;
+  };
+  function addRegs(id, n) {
+    for (let i = 0; i < n; i++) planSandbox.registrations.push({ sessionId: id, payStatus: 'paid' });
+  }
+  addRegs('keep', 4);
+  addRegs('short', 5);
+  addRegs('intro', 3);
+  planSandbox.matCheckouts = [
+    {
+      id: 'kim-kit', person: 'Kim Varner', sessionId: 'earlier', returnedDate: null,
+      items: [
+        { equipmentId: 'infant', qty: 1 },
+        { equipmentId: 'child', qty: 1 },
+        { equipmentId: 'av', qty: 1 }
+      ],
+      outDate: '2026-09-20', dueDate: '2026-09-30'
+    },
+    {
+      id: 'bronwen-kit', person: 'Bronwen Kennedy', sessionId: 'bronwen-class', returnedDate: null,
+      items: [
+        { equipmentId: 'infant', qty: 1 },
+        { equipmentId: 'child', qty: 1 },
+        { equipmentId: 'av', qty: 1 }
+      ],
+      outDate: '2026-09-26', dueDate: '2026-10-02'
+    }
+  ];
+  const classes = [
+    { id: 'keep', course: 'Grandparents: Getting Started', date: '2026-09-30', isVirtual: false },
+    { id: 'short', course: 'Safe Sitter®', date: '2026-10-02', isVirtual: false },
+    { id: 'pull', course: 'Safe Sitter®', date: '2026-10-10', isVirtual: false },
+    { id: 'intro', course: 'Intro to Babysitting', date: '2026-10-06', isVirtual: false },
+    { id: 'welcome', course: "Service Unit 60-6 (Nation's Capital Girl Scouts) Welcome Event!", date: '2026-09-27', isVirtual: false },
+    { id: 'later', course: 'Safe Sitter®', date: '2026-10-20', isVirtual: false },
+    { id: 'past', course: 'Safe Sitter®', date: '2026-09-20', isVirtual: false },
+    { id: 'virt', course: 'Safe Sitter®', date: '2026-10-02', isVirtual: true }
+  ];
+  const byId = Object.fromEntries(classes.map((s) => [s.id, s]));
+  const keep = planSandbox.dashMatCue(byId.keep);
+  assert.match(keep.text, /Kim already has the kit — email them to keep materials; you'll put handbooks out\. Put out 4 handbooks\./);
+  const short = planSandbox.dashMatCue(byId.short);
+  assert.match(short.text, /Need kit back from Kim and Bronwen before this class — shelf short on Infant\/Child\/AV\. Put out 5 handbooks and 5 notebooks\./);
+  const pull = planSandbox.dashMatCue(byId.pull);
+  assert.equal(pull.text, 'Pull a new kit from the shelf for Alex.');
+  assert.equal(planSandbox.dashMatCue(byId.intro).text, 'Put out 3 handbooks.');
+  assert.equal(planSandbox.dashMatCue(byId.welcome), null);
+  assert.equal(planSandbox.dashMatCue(byId.later), null);
+  assert.equal(planSandbox.dashMatCue(byId.past), null);
+  assert.equal(planSandbox.dashMatCue(byId.virt), null);
+
+  planSandbox.matCheckouts.push({
+    id: 'ue', sessionId: 'kept', person: 'Kim Varner', returnedDate: null,
+    items: [{ usesExisting: true, qty: 0 }],
+    outDate: '2026-10-01', dueDate: '2026-10-01'
+  });
+  assert.equal(planSandbox.dashMatCue({
+    id: 'kept', course: 'Safe Sitter®', date: '2026-10-01', isVirtual: false
+  }), null);
+  planSandbox.matCheckouts.push({
+    id: 'pulled', sessionId: 'pull', person: 'Alex Nguyen', returnedDate: null,
+    items: [
+      { equipmentId: 'infant', qty: 1 },
+      { equipmentId: 'child', qty: 1 },
+      { equipmentId: 'av', qty: 1 }
+    ],
+    outDate: '2026-10-10', dueDate: '2026-10-10'
+  });
+  assert.equal(planSandbox.dashMatCue(byId.pull), null);
+
+  const cues = planSandbox.dashMatCues([byId.pull, byId.keep, byId.short, byId.welcome, byId.intro]);
+  assert.deepEqual(cues.map((c) => c.id).join(','), 'keep,short,intro');
+  planSandbox.matToday = () => '2026-09-25';
+});
+
+test('a new kit is reserved from a week before class through a week after', () => {
+  shelf();
+  const plan = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-10-02', person: 'Ashira Lavine', extraDates: []
+  });
+  assert.equal(plan.classDate, '2026-10-02');
+  assert.equal(plan.outDate, '2026-09-25');
+  assert.equal(plan.dueDate, '2026-10-09');
+  const multi = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-10-02', extraDates: ['2026-10-03'], person: 'Ashira Lavine'
+  });
+  assert.equal(multi.outDate, '2026-09-25');
+  assert.equal(multi.dueDate, '2026-10-10');
+  planSandbox.equipment[0].qty = 1;
+  planSandbox.matCheckouts = [{
+    id: 'busy', person: 'Someone Else', returnedDate: null,
+    items: [{ equipmentId: 'infant', qty: 1 }],
+    outDate: '2026-09-25', dueDate: '2026-10-02'
+  }];
+  const blocked = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-10-09', person: 'Helena Carboy', extraDates: []
+  });
+  assert.equal(blocked.outDate, '2026-10-02');
+  assert.equal(line(blocked, 'infant').shortfall, 1);
+  const clear = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-10-16', person: 'Helena Carboy', extraDates: []
+  });
+  assert.equal(clear.outDate, '2026-10-09');
+  assert.equal(line(clear, 'infant').shortfall, 0);
+  const apply = admin.slice(admin.indexOf('function applySessionMaterials'), admin.indexOf('function renderMaterials'));
+  assert.match(apply, /usesExisting/);
+  assert.match(apply, /classDate/);
+  assert.match(apply, /classEnd/);
+  const picked = admin.slice(admin.indexOf('function coSessChanged'), admin.indexOf('function coPrefillNeeds'));
+  assert.match(picked, /matKitOutDate\(s\)/);
+  assert.match(picked, /matKitDueDate\(s\)/);
+  assert.match(admin, /one week before class/);
+  shelf();
 });

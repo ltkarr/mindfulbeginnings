@@ -65,3 +65,11 @@ vercel dev   # needed to exercise /api/paypal/* locally
 ```
 
 Without PayPal env vars, Venmo and Zelle still work; card/PayPal shows a short “not configured yet” note.
+
+## Matching a payment you already received
+
+Card and PayPal checkout on the registration page and on `pay.html` still mark the matching registration paid automatically after a successful capture. Nothing in the admin scans a PayPal, Venmo, or Zelle inbox, and there is no bank or payment-app API for that.
+
+When money arrives outside that flow, use **Registrations → Match payment** (or **Match** on an unpaid or pending row, or **Match payment** on the 48-hour pending alert). Enter the amount and the parent name, email, or phone. The Venmo/Zelle memo’s `Reg <registration id>` is enough on its own. The tool lists open registrations that fit, including the class, and **Mark paid** asks you to confirm first.
+
+Confirming sets `pay_status` to `paid` and adds a note such as `[Paid via Venmo — $185.00]`. It does not change `price_paid`, and it does not contact PayPal, Venmo, or Zelle.
