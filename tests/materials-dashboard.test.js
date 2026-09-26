@@ -26,7 +26,7 @@ function extractFunction(src, name) {
 
 const names = [
   'fmtYMD', 'matToday', 'matPrevDay', 'coEnd', 'coActiveOn', 'coNoEquipment', 'coUsesExisting',
-  'matEqIsConsumable', 'matItemIsConsumable', 'matDurableDemand', 'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matOpenCheckouts'
+  'matEqIsConsumable', 'matItemIsConsumable', 'matDurableDemand', 'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matKitIsOutNow', 'matOpenCheckouts'
 ];
 const sandbox = { matCheckouts: [], Date, String, Number };
 vm.createContext(sandbox);
@@ -331,6 +331,35 @@ test('on hand ignores future reservations and kits already checked back in today
   } finally {
     sandbox.matToday = realToday;
   }
+});
+
+test('a future kit stays off Who has what until the out date is today or earlier', () => {
+  const realToday = sandbox.matToday;
+  sandbox.matToday = () => '2026-09-26';
+  sandbox.matCheckouts = [
+    kit('bronwen-oct3', { person: 'Bronwen Kennedy', outDate: '2026-10-03', dueDate: '2026-10-03' })
+  ];
+  try {
+    assert.equal(sandbox.matKitIsOutNow(sandbox.matCheckouts[0]), false);
+    assert.deepEqual(sandbox.matOpenCheckouts().map((c) => c.id), []);
+    sandbox.matCheckouts[0].outDate = '2026-09-26';
+    assert.equal(sandbox.matKitIsOutNow(sandbox.matCheckouts[0]), true);
+    assert.deepEqual(sandbox.matOpenCheckouts().map((c) => c.id), ['bronwen-oct3']);
+  } finally {
+    sandbox.matToday = realToday;
+  }
+});
+
+test('the equipment screen has no checkout calendar', () => {
+  assert.doesNotMatch(admin, /Checkout calendar/);
+  assert.doesNotMatch(admin, /id="mat-cal"/);
+  assert.doesNotMatch(admin, /function renderMatCal/);
+  assert.match(admin, /Who has what right now/);
+  assert.match(admin, /id="mat-holders"/);
+  assert.match(admin, /id="mat-table"/);
+  assert.match(admin, /function markOutToday/);
+  assert.match(admin, /Mark out today/);
+  assert.match(admin, /function matKitIsOutNow/);
 });
 
 test('the same instructor’s overlapping kits count as one physical unit', () => {

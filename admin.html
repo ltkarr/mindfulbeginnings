@@ -174,19 +174,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .alert.danger{background:var(--danger-bg);color:var(--danger);border:1px solid #f0b8b2}
 /* ─── Materials tab ─── */
 .mat-eq-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
-.mat-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.mat-cal-dow{font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);text-align:center;padding:4px 0}
-.mat-day{background:var(--cream);border-radius:6px;min-height:76px;padding:5px 6px;font-size:14px}
-.mat-day.blank{background:transparent}
-.mat-day.today{outline:2px solid var(--sky)}
-.mat-day.conflict{background:var(--danger-bg);outline:1px solid #f0b8b2}
-.mat-day-num{font-size:14px;font-weight:500;color:var(--muted);margin-bottom:3px}
-.mat-day.today .mat-day-num{color:var(--sky);font-weight:700}
-.mat-day.conflict .mat-day-num::after{content:' ⚠';font-size:13px}
-.mat-chip{display:block;width:100%;text-align:left;border:none;font-family:'DM Sans',sans-serif;background:var(--sky-l);color:#1a5c8a;border-radius:4px;padding:1px 5px;font-size:13px;line-height:1.6;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-.mat-chip.overdue{background:var(--danger-bg);color:var(--danger)}
-.mat-chip.returned{background:#e8f4e8;color:#1a5c2a}
-.mat-chip:hover{opacity:.75}
 
 /* ---- Narrow-screen support -------------------------------------------------
    The admin tables are wide. On a smaller laptop the fixed 220px menu plus
@@ -463,24 +450,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div id="mat-alerts"></div>
       <div class="mat-eq-cards" id="mat-eq-cards"></div>
       <div id="mat-holders"></div>
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-          <div class="card-title" style="margin-bottom:0">Checkout calendar</div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <button class="btn sm" onclick="matCalShift(-1)">‹</button>
-            <span id="mat-cal-label" style="font-size:16px;font-weight:500;min-width:130px;text-align:center"></span>
-            <button class="btn sm" onclick="matCalShift(1)">›</button>
-            <button class="btn sm" onclick="matCalToday()">Today</button>
-          </div>
-        </div>
-        <div class="mat-cal" id="mat-cal"></div>
-        <div class="chart-legend">
-          <span><span class="legend-dot" style="background:var(--sky-l)"></span>Checked out</span>
-          <span><span class="legend-dot" style="background:#f6c9c2"></span>Overdue</span>
-          <span><span class="legend-dot" style="background:#e8f4e8"></span>Returned</span>
-          <span style="color:var(--danger)">⚠ = more kits promised than you own</span>
-        </div>
-      </div>
       <div class="page-header" style="margin-top:24px;margin-bottom:12px">
         <div><div class="page-title" style="font-size:23px">Checkouts</div><div class="page-sub">Check items back in when they return. A partial check-in leaves the rest out with that instructor.</div></div>
         <select id="mat-filter" onchange="renderMaterials()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none">
@@ -1096,7 +1065,7 @@ const INSTR_RATE=50,INSTR_TRAVEL=50;
 const INSTR_EXTRA_HOURS=0.5;
 
 let sessions=[],registrations=[],instructors=[],jobDataCache={},expenses=[],invoices=[],finView='monthly',sessionSortAsc=true;
-let equipment=[],matCheckouts=[],equipmentTablesReady=true,matCalYM=null;
+let equipment=[],matCheckouts=[],equipmentTablesReady=true;
 // Community Partnerships Liaisons and their monthly commission payouts.
 // partnersTableReady goes false when the setup SQL has not been run yet, and the
 // Partners screen shows the instructions instead of an empty table.
@@ -8899,9 +8868,17 @@ function matInstructorXrefHtml(name, mode){
   const more=upcoming.length>shown.length?`<div style="font-size:14px;color:var(--muted);padding-top:4px">+ ${upcoming.length-shown.length} more upcoming class${upcoming.length-shown.length===1?'':'es'}</div>`:'';
   return `<div class="alert info" style="margin:0"><div style="font-weight:600;margin-bottom:6px">Classes ${escapeHtml((name||'').split(' ')[0]||'they')} ${mode==='modal'?'is teaching':'is teaching — reuse a kit already out instead of booking a second one'}</div>${kitBlock}${rows}${more}</div>`;
 }
+// Physically out: a real quantity left on this date or earlier, and has not come back.
+// A future out date is only a reservation until that day, or until it is marked out today.
+function matKitIsOutNow(c, today){
+  if(!c||c.returnedDate||coNoEquipment(c)||coUsesExisting(c))return false;
+  const t=today||matToday();
+  if(!c.outDate||c.outDate>t)return false;
+  return (c.items||[]).some(function(it){return Number(it.qty)>0&&!matItemIsConsumable(it);});
+}
 function matOpenCheckouts(){
   const t=matToday();
-  return matCheckouts.filter(c=>!c.returnedDate&&!coNoEquipment(c)&&!coUsesExisting(c)&&c.outDate&&c.outDate<=t&&(c.items||[]).some(it=>Number(it.qty)>0&&!matItemIsConsumable(it)))
+  return matCheckouts.filter(function(c){return matKitIsOutNow(c,t);})
     .sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||'')||(a.person||'').localeCompare(b.person||''));
 }
 function renderDashMaterials(){
@@ -9119,7 +9096,13 @@ function applySessionMaterials(sessionId,choice){
   if(choice.existingId){
     const c=matCheckouts.find(function(x){return x.id===choice.existingId;});
     if(!c)return;
-    c.person=person;c.items=items;c.outDate=outDate;c.dueDate=dueDate;
+    // A kit already marked out (out date today or earlier) stays out. Saving the
+    // class must not push that date forward to the class day, or Who has what
+    // would drop a kit that has already left.
+    const alreadyOut=c.outDate&&c.outDate<=matToday()&&(!outDate||c.outDate<outDate);
+    c.person=person;c.items=items;
+    if(!alreadyOut)c.outDate=outDate;
+    c.dueDate=dueDate;
     if(!c.notes)c.notes=note;
     dbWrite(sb.from('equipment_checkouts').update(checkoutToDB(c)).eq('id',c.id),'Session materials');
   }else{
@@ -9139,11 +9122,9 @@ function applySessionMaterials(sessionId,choice){
 
 function renderMaterials(){
   if(!document.getElementById('mat-table'))return;
-  if(matCalYM==null){const n=new Date();matCalYM=n.getFullYear()*12+n.getMonth();}
   renderMatAlerts();
   renderMatHolders();
   renderMatCards();
-  renderMatCal();
   renderMatTable();
   renderDashMaterials();
 }
@@ -9175,8 +9156,11 @@ function matDaysBetween(a,b){return Math.round((new Date(b+'T12:00:00')-new Date
 function renderMatHolders(){
   const el=document.getElementById('mat-holders');if(!el)return;
   const t=matToday();
-  const open=matCheckouts.filter(c=>!c.returnedDate&&!coNoEquipment(c)&&!coUsesExisting(c)&&c.outDate<=t&&(c.items||[]).some(it=>Number(it.qty)>0&&!matItemIsConsumable(it)));
-  if(!open.length){el.innerHTML='';return;}
+  const open=matCheckouts.filter(c=>matKitIsOutNow(c,t));
+  if(!open.length){
+    el.innerHTML=`<div class="card"><div class="card-title">Who has what right now</div><div style="font-size:15px;color:var(--muted)">Nothing is physically out. A checkout appears here once its out date is today or earlier. Future reservations stay in Checkouts until then — use Mark out today if the kit has already left.</div></div>`;
+    return;
+  }
   const by={};
   open.forEach(c=>{const k=(c.person||'').trim()||'Not assigned to anyone yet';(by[k]=by[k]||[]).push(c);});
   const fd=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
@@ -9209,7 +9193,7 @@ function renderMatHolders(){
       ${canKeep?`<div style="font-size:14px;color:#1a5c8a;background:var(--sky-l);border:1px solid #b8d8ee;border-radius:var(--r-sm);padding:7px 9px;margin-top:6px;line-height:1.6">💡 ${escapeHtml(name.split(' ')[0])} teaches ${escapeHtml(nxt.course)} on ${fmtSessDate(nxt,{month:'short',day:'numeric'})}, ${gap} day${gap===1?'':'s'} after this is due back. The agreement lets the kit stay out when the next course is within three days. <button class="btn sm" style="margin-left:4px" onclick="extendHolding('${list[0].id}','${nxt.id}')">Keep it out through that class</button></div>`:''}
     </div>`;
   }).join('');
-  el.innerHTML=`<div class="card"><div class="card-title">Who has what right now</div><div style="font-size:15px;color:var(--muted);margin:-6px 0 4px">Kits that are physically out today. Reservations for future classes are further down in Checkouts.</div>${rows}</div>`;
+  el.innerHTML=`<div class="card"><div class="card-title">Who has what right now</div><div style="font-size:15px;color:var(--muted);margin:-6px 0 4px">Kits whose out date is today or earlier. A later reservation stays in Checkouts until that date — use Mark out today if the kit has already left.</div>${rows}</div>`;
 }
 
 // Keep a kit that is already out with the same instructor for their next class instead
@@ -9296,55 +9280,6 @@ function renderMatCards(){
   el.innerHTML=equipment.length?matInventoryCardsInner():'';
 }
 
-function matCalShift(n){matCalYM+=n;renderMatCal();}
-function matCalToday(){const d=new Date();matCalYM=d.getFullYear()*12+d.getMonth();renderMatCal();}
-// One chip per person per day. Nearby classes that each reserved a full kit
-// were drawing a chip (and a conflict) for every session.
-function matCalCheckoutsForDay(d){
-  const active=(matCheckouts||[]).filter(c=>!coNoEquipment(c)&&(coActiveOn(c,d)||c.returnedDate===d));
-  const byPerson={};
-  const loose=[];
-  active.forEach(function(c){
-    const who=(c.person||'').trim().toLowerCase();
-    if(!who){loose.push(c);return;}
-    (byPerson[who]=byPerson[who]||[]).push(c);
-  });
-  const out=loose.slice();
-  Object.keys(byPerson).forEach(function(who){
-    const list=byPerson[who];
-    const physical=list.filter(function(c){
-      return !coUsesExisting(c)&&(c.items||[]).some(function(it){return Number(it.qty)>0&&!matItemIsConsumable(it);});
-    });
-    const pick=physical.length?physical:list;
-    pick.sort(function(a,b){return (b.dueDate||'').localeCompare(a.dueDate||'')||(b.outDate||'').localeCompare(a.outDate||'');});
-    out.push(pick[0]);
-  });
-  return out;
-}
-function renderMatCal(){
-  if(matCalYM==null){const n=new Date();matCalYM=n.getFullYear()*12+n.getMonth();}
-  const y=Math.floor(matCalYM/12),m=matCalYM%12;
-  document.getElementById('mat-cal-label').textContent=new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
-  const first=new Date(y,m,1),daysInMonth=new Date(y,m+1,0).getDate();
-  const today=matToday();
-  let html=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="mat-cal-dow">${d}</div>`).join('');
-  for(let i=0;i<first.getDay();i++)html+='<div class="mat-day blank"></div>';
-  for(let day=1;day<=daysInMonth;day++){
-    const d=fmtYMD(new Date(y,m,day));
-    // Show a chip on every day the kit was occupied, plus the day it came back
-    // (that one is green and does NOT count against availability).
-    const active=matCalCheckoutsForDay(d);
-    const conflict=equipment.some(eq=>qtyOutOn(eq.id,d)>eq.qty);
-    const chips=active.map(c=>{
-      const cls=c.returnedDate?'returned':coIsOverdue(c)?'overdue':'';
-      const who=c.person?(' — '+escapeHtml(c.person.split(' ')[0])):'';
-      return`<button class="mat-chip ${cls}" onclick="openEditCheckout('${c.id}')" title="${escapeHtml(coItemsLabel(c))}${c.person?' — '+escapeHtml(c.person):''}${coSessionLabel(c)?' · '+escapeHtml(coSessionLabel(c)):''}">${escapeHtml(coItemsLabel(c,true))}${who}</button>`;
-    }).join('');
-    html+=`<div class="mat-day${d===today?' today':''}${conflict?' conflict':''}"><div class="mat-day-num">${day}</div>${chips}</div>`;
-  }
-  document.getElementById('mat-cal').innerHTML=html;
-}
-
 function renderMatTable(){
   const filter=(document.getElementById('mat-filter')||{}).value||'active';
   const today=matToday();
@@ -9373,6 +9308,7 @@ function renderMatTable(){
         <td>${status}</td>
         <td style="color:var(--muted);font-size:15px;max-width:140px">${escapeHtml(c.notes)||'—'}</td>
         <td><div class="btn-row">
+          ${(!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returnedDate&&c.outDate>today)?`<button class="btn sm" onclick="markOutToday('${c.id}')">Mark out today</button>`:''}
           ${coUsesExisting(c)||coNoEquipment(c)?'':c.returnedDate?`<button class="btn sm" onclick="undoReturn('${c.id}')">Undo return</button>`:`<button class="btn sm success" onclick="openCheckIn('${c.id}')">Check in</button>`}
           ${coNoEquipment(c)?'':`<button class="btn sm" onclick="openEditCheckout('${c.id}')">Edit</button>`}
           <button class="btn sm danger" onclick="deleteCheckout('${c.id}')" title="${coNoEquipment(c)?'Removing this puts the session back in the checkout list and reminders':''}">Remove</button>
@@ -9864,6 +9800,17 @@ async function saveCheckIn(id){
   dbWrite(sb.from('equipment_checkouts').update({items:c.items,notes:c.notes}).eq('id',id),'Partial check-in');
 }
 function trimNote(t){return String(t||'').replace(/\s+/g,' ').trim();}
+// A reservation whose class is still ahead can already be in someone's car.
+// Moving the out date to today is what puts it on Who has what right now.
+async function markOutToday(id){
+  const c=matCheckouts.find(x=>x.id===id);if(!c||c.returnedDate||coNoEquipment(c)||coUsesExisting(c))return;
+  const t=matToday();
+  if(!c.outDate||c.outDate<=t)return;
+  c.outDate=t;
+  renderMaterials();
+  showToast('📦 Marked out today — it now shows under Who has what right now.');
+  dbWrite(sb.from('equipment_checkouts').update({out_date:t}).eq('id',id),'Mark out today');
+}
 async function markReturned(id){
   const c=matCheckouts.find(x=>x.id===id);if(!c)return;
   c.returnedDate=matToday();
@@ -9880,7 +9827,7 @@ async function returnAllFor(encName){
   const name=decodeURIComponent(encName);
   const nm=(name==='Not assigned to anyone yet')?'':name.trim().toLowerCase();
   const t=matToday();
-  const list=matCheckouts.filter(c=>!c.returnedDate&&!coNoEquipment(c)&&!coUsesExisting(c)&&c.outDate<=t&&(c.person||'').trim().toLowerCase()===nm);
+  const list=matCheckouts.filter(c=>matKitIsOutNow(c,t)&&(c.person||'').trim().toLowerCase()===nm);
   if(!list.length)return;
   if(!confirm('Mark all '+list.length+' checkout'+(list.length>1?'s':'')+' for '+name+' as returned?\n\nEverything goes back on the shelf as of today and is available to check out again.'))return;
   list.forEach(c=>{
