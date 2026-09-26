@@ -8256,6 +8256,12 @@ function fmtYMD(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,
 // Not returned and past due → still gone TODAY (it hasn't come back!), so overdue
 // checkouts keep blocking availability until marked returned.
 function matPrevDay(d){const x=new Date(d+'T12:00:00');x.setDate(x.getDate()-1);return fmtYMD(x);}
+function matAddDays(ymd,n){
+  if(!ymd)return '';
+  const x=new Date(ymd+'T12:00:00');
+  x.setDate(x.getDate()+n);
+  return fmtYMD(x);
+}
 function coEnd(c){
   if(c.returnedDate)return matPrevDay(c.returnedDate);
   const t=matToday();
@@ -8327,6 +8333,18 @@ function matEqOfKind(kind){const rx=MAT_KIND_RX[kind];return rx?equipment.find(e
 // A following class within two weeks counts as "soon" (Oct 3 and Oct 10 are 7 days).
 // The contractor agreement still calls out three days; this window is the keep-kit alert.
 const MAT_KEEP_DAYS=14;
+// A new durable reservation leaves a week before the class and is due back a week after.
+// usesExisting rows do not use this buffer — they are not a second kit leaving the shelf.
+const MAT_KIT_BUFFER_DAYS=7;
+function matKitOutDate(s){
+  if(!s||!s.date)return '';
+  return matAddDays(s.date,-MAT_KIT_BUFFER_DAYS);
+}
+function matKitDueDate(s){
+  if(!s||!s.date)return '';
+  const end=sessionEndDate(s)||s.date;
+  return matAddDays(end,MAT_KIT_BUFFER_DAYS);
+}
 // One copy per student. Registered headcount wins; otherwise the class capacity.
 const MAT_BOOKS={
   'Safe Sitter®':['ssHandbook','ssNotebook'],
@@ -8592,9 +8610,12 @@ function matPlanForSession(draft){
   const s={id:draft.sessionId||null,course:draft.course,isVirtual:!!draft.isVirtual,date:draft.date||'',extraDates:draft.extraDates||[]};
   const needs=sessionMatNeeds(s);
   const bookNeeds=sessionBookNeeds(s,draft.headcount);
-  const outDate=draft.date||'';
-  const dueDate=outDate?sessionEndDate(s):'';
-  const empty={skip:true,lines:[],books:[],bookBuy:[],purchase:[],overlaps:[],reuseOffer:false,fullyCovered:false,outDate:outDate,dueDate:dueDate,holdUntil:dueDate,keep:null,person:draft.person||''};
+  const classDate=draft.date||'';
+  const classEnd=classDate?(sessionEndDate(s)||classDate):'';
+  // Inventory sees the week before and the week after, not just the class day.
+  const outDate=classDate?matKitOutDate(s):'';
+  const dueDate=classEnd?matKitDueDate(s):'';
+  const empty={skip:true,lines:[],books:[],bookBuy:[],purchase:[],overlaps:[],reuseOffer:false,fullyCovered:false,outDate:outDate,dueDate:dueDate,classDate:classDate,classEnd:classEnd,holdUntil:dueDate,keep:null,person:draft.person||''};
   if(!needs&&!bookNeeds)return empty;
   const hits=needs?matPersonKeepHits(draft.person,outDate,dueDate,draft.excludeCheckoutId||null):[];
   const reuse=!!draft.reuse;
@@ -8633,12 +8654,16 @@ function matPlanForSession(draft){
     });
   }
   const kinds=lines.map(function(l){return l.kind;});
-  const later=kinds.length?matLaterClasses(draft.person,dueDate,draft.sessionId||null,kinds):[];
-  const earlier=kinds.length?matEarlierClasses(draft.person,outDate,draft.sessionId||null,kinds):[];
+  // Keep-kit looks at class dates, not the week-before/after buffer.
+  const later=kinds.length?matLaterClasses(draft.person,classEnd,draft.sessionId||null,kinds):[];
+  const earlier=kinds.length?matEarlierClasses(draft.person,classDate,draft.sessionId||null,kinds):[];
   let holdUntil=dueDate;
-  later.forEach(function(row){if(row.end&&(!holdUntil||row.end>holdUntil))holdUntil=row.end;});
-  const extendIds=hits.filter(function(c){return c&&c.id&&c.dueDate&&dueDate&&c.dueDate<dueDate;}).map(function(c){return c.id;});
-  return{skip:false,lines:lines,books:bookLines,bookBuy:bookBuy,purchase:purchase,overlaps:hits,reuseOffer:lines.some(function(l){return l.held>0;}),fullyCovered:lines.length>0&&lines.every(function(l){return l.covered;}),outDate:outDate,dueDate:dueDate,holdUntil:holdUntil,person:draft.person||'',keep:{later:later,earlier:earlier,extendIds:extendIds}};
+  later.forEach(function(row){
+    const back=row.end?matAddDays(row.end,MAT_KIT_BUFFER_DAYS):'';
+    if(back&&(!holdUntil||back>holdUntil))holdUntil=back;
+  });
+  const extendIds=hits.filter(function(c){return c&&c.id&&c.dueDate&&holdUntil&&c.dueDate<holdUntil;}).map(function(c){return c.id;});
+  return{skip:false,lines:lines,books:bookLines,bookBuy:bookBuy,purchase:purchase,overlaps:hits,reuseOffer:lines.some(function(l){return l.held>0;}),fullyCovered:lines.length>0&&lines.every(function(l){return l.covered;}),outDate:outDate,dueDate:dueDate,classDate:classDate,classEnd:classEnd,holdUntil:holdUntil,person:draft.person||'',keep:{later:later,earlier:earlier,extendIds:extendIds}};
 }
 function matCheckoutItemsFromPlan(plan,reuse){
   if(!plan||plan.skip)return null;
@@ -8791,9 +8816,10 @@ function sessionMatMissing(s,extraItems,excludeId,extraPerson){
   // during this session's dates — shared kits count, no need to check them out twice.
   const persons=new Set(tied.map(c=>(c.person||'').trim().toLowerCase()).filter(Boolean));
   if(extraPerson&&extraPerson.trim())persons.add(extraPerson.trim().toLowerCase());
-  if(persons.size&&s.date){
-    const end=sessionEndDate(s);
-    matCheckouts.filter(c=>c.sessionId!==s.id&&c.id!==excludeId&&!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returnedDate&&persons.has((c.person||'').trim().toLowerCase())&&c.outDate<=end&&s.date<=coEnd(c))
+    if(persons.size&&s.date){
+    const winOut=matKitOutDate(s)||s.date;
+    const winDue=matKitDueDate(s)||sessionEndDate(s);
+    matCheckouts.filter(c=>c.sessionId!==s.id&&c.id!==excludeId&&!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returnedDate&&persons.has((c.person||'').trim().toLowerCase())&&c.outDate<=winDue&&winOut<=coEnd(c))
       .forEach(c=>(c.items||[]).forEach(it=>{if(it.equipmentId)have[it.equipmentId]=(have[it.equipmentId]||0)+(Number(it.qty)||0);}));
   }
   const missing=[];
@@ -9036,7 +9062,7 @@ var _matReuseTouched=false;
 var _matSeedQtys=null;
 var _sessionMatEditId=null;
 function sessionMaterialsPanelHtml(){
-  return '<div class="fg full" id="m-mat-panel" style="background:#f7f4ee;border:1px solid #e4dcc8;border-radius:var(--r-sm);padding:12px 14px"><label style="margin-bottom:4px">Materials for this session</label><div style="font-size:14px;color:var(--muted);margin-bottom:8px">Durable kit only. If this instructor teaches again within two weeks, keep that kit with them. Handbooks and notebooks are counted from the roster and are not listed here.</div><div id="m-mat-body"></div></div>';
+  return '<div class="fg full" id="m-mat-panel" style="background:#f7f4ee;border:1px solid #e4dcc8;border-radius:var(--r-sm);padding:12px 14px"><label style="margin-bottom:4px">Materials for this session</label><div style="font-size:14px;color:var(--muted);margin-bottom:8px">Durable kit only. A new kit goes out one week before the class and is due back one week after. If this instructor already has the kit, keep it with them instead of booking a second one. Handbooks and notebooks are counted from the roster and are not listed here.</div><div id="m-mat-body"></div></div>';
 }
 function defaultMatPerson(){
   if(document.getElementById('m-owner')&&document.getElementById('m-owner').value==='yes')return 'Lindsay Karr (owner)';
@@ -9106,7 +9132,7 @@ function renderSessionMaterials(){
     return;
   }
   if(!draft.date){
-    body.innerHTML='<div style="font-size:15px;color:var(--muted)">Add a date and the usual kit ('+escapeHtml(matNeedsLabel(sessionMatNeeds({course:draft.course,isVirtual:false})||{}))+') will be reserved for those days.</div>';
+    body.innerHTML='<div style="font-size:15px;color:var(--muted)">Add a date and the usual kit ('+escapeHtml(matNeedsLabel(sessionMatNeeds({course:draft.course,isVirtual:false})||{}))+') will go out one week before and come back one week after.</div>';
     window._matPlan=plan;
     return;
   }
@@ -9177,6 +9203,10 @@ function paintSessionMaterialsStatus(){
   }
   const bookNote=matBookBuySentence(plan);
   if(bookNote)html+='<div class="alert warn" style="margin:0 0 8px"><strong>'+escapeHtml(bookNote)+'</strong></div>';
+  if(plan.outDate&&plan.dueDate&&!plan.fullyCovered){
+    const back=plan.holdUntil||plan.dueDate;
+    html+='<div style="font-size:14px;color:var(--muted);margin:0 0 8px">New kit: out '+fd(plan.outDate)+' (one week before class), due back '+fd(back)+(back!==plan.dueDate?' (through the next class, plus one week).':'.')+'</div>';
+  }
   if(plan.purchase.length){
     html+='<div class="alert" style="margin:0;background:#fdecea;border:1px solid #f0c4bc;color:#8c2f1e"><strong>Purchase more equipment.</strong><br>'+plan.purchase.map(function(p){return 'Purchase '+p.shortfall+' more '+escapeHtml(p.name)+' ('+p.free+' free of '+p.owned+' owned on these dates).';}).join('<br>')+'</div>';
   }
@@ -9208,17 +9238,21 @@ function applySessionMaterials(sessionId,choice){
   const items=matCheckoutItemsFromPlan(choice.plan,choice.reuse);
   if(!items)return;
   const person=choice.person||'';
-  const outDate=choice.plan.outDate;
-  const dueDate=choice.plan.holdUntil||choice.plan.dueDate||outDate;
+  // A reuse row is not a new reservation, so it keeps the class dates.
+  // A new kit uses the week-before / week-after window (longer if they keep it).
+  const keeping=items.length===1&&items[0]&&items[0].usesExisting;
+  const outDate=keeping?(choice.plan.classDate||choice.plan.outDate):choice.plan.outDate;
+  const dueDate=keeping?(choice.plan.classEnd||choice.plan.classDate||choice.plan.dueDate):(choice.plan.holdUntil||choice.plan.dueDate||outDate);
   let note=choice.reuse&&(choice.plan.fullyCovered||items.some(function(it){return it.usesExisting;}))?'Keeping kit already with '+(person||'this instructor'):'Reserved when the session was saved';
   if(choice.plan.keep&&choice.plan.keep.later&&choice.plan.keep.later.length)note='KEEP the durable kit for the next class.';
   if(choice.reuse&&choice.plan.keep&&choice.plan.keep.extendIds){
     choice.plan.keep.extendIds.forEach(function(id){
       const prev=matCheckouts.find(function(x){return x.id===id;});
       if(!prev||prev.returnedDate)return;
-      if(prev.dueDate&&dueDate&&prev.dueDate<dueDate){
-        prev.dueDate=dueDate;
-        dbWrite(sb.from('equipment_checkouts').update({due_date:dueDate}).eq('id',prev.id),'Keep kit out for the next class');
+      const extendTo=choice.plan.holdUntil||dueDate;
+      if(prev.dueDate&&extendTo&&prev.dueDate<extendTo){
+        prev.dueDate=extendTo;
+        dbWrite(sb.from('equipment_checkouts').update({due_date:extendTo}).eq('id',prev.id),'Keep kit out for the next class');
       }
     });
   }
@@ -9335,13 +9369,14 @@ async function extendHolding(checkoutId,sessId){
   const s=sessions.find(x=>x.id===sessId);
   if(!c||!s)return;
   const who=(c.person||'').trim();
-  const newDue=sessionEndDate(s)||s.date;
-  if(!confirm('Keep '+(who||'this kit')+'\'s equipment out through '+s.course+' on '+fmtSessDate(s,{month:'short',day:'numeric'})+'?\n\nDue back moves to '+newDue+', and the class is recorded as covered by what they already have — nothing extra leaves the shelf.'))return;
+  const newDue=matKitDueDate(s);
+  const coverDue=sessionEndDate(s)||s.date;
+  if(!confirm('Keep '+(who||'this kit')+'\'s equipment out through '+s.course+' on '+fmtSessDate(s,{month:'short',day:'numeric'})+'?\n\nDue back moves to '+newDue+' (one week after that class), and the class is recorded as covered by what they already have — nothing extra leaves the shelf.'))return;
   matCheckouts.filter(x=>!x.returnedDate&&!coNoEquipment(x)&&!coUsesExisting(x)
       &&(x.person||'').trim().toLowerCase()===who.toLowerCase()&&x.dueDate&&x.dueDate<newDue)
     .forEach(x=>{x.dueDate=newDue;dbWrite(sb.from('equipment_checkouts').update({due_date:newDue}).eq('id',x.id),'Extend checkout for next class');});
   if(!matCheckouts.some(x=>x.sessionId===sessId)){
-    const cov={id:sid(),sessionId:sessId,person:who,items:[{usesExisting:true,qty:0}],outDate:s.date,dueDate:newDue,returnedDate:null,notes:'Covered by equipment already out',createdAt:Date.now()};
+    const cov={id:sid(),sessionId:sessId,person:who,items:[{usesExisting:true,qty:0}],outDate:s.date,dueDate:coverDue,returnedDate:null,notes:'Covered by equipment already out',createdAt:Date.now()};
     matCheckouts.push(cov);
     dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(cov)),'Covered by existing kit');
   }
@@ -9617,8 +9652,8 @@ function coSessChanged(){
     window._coDueNote='';
     coNeedsHint(null);coUpdateAvail();return;
   }
-  document.getElementById('m-co-out').value=s.date;
-  document.getElementById('m-co-due').value=sessionEndDate(s);
+  document.getElementById('m-co-out').value=matKitOutDate(s);
+  let dueBack=matKitDueDate(s);
   // ALWAYS follow the selected session's assigned instructor (bug fix: the previous
   // session's instructor used to stay in the box when you picked a different session).
   // Cleared when the session has no instructor assigned yet, so a stale name never
@@ -9638,14 +9673,14 @@ function coSessChanged(){
     if(nxt){
       const gap=matDaysBetween(base,nxt.date);
       const kinds=Object.keys(sessionMatNeeds(s)||{});
-      if(gap>=0&&gap<=MAT_KEEP_DAYS&&kinds.length&&matSameDurable(kinds,sessionMatNeeds(nxt))){
-        document.getElementById('m-co-due').value=sessionEndDate(nxt)||nxt.date;
-      }else if(gap>=0&&gap<=3){
-        document.getElementById('m-co-due').value=sessionEndDate(nxt)||nxt.date;
-        window._coDueNote=who.value.split(' ')[0]+' teaches '+nxt.course+' on '+fmtSessDate(nxt,{month:'short',day:'numeric'})+', '+gap+' day'+(gap===1?'':'s')+' later. Due back has been moved past that class so the kit is not flagged overdue in between — change it if you want the equipment back sooner.';
+      const nxtDue=matKitDueDate(nxt);
+      if(nxtDue>dueBack&&((gap>=0&&gap<=MAT_KEEP_DAYS&&kinds.length&&matSameDurable(kinds,sessionMatNeeds(nxt)))||(gap>=0&&gap<=3))){
+        dueBack=nxtDue;
+        if(!(gap<=MAT_KEEP_DAYS&&kinds.length&&matSameDurable(kinds,sessionMatNeeds(nxt))))window._coDueNote=who.value.split(' ')[0]+' teaches '+nxt.course+' on '+fmtSessDate(nxt,{month:'short',day:'numeric'})+', '+gap+' day'+(gap===1?'':'s')+' later. Due back is one week after that class so the kit is not flagged overdue in between — change it if you want the equipment back sooner.';
       }
     }
   }
+  document.getElementById('m-co-due').value=dueBack;
   coPrefillNeeds(s);
   coNeedsHint(s);
   coUpdateAvail();
@@ -9749,16 +9784,22 @@ function coUpdateAvail(){
 async function coUseExisting(){
   const sessionId=document.getElementById('m-co-sess').value||null;
   if(!sessionId)return;
-  const outDate=document.getElementById('m-co-out').value;
-  const dueDate=document.getElementById('m-co-due').value;
+  const formOut=document.getElementById('m-co-out').value;
+  const formDue=document.getElementById('m-co-due').value;
   const person=document.getElementById('m-co-who').value.trim();
+  const sDates=sessions.find(x=>x.id===sessionId);
+  // The form dates are the new-kit buffer. A reuse row stores the class dates instead.
+  const outDate=sDates&&sDates.date?sDates.date:formOut;
+  const dueDate=sDates?(sessionEndDate(sDates)||sDates.date):formDue;
+  const extendTo=sDates?matKitDueDate(sDates):formDue;
   // Gentle check (same spirit as saveCheckout): does what they already have out
-  // actually include everything this course usually needs?
+  // actually include everything this course usually needs? The form dates are the
+  // week-before / week-after window, which is what has to be covered.
   const s=sessions.find(x=>x.id===sessionId);
   const needs=s?sessionMatNeeds(s):null;
-  if(needs&&outDate&&dueDate){
+  if(needs&&(formOut||outDate)&&(formDue||dueDate)){
     const have={};
-    matPersonKeepHits(person,outDate,dueDate,null).forEach(function(x){
+    matPersonKeepHits(person,formOut||outDate,formDue||dueDate,null).forEach(function(x){
       (x.items||[]).forEach(function(it){
         if(!it||!it.equipmentId||matItemIsConsumable(it))return;
         const q=Number(it.qty)||0;
@@ -9772,6 +9813,12 @@ async function coUseExisting(){
     });
     if(missing.length&&!confirm('🎒 Heads up: what '+(person||'they')+' already has out doesn\'t seem to include: '+missing.join(', ')+'.\n\nMark this session as covered anyway?'))return;
   }
+  matCheckouts.filter(function(x){
+    return x&&!x.returnedDate&&!coNoEquipment(x)&&!coUsesExisting(x)&&(x.person||'').trim().toLowerCase()===(person||'').trim().toLowerCase()&&x.dueDate&&extendTo&&x.dueDate<extendTo;
+  }).forEach(function(x){
+    x.dueDate=extendTo;
+    dbWrite(sb.from('equipment_checkouts').update({due_date:extendTo}).eq('id',x.id),'Keep kit out for the next class');
+  });
   const notes=document.getElementById('m-co-notes').value.trim()||('Keeping kit already with '+(person||'this instructor'));
   const items=[{usesExisting:true,qty:0}];
   const c={id:sid(),sessionId,person,items:items,outDate,dueDate,returnedDate:null,notes,createdAt:Date.now()};
@@ -9805,8 +9852,8 @@ async function markNoEquipment(sessId){
   dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(c)),'No-equipment marker');
 }
 async function saveCheckout(editId){
-  const outDate=document.getElementById('m-co-out').value;
-  const dueDate=document.getElementById('m-co-due').value;
+  let outDate=document.getElementById('m-co-out').value;
+  let dueDate=document.getElementById('m-co-due').value;
   if(!outDate||!dueDate){alert('Please set the out date and due-back date.');return;}
   if(dueDate<outDate){alert('The due-back date is before the out date.');return;}
   let items=equipment.filter(function(eq){return !matEqIsConsumable(eq);}).map(eq=>{
@@ -9826,6 +9873,10 @@ async function saveCheckout(editId){
     if(plan.fullyCovered){
       items=[{usesExisting:true,qty:0}];
       if(!notes)notes='Keeping kit already with '+person;
+      if(sKeep.date){
+        outDate=sKeep.date;
+        dueDate=sessionEndDate(sKeep)||sKeep.date;
+      }
       const holdUntil=plan.holdUntil||plan.dueDate||dueDate;
       (plan.keep&&plan.keep.extendIds||[]).forEach(function(id){
         const prev=matCheckouts.find(function(x){return x.id===id;});
