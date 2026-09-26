@@ -336,6 +336,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <div><div class="page-title">Registrations</div><div class="page-sub">All students across all sessions</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn" onclick="downloadAllWaivers()">📄 Download signed waivers</button>
+          <button class="btn" onclick="openMatchPayment()">Match payment</button>
           <button class="btn primary" onclick="openAddReg(null)">+ Add registration</button>
         </div>
       </div>
@@ -5878,6 +5879,7 @@ function renderRegs(){
           <button class="btn sm" onclick="openWaiverDoc('${r.id}')">📄 Waiver</button>
           <button class="btn sm danger" onclick="deleteReg('${r.id}')">Delete</button>`:`
           ${r.payStatus==='in_kind'?'':`<button class="btn sm ${r.payStatus==='paid'?'':'success'}" onclick="togglePaid('${r.id}')">${r.payStatus==='paid'?'Mark unpaid':'Mark paid'}</button>`}
+          ${(r.payStatus==='pending'||r.payStatus==='unpaid')?`<button class="btn sm" onclick="openMatchPayment('${r.id}')">Match</button>`:''}
           <button class="btn sm" onclick="openWaiverDoc('${r.id}')">📄 Waiver</button>
           <button class="btn sm" onclick="openEditReg('${r.id}')">Edit</button>
           <button class="btn sm danger" onclick="cancelReg('${r.id}')">Cancel</button>`}
@@ -5918,6 +5920,7 @@ function renderRegAlerts(){
         <div style="font-size:16px;line-height:1.4">${escapeHtml(r.studentName)} <span style="color:var(--muted)">· ${s?escapeHtml(s.course)+' '+fmtSessDate(s,{month:'short',day:'numeric'}):'—'} · ${days}d pending</span><br>
         <span style="font-size:14.5px;color:var(--muted)">${escapeHtml(r.contact||'')}</span></div>
         <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn sm" onclick="openMatchPayment('${r.id}')">Match payment</button>
           <button class="btn sm success" onclick="togglePaid('${r.id}')">Mark paid</button>
           <button class="btn sm danger" onclick="cancelReg('${r.id}')">Cancel spot</button>
         </div></div>`;
@@ -5969,11 +5972,238 @@ async function togglePaid(id){
 }
 
 
+// Course, date, and session code for a registration. Read-only context so an edit
+// form never hides which class the row belongs to.
+function regClassLabel(r){
+  if(!r)return 'Class not on file';
+  const s=sessions.find(x=>x.id===r.sessionId);
+  if(!s)return 'Class not on file';
+  const when=fmtSessDate(s,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  const bits=[s.course||'Class',when];
+  if(s.code)bits.push('Code '+s.code);
+  return bits.join(' \u00b7 ');
+}
+function paymentAmountLabel(value){
+  const raw=typeof value==='number'?String(value):String(value==null?'':value).replace(/,/g,'');
+  const n=typeof value==='number'?value:parseFloat(raw.replace(/[^0-9.-]/g,''));
+  if(!Number.isFinite(n))return '';
+  return (Math.round(n*100)/100).toFixed(2);
+}
+// Keep in sync with findPaymentMatches in lib/payment-utils.js.
+function findPaymentMatches(opts){
+  opts=opts||{};
+  const list=Array.isArray(opts.registrations)?opts.registrations:[];
+  const payer=String(opts.payer||'');
+  const memo=String(opts.memo||'');
+  const hay=(payer+'\n'+memo).toLowerCase();
+  const amt=matchMoney(opts.amount);
+  const STOP={paypal:1,venmo:1,zelle:1,paid:1,payment:1,via:1,from:1,the:1,and:1,for:1,reg:1,sent:1,registration:1,class:1,course:1};
+  function matchMoney(value){
+    if(value==null||value==='')return null;
+    const raw=typeof value==='number'?String(value):String(value).replace(/,/g,'');
+    const n=typeof value==='number'?value:parseFloat(raw.replace(/[^0-9.-]/g,''));
+    if(!Number.isFinite(n))return null;
+    return Math.round(n*100)/100;
+  }
+  function matchEmails(text){
+    const out=[];
+    const re=/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z][a-z]+/gi;
+    let m;
+    const src=String(text||'');
+    while((m=re.exec(src)))out.push(m[0].toLowerCase());
+    return out;
+  }
+  function matchPhones(text){
+    const out=[];
+    const src=String(text||'');
+    let cur='';
+    let sep=0;
+    function push(){
+      if(!cur)return;
+      let d=cur;
+      if(d.length===11&&d.charAt(0)==='1')d=d.slice(1);
+      if(d.length>=7)out.push(d);
+      cur='';
+      sep=0;
+    }
+    for(let i=0;i<src.length;i++){
+      const c=src.charAt(i);
+      if(c>='0'&&c<='9'){cur+=c;sep=0;}
+      else if(cur&&(c===' '||c==='-'||c==='.'||c==='('||c===')')){
+        sep++;
+        if(sep>2)push();
+      }else push();
+    }
+    push();
+    return out;
+  }
+  function matchTokens(text){
+    const stripped=String(text||'').replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z][a-z]+/gi,' ');
+    return stripped.toLowerCase().split(/[^a-z]+/).filter(function(t){return t.length>=2&&!STOP[t];});
+  }
+  function nameCovers(queryTokens,target){
+    const targetTokens=matchTokens(target);
+    if(!queryTokens.length||!targetTokens.length)return false;
+    if(queryTokens.length===1)return targetTokens.indexOf(queryTokens[0])!==-1;
+    return queryTokens.every(function(t){return targetTokens.indexOf(t)!==-1;});
+  }
+  function phonesMatch(left,contact){
+    const contactPhones=matchPhones(contact);
+    const digits=String(contact||'').replace(/\D/g,'');
+    return left.some(function(p){
+      const last10=p.slice(-10);
+      const last7=p.length>=7?p.slice(-7):'';
+      const inList=contactPhones.some(function(c){
+        if(last10&&c.slice(-10)===last10)return true;
+        return !!(last7&&c.slice(-7)===last7);
+      });
+      if(inList)return true;
+      if(digits&&last10&&digits.indexOf(last10)!==-1)return true;
+      return !!(digits&&last7&&digits.indexOf(last7)!==-1);
+    });
+  }
+  const blob=payer+' '+memo;
+  const payerEmails=matchEmails(blob);
+  const payerPhones=matchPhones(blob);
+  const payerTokens=matchTokens(payer);
+  const hits=[];
+  list.forEach(function(r){
+    if(!r)return;
+    const status=String(r.payStatus!=null?r.payStatus:(r.status||'')).toLowerCase();
+    if(status!==''&&status!=='pending'&&status!=='unpaid')return;
+    const id=String(r.id||'');
+    const reasons=[];
+    let score=0;
+    const hasId=id.length>=6&&hay.indexOf(id.toLowerCase())!==-1;
+    if(hasId){score+=100;reasons.push('registration id');}
+    let due=null;
+    if(typeof opts.priceOf==='function')due=matchMoney(opts.priceOf(r));
+    else if(r.amountDue!=null)due=matchMoney(r.amountDue);
+    const amountHit=amt!=null&&due!=null&&Math.abs(amt-due)<=0.01;
+    if(amountHit){score+=40;reasons.push('amount');}
+    const contact=String(r.contact||'');
+    const contactEmails=matchEmails(contact);
+    const emailHit=payerEmails.some(function(e){return contactEmails.indexOf(e)!==-1;});
+    if(emailHit){score+=30;reasons.push('email');}
+    const phoneHit=phonesMatch(payerPhones,contact);
+    if(phoneHit){score+=30;reasons.push('phone');}
+    const parent=r.parentName||r.parent_name||'';
+    const student=r.studentName||r.student_name||'';
+    const nameMatched=nameCovers(payerTokens,parent)||nameCovers(payerTokens,student)
+      ||nameCovers(matchTokens(parent),blob)||nameCovers(matchTokens(student),blob)
+      ||nameCovers(matchTokens(memo),parent)||nameCovers(matchTokens(memo),student);
+    if(nameMatched){score+=25;reasons.push('name');}
+    if(!(hasId||(amountHit&&(emailHit||phoneHit||nameMatched))))return;
+    hits.push({
+      id:id,
+      registration:r,
+      score:score,
+      reasons:reasons,
+      amountDue:due,
+      amountDiffers:!!(hasId&&amt!=null&&due!=null&&!amountHit)
+    });
+  });
+  hits.sort(function(a,b){
+    if(b.score!==a.score)return b.score-a.score;
+    return String(a.id).localeCompare(String(b.id));
+  });
+  return hits;
+}
+function openMatchPayment(prefillId){
+  const pre=prefillId?registrations.find(x=>x.id===prefillId):null;
+  const s=pre?sessions.find(x=>x.id===pre.sessionId):null;
+  const amt=pre?paymentAmountLabel(regEffectivePrice(pre,s)):'';
+  const who=pre?(pre.parentName||pre.studentName||pre.contact||''):'';
+  const memo=pre?('Reg '+pre.id):'';
+  let method='venmo';
+  const note=pre?(pre.notes||''):'';
+  if(/zelle/i.test(note))method='zelle';
+  else if(/paypal/i.test(note))method='paypal';
+  showModal(`<div class="modal-head"><h3>Match payment</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.45;color:var(--muted)">Match a PayPal, Venmo, or Zelle payment you already received. Card and PayPal payments on the registration page already mark the seat paid automatically. This tool does not read your PayPal, Venmo, or Zelle inbox.</p>
+    <div class="form-grid">
+      <div class="fg"><label>Amount received</label><input type="text" id="m-pay-amt" inputmode="decimal" value="${escapeHtml(amt)}" placeholder="185.00"></div>
+      <div class="fg"><label>How they paid</label><select id="m-pay-method">
+        <option value="paypal" ${method==='paypal'?'selected':''}>PayPal</option>
+        <option value="venmo" ${method==='venmo'?'selected':''}>Venmo</option>
+        <option value="zelle" ${method==='zelle'?'selected':''}>Zelle</option>
+        <option value="other" ${method==='other'?'selected':''}>Other</option>
+      </select></div>
+      <div class="fg full"><label>Who paid (parent, student, email, or phone)</label><input type="text" id="m-pay-who" value="${escapeHtml(who)}"></div>
+      <div class="fg full"><label>Memo or registration id (optional)</label><input type="text" id="m-pay-memo" value="${escapeHtml(memo)}"></div>
+    </div>
+    <div id="m-pay-results" style="margin-top:14px"></div>
+  </div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Close</button><button class="btn primary" onclick="runPaymentMatch()">Find matches</button></div>`);
+  if(pre)runPaymentMatch();
+}
+function runPaymentMatch(){
+  const box=document.getElementById('m-pay-results');
+  const amtEl=document.getElementById('m-pay-amt');
+  const whoEl=document.getElementById('m-pay-who');
+  const memoEl=document.getElementById('m-pay-memo');
+  if(!box||!amtEl)return;
+  const hits=findPaymentMatches({
+    amount:amtEl.value,
+    payer:whoEl?whoEl.value:'',
+    memo:memoEl?memoEl.value:'',
+    registrations:registrations,
+    priceOf:function(r){
+      const s=sessions.find(x=>x.id===r.sessionId);
+      return regEffectivePrice(r,s);
+    }
+  });
+  if(!hits.length){
+    box.innerHTML='<div style="font-size:15px;line-height:1.45;color:var(--muted);background:#f7f4ee;border-radius:8px;padding:12px">No open registration matched. Use the amount plus a parent name, email, or phone — or paste the registration id from the payment memo. Card and PayPal payments on the registration page already mark the seat paid automatically. This tool does not read your PayPal, Venmo, or Zelle inbox.</div>';
+    return;
+  }
+  box.innerHTML=hits.map(function(h){
+    const r=h.registration;
+    const warn=h.amountDiffers?'<div style="color:var(--warn);font-size:14px;margin-top:4px">Amount does not match the class price. Confirm before marking paid.</div>':'';
+    return `<div style="padding:10px 0;border-top:1px solid var(--border)">
+      <div style="font-weight:600">${escapeHtml(r.studentName||'Student')}</div>
+      <div style="font-size:15px;margin-top:2px">${escapeHtml(regClassLabel(r))}</div>
+      <div style="font-size:14.5px;color:var(--muted);margin-top:2px">${escapeHtml(r.payStatus||'unpaid')} · due ${fmt(h.amountDue||0)} · matched on ${escapeHtml(h.reasons.join(', '))}</div>
+      ${warn}
+      <div style="margin-top:8px"><button class="btn sm success" onclick="markMatchedPaid('${r.id}')">Mark paid</button></div>
+    </div>`;
+  }).join('');
+}
+async function markMatchedPaid(id){
+  const r=registrations.find(x=>x.id===id);if(!r)return;
+  const methodEl=document.getElementById('m-pay-method');
+  const amtEl=document.getElementById('m-pay-amt');
+  const method=methodEl?methodEl.value:'other';
+  const labels={paypal:'PayPal',venmo:'Venmo',zelle:'Zelle',other:'Other'};
+  const label=labels[method]||'Other';
+  const s=sessions.find(x=>x.id===r.sessionId);
+  const due=regEffectivePrice(r,s);
+  const typed=amtEl?amtEl.value.trim():'';
+  const shown=paymentAmountLabel(typed!==''?typed:due);
+  const differs=typed!==''&&shown!==''&&Math.abs(Number(shown)-Number(due))>0.01;
+  const msg='Mark '+(r.studentName||'this student')+' paid via '+label+'?\n\n'+regClassLabel(r)+(shown?'\nAmount: $'+shown:'')+(differs?'\n\nThe amount you typed does not match the class price of $'+paymentAmountLabel(due)+'.':'')+'\n\nThis only updates the registration. It does not contact PayPal, Venmo, or Zelle.';
+  if(!confirm(msg))return;
+  const prevStatus=r.payStatus;
+  const prevNotes=r.notes;
+  r.payStatus='paid';
+  let notes=notesForPaymentStatus('paid',r.notes);
+  if(shown&&notes.indexOf('[Paid via ')===-1){
+    notes=('[Paid via '+label+' \u2014 $'+shown+']'+(notes?' '+notes:'')).trim();
+  }
+  r.notes=notes;
+  closeModal();renderRegs();renderDashboard();
+  const ok=await dbWrite(sb.from('registrations').update({pay_status:'paid',notes:r.notes}).eq('id',id),'Match payment');
+  if(ok===false){r.payStatus=prevStatus;r.notes=prevNotes;renderRegs();renderDashboard();return;}
+  showToast('Marked paid via '+label+'.');
+}
+
 function openEditReg(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
   const [fn,...rest]=r.studentName.split(' ');const ln=rest.join(' ');
   showModal(`<div class="modal-head"><h3>Edit registration</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
+    <div class="fg full"><label>Class</label><div id="m-eclass" style="background:#f7f4ee;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:16px;font-weight:500;line-height:1.4">${escapeHtml(regClassLabel(r))}</div></div>
     <div class="fg"><label>First name *</label><input type="text" id="m-efn" value="${escapeHtml(fn)}"></div>
     <div class="fg"><label>Last name *</label><input type="text" id="m-eln" value="${escapeHtml(ln)}"></div>
     <div class="fg"><label>Grade</label><select id="m-egrade">
