@@ -4286,7 +4286,7 @@ function renderSessions(){
   const now=new Date();
   let list=sessions.filter(s=>{
     if(cf&&s.course!==cf)return false;
-    if(mf&&!s.date.startsWith(mf))return false;
+    if(mf&&!(s.date||'').startsWith(mf))return false;
     if(scope==='cancelled')return !!s.isCancelled;
     if(scope!=='all'){
       if(s.isCancelled)return false;
@@ -4299,7 +4299,7 @@ function renderSessions(){
       if(scope==='upcoming'&&isCompleted)return false;
     }
     return true;
-  }).sort((a,b)=>sessionSortAsc?a.date.localeCompare(b.date):b.date.localeCompare(a.date));
+  }).sort((a,b)=>sessionSortAsc?(a.date||'').localeCompare(b.date||''):(b.date||'').localeCompare(a.date||''));
   const t=document.getElementById('sessions-table');
   // Column count matters more than column width here: on a 13" laptop ten columns could
   // not fit no matter how they were squeezed. Code now rides under the course name and
@@ -4337,12 +4337,13 @@ function renderSessions(){
       if(s.isHold){
         const seats=s.reservedSeats!=null?s.reservedSeats:'—';
         const when=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
+        const whenCell=escapeHtml(when)+(s.time?`<br><span style="font-size:14px;color:var(--muted)">${escapeHtml(s.time)}</span>`:'');
         const payCell=s.holdPayment?escapeHtml(s.holdPayment):'—';
         return`<tr style="background:#f6f4fb">
-          <td style="white-space:nowrap">${escapeHtml(when)}</td>
+          <td style="white-space:nowrap">${whenCell}</td>
           <td style="font-weight:600">${s.course}<br><span style="background:#e7e0f5;color:#5b4a8a;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">ON HOLD</span>${codeLine(s.code)}</td>
           <td style="color:var(--muted)">${s.isVirtual?'🖥 Virtual':(escapeHtml(s.location)||'—')}</td>
-          <td style="color:var(--muted)">—</td>
+          <td style="color:var(--muted)">${instr}</td>
           <td>${seats}<span style="font-size:14px;color:var(--muted)"> reserved</span></td>
           <td style="font-size:15px;color:var(--muted)">${payCell}</td>
           <td><span style="font-size:14px;color:#5b4a8a;font-weight:500">Hold</span></td>
@@ -4398,10 +4399,12 @@ function openSessionMenu(ev,sessId){
   const isPast=new Date(sessionEndDate(s)+'T12:00:00')<new Date();
   const esc=t=>String(t).replace(/'/g,"\\'");
   const items=[];
+  // A hold is still a class. Publish stays hold-only (it takes the class off hold
+  // and onto the instructor board). Editing uses the same session form as every
+  // other class — date, time, location, notes, instructor, and hold term/payment.
+  // Adding a student stays off this menu: holds are not open for registration.
   if(s.isHold){
     items.push({label:'🚀 Publish to instructors',act:`publishHold('${sessId}')`});
-    items.push({label:'✏️ Edit hold',act:`openEditSession('${sessId}')`,sep:true});
-    items.push({label:'🗑 Delete',act:`deleteSession('${sessId}')`,danger:true});
   }else{
   items.push({label:'📋 Roster',act:`openRoster('${sessId}')`});
   items.push({label:'✉️ Email class',act:`emailClass('${sessId}')`});
@@ -4421,15 +4424,15 @@ function openSessionMenu(ev,sessId){
   if(exCo&&coNoEquipment(exCo))items.push({label:'📦 No equipment needed ✓ — view in Materials',act:`showScreen('materials',document.getElementById('nav-materials'))`});
   else if(exCo)items.push({label:coUsesExisting(exCo)?'📦 Covered ✓ (using kit they already have) — view':'📦 Equipment reserved ✓ — view / edit',act:`showScreen('materials',document.getElementById('nav-materials'));openEditCheckout('${exCo.id}')`});
   else items.push({label:'📦 Check out equipment',act:`showScreen('materials',document.getElementById('nav-materials'));openCheckout('${sessId}')`});
-  items.push({label:'✏️ Edit session',act:`openEditSession('${sessId}')`,sep:true});
   if(s.isCancelled){
     items.push({label:'📧 Re-open cancellation emails',act:`openCancellationEmails('${sessId}')`});
     items.push({label:'↩️ Un-cancel session',act:`uncancelSession('${sessId}')`});
   }else{
     items.push({label:'🚫 Cancel session',act:`cancelSession('${sessId}')`,danger:true});
   }
-  items.push({label:'🗑 Delete',act:`deleteSession('${sessId}')`,danger:true});
   }
+  items.push({label:'✏️ Edit session',act:`openEditSession('${sessId}')`,sep:true});
+  items.push({label:'🗑 Delete',act:`deleteSession('${sessId}')`,danger:true});
 
   const btn=ev.currentTarget;
   const menu=document.createElement('div');
@@ -5058,7 +5061,21 @@ function openEditCustomJob(id){
   showModal(`<div class="modal-head"><h3>Edit custom job</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Job title *</label><input type="text" id="cj-title" value="${s.course||''}"></div>
-    <div class="fg"><label>Date * <span style="font-weight:400;color:var(--muted)">(first meeting if recurring)</span></label><input type="date" id="cj-date" value="${s.date||''}"></div>
+    <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
+        <input type="checkbox" id="cj-hold" ${s.isHold?'checked':''} onchange="toggleCustomHoldMode(this.checked)" style="width:16px;height:16px;cursor:pointer">
+        Place a hold (reserved, not yet scheduled)
+      </label>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Holds stay hidden from the instructor job board until you publish them. Uncheck this box, or use Publish to instructors, once the date is set.</div>
+      <div id="cj-hold-panel" style="display:${s.isHold?'block':'none'};margin-top:12px">
+        <div class="form-grid">
+          <div class="fg"><label>Term / season</label><input type="text" id="cj-hold-term" value="${escapeHtml(s.holdTerm||'')}" placeholder="e.g. Fall 2026"></div>
+          <div class="fg"><label>Reserved seats</label><input type="number" id="cj-hold-seats" value="${s.reservedSeats||''}" min="1" step="1" placeholder="e.g. 12"></div>
+          <div class="fg full"><label>Payment recorded</label><input type="text" id="cj-hold-payment" value="${escapeHtml(s.holdPayment||'')}" placeholder="e.g. Paid by check, $300, Smith family"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fg"><label>Date <span id="cj-date-req">${s.isHold?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'* <span style="font-weight:400;color:var(--muted)">(first meeting if recurring)</span>'}</span></label><input type="date" id="cj-date" value="${s.date||''}"></div>
     <div class="fg"><label>Time</label><input type="text" id="cj-time" value="${s.time||''}" placeholder="e.g. 4:00 – 5:00 PM"></div>
     <div class="fg full" style="background:#f3f7fb;border:1px solid #d6e4f0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:16px;text-transform:none;letter-spacing:0"><input type="checkbox" id="cj-recur" ${s.isRecurring?'checked':''} onchange="toggleRecurFields(this.checked)" style="width:16px;height:16px;accent-color:#1a5c8a;cursor:pointer"> <span style="font-weight:500">↻ This is a recurring job</span> <span style="font-weight:400;color:var(--muted)">(meets more than once, e.g. weekly)</span></label>
@@ -5166,12 +5183,18 @@ function openEditCustomJob(id){
   fillCjInstrSelect(jdi.instructorId||s.instructorId||'');updateCjCredNotice();
 }
 
+function toggleCustomHoldMode(on){
+  const panel=document.getElementById('cj-hold-panel'); if(panel)panel.style.display=on?'block':'none';
+  const req=document.getElementById('cj-date-req'); if(req)req.innerHTML=on?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'* <span style="font-weight:400;color:var(--muted)">(first meeting if recurring)</span>';
+}
+
 async function saveEditCustomJob(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
   const date=document.getElementById('cj-date').value;
   const title=document.getElementById('cj-title').value.trim();
   const payRaw=document.getElementById('cj-pay').value;
-  if(!date){alert('Please select a date.');return;}
+  const isHold=!!document.getElementById('cj-hold')?.checked;
+  if(!date&&!isHold){alert('Please select a date.');return;}
   if(!title){alert('Please enter a job title.');return;}
   if(payRaw===''||isNaN(Number(payRaw))||Number(payRaw)<0){alert('Please enter the total pay amount.');return;}
   const externalRegistrationUrl=readExternalRegistrationUrl();
@@ -5194,8 +5217,12 @@ async function saveEditCustomJob(id){
   }else{
     code=reissueStaleCode(id,code,_prevDate,date,uniqueCustomJobCode(date,id,title,siteName,isRecurring));
   }
+  const holdTerm=isHold?(document.getElementById('cj-hold-term')?.value||''):'';
+  const holdSeatsRaw=isHold?(document.getElementById('cj-hold-seats')?.value||''):'';
+  const reservedSeats=holdSeatsRaw&&Number(holdSeatsRaw)>0?Number(holdSeatsRaw):null;
+  const holdPayment=isHold?(document.getElementById('cj-hold-payment')?.value||''):'';
   const prevSnapshot={...s};
-  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),additionalCosts:_editCosts.filter(c=>c.label||c.amount),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)});
+  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),additionalCosts:_editCosts.filter(c=>c.label||c.amount),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false;
   {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;}
@@ -5301,6 +5328,10 @@ function updateInstrPayPreview(){
 function openEditSession(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
   if(s.isCustomJob){openEditCustomJob(id);return;}
+  // Job data is the live assignment, but a hold (or any class) may only have
+  // instructor_id on the session row. Prefer that over a blank dropdown, or the
+  // next save would clear the instructor.
+  const assignedInstrId=(jobDataCache[s.id]||{}).instructorId||s.instructorId||'';
   _costsCtx='session';
   _editCosts=JSON.parse(JSON.stringify(s.additionalCosts||[]));
   _editDays=JSON.parse(JSON.stringify((s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}))));
@@ -5373,7 +5404,7 @@ function openEditSession(id){
       <select id="m-owner" onchange="toggleInstrSelect(this.value)"><option value="no" ${!s.ownerTaught?'selected':''}>Hired instructor</option><option value="yes" ${s.ownerTaught?'selected':''}>You are teaching</option></select></div>
     <div class="fg full" id="m-instr-wrap" style="margin-top:-4px;display:${s.ownerTaught?'none':'flex'}">
       <label>Pre-assign instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
-      <select id="m-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option>${instrPickList((jobDataCache[s.id]||{}).instructorId).map(i=>`<option value="${i.id}" ${(jobDataCache[s.id]||{}).instructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}${instrInactiveMark(i)}</option>`).join('')}</select>
+      <select id="m-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option>${instrPickList(assignedInstrId).map(i=>`<option value="${i.id}" ${assignedInstrId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}${instrInactiveMark(i)}</option>`).join('')}</select>
     </div>
     <div class="fg full" id="m-instr2-wrap" style="margin-top:-4px">
       <label id="m-instr2-label">Second instructor <span style="font-weight:400;color:var(--muted)">(optional — for large classes needing two instructors)</span></label>
