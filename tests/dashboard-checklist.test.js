@@ -70,4 +70,28 @@ test('dashboard no longer renders the removed widgets', () => {
   assert.match(admin, /id="reminder-alerts"/);
   assert.match(admin, /id="dash-materials"/);
   assert.match(admin, /All caught up — no upcoming class still needs checklist work/);
+  assert.match(admin, /dashChecklistSessions\(sessions, now\)\.filter\(function\(s\)\{return !preClassChecklistDone\(s\);\}/);
+});
+
+test('a wall of finished green checklists is removed from the dashboard', () => {
+  const today = new Date(2026, 8, 26);
+  const done = { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true };
+  sandbox.jobDataCache = {
+    welcome: done,
+    gp: done,
+    fri: done,
+    sat: done,
+    open: { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: false }
+  };
+  const rows = [
+    sess('welcome', '2026-09-27', { course: "Service Unit 60-6 (Nation's Capital Girl Scouts) Welcome Event!", hasHost: false }),
+    sess('gp', '2026-09-30', { course: 'Grandparents: Getting Started' }),
+    sess('fri', '2026-10-02', { course: 'Safe Sitter®' }),
+    sess('sat', '2026-10-03', { course: 'Safe Sitter®' }),
+    sess('open', '2026-10-08', { course: 'Campus Ready: Safety Skills for College Life' })
+  ];
+  const shown = sandbox.dashChecklistSessions(rows, today).map((s) => s.id);
+  assert.deepEqual(shown, ['open']);
+  rows.filter((s) => s.id !== 'open').forEach((s) => assert.equal(sandbox.preClassChecklistDone(s), true));
+  assert.equal(sandbox.preClassChecklistDone(rows[4]), false);
 });

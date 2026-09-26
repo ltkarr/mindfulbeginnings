@@ -98,7 +98,7 @@ test('admin expense categories include Curriculum Development', () => {
   assert.ok(list.includes('Charitable Donation'));
 });
 
-test('create-session form reserves materials and the dashboard only marks kits returned', () => {
+test('create-session form reserves materials and the dashboard lists materials cues', () => {
   assert.match(admin, /function sessionMaterialsPanelHtml/);
   assert.match(admin, /id="m-mat-panel"/);
   assert.match(admin, /function matPlanForSession/);
@@ -145,9 +145,12 @@ test('create-session form reserves materials and the dashboard only marks kits r
   assert.match(apply, /matBookBuySentence/);
   assert.doesNotMatch(apply, /confirm\(/);
   const dash = admin.slice(admin.indexOf('function renderDashMaterials'), admin.indexOf('var _matWhoTouched'));
-  assert.match(dash, /markReturned\('/);
-  assert.match(dash, /Mark returned/);
+  assert.match(dash, /dashMatCues/);
+  assert.match(dash, /Copy note/);
+  assert.match(dash, /Materials for the next 2 weeks/);
+  assert.doesNotMatch(dash, /markReturned/);
   assert.doesNotMatch(dash, /openCheckout/);
+  assert.match(admin, /function markReturned/);
   assert.match(admin, /id="dash-materials"/);
   assert.match(admin, /function openCheckIn/);
   assert.match(admin, /function saveCheckIn/);

@@ -4095,7 +4095,9 @@ function renderDashboard(){
   const reminderEl=document.getElementById('reminder-alerts');
   if(reminderEl){
     const today0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-    const upcoming=dashChecklistSessions(sessions, now);
+      // A class whose boxes are all green is removed here too, so a finished
+    // checklist cannot stay on the dashboard if the picker ever lets one through.
+    const upcoming=dashChecklistSessions(sessions, now).filter(function(s){return !preClassChecklistDone(s);});
     const checklistHead='<div style="font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px">🔔 Pre-class checklist — reminders due at 1 week &amp; 1 day out</div>';
     if(!upcoming.length){
       reminderEl.innerHTML=`<div class="card" style="padding:12px 16px">${checklistHead}<div style="font-size:15px;color:var(--muted)">All caught up — no upcoming class still needs checklist work.</div></div>`;
@@ -8647,6 +8649,129 @@ function matCheckoutItemsFromPlan(plan,reuse){
   if(!gear.length&&reuse&&plan.reuseOffer)return[{usesExisting:true,qty:0}];
   return gear.length?gear:null;
 }
+function dashMatAddDays(ymd,n){
+  const d=new Date(ymd+'T12:00:00');
+  d.setDate(d.getDate()+n);
+  return fmtYMD(d);
+}
+function dashMatFirst(name){
+  const t=String(name||'').trim();
+  if(!t)return '';
+  return t.split(' ')[0];
+}
+function dashMatKindLabel(kind){
+  if(kind==='infant')return 'Infant';
+  if(kind==='child')return 'Child';
+  if(kind==='adult')return 'Adult';
+  if(kind==='av')return 'AV';
+  return kind;
+}
+function dashMatBookPhrase(books){
+  if(!books)return '';
+  const parts=[];
+  Object.keys(books).forEach(function(k){
+    const n=Number(books[k])||0;
+    if(!n)return;
+    let word='handbooks';
+    if(k==='ssNotebook')word='notebooks';
+    if(n===1)word=word.slice(0,-1);
+    parts.push(n+' '+word);
+  });
+  if(!parts.length)return '';
+  return 'Put out '+parts.join(' and ');
+}
+function dashMatPersonName(s){
+  if(typeof sessionInstructorList==='function'){
+    const list=sessionInstructorList(s)||[];
+    if(list.length&&list[0].name)return list[0].name;
+  }
+  if(s&&s.ownerTaught)return 'Lindsay Karr (owner)';
+  return '';
+}
+function dashMatHolderNames(kinds,outDate,dueDate){
+  const names=[];
+  const seen={};
+  function add(c){
+    if(!c||c.returnedDate||coNoEquipment(c)||coUsesExisting(c))return;
+    const hit=(kinds||[]).some(function(k){
+      const eq=matEqOfKind(k);
+      if(!eq)return false;
+      return (c.items||[]).some(function(it){
+        return it&&it.equipmentId===eq.id&&Number(it.qty)>0&&!matItemIsConsumable(it);
+      });
+    });
+    if(!hit)return;
+    const who=(c.person||'').trim();
+    if(!who)return;
+    const key=who.toLowerCase();
+    if(seen[key])return;
+    seen[key]=true;
+    names.push(dashMatFirst(who));
+  }
+  const overlapping=(matCheckouts||[]).filter(function(c){
+    if(!c||!outDate||!dueDate||!c.outDate)return false;
+    return c.outDate<=dueDate&&outDate<=coEnd(c);
+  });
+  overlapping.forEach(add);
+  if(!names.length)(matCheckouts||[]).forEach(function(c){if(matKitIsOutNow(c))add(c);});
+  return names;
+}
+// One plain-language materials line for a class in the next two weeks.
+// Null when there is nothing to pull, chase, or put out.
+function dashMatCue(s){
+  if(!s||s.isHold||s.isCancelled||s.isVirtual||!s.date)return null;
+  const today=matToday();
+  if(s.date<today||s.date>dashMatAddDays(today,14))return null;
+  const co=(matCheckouts||[]).find(function(c){return c.sessionId===s.id&&!c.returnedDate;});
+  const jd=(typeof jobDataCache!=='undefined'&&jobDataCache&&jobDataCache[s.id])||{};
+  const bookPhrase=jd.materialsSent?'':dashMatBookPhrase(sessionBookNeeds(s));
+  const needs=sessionMatNeeds(s);
+  const person=dashMatPersonName(s);
+  const who=dashMatFirst(person)||'the instructor';
+  function pack(text){
+    return {id:s.id,course:s.course,date:s.date,text:text,note:s.course+' on '+matShortDate(s.date)+': '+text};
+  }
+  if(!needs){
+    if(!bookPhrase)return null;
+    return pack(bookPhrase+'.');
+  }
+  const tiedPhysical=!!(co&&!coNoEquipment(co)&&!coUsesExisting(co)&&(co.items||[]).some(function(it){
+    return Number(it.qty)>0&&!matItemIsConsumable(it);
+  }));
+  const keeping=!!(co&&coUsesExisting(co));
+  if(tiedPhysical||(co&&coNoEquipment(co))){
+    if(!bookPhrase)return null;
+    return pack(bookPhrase+'.');
+  }
+  const plan=matPlanForSession({
+    course:s.course,isVirtual:false,date:s.date,extraDates:s.extraDates||[],
+    person:person,reuse:true,sessionId:s.id,excludeCheckoutId:co?co.id:null
+  });
+  const covered=!!(keeping||plan.fullyCovered);
+  if(covered){
+    if(keeping&&!bookPhrase)return null;
+    let text=who+' already has the kit — email them to keep materials';
+    if(bookPhrase)text+='; you\'ll put handbooks out. '+bookPhrase;
+    return pack(text+'.');
+  }
+  const shortLines=(plan.lines||[]).filter(function(l){return l.shortfall>0;});
+  if(shortLines.length){
+    const labels=shortLines.map(function(l){return dashMatKindLabel(l.kind);});
+    const holders=dashMatHolderNames(shortLines.map(function(l){return l.kind;}), plan.outDate, plan.dueDate);
+    const from=holders.length?holders.join(' and '):'the instructor who has it';
+    let text='Need kit back from '+from+' before this class — shelf short on '+labels.join('/');
+    if(bookPhrase)text+='. '+bookPhrase;
+    return pack(text+'.');
+  }
+  let text='Pull a new kit from the shelf for '+who;
+  if(bookPhrase)text+='. '+bookPhrase;
+  return pack(text+'.');
+}
+function dashMatCues(list){
+  const rows=(list||(typeof sessions==='undefined'?[]:sessions)||[]).map(function(s){return dashMatCue(s);}).filter(function(x){return !!x;});
+  rows.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+  return rows;
+}
 function matNeedsLabel(needs){
   return Object.entries(needs).map(([k,q])=>{const eq=matEqOfKind(k);return q+'× '+(eq?eq.name:k.toUpperCase());}).join(', ');
 }
@@ -8881,24 +9006,28 @@ function matOpenCheckouts(){
   return matCheckouts.filter(function(c){return matKitIsOutNow(c,t);})
     .sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||'')||(a.person||'').localeCompare(b.person||''));
 }
+function copyDashMatNote(i){
+  const row=(window._dashMatCues||[])[i];
+  const text=row?row.note:'';
+  if(!text)return;
+  const done=function(){showToast('Note copied — paste it into your email.');};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(done).catch(function(){showToast(text);});
+  else showToast(text);
+}
 function renderDashMaterials(){
   const el=document.getElementById('dash-materials');if(!el)return;
-  const open=matOpenCheckouts();
-  const reorders=matReorderLines();
-  if(!open.length&&!reorders.length){el.innerHTML='';return;}
-  const fd=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
-  const shown=open.slice(0,4);
-  const rows=shown.map(c=>{
-    const sess=coSessionLabel(c);
-    return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border)">
-      <div style="font-size:15px;min-width:0"><span style="font-weight:600">${escapeHtml(c.person||'Not assigned')}</span> · ${escapeHtml(coItemsLabel(c))}<br><span style="color:var(--muted)">${sess?escapeHtml(sess)+' · ':''}due ${fd(c.dueDate)}</span></div>
-      <button class="btn sm" style="flex-shrink:0" onclick="markReturned('${c.id}')">Mark returned</button>
-    </div>`;
+  const cues=dashMatCues(typeof sessions==='undefined'?[]:sessions);
+  window._dashMatCues=cues;
+  if(!cues.length){el.innerHTML='';return;}
+  const rows=cues.map(function(c,i){
+    const d=new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    return '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)">'
+      +'<div style="font-size:15px;line-height:1.45;min-width:0"><span style="font-weight:600">'+escapeHtml(c.course)+'</span> <span style="color:var(--muted)">'+escapeHtml(d)+'</span> — '+escapeHtml(c.text)+'</div>'
+      +'<button class="btn sm" style="flex-shrink:0" onclick="copyDashMatNote('+i+')">Copy note</button></div>';
   }).join('');
-  const more=open.length>shown.length?`<div style="font-size:14px;color:var(--muted);padding-top:6px">+ ${open.length-shown.length} more still out</div>`:'';
-  const orderBox=reorders.length?`<div class="alert warn" style="margin:0 0 8px"><strong>Order more stock.</strong><br>${reorders.map(r=>'Order more '+escapeHtml(r.name)+' (need '+r.need+').').join('<br>')}</div>`:'';
-  const returnBox=open.length?`<div style="font-size:14px;color:var(--muted);margin-bottom:4px">Materials still out. Mark them returned when the session is done. New sessions reserve their kit on the Add session form.</div>${rows}${more}`:'';
-  el.innerHTML=`<div class="card" style="padding:12px 16px">${orderBox}${returnBox}</div>`;
+  el.innerHTML='<div class="card" style="padding:12px 16px"><div style="font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:4px">Materials for the next 2 weeks</div>'
+    +'<div style="font-size:14px;color:var(--muted);margin-bottom:4px">Classes that still need a kit or handbooks. Copy a note if you want to email it — nothing is sent from here.</div>'
+    +rows+'</div>';
 }
 var _matWhoTouched=false;
 var _matSeedPerson='';
