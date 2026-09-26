@@ -26,6 +26,11 @@ test('sessions table cells stay inside their columns and drop the wide org pill'
   assert.match(render, /ON HOLD/);
   assert.match(render, /\$\{instr\}/);
   assert.match(render, /flat pay/);
+  const hold = render.slice(render.indexOf('if(s.isHold){'), render.indexOf('if(s.isCustomJob){'));
+  assert.match(hold, /sess-clip/);
+  assert.match(hold, /sess-clamp/);
+  assert.match(hold, /cell-stack/);
+  assert.doesNotMatch(hold, /pay-note">\$\{escapeHtml\(s\.time\)\}/);
   assert.doesNotMatch(render, /🏛/);
   assert.doesNotMatch(render, /CUSTOM JOB/);
   assert.doesNotMatch(render, /recurBadge\(s\)/);
