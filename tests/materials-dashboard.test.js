@@ -26,7 +26,7 @@ function extractFunction(src, name) {
 
 const names = [
   'fmtYMD', 'matToday', 'matPrevDay', 'coEnd', 'coActiveOn', 'coNoEquipment', 'coUsesExisting',
-  'matEqIsConsumable', 'matItemIsConsumable', 'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matOpenCheckouts'
+  'matEqIsConsumable', 'matItemIsConsumable', 'matDurableDemand', 'qtyOutOn', 'matPhysicallyOut', 'matReservedAhead', 'matOpenCheckouts'
 ];
 const sandbox = { matCheckouts: [], Date, String, Number };
 vm.createContext(sandbox);
@@ -42,7 +42,7 @@ function kit(id, extra) {
 
 const planNames = [
   'sessionEndDate', 'sessionInstructorList', 'fmtYMD', 'matToday', 'matPrevDay', 'coEnd', 'coActiveOn',
-  'coUsesExisting', 'coNoEquipment', 'qtyOutOn', 'matPhysicallyOut', 'matDateRange', 'minAvailInRange', 'matDaysBetween'
+  'coUsesExisting', 'coNoEquipment', 'matDurableDemand', 'qtyOutOn', 'matPhysicallyOut', 'matDateRange', 'minAvailInRange', 'matDaysBetween'
 ];
 const needsStart = admin.indexOf('const MAT_NEEDS={');
 const needsEnd = admin.indexOf('function matNeedsLabel(');
@@ -331,4 +331,109 @@ test('on hand ignores future reservations and kits already checked back in today
   } finally {
     sandbox.matToday = realToday;
   }
+});
+
+test('the same instructor’s overlapping kits count as one physical unit', () => {
+  const realToday = sandbox.matToday;
+  sandbox.matToday = () => '2026-09-25';
+  sandbox.matCheckouts = [
+    kit('kim-a', { person: 'Kim Varner', outDate: '2026-09-20', dueDate: '2026-10-04' }),
+    kit('kim-b', { person: 'Kim Varner', sessionId: 'sess-b', outDate: '2026-09-22', dueDate: '2026-09-28' }),
+    kit('bronwen', { person: 'Bronwen Kennedy', sessionId: 'sess-c', outDate: '2026-09-21', dueDate: '2026-09-29' }),
+    kit('kim-later', { person: 'Kim Varner', sessionId: 'sess-d', outDate: '2026-10-08', dueDate: '2026-10-10' }),
+    kit('kim-later-2', { person: 'Kim Varner', sessionId: 'sess-e', outDate: '2026-10-12', dueDate: '2026-10-14' })
+  ];
+  try {
+    assert.equal(sandbox.qtyOutOn('infant', '2026-09-25'), 2);
+    assert.equal(sandbox.matPhysicallyOut('infant'), 2);
+    assert.equal(sandbox.matReservedAhead('infant'), 1);
+  } finally {
+    sandbox.matToday = realToday;
+  }
+});
+
+test('Intro to Babysitting reserves its handbooks, and Safe Sitter-like titles map to a kit', () => {
+  useRoster();
+  planSandbox.equipment = [
+    { id: 'infant', name: 'Infant CPR Manikins', qty: 7 },
+    { id: 'child', name: 'Child Manikins', qty: 5 },
+    { id: 'av', name: 'AV Kit', qty: 7 },
+    { id: '11111111-1111-4111-8111-111111111105', name: 'Intro to Babysitting handbooks', qty: 66, consumable: true, reorderAt: 10, reorderQty: 16 },
+    { id: 'hb', name: 'Safe Sitter handbooks', qty: 40, consumable: true },
+    { id: 'note', name: 'Safe Sitter notebooks', qty: 40, consumable: true },
+    { id: 'sah', name: 'Safe@Home handbooks', qty: 40, consumable: true }
+  ];
+  planSandbox.matCheckouts = [];
+  planSandbox.registrations = [];
+  planSandbox.sessions = [
+    { id: 'itb', course: 'Intro to Babysitting — Greenwood', date: '2026-10-16', isVirtual: false },
+    { id: 'club', course: 'My First Babysitters Club', date: '2026-10-16', isVirtual: false },
+    { id: 'welcome', course: 'Service Unit Welcome Event', date: '2026-10-16', isVirtual: false }
+  ];
+  planSandbox.registrations = [
+    { sessionId: 'itb', payStatus: 'paid' },
+    { sessionId: 'itb', payStatus: 'pending' },
+    { sessionId: 'itb', payStatus: 'waitlist' },
+    { sessionId: 'club', payStatus: 'paid' },
+    { sessionId: 'welcome', payStatus: 'paid' }
+  ];
+  const intro = planSandbox.matPlanForSession({
+    course: 'Intro to Babysitting — Greenwood', date: '2026-10-16', sessionId: 'itb', extraDates: [], headcount: 2
+  });
+  assert.equal(intro.skip, false);
+  assert.equal(intro.lines.length, 0);
+  assert.equal(intro.books.length, 1);
+  assert.equal(intro.books[0].name, 'Intro to Babysitting handbooks');
+  assert.equal(intro.books[0].requested, 2);
+  assert.equal(planSandbox.matBookCommitted('11111111-1111-4111-8111-111111111105', null, 'all'), 2);
+
+  const club = planSandbox.matPlanForSession({
+    course: 'My First Babysitters Club', date: '2026-10-16', sessionId: 'club', extraDates: [], headcount: 8
+  });
+  assert.equal(club.skip, true);
+  const welcome = planSandbox.matPlanForSession({
+    course: 'Service Unit Welcome Event', date: '2026-10-16', sessionId: 'welcome', extraDates: [], headcount: 8
+  });
+  assert.equal(welcome.skip, true);
+  const instructorsOnly = planSandbox.matPlanForSession({
+    course: 'Babysitting Course *8 Week Series, in person* Safe Sitter instructors only',
+    date: '2026-10-16', extraDates: [], headcount: 8
+  });
+  assert.equal(instructorsOnly.skip, true);
+
+  const norwood = planSandbox.matPlanForSession({
+    course: 'SafeSitter @Norwood School (after school program)', date: '2026-10-20', extraDates: [], headcount: 4
+  });
+  assert.equal(norwood.lines.map((l) => l.kind).join(','), 'infant,child,av');
+  assert.equal(norwood.books.some((b) => b.eqId === 'hb'), true);
+  assert.equal(norwood.books.some((b) => b.kind === 'ssNotebook'), true);
+
+  const home = planSandbox.matPlanForSession({
+    course: 'Safe@Home at Beth El', date: '2026-10-16', extraDates: [], headcount: 3
+  });
+  assert.equal(home.lines.map((l) => l.kind).join(','), 'av');
+  assert.equal(home.books.length, 1);
+  assert.equal(home.books[0].name, 'Safe@Home handbooks');
+  assert.equal(home.lines.some((l) => l.kind === 'infant' || l.kind === 'child'), false);
+});
+
+test('a nearby class for the same instructor keeps the kit already out', () => {
+  shelf();
+  planSandbox.matCheckouts = [{
+    id: 'home-kit', person: 'Kim Varner', returnedDate: null,
+    items: [
+      { equipmentId: 'av', qty: 1 }
+    ],
+    outDate: '2026-10-01', dueDate: '2026-10-03'
+  }];
+  const plan = planSandbox.matPlanForSession({
+    course: 'All Kids Welcome', date: '2026-10-10', person: 'Kim Varner', extraDates: [], reuse: false
+  });
+  assert.equal(plan.fullyCovered, true);
+  assert.equal(plan.reuseOffer, true);
+  const saved = planSandbox.matCheckoutItemsFromPlan(plan, true);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].usesExisting, true);
+  assert.equal(saved[0].qty, 0);
+  assert.match(planSandbox.matKeepSentence(plan), /already has this durable kit/);
 });
