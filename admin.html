@@ -66,17 +66,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .tbl-scroller::-webkit-scrollbar{height:11px;-webkit-appearance:none}
 .tbl-scroller::-webkit-scrollbar-track{background:#eef1f6;border-radius:6px}
 .tbl-scroller::-webkit-scrollbar-thumb{background:#b8c2d4;border-radius:6px;border:2px solid #eef1f6}
-/* Keeps the Course and Location columns from stretching the table off screen. */
-#sessions-table td:nth-child(1){max-width:170px}
-#sessions-table td:nth-child(2){max-width:250px}
-#sessions-table td:nth-child(3){max-width:165px}
-#sessions-table td:nth-child(4){max-width:140px}
-@media(max-width:1400px){#sessions-table td:nth-child(2){max-width:215px}#sessions-table td:nth-child(3){max-width:140px}#sessions-table td:nth-child(4){max-width:125px}}
+/* Fixed columns so a long title, location, or pill stays inside its own cell.
+   Overflow is clipped here; nothing is allowed to paint over the next column.
+   The course column takes whatever width is left. */
+#sessions-table{table-layout:fixed;width:100%}
+#sessions-table col.c-course{width:auto}
+#sessions-table col.c-date{width:11%}
+#sessions-table col.c-loc{width:16%}
+#sessions-table col.c-instr{width:13%}
+#sessions-table col.c-seats{width:8%}
+#sessions-table col.c-pay{width:11%}
+#sessions-table col.c-wrap{width:10%}
+#sessions-table col.c-mgr{width:10%}
+#sessions-table th,#sessions-table td{box-sizing:border-box;overflow:hidden;overflow-wrap:break-word}
+#sessions-table th{white-space:normal;line-height:1.25;vertical-align:bottom}
+#sessions-table td{vertical-align:top}
+#sessions-table .sess-title{display:block;max-width:100%;min-width:0;line-height:1.3;overflow:hidden;overflow-wrap:anywhere;font-weight:600}
+#sessions-table .sess-pills{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:4px;max-width:100%;min-width:0}
+#sessions-table .sess-pill{display:block;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.2px;line-height:1.45}
+#sessions-table .sess-sub,#sessions-table .sess-clip,#sessions-table .sess-wrap,#sessions-table .sess-clamp{display:block;max-width:100%;min-width:0;line-height:1.35}
+#sessions-table .sess-sub,#sessions-table .sess-clamp{margin-top:3px;font-size:13px;font-weight:500;color:var(--muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
+#sessions-table .sess-clamp.when{margin-top:0;font-size:15px;font-weight:500;color:var(--text)}
+#sessions-table .sess-clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sessions-table .sess-wrap{overflow-wrap:anywhere;white-space:normal}
+/* Inner box, not the td: overflow on a table cell does not clip, so a long
+   hold time would paint across the title and the ON HOLD badge. */
+#sessions-table .cell-stack{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;max-width:100%;min-width:0;overflow:hidden}
+#sessions-table .cell-stack>*{max-width:100%;min-width:0}
+#sessions-table .pay-note{display:block;font-size:13px;line-height:1.3;overflow-wrap:anywhere;white-space:normal}
+#sessions-table .code-badge{display:block;width:fit-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;margin-top:4px;font-size:13.5px;padding:1px 8px}
 /* The Manage button is the whole point of the row, so it stays pinned to the right edge
-   even when the rest of the table has to scroll. */
-#sessions-table .mgr-cell{position:sticky;right:0;z-index:2}
+   even when the rest of the table has to scroll. Its menu is position:fixed on the page,
+   so this cell can clip too — the button must not paint into the wrap-up column. */
+#sessions-table .mgr-cell{position:sticky;right:0;z-index:2;overflow:hidden;padding-left:4px;padding-right:4px}
 .tbl-wrap.scrollable #sessions-table .mgr-cell{box-shadow:-7px 0 9px -7px rgba(26,39,68,.16)}
-#sessions-table .code-badge{font-size:13.5px;padding:1px 8px}
+#sessions-table .mgr-cell .btn{padding:5px 8px}
 table{width:100%;border-collapse:collapse;font-size:16px}
 th{text-align:left;font-weight:500;font-size:14px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
 td{padding:10px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle}
@@ -653,49 +677,79 @@ function sessionToDB(s){
   if(ADMIN_PRIVATE_NOTES_COL&&s.adminPrivateNotes!==undefined)o.admin_private_notes=s.adminPrivateNotes?String(s.adminPrivateNotes):null;
   return o;
 }
-// Upsert a session row, retrying once without requires_rn if the database has not
-// had that column added yet. Used by the custom-job save paths, which do a single
-// upsert rather than the multi-column retry loop in saveSession().
+// Which optional column PostgREST rejected, if any. A missing column fails the
+// ENTIRE upsert (flat pay, hold fields, notes, instructor — nothing is written),
+// so the caller drops that one column and tries again. '' means the error is
+// something else and must be shown to the admin.
+function sessionUpsertRejectColumn(msg){
+  msg=String(msg||'');
+  if(CANCEL_COLS&&/is_cancelled|cancel_reason|cancelled_at/i.test(msg))return 'cancel';
+  if(REQUIRES_SS_COL&&/requires_safe_sitter/i.test(msg))return 'ss';
+  if(REQUIRES_RN_COL&&/requires_rn/i.test(msg))return 'rn';
+  if(EXTERNAL_URL_COL&&/external_registration_url/i.test(msg))return 'external';
+  if(ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(msg))return 'private';
+  if(HOSTED_FOR_COL&&/hosted_for/i.test(msg))return 'hosted_for';
+  if(ORIGINATED_COL&&/originated_by|origination_note/i.test(msg))return 'origin';
+  if(EXTRA_DAYS_COL&&/extra_days/i.test(msg))return 'extra_days';
+  if(EXTRA_DATES_COL&&/extra_dates/i.test(msg))return 'extra_dates';
+  if(CLOSURES_COL&&/closures/i.test(msg))return 'closures';
+  if(INSTR_INFO_COL&&/instructor_info/i.test(msg))return 'instructor_info';
+  return '';
+}
+function applySessionUpsertReject(which,flags){
+  if(which==='cancel')CANCEL_COLS=false;
+  else if(which==='ss'){REQUIRES_SS_COL=false;flags.missingSsCol=true;}
+  else if(which==='rn'){REQUIRES_RN_COL=false;flags.missingRnCol=true;}
+  else if(which==='external'){EXTERNAL_URL_COL=false;flags.missingExternalUrl=true;}
+  else if(which==='private'){ADMIN_PRIVATE_NOTES_COL=false;flags.missingPrivateNotes=true;}
+  else if(which==='hosted_for'){HOSTED_FOR_COL=false;flags.missingHostedFor=true;}
+  else if(which==='origin'){ORIGINATED_COL=false;flags.missingOrigin=true;}
+  else if(which==='extra_days'){EXTRA_DAYS_COL=false;flags.missingDays=true;}
+  else if(which==='extra_dates'){EXTRA_DATES_COL=false;flags.missingDays=true;}
+  else if(which==='closures'){CLOSURES_COL=false;flags.missingDetail=true;}
+  else if(which==='instructor_info'){INSTR_INFO_COL=false;flags.missingDetail=true;}
+  return !!which;
+}
+function blankSessionUpsertFlags(){
+  return{missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false};
+}
+// Every session write goes through here: course sessions, custom jobs, holds,
+// publish, cancel. One unknown column used to abort custom-job and hold saves
+// (the course form retried; these paths did not), so a flat-pay change or a
+// hold edit looked like it never happened.
 async function upsertSessionRow(s){
+  const flags=blankSessionUpsertFlags();
   try{
-    let{error}=await sb.from('sessions').upsert(sessionToDB(s));
-    // Older database without the cancellation columns: drop them and retry, so
-    // ordinary session saves keep working until the migration is run.
-    if(error&&CANCEL_COLS&&/is_cancelled|cancel_reason|cancelled_at/i.test(error.message||'')){
-      CANCEL_COLS=false;
-      const retryC=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retryC.error||null;
+    let error=null;
+    for(let attempt=0;attempt<8;attempt++){
+      let res;
+      try{res=await sb.from('sessions').upsert(sessionToDB(s));}
+      catch(e){return Object.assign({error:e},flags);}
+      error=res&&res.error||null;
+      if(!error)return Object.assign({error:null},flags);
+      const which=sessionUpsertRejectColumn(error.message||'');
+      if(!applySessionUpsertReject(which,flags))return Object.assign({error},flags);
     }
-    let missingRnCol=false,missingSsCol=false;
-    // Older database without the per-job Safe Sitter® column: drop it and retry.
-    if(error&&REQUIRES_SS_COL&&/requires_safe_sitter/i.test(error.message||'')){
-      REQUIRES_SS_COL=false;missingSsCol=true;
-      const retryS=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retryS.error||null;
-    }
-    if(error&&REQUIRES_RN_COL&&/requires_rn/i.test(error.message||'')){
-      REQUIRES_RN_COL=false;missingRnCol=true;
-      const retry=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retry.error||null;
-    }
-    let missingExternalUrl=false;
-    if(error&&EXTERNAL_URL_COL&&/external_registration_url/i.test(error.message||'')){
-      EXTERNAL_URL_COL=false;missingExternalUrl=true;
-      const retryU=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retryU.error||null;
-    }
-    let missingPrivateNotes=false;
-    if(error&&ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(error.message||'')){
-      ADMIN_PRIVATE_NOTES_COL=false;missingPrivateNotes=true;
-      const retryP=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retryP.error||null;
-    }
-    return{error:error||null,missingRnCol,missingSsCol,missingExternalUrl,missingPrivateNotes};
-  }catch(e){return{error:e,missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false};}
+    return Object.assign({error:error||new Error('Could not save session')},flags);
+  }catch(e){return Object.assign({error:e},flags);}
 }
 const SS_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "Safe Sitter® instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_safe_sitter boolean default false; grant select (requires_safe_sitter) on public.sessions to anon;';
 const RN_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "RN instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_rn boolean default false; grant select (requires_rn) on public.sessions to anon;';
 const EXTERNAL_URL_SQL_TOAST='⚠️ Saved, but WITHOUT the external registration link — run migrations/external_registration_url.sql in the Supabase SQL editor, then re-save this session.';
+// Toast when a save landed but an optional column had to be left off. Empty when
+// nothing optional was dropped (including a missing hosted_for, which is normal
+// until the Partnerships setup SQL has been run — that must not look like a failure).
+function sessionOptionalColToast(f){
+  if(!f)return '';
+  if(f.missingOrigin)return '⚠️ Saved, but WITHOUT the "Originated by" partner credit — run partners_setup.sql once in the Supabase SQL editor, then re-save this session.';
+  if(f.missingRnCol)return RN_COL_SQL_TOAST;
+  if(f.missingExternalUrl)return EXTERNAL_URL_SQL_TOAST;
+  if(f.missingPrivateNotes)return PRIVATE_NOTES_SQL_TOAST;
+  if(f.missingSsCol)return SS_COL_SQL_TOAST;
+  if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
+  if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
+  return '';
+}
 
 function regFromDB(r){
   return{id:r.id,sessionId:r.session_id,studentName:r.student_name||'',parentName:r.parent_name||'',contact:r.contact||'',grade:r.grade||'',cprPermission:r.cpr_permission||'',emergencyAuth:r.emergency_auth||'',photoConsent:r.photo_consent||'',waiverSigned:r.waiver_signed||false,signature:r.signature||'',payStatus:r.pay_status||'unpaid',paypalTxId:r.paypal_tx_id||'',referralSource:r.referral_source||'',pricePaid:r.price_paid==null?null:Number(r.price_paid),notes:r.notes||'',createdAt:r.created_at||Date.now()};
@@ -1555,14 +1609,14 @@ function extraDatesHtml(s){
     return isNaN(d)?null:`+ ${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}${x.time?' \u00b7 '+x.time:''}`;
   }).filter(Boolean);
   if(!rows.length)return'';
-  const line=t=>`<br><span style="font-size:14px;color:#1a5c8a;font-weight:500;white-space:nowrap">${escapeHtml(t)}</span>`;
+  const line=t=>`<br><span class="sess-wrap" style="font-size:14px;color:#1a5c8a;font-weight:500">${escapeHtml(t)}</span>`;
   // A 10-week series used to print all ten dates in the Date cell, which stretched the
   // column so far that the right-hand columns fell off screen. Past the first extra date
   // the rest collapse behind a toggle; nothing is lost, it just starts folded.
   if(rows.length<=1)return rows.map(line).join('');
   const id='xd'+Math.random().toString(36).slice(2,9);
   const label=`+ ${rows.length} more dates`;
-  return `<br><button type="button" id="${id}-btn" data-more="${label}" onclick="toggleExtraDates(event,'${id}')" style="background:none;border:none;padding:0;margin-top:2px;font-family:'DM Sans',sans-serif;font-size:14px;color:#1a5c8a;font-weight:500;cursor:pointer;text-decoration:underline;white-space:nowrap">${label}</button>`
+  return `<br><button type="button" id="${id}-btn" data-more="${label}" onclick="toggleExtraDates(event,'${id}')" style="background:none;border:none;padding:0;margin-top:2px;font-family:'DM Sans',sans-serif;font-size:14px;color:#1a5c8a;font-weight:500;cursor:pointer;text-decoration:underline;white-space:normal;text-align:left">${label}</button>`
     +`<span id="${id}" style="display:none">${rows.map(line).join('')}</span>`;
 }
 function toggleExtraDates(ev,id){
@@ -4276,12 +4330,19 @@ function renderSessions(){
   // not fit no matter how they were squeezed. Code now rides under the course name and
   // Profit rides under Revenue, which drops the table to eight columns without losing
   // anything. The Manage cell is pinned to the right edge so it is always clickable.
-  const codeLine=c=>`<br><span class="code-badge" style="margin-top:3px" onclick="copyCode('${c}')" title="Click to copy">${c}</span>`;
-  const netLine=v=>`<br><span style="font-size:13px;white-space:nowrap;color:${v>=0?'var(--success)':'var(--danger)'}">Net ${fmtSigned(v)}</span>`;
-  t.innerHTML=`<thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Wrap-up</th><th class="mgr-cell" style="background:white"></th></tr></thead><tbody>`+
+  const codeLine=c=>`<span class="code-badge" onclick="copyCode('${c}')" title="Click to copy">${c}</span>`;
+  const netLine=v=>`<span class="pay-note" style="color:${v>=0?'var(--success)':'var(--danger)'}">Net ${fmtSigned(v)}</span>`;
+  const pill=(label,bg,color,title)=>`<span class="sess-pill" style="background:${bg};color:${color}"${title?` title="${escapeHtml(title)}"`:''}>${label}</span>`;
+  const orgLine=org=>org?`<span class="sess-sub" title="Billed to ${escapeHtml(org)}">Billed to ${escapeHtml(org)}</span>`:'';
+  const locCell=text=>{
+    const name=String(text||'').trim();
+    if(!name)return'<span class="sess-sub">—</span>';
+    return `<span class="sess-wrap" title="${escapeHtml(name)}">${escapeHtml(name)}</span>`;
+  };
+  t.innerHTML=`<colgroup><col class="c-date"><col class="c-course"><col class="c-loc"><col class="c-instr"><col class="c-seats"><col class="c-pay"><col class="c-wrap"><col class="c-mgr"></colgroup><thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Wrap-up</th><th class="mgr-cell" style="background:white"></th></tr></thead><tbody>`+
     (list.length?list.map(s=>{
       const f=calcFin(s);
-      const d='<span style="white-space:nowrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s);
+      const d=s.date?('<span class="sess-wrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s)):'<span class="sess-wrap">Date TBD</span>';
       const jdi=jobDataCache[s.id]||{};
       const instr=(()=>{
         if(s.ownerTaught)return'You (owner)';
@@ -4299,49 +4360,73 @@ function renderSessions(){
       const wrapAllDone=wrapDone===wrapTotal;
       const wrapDots=isPast?[jdi.repNotified,jdi.parentLetterSent,instrPaid,jdi.instrFollowupSent,jdi.evalSentToHost].map(v=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${v?'var(--success)':'#dde4ee'};margin-right:2px"></span>`).join(''):'';
       // Cancelled sessions stay on the list (roster and payments are still needed for
-      // refunds) but are visually struck through and clearly badged.
-      const cxBadge=s.isCancelled?`<br><span style="background:#fdf0ee;color:#c0392b;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:700;letter-spacing:.3px">\u{1F6AB} CANCELLED</span>${s.cancelReason?`<br><span style="font-size:13px;color:var(--muted)">${escapeHtml(s.cancelReason)}</span>`:''}`:'';
+      // refunds). The badge is one short stacked pill; the reason sits on its own line.
+      const reasonLine=s.isCancelled&&s.cancelReason?`<span class="sess-sub" title="${escapeHtml(s.cancelReason)}">${escapeHtml(s.cancelReason)}</span>`:'';
+      const kit=matSessBadge(s);
+      const courseCell=pills=>`<span class="sess-title" title="${escapeHtml(s.course)}">${escapeHtml(s.course)}</span>${pills.length?`<span class="sess-pills">${pills.join('')}</span>`:''}${orgLine(s.billToOrg)}${reasonLine}${codeLine(s.code)}`;
       // Dimming marks a cancelled row out among live ones. In the Cancelled view every row
       // is cancelled, so dimming there would just make the whole table hard to read.
       const cxRowStyle=(s.isCancelled&&scope!=='cancelled')?'opacity:.55':'';
       const mgr=bg=>`<td class="mgr-cell" style="text-align:right;background:${bg}"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage \u25be</button></td>`;
+      const where=locCell(s.isVirtual?'Virtual':s.location);
       if(s.isHold){
         const seats=s.reservedSeats!=null?s.reservedSeats:'—';
-        const when=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
-        const whenCell=escapeHtml(when)+(s.time?`<br><span style="font-size:14px;color:var(--muted)">${escapeHtml(s.time)}</span>`:'');
-        const payCell=s.holdPayment?escapeHtml(s.holdPayment):'—';
+        const whenFull=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
+        const timeNote=(s.time||'').trim();
+        // A parenthetical on the term is the same preferred-time note. Show it once,
+        // on the time line, so it does not ghost under the course title.
+        const when=timeNote?whenFull.replace(/\s*\([^)]*\)\s*$/,'').trim()||whenFull:whenFull;
+        const whenTip=[whenFull,timeNote].filter(Boolean).join(' — ');
+        // The preferred-time note stays on the date, one clipped line. It used to
+        // run in a single unwrapped line through the title and the ON HOLD badge.
+        const whenCell=`<span class="sess-clamp when" title="${escapeHtml(whenTip)}">${escapeHtml(when)}</span>`+(timeNote?`<span class="sess-clip" title="${escapeHtml(timeNote)}">${escapeHtml(timeNote)}</span>`:'');
+        const payCell=s.holdPayment?`<span class="sess-clamp" title="${escapeHtml(s.holdPayment)}">${escapeHtml(s.holdPayment)}</span>`:'<span class="sess-sub">—</span>';
+        const pills=[pill('ON HOLD','#e7e0f5','#5b4a8a')];
+        if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
+        const seatLabel=s.reservedSeats!=null?`${seats} reserved`:'—';
         return`<tr style="background:#f6f4fb">
-          <td style="white-space:nowrap">${whenCell}</td>
-          <td style="font-weight:600">${s.course}<br><span style="background:#e7e0f5;color:#5b4a8a;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">ON HOLD</span>${codeLine(s.code)}</td>
-          <td style="color:var(--muted)">${s.isVirtual?'🖥 Virtual':(escapeHtml(s.location)||'—')}</td>
-          <td style="color:var(--muted)">${instr}</td>
-          <td>${seats}<span style="font-size:14px;color:var(--muted)"> reserved</span></td>
-          <td style="font-size:15px;color:var(--muted)">${payCell}</td>
-          <td><span style="font-size:14px;color:#5b4a8a;font-weight:500">Hold</span></td>
+          <td><div class="cell-stack">${whenCell}</div></td>
+          <td><div class="cell-stack">${courseCell(pills)}</div></td>
+          <td><div class="cell-stack">${where}</div></td>
+          <td><div class="cell-stack"><span class="sess-wrap">${instr}</span></div></td>
+          <td><div class="cell-stack"><span class="sess-wrap">${seatLabel}</span></div></td>
+          <td><div class="cell-stack">${payCell}</div></td>
+          <td><div class="cell-stack"><span class="pay-note" style="color:#5b4a8a;font-weight:500">Hold</span></div></td>
           ${mgr('#f6f4fb')}</tr>`;
       }
       if(s.isCustomJob){
         const assignedInstr=instructors.find(x=>x.id===(jdi.instructorId||s.instructorId));
-        const instrStatus=assignedInstr?escapeHtml(assignedInstr.name)+'<br><span style="font-size:13px;color:var(--success)">✓ accepted</span>':'<span style="color:#c8a96e;font-style:italic">Open — awaiting claim</span>';
+        const instrStatus=assignedInstr?`<span class="sess-wrap" title="${escapeHtml(assignedInstr.name)}">${escapeHtml(assignedInstr.name)}</span><span class="pay-note" style="color:var(--success)">✓ accepted</span>`:'<span class="sess-wrap" style="color:#c8a96e">Open — awaiting claim</span>';
         const payAmt=s.instrPayOverride!=null?`$${Number(s.instrPayOverride).toFixed(2)}`:'—';
+        const thru=s.isRecurring&&s.recurEndDate?`<span class="sess-sub" title="${escapeHtml(recurLabel(s))}">thru ${new Date(s.recurEndDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`:'';
+        const pills=[];
+        if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
+        pills.push(pill('Custom job','#f5e6c8','#7a5c1e'));
+        if(s.requiresRN)pills.push(pill('RN only','#e2efe7','#2d7a5e','Registered nurse instructors only'));
+        if(s.requiresSS)pills.push(pill('Safe Sitter only','#e6eff7','#1a5c8a','Safe Sitter® instructors only'));
+        if(kit)pills.push(kit);
         return`<tr style="background:#fdf8f0;${cxRowStyle}">
-          <td style="white-space:normal">${d}${s.isRecurring?`<br><span style="font-size:14px;color:#1a5c8a">thru ${new Date(s.recurEndDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`:''}</td>
-          <td style="font-weight:600">${s.course}${cxBadge}${matSessBadge(s)}<br><span style="background:#f5e6c8;color:#7a5c1e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px">CUSTOM JOB</span>${s.requiresRN?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🩺 RN ONLY</span>`:''}${s.requiresSS?` <span style="background:#e6eff7;color:#1a5c8a;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🧒 SAFE SITTER® ONLY</span>`:''}${s.billToOrg?` <span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${s.isRecurring?' '+recurBadge(s):''}${codeLine(s.code)}</td>
-          <td style="color:var(--muted)">${s.location||'—'}</td>
-          <td style="color:var(--muted)">${instrStatus}</td>
-          <td style="color:var(--muted)">—</td>
-          <td style="font-weight:500;color:#7a5c1e">${payAmt}<br><span style="font-size:13px;color:var(--muted)">flat pay</span>${f.extraCosts?`<br><span style="font-size:13px;color:#c0392b;white-space:nowrap">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit)}</td>
-          <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${jdi.instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span><span style="font-size:14px;color:${jdi.instrPaid?'var(--success)':'var(--muted)'}">${jdi.instrPaid?'✓ Paid':'Unpaid'}</span></div>`:'<span style="font-size:14px;color:var(--muted)">Upcoming</span>'}</td>
+          <td><div class="cell-stack">${d}${thru}</div></td>
+          <td><div class="cell-stack">${courseCell(pills)}</div></td>
+          <td><div class="cell-stack">${where}</div></td>
+          <td><div class="cell-stack">${instrStatus}</div></td>
+          <td><div class="cell-stack"><span class="sess-sub">—</span></div></td>
+          <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit)}</div></td>
+          <td>${isPast?`<div class="cell-stack"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${jdi.instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span></span><span class="pay-note" style="color:${jdi.instrPaid?'var(--success)':'var(--muted)'}">${jdi.instrPaid?'Paid':'Unpaid'}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
           ${mgr('#fdf8f0')}</tr>`;
       }
+      const pills=[];
+      if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
+      if(kit)pills.push(kit);
+      const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
       return`<tr style="${cxRowStyle}">
-        <td style="white-space:normal">${d}</td>
-        <td style="font-weight:500">${s.course}${cxBadge}${matSessBadge(s)}${s.billToOrg?`<br><span style="background:#e2efe7;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.3px;white-space:nowrap">🏛 ${escapeHtml(s.billToOrg)}</span>`:''}${codeLine(s.code)}</td>
-        <td style="color:var(--muted)">${s.isVirtual?'<span style="background:#d6e9f5;color:#1a5c8a;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500">🖥 Virtual</span>':s.location||'—'}</td>
-        <td style="color:var(--muted)">${instr}</td>
-        <td>${f.totalCount}<span style="font-size:14px;color:var(--muted)"> /${sessionMaxStudents(s)}${(()=>{const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;return wl?' · '+wl+' waitlist':''})()}</span></td>
-        <td>${fmt(f.revenue)}${s.priceOverride!=null?`<br><span style="font-size:13px;color:var(--warn);white-space:nowrap">⚠ $${s.priceOverride}/student</span>`:''}${netLine(f.profit)}</td>
-        <td style="white-space:nowrap">${isPast?`<div style="display:flex;align-items:center;gap:6px">${wrapDots}<span style="font-size:14px;color:${wrapAllDone?'var(--success)':'var(--muted)'};">${wrapAllDone?'✓ Done':wrapDone+'/'+wrapTotal}</span></div>`:'<span style="font-size:14px;color:var(--muted)">Upcoming</span>'}</td>
+        <td><div class="cell-stack">${d}</div></td>
+        <td><div class="cell-stack">${courseCell(pills)}</div></td>
+        <td><div class="cell-stack">${where}</div></td>
+        <td><div class="cell-stack"><span class="sess-wrap" title="${escapeHtml(instr)}">${escapeHtml(instr)}</span></div></td>
+        <td><div class="cell-stack"><span class="sess-wrap">${f.totalCount} / ${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''}</span></div></td>
+        <td><div class="cell-stack"><span class="sess-wrap">${fmt(f.revenue)}</span>${s.priceOverride!=null?`<span class="pay-note" style="color:var(--warn)" title="$${s.priceOverride} per student">$${s.priceOverride}/student</span>`:''}${netLine(f.profit)}</div></td>
+        <td>${isPast?`<div class="cell-stack"><span>${wrapDots}</span><span class="pay-note" style="color:${wrapAllDone?'var(--success)':'var(--muted)'}">${wrapAllDone?'Done':wrapDone+'/'+wrapTotal}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
         ${mgr('white')}</tr>`;
     }).join(''):`<tr class="empty-row"><td colspan="8">No sessions found.</td></tr>`)+'</tbody>';
   renderDupeBanner();
@@ -5576,42 +5661,10 @@ async function saveSession(editId){
   // Supabase returns errors on the result object (it does not throw for RLS / constraint failures),
   // so check `error` explicitly. If the save fails, roll back the local state and surface a toast
   // so the admin UI does not silently disagree with the database.
-  let saveFailed=false, saveErr=null;
-  try{
-    const {error}=await sb.from('sessions').upsert(sessionToDB(s));
-    if(error){saveFailed=true;saveErr=error;}
-  }catch(e){saveFailed=true;saveErr=e;}
-  // If the database doesn't have the extra_dates / extra_days / originated_by columns yet,
-  // retry without the missing column so the rest of the session still saves, and tell the
-  // admin exactly what to run in Supabase. Up to three retries, since all could be missing.
-  for(let _attempt=0;saveFailed&&_attempt<6;_attempt++){
-    const _msg=(saveErr&&saveErr.message)||'';
-    let _note='';
-    if(EXTRA_DAYS_COL&&/extra_days/i.test(_msg)){EXTRA_DAYS_COL=false;_note='days';}
-    else if(EXTRA_DATES_COL&&/extra_dates/i.test(_msg)){EXTRA_DATES_COL=false;_note='days';}
-    else if(CLOSURES_COL&&/closures/i.test(_msg)){CLOSURES_COL=false;_note='detail';}
-    else if(INSTR_INFO_COL&&/instructor_info/i.test(_msg)){INSTR_INFO_COL=false;_note='detail';}
-    else if(ORIGINATED_COL&&/originated_by|origination_note/i.test(_msg)){ORIGINATED_COL=false;_note='partner';}
-    else if(HOSTED_FOR_COL&&/hosted_for/i.test(_msg)){HOSTED_FOR_COL=false;_note='orgpartner';}
-    else if(REQUIRES_SS_COL&&/requires_safe_sitter/i.test(_msg)){REQUIRES_SS_COL=false;_note='ss';}
-    else if(REQUIRES_RN_COL&&/requires_rn/i.test(_msg)){REQUIRES_RN_COL=false;_note='rn';}
-    else if(EXTERNAL_URL_COL&&/external_registration_url/i.test(_msg)){EXTERNAL_URL_COL=false;_note='external';}
-    else if(ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(_msg)){ADMIN_PRIVATE_NOTES_COL=false;_note='private';}
-    else break;
-    saveFailed=false;saveErr=null;
-    try{
-      const {error}=await sb.from('sessions').upsert(sessionToDB(s));
-      if(error){saveFailed=true;saveErr=error;}
-      else if(_note==='partner')showToast('⚠️ Saved, but WITHOUT the "Originated by" partner credit — run partners_setup.sql once in the Supabase SQL editor, then re-save this session.');
-      else if(_note==='orgpartner')showToast('⚠️ Saved, but WITHOUT the partnership credit — run the setup SQL shown on the Partnerships tab, then re-save this session.');
-      else if(_note==='rn')showToast(RN_COL_SQL_TOAST);
-      else if(_note==='external')showToast(EXTERNAL_URL_SQL_TOAST);
-      else if(_note==='private')showToast(PRIVATE_NOTES_SQL_TOAST);
-      else if(_note==='ss')showToast(SS_COL_SQL_TOAST);
-      else if(_note==='detail')showToast("⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;");
-      else showToast("⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';");
-    }catch(e){saveFailed=true;saveErr=e;}
-  }
+  // Same retry as custom jobs and holds. A missing optional column (hosted_for
+  // until the Partnerships SQL is run) must not roll back pay, date, or notes.
+  const saved=await upsertSessionRow(s);
+  const saveFailed=!!saved.error, saveErr=saved.error;
   if(saveFailed){
     console.error('Save session failed:',saveErr);
     if(editId&&prevSnapshot){
@@ -5623,6 +5676,8 @@ async function saveSession(editId){
     showToast('⚠️ Could not save session. '+(saveErr&&saveErr.message?saveErr.message:'Check your connection and try again.'));
     return;
   }
+  const dropNote=sessionOptionalColToast(saved);
+  if(dropNote)showToast(dropNote);
   if(!isOwner){
     if(!jobDataCache[s.id])jobDataCache[s.id]={waitlist:[]};
     jobDataCache[s.id].instructorId=preInstrId;
@@ -5662,22 +5717,12 @@ async function publishHold(id){
   const prev=s.isHold;
   s.isHold=false;
   renderSessions();renderDashboard();
-  let failed=false,err=null;
-  let privateNotesDropped=false;
-  try{
-    let {error}=await sb.from('sessions').upsert(sessionToDB(s));
-    if(error&&ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(error.message||'')){
-      ADMIN_PRIVATE_NOTES_COL=false;privateNotesDropped=true;
-      const retry=await sb.from('sessions').upsert(sessionToDB(s));
-      error=retry.error||null;
-    }
-    if(error){failed=true;err=error;}
-  }catch(e){failed=true;err=e;}
-  if(failed){
-    console.error('Publish hold failed:',err);
+  const saved=await upsertSessionRow(s);
+  if(saved.error){
+    console.error('Publish hold failed:',saved.error);
     s.isHold=prev;
     renderSessions();renderDashboard();
-    showToast('⚠️ Could not publish. '+(err&&err.message?err.message:'Check your connection and try again.'));
+    showToast('⚠️ Could not publish. '+(saved.error.message?saved.error.message:'Check your connection and try again.'));
     return;
   }
   // Ensure a job_data row exists so it surfaces as an open job (unless you are teaching it).
@@ -5685,7 +5730,7 @@ async function publishHold(id){
     if(!jobDataCache[s.id])jobDataCache[s.id]={waitlist:[]};
     upsertJobData(s.id);
   }
-  showToast(privateNotesDropped?PRIVATE_NOTES_SQL_TOAST:'Published to instructors.');
+  showToast(saved.missingPrivateNotes?PRIVATE_NOTES_SQL_TOAST:'Published to instructors.');
 }
 
 // ─── CANCEL A SESSION ────────────────────────────────────────
@@ -8829,15 +8874,15 @@ function sessionMatMissing(s,extraItems,excludeId,extraPerson){
   });
   return missing;
 }
-// Small 📦 chip for the sessions table so you can see at a glance which classes
-// already have materials recorded and which still need them.
+// Sessions-table cue for materials. Handled checkouts (none needed, already
+// covered, or a kit reserved) stay quiet — the row only speaks up when a kit
+// still needs to be reserved. The checkout record itself is unchanged.
 function matSessBadge(s){
   if(s.isHold||s.isCancelled||!s.date)return'';
   const co=matCheckouts.find(c=>c.sessionId===s.id);
-  if(co)
-    return' <span style="background:#e8f4e8;color:#2d7a5e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;white-space:nowrap" title="'+(coNoEquipment(co)?'Marked as needing no equipment':coUsesExisting(co)?'Covered — the instructor is using equipment they already have out':'Equipment checkout recorded for this session')+'">'+(coNoEquipment(co)?'📦 none needed ✓':'📦 ✓')+'</span>';
+  if(co)return'';
   if(equipment.length&&sessionEndDate(s)>=matToday()&&sessionMatNeeds(s))
-    return' <span style="background:#fdeeda;color:#9a6b1e;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;white-space:nowrap" title="This course usually needs equipment — nothing reserved yet">📦 needed</span>';
+    return'<span class="sess-pill" style="background:#fdeeda;color:#9a6b1e" title="This course usually needs equipment — nothing reserved yet">Kit needed</span>';
   return'';
 }
 
@@ -9778,9 +9823,9 @@ function coUpdateAvail(){
 }
 // "Use what they already have" — the instructor keeps the kit(s) from an
 // overlapping checkout, so this session needs nothing new off the shelf.
-// Records a zero-quantity "covered" checkout so the session shows 📦 ✓, drops out
-// of the "nothing reserved yet" warning, and the modal's session list — without
-// double-counting a single manikin or AV kit.
+// Records a zero-quantity "covered" checkout so the session drops out of the
+// "Kit needed" warning and the modal's session list — without double-counting
+// a single manikin or AV kit. The sessions table stays quiet once it's handled.
 async function coUseExisting(){
   const sessionId=document.getElementById('m-co-sess').value||null;
   if(!sessionId)return;
