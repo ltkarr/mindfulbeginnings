@@ -20,11 +20,29 @@ test('a hold opens the same edit form and still stays off public registration', 
   assert.ok(holdBranch > 0 && editItem > holdBranch);
   assert.ok(addStudent > holdBranch && addStudent < editItem);
 
-  const rowAt = admin.indexOf('if(s.isHold){\n        const seats');
+  const rowAt = admin.indexOf('if(s.isHold){\n        const enrolled');
   const row = admin.slice(rowAt, admin.indexOf('if(s.isCustomJob){', rowAt));
   assert.match(row, /\$\{instr\}/);
   assert.match(row, /ON HOLD/);
+  assert.match(row, /isLiveReg\(r\)/);
+  assert.match(row, /sessionMaxStudents\(s\)/);
   assert.doesNotMatch(row, /<td style="color:var\(--muted\)">—<\/td>/);
+
+  const holdStart = menu.indexOf('if(s.isHold){');
+  const holdElse = menu.indexOf('}else{', holdStart);
+  const holdMenu = menu.slice(holdStart, holdElse);
+  assert.match(holdMenu, /openRoster/);
+  assert.match(holdMenu, /openSessionRegistrations/);
+  assert.match(holdMenu, /emailClass/);
+  assert.doesNotMatch(holdMenu, /openAddReg/);
+
+  const regs = admin.slice(admin.indexOf('function renderRegs'), admin.indexOf('function renderRegAlerts'));
+  assert.doesNotMatch(regs, /sessions\.filter\(s=>!s\.isHold\)/);
+  assert.match(regs, /on hold/);
+  assert.match(regs, /fmtSessDate/);
+
+  const codes = admin.slice(admin.indexOf('function renderCodes'), admin.indexOf('function copyCode'));
+  assert.match(codes, /sessions\.filter\(s=>!s\.isHold\)/);
 
   const edit = admin.slice(admin.indexOf('function openEditSession'), admin.indexOf('async function saveSession'));
   assert.match(edit, /assignedInstrId=\(jobDataCache\[s\.id\]\|\|\{\}\)\.instructorId\|\|s\.instructorId/);
@@ -46,6 +64,7 @@ test('a hold opens the same edit form and still stays off public registration', 
   assert.match(save, /notes:document\.getElementById\('m-notes'\)\.value/);
   assert.match(save, /location:document\.getElementById\('m-loc'\)\.value/);
   assert.match(save, /isHold,reservedSeats,holdTerm,holdPayment/);
+  assert.doesNotMatch(save, /from\('registrations'\)/);
 
   const cjForm = admin.slice(admin.indexOf('function openEditCustomJob'), admin.indexOf('function toggleCustomHoldMode'));
   assert.match(cjForm, /id="cj-hold"/);
@@ -57,6 +76,7 @@ test('a hold opens the same edit form and still stays off public registration', 
   assert.match(cj, /if\(!date&&!isHold\)/);
   assert.match(cj, /getElementById\('cj-hold'\)/);
   assert.match(cj, /isHold,reservedSeats,holdTerm,holdPayment/);
+  assert.doesNotMatch(cj, /from\('registrations'\)/);
 
   const addReg = admin.slice(admin.indexOf('function openAddReg'), admin.indexOf('async function saveReg'));
   assert.match(addReg, /!s\.isHold/);
