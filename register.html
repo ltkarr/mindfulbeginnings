@@ -12,6 +12,7 @@
 <!-- Shared course data / pricing / caps / promos. Must load before the inline script below. -->
 <script src="/config.js"></script>
 <script src="/js/public-sessions.js"></script>
+<script src="/js/course-booking.js"></script>
 <script src="/js/payments.js"></script>
 <script src="/js/confirmation-email.js"></script>
 
@@ -188,8 +189,9 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
   </div>
 </div>
 
-<div class="screen" id="screen-info">
+  <div class="screen" id="screen-info">
   <div class="sess-banner" id="banner-info"></div>
+  <div id="couple-notice" class="notice-box" style="display:none;margin-bottom:16px"><strong>One registration, two adults.</strong> The price is per couple and holds two seats. Enter both names so both adults appear on the class roster.</div>
   <div class="trust-box" id="trust-box">
     <div class="trust-title">Before you continue</div>
     <p><strong>Privacy.</strong> We use your information only to run this class and reach you about it. We do not sell your data.</p>
@@ -201,6 +203,8 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       <div class="field"><label id="fname-label">First name *</label><input type="text" id="s-first" placeholder="First name"></div>
       <div class="field"><label id="lname-label">Last name *</label><input type="text" id="s-last" placeholder="Last name"></div>
       <div class="field full" id="grade-field"><label>Grade *</label><select id="s-grade"><option value="">Select grade...</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option></select></div>
+      <div class="field" id="partner-first-field" style="display:none"><label id="pfname-label">Partner's first name *</label><input type="text" id="p2-first" placeholder="First name"></div>
+      <div class="field" id="partner-last-field" style="display:none"><label id="plname-label">Partner's last name *</label><input type="text" id="p2-last" placeholder="Last name"></div>
     </div>
   </div>
   <div class="fsec"><div class="fsec-title" id="guardian-title">Parent / guardian</div>
@@ -382,7 +386,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
 <div class="screen" id="screen-already-registered">
   <div class="ok-card">
     <div class="ok-circle" style="background:#eaf2fb;font-size:24px">👋</div>
-    <h2>This child is already registered</h2>
+    <h2 id="dup-title">This child is already registered</h2>
     <p id="dup-lead">Our records show this child already has a spot in this class, so we did not create a second registration.</p>
     <div class="conf-box" id="dup-conf-box"></div>
     <div id="dup-pay-wrap" style="display:none;margin-top:4px">
@@ -390,7 +394,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       <button class="btn-p" style="margin-top:8px" onclick="continueToPaymentForExisting()">Continue to payment</button>
     </div>
     <div style="text-align:center;margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <button class="btn-o" onclick="registerAnotherChild()">Register a different child</button>
+      <button class="btn-o" id="dup-another" onclick="registerAnotherChild()">Register a different child</button>
       <button class="btn-o" onclick="goToScreen(1)">← Start over</button>
     </div>
     <p style="font-size:13px;color:var(--muted);margin-top:16px">Something look wrong? <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">Contact us</a> and we will sort it out.</p>
@@ -598,12 +602,12 @@ const sb = createClient ? createClient(
 // NEW_PRICING_EFFECTIVE identical to the value in admin.html.
 if(typeof getSessionBasePrice==='undefined'){
   // Prices for sessions that existed BEFORE the Aug 2026 program-guide update.
-  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'Care Ready':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
-  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
   // Program-guide prices for sessions created on/after the cutover. (Steady and Ready
   // stays $65 — the guide's $50 is a confirmed typo. 2027 keeps the planned step-ups.)
-  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'Care Ready':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
-  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
+  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25};
   const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
   // Prices raised after the Aug 6 cutover — applied only to sessions CREATED on/after
   // each `from` moment, so nothing already scheduled re-prices. Keep identical to the
@@ -619,7 +623,7 @@ if(typeof getSessionBasePrice==='undefined'){
        'Safe@Home — Virtual':40,
        'Safe@Home — Series':125,
        'My First Babysitters Club':165,
-       'Grandparents: Getting Started':185,'Care Ready':185,
+       'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,
        'All Kids Welcome':25,
        'Intro to Babysitting':40,
        'Steady and Ready':65,
@@ -649,7 +653,7 @@ if(typeof getSessionBasePrice==='undefined'){
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'Care Ready':16,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20};
+  window.MAX_STUDENTS={'Safe Sitter®':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -742,11 +746,17 @@ function showAlreadyRegistered(info){
   const paid=(status==='paid'||status==='host'||status==='in_kind');
   const when=(info&&info.created_at)?new Date(Number(info.created_at)).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
   const d=fmtSessDates(currentSession);
+  const adult=isAdultCourseName(currentSession&&currentSession.course);
+  const who=adult?'participant':'child';
+  const title=document.getElementById('dup-title');
+  if(title)title.textContent=adult?'This participant is already registered':'This child is already registered';
+  const another=document.getElementById('dup-another');
+  if(another)another.textContent=adult?'Register a different participant':'Register a different child';
   document.getElementById('dup-lead').textContent=paid
-    ? 'Our records show this child already has a paid spot in this class, so we did not create a second registration. Nothing further is needed.'
-    : 'Our records show this child already has a spot in this class, so we did not create a second registration.';
+    ? 'Our records show this '+who+' already has a paid spot in this class, so we did not create a second registration. Nothing further is needed.'
+    : 'Our records show this '+who+' already has a spot in this class, so we did not create a second registration.';
   document.getElementById('dup-conf-box').innerHTML=
-    '<div class="crow"><span class="cl">Student</span><span class="cv">'+escapeHtml(currentStudentName())+'</span></div>'+
+    '<div class="crow"><span class="cl">'+(adult?'Participant':'Student')+'</span><span class="cv">'+escapeHtml(currentStudentName())+'</span></div>'+
     '<div class="crow"><span class="cl">Course</span><span class="cv">'+escapeHtml(currentSession.course)+'</span></div>'+
     '<div class="crow"><span class="cl">Date</span><span class="cv">'+d+'</span></div>'+
     (when?'<div class="crow"><span class="cl">Registered</span><span class="cv">'+escapeHtml(when)+'</span></div>':'')+
@@ -778,7 +788,7 @@ function registerAnotherChild(){
   existingReg=null;
   // Start a clean reservation for the new child.
   reservedReg=null;reservedPrice=null;reservedDone=false;
-  ['s-first','s-last'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
+  ['s-first','s-last','p2-first','p2-last'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
   const g=document.getElementById('s-grade');if(g)g.selectedIndex=0;
   goToScreen(2);
   const f=document.getElementById('s-first');if(f)f.focus();
@@ -796,6 +806,43 @@ function getMaxSpots(){
   if(!currentSession)return 8;
   if(currentSession.maxStudentsOverride&&Number(currentSession.maxStudentsOverride)>0)return Number(currentSession.maxStudentsOverride);
   return MAX_STUDENTS[currentSession.course]||8;
+}
+function bookingApi(){
+  return (typeof window!=='undefined'&&window.MBCourseBooking)||null;
+}
+function isAdultCourseName(course){
+  const name=String(course||'');
+  const booking=bookingApi();
+  if(booking)return booking.isAdultCourse(name, typeof COURSES!=='undefined'?COURSES:null);
+  return name==='Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready';
+}
+function seatsPerCourse(course){
+  const name=String(course||'');
+  const booking=bookingApi();
+  if(booking)return booking.seatsPerRegistration(name, typeof COURSES!=='undefined'?COURSES:null);
+  return name==='Baby Ready'?2:1;
+}
+function registrationFits(peopleCap, regCount, course){
+  const booking=bookingApi();
+  if(booking)return booking.bookingFits(peopleCap, regCount, course, typeof COURSES!=='undefined'?COURSES:null);
+  const per=seatsPerCourse(course);
+  return (Number(regCount)||0)*per+per<=Number(peopleCap);
+}
+function registrationRowCap(peopleCap, course){
+  const booking=bookingApi();
+  if(booking)return booking.registrationRowCap(peopleCap, course, typeof COURSES!=='undefined'?COURSES:null);
+  const per=seatsPerCourse(course);
+  return per<=1?peopleCap:Math.floor(Number(peopleCap)/per);
+}
+function partnerFromNotes(notes){
+  const m=String(notes||'').match(/\[Partner:\s*([^\]]+)\]/i);
+  return m?m[1].trim():'';
+}
+function couplePartnerName(){
+  const f=document.getElementById('p2-first');
+  const l=document.getElementById('p2-last');
+  if(!f||!l)return '';
+  return (f.value.trim()+' '+l.value.trim()).trim();
 }
 
 // Returns the actual price a participant pays for the current session. Uses the per-session price override if set, otherwise the course default. Floored at $0.
@@ -917,12 +964,14 @@ function renderPublicSessions(){
     if(month&&month!==lastMonth){html+='<div class="public-month">'+escapeHtml(month)+'</div>';lastMonth=month;}
     const when=[fmtPublicDate(r.date),r.time?String(r.time).trim():''].filter(Boolean).join(' · ');
     const place=helpers.sessionCardPlace(r);
-    const priceLabel=helpers.sessionPriceLabel(helpers.sessionPrice(r,priceFn));
+    const per=(helpers.seatsPerRegistration?helpers.seatsPerRegistration(r.course):seatsPerCourse(r.course));
+    let priceLabel=helpers.sessionPriceLabel(helpers.sessionPrice(r,priceFn));
+    if(per>1&&priceLabel&&priceLabel!=='Free')priceLabel=priceLabel+' / couple';
     const audience=helpers.courseAudience(r.course);
     const count=publicSessionCounts&&r.id!=null?publicSessionCounts[r.id]:null;
     const left=count==null?null:helpers.seatsLeft(r,count,caps);
     const externalUrl=helpers.externalRegistrationUrl(r);
-    const seats=externalUrl?'':helpers.seatsLabel(left);
+    const seats=externalUrl?'':helpers.seatsLabel(left, per);
     const goLabel=externalUrl?helpers.externalRegistrationLabel(externalUrl):'Register →';
     html+='<button type="button" class="public-card" data-code="'+escapeHtml(r.code)+'"'+(externalUrl?' data-external="1"':'')+'>'+
       '<div><div class="pname">'+escapeHtml(r.course||'Course')+'</div>'+
@@ -1113,7 +1162,7 @@ async function checkCode(){
     // Check capacity — uses per-session override if set, else course default
     const max=getMaxSpots();
     const forceWaitlist=new URLSearchParams(window.location.search).get('waitlist')==='1';
-    if((regCount>=max||forceWaitlist)&&!compMode&&!auctionMode){
+    if((!registrationFits(max, regCount, r.course)||forceWaitlist)&&!compMode&&!auctionMode){
       setBanner('banner-waitlist');
       // Update the dynamic "All N spots have been claimed" text
       const wlText=document.querySelector('#screen-waitlist .waitlist-box p');
@@ -1142,9 +1191,11 @@ function setBanner(id){
   const metaAddr=s.isVirtual
     ?(s.zoomLink?`<br><span style="font-size:12px;color:#27467A">🔗 Zoom link will be sent in your confirmation email</span>`:'')
     :(addrLine?'<br>'+escapeHtml(addrLine):'');
-  const priceHTML=isDiscounted
+  const couple=seatsPerCourse(s.course)>1;
+  const priceCore=isDiscounted
     ?`<span style="text-decoration:line-through;color:#9aa5b8;font-weight:400;font-size:14px;margin-right:6px">$${basePrice}</span>$${price}`
     :`$${price}`;
+  const priceHTML=couple?priceCore+' <span style="font-size:13px;font-weight:500">per couple</span>':priceCore;
   document.getElementById(id).innerHTML=`<div class="sess-dot"></div><div><div class="cname">${escapeHtml(s.course)}</div><div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div></div><div class="sess-price">${priceHTML}</div>`;
   // Show prerequisite notice for All Kids Welcome and Stay Ready
   let prereqNotice=document.getElementById('akw-prereq-notice');
@@ -1168,9 +1219,20 @@ function setBanner(id){
   }
   const isGP=s.course==='Grandparents: Getting Started';
   const isCareReady=s.course==='Care Ready';
-  // Both adult-audience courses: the registrant is the participant, so the form
-  // drops the grade field and the parent/guardian framing entirely.
-  const isAdult=isGP||isCareReady;
+  const isBabyReady=s.course==='Baby Ready';
+  // Adult courses: the registrant is the participant, so the form drops the
+  // grade field and the parent/guardian framing entirely.
+  const isAdult=isAdultCourseName(s.course);
+  const coupleNotice=document.getElementById('couple-notice');
+  if(coupleNotice)coupleNotice.style.display=couple?'':'none';
+  ['partner-first-field','partner-last-field'].forEach(function(fid){
+    const el=document.getElementById(fid);
+    if(el)el.style.display=couple?'':'none';
+  });
+  if(!couple){
+    const pf=document.getElementById('p2-first');if(pf)pf.value='';
+    const pl=document.getElementById('p2-last');if(pl)pl.value='';
+  }
   // Any Safe@Home variant (single session, Virtual, or Series) counts as Safe@Home here.
   const isSafeAtHome=/^Safe@Home/.test(s.course||'');
   const isNoCPR=s.course==='Intro to Babysitting'||isSafeAtHome||s.course==='All Kids Welcome'||s.course==='Ready. Period.';
@@ -1255,7 +1317,7 @@ function setBanner(id){
         ?'<strong>📋 Please note:</strong> This workshop is taught by a registered nurse and includes hands-on practice of hands-only CPR on a manikin and practice with an AED trainer. <strong>This workshop is educational only and does not certify the participant in CPR, AED use, or first aid.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
         :isCampusReady
         ?'<strong>📋 Please note:</strong> This class is taught by a registered nurse and includes hands-on practice of CPR and rescue skills on manikins. <strong>This course is educational only and does not certify the participant in CPR, first aid, or naloxone (Narcan) administration.</strong> It is designed to build the confidence and basic skills to help a friend in an emergency.'
-        :isCareReady
+        :isCareReady||isBabyReady
         ?'<strong>📋 Please note:</strong> This course includes hands-on practice of CPR and rescue skills on manikins. <strong>This course is educational only and does not provide CPR certification.</strong>'
         :isStayReady
         ?'<strong>📋 Please note:</strong> This session includes hands-on practice of choking rescue and CPR on manikins. <strong>This session does not provide CPR certification.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
@@ -1269,7 +1331,7 @@ function setBanner(id){
     const cprPermItem=permSec.querySelector('.perm-item');
     if(cprPermItem)cprPermItem.style.display=isNoCPR?'none':'';
     permSec.querySelector('.perm-title').textContent=isGP?'CPR manikin practice':'CPR manikin practice';
-    permSec.querySelectorAll('.perm-desc')[0].textContent=(isGP||isCareReady)
+    permSec.querySelectorAll('.perm-desc')[0].textContent=(isGP||isCareReady||isBabyReady)
       ?'This course includes hands-on practice of rescue skills on CPR manikins. Do you give permission to participate?'
       :isSeasonReady
         ?'This workshop includes hands-on practice of hands-only CPR on a manikin. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikin?'
@@ -1280,7 +1342,7 @@ function setBanner(id){
         :'Safe Sitter® includes practice of rescue skills on CPR manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?');
     permSec.querySelectorAll('.radio-lbl')[0].childNodes[1].textContent=' Yes, I give permission';
     permSec.querySelectorAll('.radio-lbl')[1].childNodes[1].textContent=' No, I do not give permission';
-    permSec.querySelectorAll('.perm-desc')[1].textContent=(isGP||isCareReady)
+    permSec.querySelectorAll('.perm-desc')[1].textContent=(isGP||isCareReady||isBabyReady)
       ?'In the event of a health emergency, do you authorize the instructor to seek emergency care on your behalf?'
       :isCampusReady
         ?'In the event of a health emergency during the class, do you authorize the instructor to seek emergency care for the participant?'
@@ -1371,7 +1433,8 @@ async function goToPayment(){
   const phoneEl=document.getElementById('p-phone');
   if(pp&&pp.replace(/\D/g,'').length<10){phoneEl.classList.add('err');ok=false;if(!firstBad)firstBad=phoneEl;}
   const isNoCPR=currentSession&&(currentSession.course==='Intro to Babysitting'||/^Safe@Home/.test(currentSession.course||'')||currentSession.course==='All Kids Welcome');
-  const isAdult=currentSession&&(currentSession.course==='Grandparents: Getting Started'||currentSession.course==='Care Ready');
+  const isAdult=isAdultCourseName(currentSession&&currentSession.course);
+  const isCouple=seatsPerCourse(currentSession&&currentSession.course)>1;
   // Grade — required for every course except the adult courses, where the field is hidden.
   // Without this check the dropdown can be left on "Select grade..." and the roster
   // shows a blank grade for that student.
@@ -1379,6 +1442,14 @@ async function goToPayment(){
   if(gradeEl){
     if(!isAdult&&!gradeEl.value){gradeEl.classList.add('err');ok=false;if(!firstBad)firstBad=gradeEl;}
     else gradeEl.classList.remove('err');
+  }
+  if(isCouple){
+    const p2f=document.getElementById('p2-first');
+    const p2l=document.getElementById('p2-last');
+    const p2fv=p2f?p2f.value.trim():'';
+    const p2lv=p2l?p2l.value.trim():'';
+    if(p2f){if(!p2fv){p2f.classList.add('err');ok=false;if(!firstBad)firstBad=p2f;}else p2f.classList.remove('err');}
+    if(p2l){if(!p2lv){p2l.classList.add('err');ok=false;if(!firstBad)firstBad=p2l;}else p2l.classList.remove('err');}
   }
   // Permission radios — highlight the specific group that wasn't answered
   const cprPermItem=document.querySelector('#permissions-section .perm-item');
@@ -1448,13 +1519,13 @@ async function goToPayment(){
     const{data:cnt}=await sb.rpc('get_registration_count',{p_session_id:currentSession.id});
     liveCount=Number(cnt)||0;
   }catch(e){console.warn('Count RPC failed:',e);}
-  if(!reservedDone&&!isHost&&!compMode&&!auctionMode&&liveCount>=getMaxSpots()){goToWaitlist();return;}
+  if(!reservedDone&&!isHost&&!compMode&&!auctionMode&&!registrationFits(getMaxSpots(), liveCount, currentSession.course)){goToWaitlist();return;}
   setBanner('banner-pay');
   // A genuinely free session ($0 effective price, not host/comp/auction) is treated as
   // no-charge: skip every payment button and use the "confirm your spot" flow instead.
   freeSession=!isHost&&!compMode&&!auctionMode&&getEffectivePrice()<=0;
   const noCharge=isHost||compMode||auctionMode||freeSession;
-  document.getElementById('pay-course-lbl').textContent=currentSession.course+(isHost?' (host — complimentary)':(compMode?' (already paid)':(auctionMode?' (auction prize — no charge)':'')));
+  document.getElementById('pay-course-lbl').textContent=currentSession.course+(seatsPerCourse(currentSession.course)>1?' (per couple, two seats)':'')+(isHost?' (host — complimentary)':(compMode?' (already paid)':(auctionMode?' (auction prize — no charge)':'')));
   document.getElementById('host-free-msg').style.display=noCharge?'flex':'none';
   document.getElementById('host-confirm-wrap').style.display=noCharge?'block':'none';
   // The promo box only makes sense when the family is actually paying (not host/comp).
@@ -1623,7 +1694,9 @@ function removePromo(){
 }
 
 function currentPayStudentName(){
-  return (reservedReg&&reservedReg.student_name)||((document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim()).trim());
+  const primary=(reservedReg&&reservedReg.student_name)||((document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim()).trim());
+  const partner=(reservedReg&&partnerFromNotes(reservedReg.notes))||couplePartnerName();
+  return partner?primary+' & '+partner:primary;
 }
 function currentPayerName(){ return currentPayStudentName(); }
 function currentPayRegistrationId(){
@@ -1943,7 +2016,10 @@ async function saveRegistration(row){
   try{
     // Comp re-registrations and auction winners have a guaranteed seat — never let the
     // atomic capacity check bounce them to the waitlist.
-    const cap=(compMode||auctionMode)?999999:((typeof getMaxSpots==='function')?getMaxSpots():9999);
+    // register_student counts registration rows against p_max. Couple courses
+    // pass a smaller max so one row consumes seatsPerRegistration people.
+    const peopleCap=(compMode||auctionMode)?999999:((typeof getMaxSpots==='function')?getMaxSpots():9999);
+    const cap=(typeof registrationRowCap==='function')?registrationRowCap(peopleCap, currentSession&&currentSession.course):peopleCap;
     const res=await sb.rpc('register_student',{p_row:row,p_max:cap});
     if(res&&!res.error&&res.data){
       if(res.data.ok===true)return{ok:true,error:null};
@@ -2017,6 +2093,8 @@ function buildRegistration(method,txId){
     ?(referralOther?'Other: '+referralOther:'Other')
     :referralSel;
   // Sitter referral list opt-in (All Kids Welcome) — fold into notes so it surfaces in the admin roster
+  const partner=couplePartnerName();
+  const partnerNote=partner?'[Partner: '+partner+'] ':'';
   let sitterListNote='';
   const sitterChkEl=document.getElementById('chk-sitter-list');
   if(s.course==='All Kids Welcome'&&sitterChkEl&&sitterChkEl.checked){
@@ -2033,7 +2111,7 @@ function buildRegistration(method,txId){
     student_name:document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim(),
     parent_name:document.getElementById('p-name').value.trim(),
     contact:document.getElementById('p-email').value.trim()+(document.getElementById('p-phone').value.trim()?' / '+document.getElementById('p-phone').value.trim():''),
-    grade:document.getElementById('s-grade').value,
+    grade:isAdultCourseName(s.course)?'':document.getElementById('s-grade').value,
     cpr_permission:document.querySelector('input[name="cpr-perm"]:checked')?.value||'',
     emergency_auth:document.querySelector('input[name="emerg-perm"]:checked')?.value||'',
     waiver_signed:true,
@@ -2042,7 +2120,7 @@ function buildRegistration(method,txId){
     referral_source:referralSource||'',
     pay_status:isHost?'host':(method==='auction'?'in_kind':(method==='comp'||method==='paypal'||method==='free'?'paid':(method==='zelle'||method==='venmo'||method==='already-paid'||method==='paypal-link'||method==='pending'?'pending':'unpaid'))),
     paypal_tx_id:txId||null,
-    notes:sitterListNote+(method==='free'?'[FREE registration — $0, no payment required] ':'')+(method==='auction'?'[AUCTION — IN-KIND DONATION: $'+getEffectivePrice()+'] ':'')+(promoApplied?'[Promo '+PROMO_CODE+' applied: −$'+PROMO_DISCOUNT+' off '+getEffectivePrice()+' → '+getPayablePrice()+'] ':'')+(method==='comp'?'[Re-registration — already paid via PayPal] ':(method==='paypal'?'[Paid via PayPal] ':(method==='already-paid'?'[Family marked ALREADY PAID — confirm against PayPal] ':(method==='venmo'?'[Family marked VENMO sent — confirm in Venmo app] ':(method==='paypal-link'?'[Family marked PAYPAL checkout paid — confirm against PayPal receipt] ':(method==='pending'?'[Registered — awaiting payment] ':''))))))+(s.course==='Stay Ready: Choking Rescue and CPR'?'[Prereq confirmed: child has completed Safe Sitter® and/or CPR & First Aid course] ':'')+document.getElementById('p-notes').value.trim(),
+    notes:partnerNote+sitterListNote+(method==='free'?'[FREE registration — $0, no payment required] ':'')+(method==='auction'?'[AUCTION — IN-KIND DONATION: $'+getEffectivePrice()+'] ':'')+(promoApplied?'[Promo '+PROMO_CODE+' applied: −$'+PROMO_DISCOUNT+' off '+getEffectivePrice()+' → '+getPayablePrice()+'] ':'')+(method==='comp'?'[Re-registration — already paid via PayPal] ':(method==='paypal'?'[Paid via PayPal] ':(method==='already-paid'?'[Family marked ALREADY PAID — confirm against PayPal] ':(method==='venmo'?'[Family marked VENMO sent — confirm in Venmo app] ':(method==='paypal-link'?'[Family marked PAYPAL checkout paid — confirm against PayPal receipt] ':(method==='pending'?'[Registered — awaiting payment] ':''))))))+(s.course==='Stay Ready: Choking Rescue and CPR'?'[Prereq confirmed: child has completed Safe Sitter® and/or CPR & First Aid course] ':'')+document.getElementById('p-notes').value.trim(),
     created_at:Date.now()
   };
 }
@@ -2161,7 +2239,7 @@ function showSuccessScreen(reg,s,price,method,skipEmail){
   const amountLabel=isHost?'Free (host)':(method==='auction'?'Free (auction prize)':(method==='free'?'Free':(isZelle?'$'+price+' (pending — Zelle)':(isVenmo?'$'+price+' (pending — Venmo)':(isAlreadyPaid?'$'+price+' (already paid — confirming)':(isPayPalLink?'$'+price+' (pending — PayPal)':'$'+price))))));
   const amountColor=isHost||!isPending?'var(--success)':'#6D1ED4';
   document.getElementById('conf-box').innerHTML=`
-    <div class="crow"><span class="cl">Participant</span><span class="cv">${escapeHtml(reg.student_name)}</span></div>
+    <div class="crow"><span class="cl">Participant</span><span class="cv">${escapeHtml(reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''))}</span></div>
     ${reg.grade?`<div class="crow"><span class="cl">Grade</span><span class="cv">${escapeHtml(reg.grade)}</span></div>`:''}
     <div class="crow"><span class="cl">Course</span><span class="cv">${s.course}</span></div>
     ${promoApplied?`<div class="crow"><span class="cl">Discount</span><span class="cv" style="color:#2d7a5e">Code ${PROMO_CODE} (−$${PROMO_DISCOUNT})</span></div>`:''}
@@ -2180,7 +2258,7 @@ function showSuccessScreen(reg,s,price,method,skipEmail){
 // told (calmly) to email them; we also email Lindsay a copy for reconciliation.
 function showSaveFailureRecovery(reg,s,price,method,txId){
   const d=fmtSessDates(s);
-  const isAdultCourse=s.course==='Grandparents: Getting Started'||s.course==='Care Ready';
+  const isAdultCourse=isAdultCourseName(s.course);
   document.getElementById('ok-circle').textContent='✓';
   document.getElementById('ok-circle').style.background='var(--success-bg)';
   document.getElementById('ok-title').textContent='Payment received';
@@ -2188,7 +2266,7 @@ function showSaveFailureRecovery(reg,s,price,method,txId){
   document.getElementById('zelle-pending-banner').style.display='none';
   document.getElementById('save-error-banner').style.display='block';
   document.getElementById('conf-box').innerHTML=`
-    <div class="crow"><span class="cl">Participant</span><span class="cv">${escapeHtml(reg.student_name)}</span></div>
+    <div class="crow"><span class="cl">Participant</span><span class="cv">${escapeHtml(reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''))}</span></div>
     ${reg.grade?`<div class="crow"><span class="cl">Grade</span><span class="cv">${escapeHtml(reg.grade)}</span></div>`:''}
     <div class="crow"><span class="cl">Course</span><span class="cv">${s.course}</span></div>
     <div class="crow"><span class="cl">Date</span><span class="cv">${d}</span></div>
@@ -2202,7 +2280,7 @@ function showSaveFailureRecovery(reg,s,price,method,txId){
     emailjs.send('service_delt0r4','template_c3yfejb',{
       to_email:'lindsay@mindfulbeginnings.org',
       to_name:'Lindsay Karr',
-      student_name:reg.student_name,
+      student_name:reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''),
       course:s.course,
       date:d,
       time:s.time||'TBD',
@@ -2448,7 +2526,7 @@ function sendConfirmationEmail(reg,session,price){
     {
       to_email: parentEmail,
       to_name: reg.parent_name||reg.student_name,
-      student_name: reg.student_name,
+      student_name: reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''),
       course: session.course,
       date: d,
       time: session.time||'TBD',

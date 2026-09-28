@@ -119,11 +119,13 @@ test('Care Ready is priced and capped consistently across config and register fa
 
 test('Care Ready gets the adult registration treatment (no grade, no parent/guardian)', () => {
   assert.match(register, /const isCareReady=s\.course==='Care Ready'/);
-  assert.match(register, /const isAdult=isGP\|\|isCareReady/);
+  assert.match(register, /function isAdultCourseName/);
+  assert.match(register, /name==='Grandparents: Getting Started'\|\|name==='Care Ready'\|\|name==='Baby Ready'/);
+  assert.match(register, /const isAdult=isAdultCourseName\(s\.course\)/);
   assert.match(register, /isAdult\?'Your information':'Student information'/);
   assert.match(register, /isAdult\?'Your contact information':'Parent \/ guardian'/);
   assert.match(register, /isAdult\?'Your full name \(electronic signature\) \*'/);
-  assert.match(register, /const isAdult=currentSession&&\(currentSession\.course==='Grandparents: Getting Started'\|\|currentSession\.course==='Care Ready'\)/);
+  assert.match(register, /const isAdult=isAdultCourseName\(currentSession&&currentSession\.course\)/);
   assert.match(register, /document\.getElementById\('terms-grandparent'\)\.style\.display=isAdult\?'':'none'/);
   assert.match(register, /isAdult\|\|isOwnRelease\)\?'none':''/);
 });
