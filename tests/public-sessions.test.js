@@ -11,6 +11,7 @@ const {
   sessionPrice,
   sessionPriceLabel,
   sessionCap,
+  seatsPerRegistration,
   seatsLeft,
   seatsLabel,
   todayLocalISO,
@@ -188,6 +189,19 @@ test('seatsLeft uses override cap, then course cap', () => {
   assert.equal(seatsLabel(0), 'Full — waitlist');
   assert.equal(seatsLabel(1), '1 seat left');
   assert.equal(seatsLabel(4), '4 seats left');
+  assert.equal(seatsLabel(1, 2), 'Full — waitlist');
+});
+
+test('Baby Ready couple bookings consume two seats each', () => {
+  const baby = row({ course: 'Baby Ready', code: 'BR-1001' });
+  assert.equal(seatsPerRegistration('Baby Ready'), 2);
+  assert.equal(seatsPerRegistration('Safe Sitter®'), 1);
+  assert.equal(seatsLeft(baby, 0, { 'Baby Ready': 12 }), 12);
+  assert.equal(seatsLeft(baby, 1, { 'Baby Ready': 12 }), 10);
+  assert.equal(seatsLeft(baby, 5, { 'Baby Ready': 12 }), 2);
+  assert.equal(seatsLeft(baby, 6, { 'Baby Ready': 12 }), 0);
+  assert.equal(seatsLabel(2, 2), '2 seats left');
+  assert.equal(seatsLabel(0, 2), 'Full — waitlist');
 });
 
 test('sessionCardPlace shows city or Virtual and never a street address', () => {

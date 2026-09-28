@@ -7,6 +7,7 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/course-booking.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -333,7 +334,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="filter-row">
         <select id="sf-course" onchange="renderSessions()">
           <option value="">All courses</option>
-          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option>
+          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option>
         </select>
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
@@ -993,10 +994,14 @@ const COURSES={
   // Schedule it under this course so register.html shows the virtual price automatically.
   // Still tick "Virtual session" on the session itself so families get the Zoom link.
   'Safe@Home — Virtual':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:10,hours:1,instrFlatFee:75,maxStudents:16,virtual:true},
-  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true},
+  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true,adult:true},
   // Care Ready (new Sep 2026): 2.5-hour course for nannies and au pairs, $185.
   // Any instructor may teach it; uses CPR manikins; adult registration form.
-  'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16},
+  'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,adult:true},
+  // Baby Ready: $225 once per couple. maxStudents is people (12). Each
+  // registration holds 2 seats (seatsPerRegistration). Adult form, no grade.
+  // 2.5 hours matches Care Ready until a published length replaces it.
+  'Baby Ready':{price:225,price2027:225,priceNew:225,priceNew2027:225,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true},
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true},
   'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true},
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true},
@@ -1064,6 +1069,7 @@ const LATER_PRICE_CHANGES=[
      'My First Babysitters Club':165,
      'Grandparents: Getting Started':185,
      'Care Ready':185,
+     'Baby Ready':225,
      'All Kids Welcome':25,
      'Intro to Babysitting':40,
      'Steady and Ready':65,
@@ -1174,7 +1180,9 @@ function recurBadge(s){return s.isRecurring?`<span style="background:#e3eef7;col
 const COURSE_ABBR={
   'Safe Sitter®':'SS','Intro to Babysitting':'IB','Safe@Home':'SAH',
   'Safe@Home — Virtual':'SAHV','Safe@Home — Series':'SAHS',
-  'Grandparents: Getting Started':'GP','All Kids Welcome':'AKW',
+  'Grandparents: Getting Started':'GP',
+  // CRE, not CR — CR is Campus Ready. Initials of "Care Ready" would also be CR.
+  'Care Ready':'CRE','Baby Ready':'BR','All Kids Welcome':'AKW',
   'Stay Ready: Choking Rescue and CPR':'SR',
   'Campus Ready: Safety Skills for College Life':'CR',
   'Steady and Ready':'STR','My First Babysitters Club':'MFBC',
@@ -1189,7 +1197,7 @@ const COURSE_ABBR={
 const TITLE_ABBR=[
   [/first\s*babysitter/i,'MFBC'],[/safe\s*sitter/i,'SS'],
   [/safe\s*@?\s*home/i,'SAH'],[/intro to babysit/i,'IB'],
-  [/grandparent/i,'GP'],[/all kids welcome/i,'AKW'],
+  [/grandparent/i,'GP'],[/baby\s*ready/i,'BR'],[/care\s*ready/i,'CRE'],[/all kids welcome/i,'AKW'],
   [/choking|cpr|stay ready/i,'SR'],[/campus ready/i,'CR'],
   [/steady and ready/i,'STR'],[/girls on the run|gotr/i,'GOTR'],
   [/caregiv/i,'CARE'],[/babysitting course/i,'BC']
@@ -4283,7 +4291,9 @@ function unignoreAllDupes(){
   renderDupeBanner();
 }
 function seatsOnSession(id){
-  return registrations.filter(r=>r.sessionId===id&&r.payStatus!=='cancelled'&&r.payStatus!=='waitlist').length;
+  const s=sessions.find(x=>x.id===id);
+  const per=seatsPerRegistration(s&&s.course);
+  return registrations.filter(r=>r.sessionId===id&&r.payStatus!=='cancelled'&&r.payStatus!=='waitlist').length*per;
 }
 function openSessionForReview(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
@@ -4451,7 +4461,7 @@ function renderSessions(){
         <td><div class="cell-stack">${courseCell(pills)}</div></td>
         <td><div class="cell-stack">${where}</div></td>
         <td><div class="cell-stack"><span class="sess-wrap" title="${escapeHtml(instr)}">${escapeHtml(instr)}</span></div></td>
-        <td><div class="cell-stack"><span class="sess-wrap">${f.totalCount} / ${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''}</span></div></td>
+        <td><div class="cell-stack"><span class="sess-wrap">${registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course)} / ${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''}</span></div></td>
         <td><div class="cell-stack"><span class="sess-wrap">${fmt(f.revenue)}</span>${s.priceOverride!=null?`<span class="pay-note" style="color:var(--warn)" title="$${s.priceOverride} per student">$${s.priceOverride}/student</span>`:''}${netLine(f.profit)}</div></td>
         <td>${isPast?`<div class="cell-stack"><span>${wrapDots}</span><span class="pay-note" style="color:${wrapAllDone?'var(--success)':'var(--muted)'}">${wrapAllDone?'Done':wrapDone+'/'+wrapTotal}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
         ${mgr('white')}</tr>`;
@@ -4708,7 +4718,7 @@ function openAddSession(){
   showModal(`<div class="modal-head"><h3>Add new session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Course *</label>
-      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option></select>
+      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option></select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div></div>
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
@@ -5399,6 +5409,8 @@ function openEditSession(id){
         <option ${s.course==='Safe@Home — Virtual'?'selected':''}>Safe@Home — Virtual</option>
         <option ${s.course==='Safe@Home — Series'?'selected':''}>Safe@Home — Series</option>
         <option ${s.course==='Grandparents: Getting Started'?'selected':''}>Grandparents: Getting Started</option>
+        <option ${s.course==='Care Ready'?'selected':''}>Care Ready</option>
+        <option ${s.course==='Baby Ready'?'selected':''}>Baby Ready</option>
         <option ${s.course==='All Kids Welcome'?'selected':''}>All Kids Welcome</option>
         <option ${s.course==='Stay Ready: Choking Rescue and CPR'?'selected':''}>Stay Ready: Choking Rescue and CPR</option>
         <option ${s.course==='Campus Ready: Safety Skills for College Life'?'selected':''}>Campus Ready: Safety Skills for College Life</option>
@@ -5890,14 +5902,14 @@ function renderRegs(){
   const pf=document.getElementById('rf-status').value;
   const q=(document.getElementById('rf-search').value||'').toLowerCase();
   const selEl=document.getElementById('rf-session');const cur=selEl.value;
-  selEl.innerHTML='<option value="">All sessions</option>'+sessions.filter(s=>!s.isHold).sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});return`<option value="${s.id}">${s.course} — ${d} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
+  selEl.innerHTML='<option value="">All sessions</option>'+sessions.filter(s=>!s.isHold).sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course);const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});return`<option value="${s.id}">${s.course} — ${d} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
   selEl.value=cur;
   let list=registrations.filter(r=>{
     if(sf&&r.sessionId!==sf)return false;
     if(pf&&r.payStatus!==pf)return false;
     // Cancelled rows sit out of the way until you pick the Cancelled filter.
     if(!pf&&r.payStatus==='cancelled')return false;
-    if(q&&!r.studentName.toLowerCase().includes(q)&&!(r.parentName||'').toLowerCase().includes(q))return false;
+    if(q&&!r.studentName.toLowerCase().includes(q)&&!(r.parentName||'').toLowerCase().includes(q)&&!partnerNameOf(r).toLowerCase().includes(q))return false;
     return true;
   }).sort((a,b)=>regCreatedTime(b)-regCreatedTime(a));
   const t=document.getElementById('regs-table');
@@ -5907,8 +5919,9 @@ function renderRegs(){
       const c=s?COURSES[s.course]:null;
       const amt=r.payStatus==='cancelled'?'<span style="color:var(--muted)">—</span>':r.payStatus==='paid'?(s?fmt(regEffectivePrice(r,s)):'—')+(isCustomStudentPrice(r,s)?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':''):r.payStatus==='host'?'Free':r.payStatus==='in_kind'?'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>':(r.pricePaid!=null?fmt(regEffectivePrice(r,s))+'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>':'—');
       const d=s?fmtSessDate(s,{month:'short',day:'numeric'}):'—';
+      const partner=partnerNameOf(r);
       return`<tr>
-        <td style="font-weight:500">${escapeHtml(r.studentName)}</td>
+        <td style="font-weight:500">${escapeHtml(r.studentName)}${partner?`<div style="font-weight:400;font-size:14px;color:var(--muted)">${escapeHtml(partner)}</div>`:''}</td>
         <td style="color:var(--muted)">${escapeHtml(r.grade)||'—'}</td>
         <td style="color:var(--muted)">${escapeHtml(r.parentName)||'—'}</td>
         <td style="color:var(--muted);font-size:15px">${escapeHtml(r.contact)||'—'}</td>
@@ -5916,7 +5929,7 @@ function renderRegs(){
         <td><span class="tag ${r.payStatus}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span></td>
         <td>${amt}</td>
         <td style="text-align:center">${r.photoConsent==='yes'?'<span style="color:var(--success)">✓ Yes</span>':r.photoConsent==='no'?'<span style="color:var(--muted)">✗ No</span>':'<span style="color:var(--muted)">—</span>'}</td>
-        <td style="color:var(--muted);font-size:15px;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,r.notes))||'—'}</td>
+        <td style="color:var(--muted);font-size:15px;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,notesWithoutPartner(r.notes)))||'—'}</td>
         <td><div class="btn-row">${r.payStatus==='cancelled'?`
           <button class="btn sm success" onclick="reEnrollReg('${r.id}')">↩️ Re-enroll</button>
           <button class="btn sm" onclick="openWaiverDoc('${r.id}')">📄 Waiver</button>
@@ -5973,29 +5986,62 @@ function renderRegAlerts(){
   el.innerHTML=html;
 }
 
+function regModalCourse(selectId){
+  const el=document.getElementById(selectId);
+  if(!el)return '';
+  const s=sessions.find(x=>x.id===el.value);
+  return s?s.course:'';
+}
+function syncAddRegLabels(){
+  const course=regModalCourse('m-sess');
+  const adult=isAdultCourse(course);
+  const couple=seatsPerRegistration(course)>1;
+  const title=document.getElementById('m-reg-title');
+  if(title)title.textContent=couple?'Add couple':(adult?'Add participant':'Add student');
+  const fn=document.getElementById('m-sfn-label');
+  const ln=document.getElementById('m-sln-label');
+  if(fn)fn.textContent=adult?'First name *':'Student first name *';
+  if(ln)ln.textContent=adult?'Last name *':'Student last name *';
+  const grade=document.getElementById('m-grade-wrap');
+  if(grade)grade.style.display=adult?'none':'';
+  if(adult){const g=document.getElementById('m-grade');if(g)g.value='';}
+  const par=document.getElementById('m-par-label');
+  if(par)par.textContent=adult?'Contact name':'Parent / guardian name';
+  const partner=document.getElementById('m-partner-wrap');
+  if(partner)partner.style.display=couple?'':'none';
+  const save=document.getElementById('m-reg-save');
+  if(save)save.textContent=couple?'Add couple':(adult?'Add participant':'Add student');
+}
 function openAddReg(sessId){
   const sesOpts=[...sessions].filter(s=>!s.isHold).sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<option value="${s.id}" ${s.id===sessId?'selected':''}>${s.course} — ${fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'})}</option>`).join('');
-  showModal(`<div class="modal-head"><h3>Add student</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  showModal(`<div class="modal-head"><h3 id="m-reg-title">Add student</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
-    <div class="fg"><label>Student first name *</label><input type="text" id="m-sfn"></div>
-    <div class="fg"><label>Student last name *</label><input type="text" id="m-sln"></div>
-    <div class="fg full"><label>Session *</label><select id="m-sess"><option value="">Select session...</option>${sesOpts}</select></div>
-    <div class="fg"><label>Grade</label><select id="m-grade"><option value="">—</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option></select></div>
+    <div class="fg"><label id="m-sfn-label">Student first name *</label><input type="text" id="m-sfn"></div>
+    <div class="fg"><label id="m-sln-label">Student last name *</label><input type="text" id="m-sln"></div>
+    <div class="fg full" id="m-partner-wrap" style="display:none"><label>Partner's name * <span style="font-weight:400;color:var(--muted)">(second adult — one payment covers both)</span></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input type="text" id="m-p2fn" placeholder="First name"><input type="text" id="m-p2ln" placeholder="Last name"></div></div>
+    <div class="fg full"><label>Session *</label><select id="m-sess" onchange="syncAddRegLabels()"><option value="">Select session...</option>${sesOpts}</select></div>
+    <div class="fg" id="m-grade-wrap"><label>Grade</label><select id="m-grade"><option value="">—</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option></select></div>
     <div class="fg"><label>Payment status</label><select id="m-pay"><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="host">Host (free)</option><option value="in_kind">In-kind donation (auction)</option></select></div>
     <div class="fg"><label>Custom price <span style="font-weight:400;color:var(--muted)">(override, optional)</span></label><input type="number" id="m-price" placeholder="Leave blank for default" min="0" step="1"></div>
-    <div class="fg full"><label>Parent / guardian name</label><input type="text" id="m-par"></div>
+    <div class="fg full"><label id="m-par-label">Parent / guardian name</label><input type="text" id="m-par"></div>
     <div class="fg full"><label>Phone / email</label><input type="text" id="m-cont"></div>
     <div class="fg full"><label>Notes / allergies</label><input type="text" id="m-rnotes"></div>
   </div></div>
-  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveReg()">Add student</button></div>`);
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="m-reg-save" onclick="saveReg()">Add student</button></div>`);
+  syncAddRegLabels();
 }
 
 async function saveReg(){
   const fn=document.getElementById('m-sfn').value.trim();
   const ln=document.getElementById('m-sln').value.trim();
   const si=document.getElementById('m-sess').value;
-  if(!fn||!ln||!si){alert('Please fill in student name and select a session.');return;}
-  const reg={id:sid(),sessionId:si,studentName:fn+' '+ln,grade:document.getElementById('m-grade').value,parentName:document.getElementById('m-par').value.trim(),contact:document.getElementById('m-cont').value.trim(),payStatus:document.getElementById('m-pay').value,pricePaid:(()=>{const v=document.getElementById('m-price').value.trim();return v===''?null:Number(v);})(),cprPermission:'',emergencyAuth:'',waiverSigned:false,signature:'',paypalTxId:'',notes:document.getElementById('m-rnotes').value.trim(),createdAt:Date.now()};
+  if(!fn||!ln||!si){alert('Please fill in the name and select a session.');return;}
+  const course=regModalCourse('m-sess');
+  const adult=isAdultCourse(course);
+  const couple=seatsPerRegistration(course)>1;
+  const p2=((document.getElementById('m-p2fn').value||'').trim()+' '+(document.getElementById('m-p2ln').value||'').trim()).trim();
+  if(couple&&!p2){alert('Please enter both adults\' names. One registration covers the couple.');return;}
+  const reg={id:sid(),sessionId:si,studentName:fn+' '+ln,grade:adult?'':document.getElementById('m-grade').value,parentName:document.getElementById('m-par').value.trim(),contact:document.getElementById('m-cont').value.trim(),payStatus:document.getElementById('m-pay').value,pricePaid:(()=>{const v=document.getElementById('m-price').value.trim();return v===''?null:Number(v);})(),cprPermission:'',emergencyAuth:'',waiverSigned:false,signature:'',paypalTxId:'',notes:notesWithPartner(document.getElementById('m-rnotes').value.trim(), couple?p2:''),createdAt:Date.now()};
   ensureInKindTag(reg);
   registrations.push(reg);
   closeModal();renderRegs();renderDashboard();
@@ -6243,13 +6289,21 @@ async function markMatchedPaid(id){
 
 function openEditReg(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
+  const s=sessions.find(x=>x.id===r.sessionId);
+  const adult=isAdultCourse(s&&s.course);
+  const couple=seatsPerRegistration(s&&s.course)>1;
   const [fn,...rest]=r.studentName.split(' ');const ln=rest.join(' ');
-  showModal(`<div class="modal-head"><h3>Edit registration</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  const partner=partnerNameOf(r);
+  const pSpace=partner.indexOf(' ');
+  const p2fn=pSpace<0?partner:partner.slice(0,pSpace);
+  const p2ln=pSpace<0?'':partner.slice(pSpace+1);
+  showModal(`<div class="modal-head"><h3>${couple?'Edit couple':(adult?'Edit participant':'Edit registration')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Class</label><div id="m-eclass" style="background:#f7f4ee;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:16px;font-weight:500;line-height:1.4">${escapeHtml(regClassLabel(r))}</div></div>
-    <div class="fg"><label>First name *</label><input type="text" id="m-efn" value="${escapeHtml(fn)}"></div>
-    <div class="fg"><label>Last name *</label><input type="text" id="m-eln" value="${escapeHtml(ln)}"></div>
-    <div class="fg"><label>Grade</label><select id="m-egrade">
+    <div class="fg"><label>${adult?'First name *':'Student first name *'}</label><input type="text" id="m-efn" value="${escapeHtml(fn)}"></div>
+    <div class="fg"><label>${adult?'Last name *':'Student last name *'}</label><input type="text" id="m-eln" value="${escapeHtml(ln)}"></div>
+    <div class="fg full" id="m-epartner-wrap" style="display:${couple?'':'none'}"><label>Partner's name * <span style="font-weight:400;color:var(--muted)">(second adult)</span></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input type="text" id="m-ep2fn" value="${escapeHtml(p2fn)}" placeholder="First name"><input type="text" id="m-ep2ln" value="${escapeHtml(p2ln)}" placeholder="Last name"></div></div>
+    <div class="fg" id="m-egrade-wrap" style="display:${adult?'none':''}"><label>Grade</label><select id="m-egrade">
       <option value="">—</option>
       <option ${r.grade==='4th grade'?'selected':''}>4th grade</option>
       <option ${r.grade==='5th grade'?'selected':''}>5th grade</option>
@@ -6264,9 +6318,9 @@ function openEditReg(id){
       <option value="in_kind" ${r.payStatus==='in_kind'?'selected':''}>In-kind donation (auction)</option>
     </select></div>
     <div class="fg"><label>Custom price <span style="font-weight:400;color:var(--muted)">(override)</span></label><input type="number" id="m-eprice" value="${r.pricePaid!=null?r.pricePaid:''}" placeholder="Default: ${escapeHtml(fmt(regEffectivePrice({pricePaid:null},sessions.find(x=>x.id===r.sessionId))))}" min="0" step="1" style="width:100%"></div>
-    <div class="fg full"><label>Parent / guardian name</label><input type="text" id="m-epar" value="${escapeHtml(r.parentName)}"></div>
+    <div class="fg full"><label>${adult?'Contact name':'Parent / guardian name'}</label><input type="text" id="m-epar" value="${escapeHtml(r.parentName)}"></div>
     <div class="fg full"><label>Phone / email</label><input type="text" id="m-econt" value="${escapeHtml(r.contact)}"></div>
-    <div class="fg full"><label>Notes</label><input type="text" id="m-enotes" value="${escapeHtml(r.notes)}"></div>
+    <div class="fg full"><label>Notes</label><input type="text" id="m-enotes" value="${escapeHtml(notesWithoutPartner(r.notes))}"></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveEditReg('${id}')">Save changes</button></div>`);
 }
@@ -6276,14 +6330,19 @@ async function saveEditReg(id){
   const ln=document.getElementById('m-eln').value.trim();
   if(!fn||!ln){alert('Please enter a first and last name.');return;}
   const r=registrations.find(x=>x.id===id);if(!r)return;
+  const s=sessions.find(x=>x.id===r.sessionId);
+  const adult=isAdultCourse(s&&s.course);
+  const couple=seatsPerRegistration(s&&s.course)>1;
+  const p2=((document.getElementById('m-ep2fn')&&document.getElementById('m-ep2fn').value||'').trim()+' '+(document.getElementById('m-ep2ln')&&document.getElementById('m-ep2ln').value||'').trim()).trim();
+  if(couple&&!p2){alert('Please enter both adults\' names. One registration covers the couple.');return;}
   r.studentName=fn+' '+ln;
-  r.grade=document.getElementById('m-egrade').value;
+  r.grade=adult?'':document.getElementById('m-egrade').value;
   r.parentName=document.getElementById('m-epar').value.trim();
   r.contact=document.getElementById('m-econt').value.trim();
   r.payStatus=document.getElementById('m-epay').value;
   const pr=document.getElementById('m-eprice').value.trim();
   r.pricePaid=pr===''?null:Number(pr);
-  r.notes=document.getElementById('m-enotes').value.trim();
+  r.notes=notesWithPartner(document.getElementById('m-enotes').value.trim(), couple?p2:'');
   ensureInKindTag(r);
   r.notes=notesForPaymentStatus(r.payStatus,r.notes);
   closeModal();renderRegs();renderDashboard();
@@ -6324,11 +6383,12 @@ function reEnrollReg(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
   const s=sessions.find(x=>x.id===r.sessionId);
   const prev=prevStatusFromNote(r);
-  const filled=s?registrations.filter(x=>x.sessionId===s.id&&isLiveReg(x)).length:0;
+  const per=s?seatsPerRegistration(s.course):1;
+  const filled=s?registrations.filter(x=>x.sessionId===s.id&&isLiveReg(x)).length*per:0;
   const cap=s?sessionMaxStudents(s):0;
   const warns=[];
   if(s&&s.isCancelled)warns.push('This session is cancelled, so the class is not running. Move the student to a different session on the Edit screen instead.');
-  if(s&&cap&&filled>=cap)warns.push('This session is already full at '+filled+' of '+cap+'. Re-enrolling puts it at '+(filled+1)+' — or bring them back on the waitlist instead.');
+  if(s&&cap&&filled+per>cap)warns.push('This session is already full at '+filled+' of '+cap+'. Re-enrolling puts it at '+(filled+per)+' — or bring them back on the waitlist instead.');
   const opt=(v,label)=>`<option value="${v}" ${prev===v?'selected':''}>${label}</option>`;
   showModal(`<div class="modal-head"><h3>Re-enroll ${escapeHtml(r.studentName||'student')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">
@@ -7433,25 +7493,89 @@ function emailsInField(text){
   found.forEach(e=>{if(!out.some(x=>x.toLowerCase()===e.toLowerCase()))out.push(e);});
   return out;
 }
+function bookingApi(){
+  return (typeof window!=='undefined'&&window.MBCourseBooking)||(typeof MBCourseBooking!=='undefined'?MBCourseBooking:null);
+}
+function isAdultCourse(course){
+  const name=String(course||'');
+  const booking=bookingApi();
+  if(booking)return booking.isAdultCourse(name, typeof COURSES!=='undefined'?COURSES:null);
+  return name==='Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready';
+}
+function seatsPerRegistration(course){
+  const name=String(course||'');
+  const booking=bookingApi();
+  if(booking)return booking.seatsPerRegistration(name, typeof COURSES!=='undefined'?COURSES:null);
+  const c=(typeof COURSES!=='undefined'&&COURSES[name])||{};
+  const n=Number(c.seatsPerRegistration);
+  if(isFinite(n)&&n>=1)return Math.floor(n);
+  return name==='Baby Ready'?2:1;
+}
+function partnerNameOf(r){
+  const booking=bookingApi();
+  if(booking)return booking.partnerNameOf(r);
+  if(!r)return '';
+  const m=String(r.notes||'').match(/\[Partner:\s*([^\]]+)\]/i);
+  return m?m[1].trim():'';
+}
+function notesWithoutPartner(notes){
+  const booking=bookingApi();
+  if(booking)return booking.notesWithoutPartner(notes);
+  return String(notes||'').replace(/\[Partner:\s*[^\]]*\]\s*/gi,'').trim();
+}
+function notesWithPartner(notes, partner){
+  const booking=bookingApi();
+  if(booking)return booking.notesWithPartner(notes, partner);
+  const base=notesWithoutPartner(notes);
+  const name=String(partner||'').trim();
+  if(!name)return base;
+  return ('[Partner: '+name+']'+(base?' '+base:'')).trim();
+}
+function rosterPeople(regs, course){
+  const booking=bookingApi();
+  if(booking)return booking.peopleCount(regs, course, typeof COURSES!=='undefined'?COURSES:null);
+  const adult=isAdultCourse(course);
+  return (regs||[]).reduce((n,r)=>n+(adult&&partnerNameOf(r)?2:1),0);
+}
+function rosterNameCell(r){
+  const primary=(r&&(r.studentName||r.student_name))||'';
+  const partner=partnerNameOf(r);
+  if(!partner)return escapeHtml(primary);
+  return escapeHtml(primary)+'<br>'+escapeHtml(partner);
+}
+function rosterCountPhrase(course, regs){
+  const adult=isAdultCourse(course);
+  const n=rosterPeople(regs, course);
+  const word=adult?(n===1?'participant':'participants'):(n===1?'student':'students');
+  return n+' '+word+' registered';
+}
 function classRosterSection(s, regs, opts){
   opts=opts||{};
   const when=opts.when||'';
   const where=opts.where||'';
   const who=opts.who||'';
   const privateCols=!!opts.privateCols;
-  const n=regs.length;
-  const cols=privateCols?8:4;
+  const adult=isAdultCourse(s&&s.course);
+  const n=(regs||[]).length;
+  const peoplePhrase=rosterCountPhrase(s&&s.course, regs);
+  const whoLabel=adult?'Participant':'Student';
+  const cols=privateCols?(adult?6:8):(adult?2:4);
   const head=privateCols
-    ?'<th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th><th>Contact</th><th style="text-align:center">CPR</th><th style="text-align:center">Waiver</th><th style="text-align:center">Photo</th>'
-    :'<th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th>';
+    ?(adult
+      ?'<th>#</th><th>'+whoLabel+'</th><th>Contact</th><th style="text-align:center">CPR</th><th style="text-align:center">Waiver</th><th style="text-align:center">Photo</th>'
+      :'<th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th><th>Contact</th><th style="text-align:center">CPR</th><th style="text-align:center">Waiver</th><th style="text-align:center">Photo</th>')
+    :(adult
+      ?'<th>#</th><th>'+whoLabel+'</th>'
+      :'<th>#</th><th>Student</th><th>Grade</th><th>Parent / guardian</th>');
   const body=n?regs.map((r,i)=>{
-    let row='<tr style="background:'+(i%2===0?'white':'#f9fafb')+'"><td style="color:#aaa">'+(i+1)+'</td><td style="font-weight:500">'+escapeHtml(r.studentName)+'</td><td>'+(escapeHtml(r.grade)||'—')+'</td><td>'+(escapeHtml(r.parentName)||'—')+'</td>';
+    let row='<tr style="background:'+(i%2===0?'white':'#f9fafb')+'"><td style="color:#aaa">'+(i+1)+'</td><td style="font-weight:500">'+rosterNameCell(r)+'</td>';
+    if(!adult)row+='<td>'+(escapeHtml(r.grade)||'—')+'</td><td>'+(escapeHtml(r.parentName)||'—')+'</td>';
     if(privateCols){
       row+='<td>'+(escapeHtml(r.contact)||'—')+'</td><td style="text-align:center">'+(r.cprPermission==='yes'?'✓':'—')+'</td><td style="text-align:center">'+(r.waiverSigned?'✓':'—')+'</td><td style="text-align:center">'+(r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—')+'</td>';
     }
     return row+'</tr>';
-  }).join(''):'<tr><td colspan="'+cols+'" style="text-align:center;color:#aaa;font-style:italic;padding:16px">No students registered yet</td></tr>';
-  return '<div class="section-label">Class roster — print and attach</div><div class="roster-section"><div class="roster-hdr">'+escapeHtml(s.course)+' · '+escapeHtml(when)+' · '+n+' student'+(n!==1?'s':'')+' registered</div><div class="roster-body"><div class="roster-meta"><div><span style="color:#6b7a99">Location:</span> <strong>'+(escapeHtml(where)||'TBD')+'</strong></div><div><span style="color:#6b7a99">Instructor:</span> <strong>'+(escapeHtml(who)||'—')+'</strong></div><div><span style="color:#6b7a99">Session code:</span> <strong style="font-family:monospace">'+escapeHtml(s.code)+'</strong></div></div><table class="roster"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table><div class="facts-note">Generated '+escapeHtml(new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}))+' · Mindful Beginnings</div></div></div>';
+  }).join(''):'<tr><td colspan="'+cols+'" style="text-align:center;color:#aaa;font-style:italic;padding:16px">No '+(adult?'participants':'students')+' registered yet</td></tr>';
+  return '<div class="section-label">Class roster — print and attach</div><div class="roster-section"><div class="roster-hdr">'+escapeHtml(s.course)+' · '+escapeHtml(when)+' · '+peoplePhrase+'</div><div class="roster-body"><div class="roster-meta"><div><span style="color:#6b7a99">Location:</span> <strong>'+(escapeHtml(where)||'TBD')+'</strong></div><div><span style="color:#6b7a99">Instructor:</span> <strong>'+(escapeHtml(who)||'—')+'</strong></div><div><span style="color:#6b7a99">Session code:</span> <strong style="font-family:monospace">'+escapeHtml(s.code)+'</strong></div></div><table class="roster"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table><div class="facts-note">Generated '+escapeHtml(new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}))+' · Mindful Beginnings</div></div></div>';
 }
 function emailFactsHtml(title, text){
   return '<div class="section-label">'+escapeHtml(title)+'</div><div class="facts" style="white-space:pre-wrap">'+escapeHtml(text)+'</div>';
@@ -10566,21 +10690,24 @@ function openRoster(sessId){
   const dFile=fmtSessDate(s,{month:'long',day:'numeric',year:'numeric'});
   const rosterTitle='Roster - '+dFile;
   const instr=sessionInstructorNames(s,'Instructor TBD');
+  const adult=isAdultCourse(s.course);
+  const whoLabel=adult?'Participant':'Student';
+  const countPhrase=rosterCountPhrase(s.course, regs);
+  const emptyCols=adult?9:11;
   const rows=regs.length?regs.map((r,i)=>`
     <tr>
       <td style="width:28px;color:#aaa;font-size:14px">${i+1}</td>
-      <td style="font-weight:500">${escapeHtml(r.studentName)}</td>
-      <td>${r.grade||'—'}</td>
-      <td>${escapeHtml(r.parentName)||'—'}</td>
+      <td style="font-weight:500">${rosterNameCell(r)}</td>
+      ${adult?'':`<td>${r.grade||'—'}</td><td>${escapeHtml(r.parentName)||'—'}</td>`}
       <td style="font-size:15px">${escapeHtml(r.contact)||'—'}</td>
       <td style="text-align:center">${r.cprPermission==='yes'?'✓':'✗'}</td>
       <td style="text-align:center">${r.emergencyAuth==='yes'?'✓':'✗'}</td>
       <td style="text-align:center">${r.waiverSigned?'✓':'✗'}</td>
       <td style="text-align:center">${r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—'}</td>
       <td><span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500;background:${r.payStatus==='paid'?'#eaf5f0':r.payStatus==='host'?'#d6e9f5':r.payStatus==='in_kind'?'#f3e8fb':'#fff7e6'};color:${r.payStatus==='paid'?'#2d7a5e':r.payStatus==='host'?'#1a5c8a':r.payStatus==='in_kind'?'#6D1ED4':'#b86a00'}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span></td>
-      <td style="font-size:14px;color:#888;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,r.notes))||''}</td>
+      <td style="font-size:14px;color:#888;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,notesWithoutPartner(r.notes)))||''}</td>
     </tr>`).join('')
-    :'<tr><td colspan="11" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No students registered yet</td></tr>';
+    :'<tr><td colspan="'+emptyCols+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
 
   const html=`
     <div style="font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:24px">
@@ -10600,7 +10727,7 @@ function openRoster(sessId){
         <div><span style="color:#6b7a99">Location:</span> <strong>${s.location||'TBD'}${s.city?', '+s.city:''}</strong></div>
         <div><span style="color:#6b7a99">Instructor:</span> <strong>${instr}</strong></div>
         <div><span style="color:#6b7a99">Session code:</span> <strong>${s.code}</strong></div>
-        <div><span style="color:#6b7a99">Total students:</span> <strong>${regs.length}</strong></div>
+        <div><span style="color:#6b7a99">${adult?'Total participants:':'Total students:'}</span> <strong>${adult?rosterPeople(regs, s.course):regs.length}</strong></div>
       </div>
       <div style="background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:14px 18px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:16px">
         <div style="font-size:14px;text-transform:uppercase;letter-spacing:.7px;color:#6b7a99;font-weight:600;grid-column:1/-1;margin-bottom:2px">Session Info</div>
@@ -10616,9 +10743,9 @@ function openRoster(sessId){
         <thead>
           <tr style="background:#1a2744;color:white">
             <th style="padding:8px 6px;text-align:left">#</th>
-            <th style="padding:8px 6px;text-align:left">Student name</th>
-            <th style="padding:8px 6px;text-align:left">Grade</th>
-            <th style="padding:8px 6px;text-align:left">Parent / guardian</th>
+            <th style="padding:8px 6px;text-align:left">${whoLabel} name</th>
+            ${adult?'':`<th style="padding:8px 6px;text-align:left">Grade</th>
+            <th style="padding:8px 6px;text-align:left">Parent / guardian</th>`}
             <th style="padding:8px 6px;text-align:left">Contact</th>
             <th style="padding:8px 6px;text-align:center">CPR</th>
             <th style="padding:8px 6px;text-align:center">Emerg.</th>
@@ -10654,7 +10781,7 @@ function openRoster(sessId){
     <div class="no-print" style="background:#1a2744;padding:12px 24px;display:flex;align-items:center;gap:12px">
       <button onclick="window.print()" style="background:#4a8fc4;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:17px;cursor:pointer;font-weight:500">🖨️ Print roster</button>
       <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">Close</button>
-      <span style="color:rgba(255,255,255,.5);font-size:15px">${regs.length} student${regs.length!==1?'s':''} · ${s.course}</span>
+      <span style="color:rgba(255,255,255,.5);font-size:15px">${countPhrase} · ${s.course}</span>
     </div>
     ${html}
   </body></html>`);
@@ -11132,7 +11259,7 @@ function openHostReminder(sessId){
     'Location: '+where,
     'Instructor: '+instr,
     'Session code: '+s.code,
-    'Students registered: '+regs.length
+    rosterCountPhrase(s.course, regs)
   ];
   if(s.wifiInfo)facts.push('WiFi: '+s.wifiInfo);
   const hostRegs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus==='host');
@@ -11176,7 +11303,7 @@ function openInstructorReminder(sessId,specificInstrId){
     if(s.wifiInfo)detailLines.push('WiFi: '+s.wifiInfo);
   }
   detailLines.push('Session code: '+s.code);
-  detailLines.push('Students registered: '+regs.length);
+  detailLines.push(rosterCountPhrase(s.course, regs));
   // Instructor-facing notes only. adminPrivateNotes is never included in email.
   if(s.notes)detailLines.push('Notes: '+s.notes);
   const where=s.isVirtual?'Virtual (Zoom)':(s.location?(s.location+(s.city?', '+s.city:'')):'TBD');

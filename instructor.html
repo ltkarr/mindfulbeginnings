@@ -19,6 +19,7 @@
      config.js carries prices, material costs and promo codes. Keep business data OUT
      of config-instructor.js. If the file is missing, the built-in table below is used. -->
 <script src="/config-instructor.js"></script>
+<script src="/js/course-booking.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -467,7 +468,9 @@ if(typeof COURSES==='undefined'){
     'Safe@Home':{hours:1.5, maxStudents:16},
     'Safe@Home — Series':{hours:1, maxStudents:16},
     'Safe@Home — Virtual':{hours:1, maxStudents:16, instrFlatFee:75, virtual:true},
-    'Grandparents: Getting Started':{hours:3, maxStudents:16, requiresSafeSitter:true},
+    'Grandparents: Getting Started':{hours:3, maxStudents:16, requiresSafeSitter:true, adult:true},
+    'Care Ready':{hours:2.5, maxStudents:16, adult:true},
+    'Baby Ready':{hours:2.5, maxStudents:12, seatsPerRegistration:2, adult:true},
     'All Kids Welcome':{hours:1.5, maxStudents:20, instrFlatFee:75, virtual:true},
     'Stay Ready: Choking Rescue and CPR':{hours:1.5, maxStudents:12, requiresRN:true},
     'Campus Ready: Safety Skills for College Life':{hours:1, maxStudents:12, instrFlatFee:100, requiresRN:true},
@@ -564,6 +567,35 @@ function lastSessDate(s){
   return end;
 }
 function countRegs(sessId){return regCountMap[sessId]||0;}
+function isAdultCourse(course){
+  const name=String(course||'');
+  const booking=(typeof window!=='undefined'&&window.MBCourseBooking)||null;
+  if(booking)return booking.isAdultCourse(name, typeof COURSES!=='undefined'?COURSES:null);
+  return name==='Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready';
+}
+function seatsPerRegistration(course){
+  const name=String(course||'');
+  const booking=(typeof window!=='undefined'&&window.MBCourseBooking)||null;
+  if(booking)return booking.seatsPerRegistration(name, typeof COURSES!=='undefined'?COURSES:null);
+  const c=(typeof COURSES!=='undefined'&&COURSES[name])||{};
+  const n=Number(c.seatsPerRegistration);
+  if(isFinite(n)&&n>=1)return Math.floor(n);
+  return name==='Baby Ready'?2:1;
+}
+function filledSeats(s){return countRegs(s&&s.id)*seatsPerRegistration(s&&s.course);}
+function partnerNameOf(r){
+  const booking=(typeof window!=='undefined'&&window.MBCourseBooking)||null;
+  if(booking)return booking.partnerNameOf(r);
+  if(!r)return '';
+  const m=String(r.notes||'').match(/\[Partner:\s*([^\]]+)\]/i);
+  return m?m[1].trim():'';
+}
+function rosterNameCell(r){
+  const primary=(r&&(r.student_name||r.studentName))||'';
+  const partner=partnerNameOf(r);
+  if(!partner)return escapeHtml(primary);
+  return escapeHtml(primary)+'<br>'+escapeHtml(partner);
+}
 
 // ─── CLASS SCHEDULE HELPERS ──────────────────────────────────
 // Every meeting day of a session as [{date,time}], first day first. Days added by the
@@ -763,7 +795,7 @@ function myHistory(s){
 function enrollment(s){
   const c=COURSES[s.course]||{};
   const cap=s.maxStudentsOverride||c.maxStudents||null;
-  const n=countRegs(s.id);
+  const n=filledSeats(s);
   return{n,cap,pct:cap?Math.min(100,Math.round(n/cap*100)):null};
 }
 
@@ -929,7 +961,11 @@ function goodToKnowHTML(s){
   if(c.requiresSafeSitter)facts.push('Requires <strong>Safe Sitter® training</strong>');
   if(!s.isCustomJob){
     const cap=s.maxStudentsOverride||c.maxStudents;
-    if(cap)facts.push(`Class capacity: <strong>${cap} students</strong>${s.maxStudentsOverride?' (set for this class)':''}`);
+    if(cap){
+      const noun=isAdultCourse(s.course)?'participants':'students';
+      const per=seatsPerRegistration(s.course);
+      facts.push(`Class capacity: <strong>${cap} ${noun}</strong>${per>1?' · '+per+' seats per registration':''}${s.maxStudentsOverride?' (set for this class)':''}`);
+    }
   }
   if(s.secondInstructorId)facts.push('A <strong>second instructor</strong> is assigned to this class');
   if(!bits.length&&!facts.length)return'';
@@ -2055,7 +2091,7 @@ function renderMyJobs(){
         <div class="jc-detail"><div class="jc-detail-label">Your earnings</div>${earningsHtml}</div>
       </div>`}
       ${s.isCustomJob?'':`<div class="jc-details">
-        <div class="jc-detail"><div class="jc-detail-label">Students registered</div><div class="jc-detail-val">${countRegs(s.id)}</div></div>
+        <div class="jc-detail"><div class="jc-detail-label">${isAdultCourse(s.course)?'Participants registered':'Students registered'}</div><div class="jc-detail-val">${filledSeats(s)}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">Materials</div><div class="jc-detail-val" style="font-size:12px">${matHtml}</div></div>
       </div>`}
       ${bonus>0?`<div style="font-size:11px;color:var(--muted);margin:-6px 0 12px">Earnings include a referral bonus of ${fmt(bonus)} on top of the ${fmt(baseFee)} base fee.</div>`:''}
@@ -2403,15 +2439,18 @@ async function printRoster(sessId){
   // Clean, filename-safe date for the saved-PDF name (no weekday, no special characters).
   const dFile=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const rosterTitle='Roster - '+dFile;
+  const adult=isAdultCourse(s.course);
+  const whoLabel=adult?'Participant':'Student';
+  const people=regs.reduce((n,r)=>n+(adult&&partnerNameOf(r)?2:1),0);
+  const countPhrase=people+' '+(adult?(people===1?'participant':'participants'):(people===1?'student':'students'));
   const rows=regs.length?regs.map((r,i)=>`
     <tr>
       <td style="width:28px;color:#aaa;font-size:11px">${i+1}</td>
-      <td style="font-weight:500">${escapeHtml(r.student_name)||'—'}</td>
-      <td>${escapeHtml(r.grade)||'—'}</td>
-      <td>${escapeHtml(r.parent_name)||'—'}</td>
+      <td style="font-weight:500">${rosterNameCell(r)||'—'}</td>
+      ${adult?'':`<td>${escapeHtml(r.grade)||'—'}</td><td>${escapeHtml(r.parent_name)||'—'}</td>`}
       <td style="font-size:12px">${escapeHtml(r.contact)||'—'}</td>
     </tr>`)
-  .join(''):'<tr><td colspan="5" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No students registered yet</td></tr>';
+  .join(''):'<tr><td colspan="'+(adult?3:5)+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
 
   const infoRows=[
     priv.hostAddress?`<div><span style="color:#6b7a99">Host / site address:</span><br><strong>${escapeHtml(priv.hostAddress)}</strong></div>`:'',
@@ -2442,7 +2481,7 @@ async function printRoster(sessId){
   <div class="no-print">
     <button onclick="window.print()" style="background:#1E3161;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:14px;cursor:pointer;font-weight:500">🖨️ Print roster</button>
     <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer">Close</button>
-    <span style="color:rgba(255,255,255,.5);font-size:12px">${regs.length} student${regs.length!==1?'s':''} · ${escapeHtml(s.course)}</span>
+    <span style="color:rgba(255,255,255,.5);font-size:12px">${countPhrase} · ${escapeHtml(s.course)}</span>
   </div>
   <div class="wrap">
     <h1>${escapeHtml(s.course)}</h1>
@@ -2452,7 +2491,7 @@ async function printRoster(sessId){
       <div><span style="color:#6b7a99">Time:</span> <strong>${s.time||'TBD'}</strong></div>
       <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(s.location||'TBD')}${s.city?', '+escapeHtml(s.city):''}</strong></div>
       <div><span style="color:#6b7a99">Session code:</span> <strong>${escapeHtml(s.code)}</strong></div>
-      <div><span style="color:#6b7a99">Students:</span> <strong>${regs.length}</strong></div>
+      <div><span style="color:#6b7a99">${adult?'Participants:':'Students:'}</span> <strong>${people}</strong></div>
       ${_mtgs.length>1?`<div style="grid-column:1/-1;border-top:1px solid #dde4ee;padding-top:8px;margin-top:4px"><span style="color:#6b7a99">Class days:</span> <strong>${_mtgs.map(m=>new Date(m.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' · ')}</strong>${sessClosures(s).length?`<div style="color:#b86a00;font-size:12px;margin-top:4px">No class: ${sessClosures(s).map(c=>new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+escapeHtml(c.reason)+')':'')).join(' · ')}</div>`:''}</div>`:''}
     </div>
     <div class="info-box">
@@ -2463,7 +2502,7 @@ async function printRoster(sessId){
       </div>
     </div>
     <table>
-      <thead><tr><th>#</th><th>Student name</th><th>Grade</th><th>Parent / guardian</th><th>Contact</th></tr></thead>
+      <thead><tr><th>#</th><th>${whoLabel} name</th>${adult?'':'<th>Grade</th><th>Parent / guardian</th>'}<th>Contact</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div class="footer">
@@ -2512,7 +2551,7 @@ function printJobsCalendar(){
       const d=new Date(it.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
       if(!it.cls)return`<tr style="color:#b86a00"><td style="white-space:nowrap">${d}</td><td colspan="4"><em>No class${it.reason?' — '+escapeHtml(it.reason):''}</em></td></tr>`;
       const label=escapeHtml(s.course)+(days.length>1?` <span style="color:#6b7a99">(class ${it.n} of ${days.length})</span>`:'');
-      return`<tr><td style="white-space:nowrap">${d}</td><td>${escapeHtml(it.time||s.time||'TBD')}</td><td>${label}</td><td>${idx===0?loc:'<span style="color:#aaa">↑ same</span>'}</td><td>${countRegs(s.id)}</td></tr>`;
+      return`<tr><td style="white-space:nowrap">${d}</td><td>${escapeHtml(it.time||s.time||'TBD')}</td><td>${label}</td><td>${idx===0?loc:'<span style="color:#aaa">↑ same</span>'}</td><td>${filledSeats(s)}</td></tr>`;
     }).join('');
   }).join('');
   const printTitle='Upcoming Jobs - '+escapeHtml(me.name);
@@ -2618,7 +2657,7 @@ function downloadJobsICS(){
     const loc=[(priv&&priv.hostAddress)||'',(s.location||''),[s.city,s.state].filter(Boolean).join(', ')+(s.zip?' '+s.zip:'')].filter(x=>x&&x.trim()).join(' · ');
     const fee=instrFeeForJob(s,jdi)+(jdi.referralBonus||0);
     const closureNote=sessClosures(s).map(c=>'No class '+new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+c.reason+')':'')).join('; ');
-    const desc=`Mindful Beginnings teaching job.\nStudents registered: ${countRegs(s.id)}\nYour fee: ${fmt(fee)}`
+    const desc=`Mindful Beginnings teaching job.\n${isAdultCourse(s.course)?'Participants':'Students'} registered: ${filledSeats(s)}\nYour fee: ${fmt(fee)}`
       +(closureNote?`\nClosures: ${closureNote}`:'')
       +(s.instructorInfo?`\n\n${s.instructorInfo}`:'');
     days.forEach((day,idx)=>{
@@ -3540,7 +3579,7 @@ function sendJobAcceptedNotification(session){
     instructor_name:me.name,instructor_email:me.email||'not on file',instructor_phone:me.phone||'not on file',
     course:session.course,date:fmtSessDates(session),time:session.time||'TBD',
     location:(session.location||'TBD')+(session.city?', '+session.city:''),
-    fee:fmt(fee),students:countRegs(session.id)
+    fee:fmt(fee),students:filledSeats(session)
   };
   // 1) Notify Lindsay
   emailjs.send('service_delt0r4',TPL_LINDSAY_JOB_NOTIFY,params)
@@ -3586,8 +3625,8 @@ function sendJobCancelledNotification(session){
     time:session.time||'TBD',
     location:(session.location||'TBD')+(session.city?', '+session.city:''),
     fee:fmt(fee),
-    students:countRegs(session.id),
-    message:`🚨 JOB CANCELLED 🚨\n\n${me.name} has cancelled their acceptance of the ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''}.\n\nLocation: ${(session.location||'TBD')+(session.city?', '+session.city:'')}\nStudents registered: ${countRegs(session.id)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}\n\nCoverage is needed for this session.`
+    students:filledSeats(session),
+    message:`🚨 JOB CANCELLED 🚨\n\n${me.name} has cancelled their acceptance of the ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''}.\n\nLocation: ${(session.location||'TBD')+(session.city?', '+session.city:'')}\n${isAdultCourse(session.course)?'Participants':'Students'} registered: ${filledSeats(session)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}\n\nCoverage is needed for this session.`
   };
   emailjs.send('service_delt0r4',TPL_LINDSAY_JOB_CANCEL,params)
     .catch(err=>console.warn('Cancellation notification failed:',err));

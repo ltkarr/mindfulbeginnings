@@ -224,7 +224,7 @@ test('every admin email composer opens its Google Doc with an empty message', ()
 });
 
 test('Care Ready is wired into the instructor config and the admin course list', () => {
-  assert.match(instructorCfg, /"Care Ready":\{hours:2\.5,maxStudents:16\}/);
+  assert.match(instructorCfg, /"Care Ready":\{hours:2\.5,maxStudents:16,adult:true\}/);
   assert.match(admin, /'Care Ready':\{price:185/);
   assert.match(admin, /'Care Ready':185,/);
 });

@@ -56,11 +56,17 @@ const COURSES={
   // Schedule it under this course so register.html shows the virtual price automatically.
   // Still tick "Virtual session" on the session itself so families get the Zoom link.
   'Safe@Home — Virtual':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:10,hours:1,instrFlatFee:75,maxStudents:16,virtual:true,audience:'Kids home alone · Virtual'},
-  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true,audience:'Grandparents & caregivers'},
+  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true,adult:true,audience:'Grandparents & caregivers'},
   // Care Ready (new Sep 2026): 2.5-hour course for nannies and au pairs, $185.
   // Any instructor may teach it; it uses CPR manikins, so the registration form
   // treats it as an adult course (no grade, no parent/guardian fields).
-  'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,audience:'Nannies & au pairs'},
+  'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,adult:true,audience:'Nannies & au pairs'},
+  // Baby Ready: one payment of $225 covers a couple. Capacity is in people
+  // (12, the top of the ~6–12 people per nurse range). seatsPerRegistration 2
+  // means each booking holds two seats. Adult course — no grade, no parent.
+  // Length matches Care Ready (2.5 hours) until a published length replaces it.
+  // Any instructor may teach it, same as Care Ready.
+  'Baby Ready':{price:225,price2027:225,priceNew:225,priceNew2027:225,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · per couple'},
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters · Grades 3–9'},
   'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true,audience:'Grades 7–12'},
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'11th–12th grade & college'},
@@ -123,6 +129,7 @@ const LATER_PRICE_CHANGES=[
      'My First Babysitters Club':165,
      'Grandparents: Getting Started':185,
      'Care Ready':185,
+     'Baby Ready':225,
      'All Kids Welcome':25,
      'Intro to Babysitting':40,
      'Steady and Ready':65,
@@ -182,6 +189,8 @@ const MAX_STUDENTS={
   'Safe@Home — Virtual':16,
   'Safe@Home — Series':16,
   'Grandparents: Getting Started':16,
+  'Care Ready':16,
+  'Baby Ready':12,
   'All Kids Welcome':20,
   'Stay Ready: Choking Rescue and CPR':12,
   'Campus Ready: Safety Skills for College Life':12,

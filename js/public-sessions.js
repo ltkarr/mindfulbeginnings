@@ -33,6 +33,8 @@
     'Safe@Home — Virtual': 'Kids home alone · Virtual',
     'Safe@Home — Series': 'Kids home alone · multi-week',
     'Grandparents: Getting Started': 'Grandparents & caregivers',
+    'Care Ready': 'Nannies & au pairs',
+    'Baby Ready': 'Expecting parents · per couple',
     'All Kids Welcome': 'Experienced sitters · Grades 3–9',
     'Stay Ready: Choking Rescue and CPR': 'Grades 7–12',
     'Campus Ready: Safety Skills for College Life': '11th–12th grade & college',
@@ -182,17 +184,30 @@
     return null;
   }
 
+  // People held by one registration. Baby Ready is a couple booking (2) even
+  // when COURSES is not on this page; MBCourseBooking wins when it is loaded.
+  function seatsPerRegistration(course) {
+    if (root.MBCourseBooking && typeof root.MBCourseBooking.seatsPerRegistration === 'function') {
+      return root.MBCourseBooking.seatsPerRegistration(course);
+    }
+    if (course === 'Baby Ready') return 2;
+    return 1;
+  }
+
   function seatsLeft(row, registeredCount, maxStudents) {
     var cap = sessionCap(row, maxStudents);
     if (cap == null) return null;
-    var used = Number(registeredCount);
-    if (!isFinite(used) || used < 0) used = 0;
-    return Math.max(0, cap - used);
+    var regs = Number(registeredCount);
+    if (!isFinite(regs) || regs < 0) regs = 0;
+    var per = seatsPerRegistration(row && row.course);
+    return Math.max(0, cap - regs * per);
   }
 
-  function seatsLabel(left) {
+  function seatsLabel(left, seatsNeeded) {
     if (left == null) return '';
-    if (left <= 0) return 'Full — waitlist';
+    var need = Number(seatsNeeded);
+    if (!isFinite(need) || need < 1) need = 1;
+    if (left < need) return 'Full — waitlist';
     if (left === 1) return '1 seat left';
     return left + ' seats left';
   }
@@ -306,6 +321,7 @@
     sessionCardPlace: sessionCardPlace,
     sessionPrice: sessionPrice,
     sessionCap: sessionCap,
+    seatsPerRegistration: seatsPerRegistration,
     seatsLeft: seatsLeft,
     seatsLabel: seatsLabel,
     monthLabel: monthLabel,
