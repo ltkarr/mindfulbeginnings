@@ -26,7 +26,35 @@ test('a hold opens the same edit form and still stays off public registration', 
   assert.match(row, /ON HOLD/);
   assert.match(row, /isLiveReg\(r\)/);
   assert.match(row, /sessionMaxStudents\(s\)/);
+  assert.match(row, /fmt\(f\.revenue\)/);
   assert.doesNotMatch(row, /<td style="color:var\(--muted\)">—<\/td>/);
+
+  function between(startMark, endMark) {
+    const start = admin.indexOf(startMark);
+    const end = admin.indexOf(endMark, start + startMark.length);
+    assert.ok(start > 0 && end > start, startMark);
+    return admin.slice(start, end);
+  }
+  const dashRev = between('function renderDashboard', 'dash-metrics');
+  assert.doesNotMatch(dashRev, /if\(s\.isHold\)return/);
+  assert.match(dashRev, /calcFin\(s\)/);
+  const chart = between('Build a continuous 6-month window', 'const maxV');
+  assert.doesNotMatch(chart, /isHold/);
+  const fin = between('function renderFinances', '// ─── CODES');
+  assert.doesNotMatch(fin, /if\(s\.isHold\)return/);
+  assert.doesNotMatch(fin, /filter\(s=>!s\.isHold\)/);
+  const yearLoop = between('function printYearReport', 'expenses.forEach');
+  assert.doesNotMatch(yearLoop, /isHold/);
+  const monthList = between('function printMonthReport', 'const monthExpenses');
+  assert.doesNotMatch(monthList, /isHold\)return false/);
+  assert.match(monthList, /isNaN\(d\.getTime\(\)\)/);
+  const partnerRev = between('function partnerRevenueEvents', 'function partnerBookingUnits');
+  assert.doesNotMatch(partnerRev, /isHold/);
+  assert.match(partnerRev, /isCancelled/);
+  const partnerUnits = between('function partnerBookingUnits', 'function partyFirstPaidIndex');
+  assert.doesNotMatch(partnerUnits, /isHold/);
+  const orgRows = between('function orgPartnerRows', 'function orgPartnerStatement');
+  assert.doesNotMatch(orgRows, /isHold/);
 
   const holdStart = menu.indexOf('if(s.isHold){');
   const holdElse = menu.indexOf('}else{', holdStart);

@@ -149,6 +149,30 @@ test('a custom job keeps facility costs and drops a per-student materials line f
   assert.deepEqual(sandbox._editCosts.map((c) => c.label), ['Parking']);
 });
 
+test('a hold keeps the same paid revenue as the open class', () => {
+  const open = {
+    id: 'ss-hold',
+    course: 'Safe Sitter®',
+    date: '2026-10-18',
+    priceOverride: 225,
+    isHold: false,
+    additionalCosts: [{ label: 'Facility rental', amount: 40 }]
+  };
+  const held = Object.assign({}, open, { isHold: true });
+  sandbox.registrations = [
+    { id: 'paid', sessionId: 'ss-hold', payStatus: 'paid' },
+    { id: 'wait', sessionId: 'ss-hold', payStatus: 'unpaid' }
+  ];
+  sandbox.jobDataCache = {};
+  const openFin = sandbox.calcFin(open);
+  const heldFin = sandbox.calcFin(held);
+  assert.ok(heldFin.revenue > 0);
+  assert.equal(heldFin.revenue, openFin.revenue);
+  assert.equal(heldFin.paidCount, 1);
+  assert.equal(heldFin.profit, openFin.profit);
+  assert.equal(sandbox.participantMaterialAllowance(held), sandbox.participantMaterialAllowance(open));
+});
+
 test('a hand-typed job cost that is not a generated materials line still reduces profit', () => {
   assert.equal(sandbox.isPerStudentMaterialLine({ label: 'Facility rental' }), false);
   assert.equal(sandbox.isPerStudentMaterialLine({ label: 'Safe Sitter handbooks' }), false);
