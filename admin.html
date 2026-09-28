@@ -1613,17 +1613,33 @@ function calcFin(s){
 }
 
 // Where revenue is counted. A real class date keeps its own month and year.
-// An on-hold session with no date, or a date that does not parse, still counts
-// when calcFin finds paid revenue: paid registrations, an organization bill
-// (billToOrg × billedHeadcount), or a custom-job organization fee. The year is
-// the 4-digit year in the hold term ("Fall 2026" → 2026), or the current
-// calendar year when the term has none. That money is in year-to-date and in
-// yearly finance / annual totals. It is also placed in the current month —
-// dashboard "Revenue this month", the 6-month chart, the monthly finance view,
-// and the printed monthly report — only when that year is the current year.
-// Any other year stays in the yearly total and is left out of every month
-// until a class date is saved. Nothing here writes session.date, and public
-// signup stays closed for holds.
+// An on-hold session with no date, or a date that does not parse, counts only
+// when the money is already in: at least one paid registration (a reschedule
+// such as Nesbitt), or hold_payment saying the check/deposit was received
+// (Wyngate: "Paid by check, $780"). A billToOrg headcount or custom-job fee
+// with no paid registration and no received-payment note is a future invoice
+// (Beth El, or a troop still to be invoiced) and stays out of the totals.
+// The year is the 4-digit year in the hold term ("Fall 2026" → 2026), or the
+// current calendar year when the term has none. That collected money is in
+// year-to-date and in yearly finance / annual totals. It is also placed in
+// the current month — dashboard "Revenue this month", the 6-month chart, the
+// monthly finance view, and the printed monthly report — only when that year
+// is the current year. Any other year stays in the yearly total and is left
+// out of every month until a class date is saved. Nothing here writes
+// session.date, and public signup stays closed for holds.
+// True when the hold note says money was already received. "Paid by check,
+// $780" counts. A future-invoice note ("invoiced", "portion TBD") does not,
+// because it never says paid, deposited, received, or collected.
+function holdPaymentReceived(s){
+  const t=String((s&&s.holdPayment)||'').trim().toLowerCase();
+  if(!t)return false;
+  return /\bpaid\b/.test(t)||/\bdeposit(?:ed)?\b/.test(t)||/\b(?:received|collected)\b/.test(t);
+}
+function undatedHoldMoneyIn(s){
+  if(!s)return false;
+  const paid=(registrations||[]).some(r=>r.sessionId===s.id&&r.payStatus==='paid');
+  return paid||holdPaymentReceived(s);
+}
 function holdTermYear(term, now){
   const m=String(term==null?'':term).match(/\b(?:19|20)\d{2}\b/);
   if(m)return parseInt(m[0],10);
@@ -1640,6 +1656,8 @@ function sessionRevenueSlot(s, now){
   const dated=sessionClassDate(s);
   if(dated)return {year:dated.getFullYear(),month:dated.getMonth(),undatedHold:false};
   if(!s||!s.isHold)return null;
+  // Collected money only. An org roster with no payment yet is not revenue.
+  if(!undatedHoldMoneyIn(s))return null;
   const f=calcFin(s);
   if(!(f&&f.revenue>0))return null;
   const year=holdTermYear(s.holdTerm, n);
@@ -11318,7 +11336,7 @@ function printMonthReport(){
       </tr></tfoot>`:''}
     </table>
     ${monthSessions.length?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Operating net profit — revenue minus instructor fees and extra session costs. Revenue is net of payment processing fees (PayPal 2.99% + $0.49/transaction). Handbook orders and other overhead are reported annually.</p>':''}
-    ${undatedListed?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Sessions marked (on hold) have no class date. Their paid or organization-billed revenue is included in this month because the hold term falls in the current year (or names no year). Saving a date moves that revenue to the class month.</p>':''}
+    ${undatedListed?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Sessions marked (on hold) have no class date. Revenue already collected — paid registrations, or a payment note such as a deposited check — is included in this month because the hold term falls in the current year (or names no year). An organization roster that has not been paid yet is not included. Saving a date moves that revenue to the class month.</p>':''}
 
     <h2>Revenue by course</h2>
     <table>

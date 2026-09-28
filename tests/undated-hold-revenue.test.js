@@ -30,6 +30,7 @@ const names = [
   'processingFee', 'isLiveReg', 'regEffectivePrice',
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'calcFin',
+  'holdPaymentReceived', 'undatedHoldMoneyIn',
   'holdTermYear', 'sessionClassDate', 'sessionRevenueSlot', 'sessionReportDateLabel',
   'sessionsForRevenueMonth', 'dashboardRevenueTotals', 'dashboardChartRevenue',
   'financeRevenueBuckets', 'emptyRevBucket', 'annualSessionBuckets', 'courseRevenueForYear'
@@ -74,12 +75,13 @@ function sahHold(overrides) {
     holdTerm: 'Fall 2026',
     billToOrg: 'Girl Scouts – Wyngate',
     billedHeadcount: 12,
+    holdPayment: 'Paid by check, $780 ',
     isCustomJob: false,
     additionalCosts: []
   }, overrides || {});
 }
 
-test('an undated org-billed hold counts in 2026 year-to-date and in the current month', () => {
+test('Wyngate’s deposited check counts in 2026 year-to-date and in the current month', () => {
   const hold = sahHold();
   useSessions([hold]);
   const fin = sandbox.calcFin(hold);
@@ -208,11 +210,94 @@ test('a blank, invalid, or missing date is treated as undated, and unpaid holds 
   assert.equal(sandbox.sessionsForRevenueMonth(2026, 8, SEP_2026).length, 3);
 });
 
-test('paid registrations and a custom-job organization fee on an undated hold count', () => {
+test('an unpaid org roster is not revenue, and a future-invoice note is not a deposit', () => {
+  const beth = sahHold({
+    id: 'beth',
+    code: 'SAH-BETH',
+    billToOrg: 'Congregation Beth El',
+    billedHeadcount: 10,
+    holdPayment: '',
+    holdTerm: 'Fall 2026'
+  });
+  const troop = {
+    id: 'troop',
+    course: 'Girl Scouts — First Aid Badge Workshop',
+    date: '',
+    isHold: true,
+    isCustomJob: true,
+    holdTerm: 'Fall 2026',
+    billToOrg: 'Girl Scout Troop 34182',
+    billedHeadcount: 15,
+    priceOverride: 675,
+    holdPayment: 'Split: families pay reduced rate at registration; troop invoiced for remainder (portion TBD).',
+    additionalCosts: []
+  };
+  const quoted = {
+    id: 'quoted',
+    course: 'Workshop',
+    date: '',
+    isHold: true,
+    isCustomJob: true,
+    holdTerm: 'Fall 2026',
+    priceOverride: 500,
+    holdPayment: '',
+    additionalCosts: []
+  };
+  useSessions([beth, troop, quoted]);
+  assert.equal(sandbox.calcFin(beth).revenue, 650);
+  assert.equal(sandbox.calcFin(troop).revenue, 675);
+  assert.equal(sandbox.calcFin(quoted).revenue, 500);
+  assert.equal(sandbox.holdPaymentReceived(beth), false);
+  assert.equal(sandbox.holdPaymentReceived(troop), false);
+  assert.equal(sandbox.holdPaymentReceived(sahHold()), true);
+  assert.equal(sandbox.holdPaymentReceived({ holdPayment: 'Check deposited' }), true);
+  assert.equal(sandbox.undatedHoldMoneyIn(beth), false);
+  const totals = sandbox.dashboardRevenueTotals(SEP_2026);
+  assert.equal(totals.yRev, 0);
+  assert.equal(totals.mRev, 0);
+  assert.equal(sandbox.financeRevenueBuckets(SEP_2026, 'yearly')['2026'], undefined);
+  assert.equal(sandbox.sessionRevenueSlot(beth, SEP_2026), null);
+  assert.equal(sandbox.sessionRevenueSlot(troop, SEP_2026), null);
+  assert.equal(sandbox.sessionRevenueSlot(quoted, SEP_2026), null);
+});
+
+test('Nesbitt paid registrations count on an undated hold with no org bill', () => {
+  const nesbitt = {
+    id: 'nesbitt',
+    course: 'Safe Sitter®',
+    date: '',
+    isHold: true,
+    holdTerm: '',
+    holdPayment: '',
+    billToOrg: '',
+    billedHeadcount: null,
+    location: "The Nesbitt's",
+    additionalCosts: []
+  };
+  useSessions([nesbitt], [
+    { id: 'n1', sessionId: 'nesbitt', payStatus: 'paid' },
+    { id: 'n2', sessionId: 'nesbitt', payStatus: 'paid' },
+    { id: 'n3', sessionId: 'nesbitt', payStatus: 'unpaid' }
+  ]);
+  const fin = sandbox.calcFin(nesbitt);
+  assert.equal(fin.paidCount, 2);
+  assert.ok(fin.revenue > 0);
+  assert.equal(sandbox.undatedHoldMoneyIn(nesbitt), true);
+  const totals = sandbox.dashboardRevenueTotals(SEP_2026);
+  assert.equal(totals.yRev, fin.revenue);
+  assert.equal(totals.mRev, fin.revenue);
+  const slot = sandbox.sessionRevenueSlot(nesbitt, SEP_2026);
+  assert.equal(slot.year, 2026);
+  assert.equal(slot.month, 8);
+  assert.equal(slot.undatedHold, true);
+});
+
+test('paid registrations and a collected custom-job fee on an undated hold count', () => {
   const paid = sahHold({
     id: 'paid-hold',
     billToOrg: '',
-    billedHeadcount: 0
+    billedHeadcount: 0,
+    holdPayment: ''
   });
   const job = {
     id: 'job-hold',
@@ -221,6 +306,7 @@ test('paid registrations and a custom-job organization fee on an undated hold co
     isHold: true,
     isCustomJob: true,
     holdTerm: 'Fall 2026',
+    holdPayment: 'Paid by check, $400',
     priceOverride: 400,
     instrPayOverride: 100,
     additionalCosts: []
