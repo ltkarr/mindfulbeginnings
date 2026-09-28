@@ -4503,9 +4503,9 @@ function openSessionMenu(ev,sessId){
   // board). Adding a student stays off this menu: holds are not open for new
   // registration, and public signup stays closed.
   if(s.isHold){
-    items.push({label:'🚀 Publish to instructors',act:`publishHold('${sessId}')`});
+    items.push({label:'📣 Publish to instructors',act:`publishHold('${sessId}')`});
     items.push({label:'📋 Roster',act:`openRoster('${sessId}')`});
-    items.push({label:'◻ Registrations',act:`openSessionRegistrations('${sessId}')`});
+    items.push({label:'🧾 Registrations',act:`openSessionRegistrations('${sessId}')`});
     items.push({label:'✉️ Email class',act:`emailClass('${sessId}')`});
   }else{
   items.push({label:'📋 Roster',act:`openRoster('${sessId}')`});
