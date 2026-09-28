@@ -1537,7 +1537,8 @@ function sessionExtraCosts(list){
 // Contractual per-participant handbook allowance for liaison commission and
 // community-partnership shares. Not used by company session profit.
 function participantMaterialAllowance(s){
-  if(!s||s.isCustomJob||s.isHold)return 0;
+  // A hold still has its roster. The allowance stays so partner net matches an open class.
+  if(!s||s.isCustomJob)return 0;
   const rate=Number((COURSES[s.course]||{}).matCost||0);
   if(!rate)return 0;
   const head=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)&&r.payStatus!=='host').length;
@@ -1984,9 +1985,11 @@ function partnerAttachCosts(s,events){
 // Every dollar of Collected Revenue a session produces, one entry per source.
 // amount is always NET — processing fees are already removed, per §3.D.
 // A cancelled class earns no commission at all, however much was collected for it.
+// A hold is a reschedule pause: paid registrations still produce revenue lines.
+// Commission stays unearned until the class date has passed (partnerEventDates).
 function partnerRevenueEvents(s){
   const out=[];
-  if(!s||s.isHold||s.isCancelled)return out;
+  if(!s||s.isCancelled)return out;
 
   // A custom job bills the organization a flat fee held in priceOverride.
   if(s.isCustomJob){
@@ -2047,7 +2050,6 @@ function partnerBookingUnits(partnerId){
   });
   const units=[];
   (sessions||[]).forEach(sx=>{
-    if(sx.isHold)return;
     if(sx.originatedBy===partnerId){
       units.push({session:sx,events:partnerRevenueEvents(sx),isReferral:false,refNames:[]});
       return;
@@ -2583,7 +2585,6 @@ function orgPartnerRows(partnerId){
   const rows=[],pending=[];
   (sessions||[]).forEach(s=>{
     if(s.hostedFor!==partnerId)return;
-    if(s.isHold)return;
     const events=partnerRevenueEvents(s);
     if(!events.length)return;
     const byMonth={};
@@ -4082,8 +4083,10 @@ function renderDashboard(){
   const now=new Date();const m=now.getMonth();const y=now.getFullYear();
   let mRev=0,mCost=0,mProfit=0,yRev=0,mOH=0;
   sessions.forEach(s=>{
-    if(s.isHold)return;
-    const d=new Date(s.date+'T12:00:00');const f=calcFin(s);
+    // Hold pauses signup. Paid revenue still counts in the month of the class date.
+    const d=new Date((s.date||'')+'T12:00:00');
+    if(isNaN(d.getTime()))return;
+    const f=calcFin(s);
     if(d.getFullYear()===y){yRev+=f.revenue;}
     if(d.getFullYear()===y&&d.getMonth()===m){mRev+=f.revenue;mCost+=f.totalCost;}
   });
@@ -4123,8 +4126,8 @@ function renderDashboard(){
     keys.push(k);buckets[k]={rev:0,cost:0,profit:0};
   }
   sessions.forEach(s=>{
-    if(s.isHold)return;
-    const d=new Date(s.date+'T12:00:00');
+    const d=new Date((s.date||'')+'T12:00:00');
+    if(isNaN(d.getTime()))return;
     const k=d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
     if(!buckets[k])return; // session falls outside the visible window
     const f=calcFin(s);buckets[k].rev+=f.revenue;buckets[k].cost+=f.totalCost;buckets[k].profit+=f.profit;
@@ -4407,7 +4410,8 @@ function renderSessions(){
       const mgr=bg=>`<td class="mgr-cell" style="text-align:right;background:${bg}"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage \u25be</button></td>`;
       const where=locCell(s.isVirtual?'Virtual':s.location);
       if(s.isHold){
-        const seats=s.reservedSeats!=null?s.reservedSeats:'—';
+        const enrolled=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course);
+        const wlHold=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
         const whenFull=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
         const timeNote=(s.time||'').trim();
         // A parenthetical on the term is the same preferred-time note. Show it once,
@@ -4417,10 +4421,11 @@ function renderSessions(){
         // The preferred-time note stays on the date, one clipped line. It used to
         // run in a single unwrapped line through the title and the ON HOLD badge.
         const whenCell=`<span class="sess-clamp when" title="${escapeHtml(whenTip)}">${escapeHtml(when)}</span>`+(timeNote?`<span class="sess-clip" title="${escapeHtml(timeNote)}">${escapeHtml(timeNote)}</span>`:'');
-        const payCell=s.holdPayment?`<span class="sess-clamp" title="${escapeHtml(s.holdPayment)}">${escapeHtml(s.holdPayment)}</span>`:'<span class="sess-sub">—</span>';
+        const holdNote=s.holdPayment?`<span class="sess-clamp" title="${escapeHtml(s.holdPayment)}">${escapeHtml(s.holdPayment)}</span>`:'';
+        const payCell=`<span class="sess-wrap">${fmt(f.revenue)}</span>${holdNote}${netLine(f.profit)}`;
         const pills=[pill('ON HOLD','#e7e0f5','#5b4a8a')];
         if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
-        const seatLabel=s.reservedSeats!=null?`${seats} reserved`:'—';
+        const seatLabel=`${enrolled} / ${sessionMaxStudents(s)}${wlHold?' · '+wlHold+' waitlist':''}${s.reservedSeats!=null?' · '+s.reservedSeats+' reserved':''}`;
         return`<tr style="background:#f6f4fb">
           <td><div class="cell-stack">${whenCell}</div></td>
           <td><div class="cell-stack">${courseCell(pills)}</div></td>
@@ -4492,12 +4497,16 @@ function openSessionMenu(ev,sessId){
   const isPast=new Date(sessionEndDate(s)+'T12:00:00')<new Date();
   const esc=t=>String(t).replace(/'/g,"\\'");
   const items=[];
-  // A hold is still a class. Publish stays hold-only (it takes the class off hold
-  // and onto the instructor board). Editing uses the same session form as every
-  // other class — date, time, location, notes, instructor, and hold term/payment.
-  // Adding a student stays off this menu: holds are not open for registration.
+  // A hold is still a class. Existing registrations stay on the roster and the
+  // Registrations tab — putting a class on hold does not hide or delete them.
+  // Publish stays hold-only (it takes the class off hold and onto the instructor
+  // board). Adding a student stays off this menu: holds are not open for new
+  // registration, and public signup stays closed.
   if(s.isHold){
     items.push({label:'🚀 Publish to instructors',act:`publishHold('${sessId}')`});
+    items.push({label:'📋 Roster',act:`openRoster('${sessId}')`});
+    items.push({label:'◻ Registrations',act:`openSessionRegistrations('${sessId}')`});
+    items.push({label:'✉️ Email class',act:`emailClass('${sessId}')`});
   }else{
   items.push({label:'📋 Roster',act:`openRoster('${sessId}')`});
   items.push({label:'✉️ Email class',act:`emailClass('${sessId}')`});
@@ -4725,7 +4734,7 @@ function openAddSession(){
         <input type="checkbox" id="m-hold" onchange="toggleHoldMode(this.checked)" style="width:16px;height:16px;cursor:pointer">
         Place a hold (reserved, not yet scheduled)
       </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Use this when someone has booked and paid but you do not have a firm date or registrant names yet. Holds are tracked here but stay hidden from the instructor job board until you publish them.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Use this when someone has booked and paid but you do not have a firm date or registrant names yet. Families already registered stay on the roster and the Registrations tab. Holds stay hidden from public registration and the instructor job board until you publish them.</div>
       <div id="m-hold-panel" style="display:none;margin-top:12px">
         <div class="form-grid">
           <div class="fg"><label>Term / season</label><input type="text" id="m-hold-term" placeholder="e.g. Fall 2026"></div>
@@ -5129,7 +5138,7 @@ function openEditCustomJob(id){
         <input type="checkbox" id="cj-hold" ${s.isHold?'checked':''} onchange="toggleCustomHoldMode(this.checked)" style="width:16px;height:16px;cursor:pointer">
         Place a hold (reserved, not yet scheduled)
       </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Holds stay hidden from the instructor job board until you publish them. Uncheck this box, or use Publish to instructors, once the date is set.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Families already registered stay on the roster and the Registrations tab. Holds stay hidden from public registration and the instructor job board until you publish them. Uncheck this box, or use Publish to instructors, once the date is set.</div>
       <div id="cj-hold-panel" style="display:${s.isHold?'block':'none'};margin-top:12px">
         <div class="form-grid">
           <div class="fg"><label>Term / season</label><input type="text" id="cj-hold-term" value="${escapeHtml(s.holdTerm||'')}" placeholder="e.g. Fall 2026"></div>
@@ -5426,7 +5435,7 @@ function openEditSession(id){
         <input type="checkbox" id="m-hold" ${s.isHold?'checked':''} onchange="toggleHoldMode(this.checked)" style="width:16px;height:16px;cursor:pointer">
         Place a hold (reserved, not yet scheduled)
       </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Holds stay hidden from the instructor job board until you publish them. To publish, set a date and use Publish to instructors from the Manage menu, or simply uncheck this box.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Families already registered stay on the roster and the Registrations tab. Holds stay hidden from public registration and the instructor job board until you publish them. To publish, set a date and use Publish to instructors from the Manage menu, or simply uncheck this box.</div>
       <div id="m-hold-panel" style="display:${s.isHold?'block':'none'};margin-top:12px">
         <div class="form-grid">
           <div class="fg"><label>Term / season</label><input type="text" id="m-hold-term" value="${s.holdTerm||''}" placeholder="e.g. Fall 2026"></div>
@@ -5897,12 +5906,21 @@ function openCancellationEmails(sessId){
 }
 
 // ─── REGISTRATIONS ───────────────────────────────────────────
+// Open the Registrations tab already filtered to one class. On-hold sessions
+// are included: hold blocks new public signups, it does not hide the roster.
+function openSessionRegistrations(sessId){
+  const nav=document.querySelector('.nav-item[title="Registrations"]');
+  showScreen('registrations',nav);
+  const sel=document.getElementById('rf-session');
+  if(sel)sel.value=sessId;
+  renderRegs();
+}
 function renderRegs(){
   const sf=document.getElementById('rf-session').value;
   const pf=document.getElementById('rf-status').value;
   const q=(document.getElementById('rf-search').value||'').toLowerCase();
   const selEl=document.getElementById('rf-session');const cur=selEl.value;
-  selEl.innerHTML='<option value="">All sessions</option>'+sessions.filter(s=>!s.isHold).sort((a,b)=>b.date.localeCompare(a.date)).map(s=>{const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course);const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});return`<option value="${s.id}">${s.course} — ${d} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
+  selEl.innerHTML='<option value="">All sessions</option>'+sessions.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(s=>{const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course);const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'});const hold=s.isHold?' · on hold':'';return`<option value="${s.id}">${s.course} — ${d}${hold} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
   selEl.value=cur;
   let list=registrations.filter(r=>{
     if(sf&&r.sessionId!==sf)return false;
@@ -6452,7 +6470,7 @@ function renderFinances(){
   invalidateCommissionCache();
   // Populate year selector
   const years=[...new Set([
-    ...sessions.filter(s=>!s.isHold).map(s=>new Date(s.date+'T12:00:00').getFullYear()),
+    ...sessions.filter(s=>s.date).map(s=>new Date(s.date+'T12:00:00').getFullYear()),
     ...expenses.map(e=>new Date(e.date+'T12:00:00').getFullYear()),
     new Date().getFullYear()
   ])].filter(y=>!isNaN(y)).sort((a,b)=>b-a);
@@ -6462,8 +6480,8 @@ function renderFinances(){
   if(moSel){const curMo=(moSel.value!==''&&moSel.value!=null)?moSel.value:new Date().getMonth();moSel.innerHTML=Array.from({length:12},(_,m)=>`<option value="${m}" ${m==curMo?'selected':''}>${new Date(2000,m,1).toLocaleDateString('en-US',{month:'long'})}</option>`).join('');}
   const buckets={};
   sessions.forEach(s=>{
-    if(s.isHold)return;
-    const d=new Date(s.date+'T12:00:00');
+    const d=new Date((s.date||'')+'T12:00:00');
+    if(isNaN(d.getTime()))return;
     const k=finView==='monthly'?d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0'):d.getFullYear().toString();
     if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0};
     const f=calcFin(s);buckets[k].rev+=f.revenue;buckets[k].fee+=f.procFee||0;buckets[k].instr+=f.instrFee+f.referralBonus;
@@ -7702,7 +7720,7 @@ function emailClass(sessId){
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
   if(!emails.length){alert('No participant email addresses are on file for this session yet.');return;}
-  const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
   openDocEmail({
     type:'classEmail',
     category:'Email the class',
@@ -10803,9 +10821,8 @@ function printYearReport(){
   }
 
   sessions.forEach(s=>{
-    if(s.isHold)return;
-    const d=new Date(s.date+'T12:00:00');
-    if(d.getFullYear()!==year)return;
+    const d=new Date((s.date||'')+'T12:00:00');
+    if(isNaN(d.getTime())||d.getFullYear()!==year)return;
     const mi=d.getMonth();
     const f=calcFin(s);
     months[mi].rev+=f.revenue;months[mi].fee+=f.procFee||0;months[mi].instr+=f.instrFee;
@@ -11056,7 +11073,7 @@ function printMonthReport(){
   const profitColor=n=>n>=0?'#2d7a5e':'#c0392b';
 
   // Sessions in this month, sorted by date
-  const monthSessions=sessions.filter(s=>{if(s.isHold)return false;const d=new Date(s.date+'T12:00:00');return d.getFullYear()===year&&d.getMonth()===mi;}).sort((a,b)=>a.date.localeCompare(b.date));
+  const monthSessions=sessions.filter(s=>{const d=new Date((s.date||'')+'T12:00:00');return !isNaN(d.getTime())&&d.getFullYear()===year&&d.getMonth()===mi;}).sort((a,b)=>a.date.localeCompare(b.date));
   const monthExpenses=expenses.filter(e=>{const d=new Date(e.date+'T12:00:00');return d.getFullYear()===year&&d.getMonth()===mi;});
 
   const tot={rev:0,fee:0,mat:0,instr:0,extra:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0,regs:0};
@@ -11073,7 +11090,7 @@ function printMonthReport(){
     const dlabel=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
     return`<tr>
       <td>${dlabel}</td>
-      <td>${s.course}</td>
+      <td>${s.course}${s.isHold?' (on hold)':''}</td>
       <td style="text-align:center">${f.totalCount}</td>
       <td style="text-align:center">${f.paidCount}</td>
       <td style="text-align:right;font-weight:500">${fmtN(f.revenue)}</td>
