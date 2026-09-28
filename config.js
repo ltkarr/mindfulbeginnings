@@ -69,9 +69,11 @@ const COURSES={
   'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1.5,maxStudents:8,audience:'Family safety workshop'},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug
   // 2026 program guide confirmed $165 for the 8-week series.
-  // Material cost is $30/student — an 8-week series consumes far more supplies
-  // than a one-off class, so it does not share the $10 handbook cost of the
+  // Material allowance is $30/student — an 8-week series consumes far more supplies
+  // than a one-off class, so it does not share the $10 handbook allowance of the
   // short courses. (Corrected from $10, Aug 30 2026, to match admin.html.)
+  // Company class profit does not subtract matCost. Handbook orders are overhead
+  // expenses in admin. The rate is only the partner-share allowance there.
   'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12,audience:'Younger sitters · 8-week series'},
   // My First Babysitters Club — Single Session: the one-off 2.5-hour version, $95.
   // Deliberately a SEPARATE course from the 8-week series above so the series keeps

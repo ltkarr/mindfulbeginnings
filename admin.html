@@ -390,7 +390,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="invoices-table"></table></div></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:16px">
-        <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Non-course costs — equipment, insurance, supplies, etc. These reduce your net profit.</div></div>
+        <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Insurance, software, equipment, and handbook or supply orders. These reduce net profit, and they are not also taken off each class.</div></div>
         <button class="btn primary" onclick="openAddExpense()">+ Add expense</button>
       </div>
       <div class="metrics" id="exp-metrics"></div>
@@ -1005,8 +1005,9 @@ const COURSES={
   'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1.5,maxStudents:8},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug 2026 program
   // guide confirmed $165 for the 8-week series, so future sessions charge $165.
-  // Material cost is $30/student — an 8-week series consumes far more supplies than a
-  // one-off class, so it does not share the $10 handbook cost of the short courses.
+  // Material allowance is $30/student — an 8-week series consumes far more supplies than a
+  // one-off class, so it does not share the $10 handbook allowance of the short courses.
+  // Company class profit does not subtract this. Handbook orders are overhead expenses.
   'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12},
   // My First Babysitters Club — Single Session: the one-off 2.5-hour version, $95.
   // Deliberately a SEPARATE course from the 8-week series above so the series keeps its
@@ -1023,14 +1024,13 @@ const COURSES={
   // hour + the standard extra 30 minutes.
   'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true}
 };
-// ─── STUDENT MATERIAL COSTS ──────────────────────────────────
-// Single source of truth: every per-student material rate lives on COURSES[...].matCost
-// above. Course sessions apply it automatically in calcFin() (rate × non-host students).
-// Custom jobs have no registrations, so the picker in the costs box below lets you add
-// the same rate × a headcount you type in. Nothing here is entered by hand twice.
-function materialRateCourses(){
-  return Object.keys(COURSES).filter(k=>Number(COURSES[k].matCost||0)>0);
-}
+// ─── STUDENT MATERIAL RATES ──────────────────────────────────
+// COURSES[...].matCost is the per-participant handbook and supply allowance.
+// Company class, session, and job profit does NOT deduct it. Those purchases
+// are entered once, as overhead expenses (Safe Sitter, Safe@Home, Grandparents,
+// Intro to Babysitting, and the rest). Liaison commission and community-partnership
+// shares still treat the rate as a direct program cost under those agreements
+// (participantMaterialAllowance). That is separate from the overhead ledger.
 // ─── PROGRAM-GUIDE PRICING CUTOVER (August 2026) ─────────────
 // Sessions created on/after this moment use the new program-guide prices (priceNew columns).
 // Sessions that already existed keep the prices they were advertised at, so publishing the
@@ -1514,27 +1514,48 @@ const PAYPAL_PCT=0.0299, PAYPAL_FIXED=0.49;   // PayPal: 2.99% + $0.49
 const VENMO_PCT=0.019,  VENMO_FIXED=0.10;     // Venmo:  1.9% + $0.10 (reference)
 function processingFee(amount){const a=Number(amount)||0;return a>0?a*PAYPAL_PCT+PAYPAL_FIXED:0;}
 
+// The old custom-job materials picker wrote lines like
+// "Safe Sitter® materials — 8 × $20.35". Those are per-student handbook costs.
+// Handbook orders already live on Overhead, so these lines do not reduce profit.
+function isPerStudentMaterialLine(c){
+  return / materials — \d+ × \$/.test(String((c&&c.label)||''));
+}
+function sessionExtraCosts(list){
+  return (list||[]).reduce((sum,x)=>{
+    if(isPerStudentMaterialLine(x))return sum;
+    return sum+Number(x.amount||0);
+  },0);
+}
+// Contractual per-participant handbook allowance for liaison commission and
+// community-partnership shares. Not used by company session profit.
+function participantMaterialAllowance(s){
+  if(!s||s.isCustomJob||s.isHold)return 0;
+  const rate=Number((COURSES[s.course]||{}).matCost||0);
+  if(!rate)return 0;
+  const head=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)&&r.payStatus!=='host').length;
+  const orgHeadcount=(s.billToOrg&&s.billedHeadcount)?Number(s.billedHeadcount):0;
+  return (head+orgHeadcount)*rate;
+}
+
 function calcFin(s){
   // Custom jobs have no registrations or course pricing. Pay is the flat instructor amount;
   // revenue is whatever the organization pays Mindful Beginnings (stored in priceOverride, optional).
   if(s.isCustomJob){
     const pay=s.instrPayOverride!=null?Number(s.instrPayOverride):0;
     const orgFee=s.priceOverride!=null?Number(s.priceOverride):0;
-    // Materials, handbooks, facility rental etc. entered on the job come off the top
-    // so the profit shown is what the job actually earned, not just fee minus pay.
-    const extra=(s.additionalCosts||[]).reduce((sum,x)=>sum+Number(x.amount||0),0);
+    // Facility rental, parking, printing, and other costs entered on the job come off
+    // the top. Per-student handbook lines do not — those purchases are overhead.
+    const extra=sessionExtraCosts(s.additionalCosts);
     return{revenue:orgFee,grossRevenue:orgFee,procFee:0,matCost:0,instrFee:pay,extraCosts:extra,refPayout:0,referralBonus:0,totalCost:pay+extra,profit:orgFee-pay-extra,paidCount:0,totalCount:0};
   }
-  const c=COURSES[s.course]||{price:0,franchise:0,booklet:0,hours:0};
   const regs=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r));
   const paying=regs.filter(r=>r.payStatus==='paid');
-  const nonHost=regs.filter(r=>r.payStatus!=='host');
   // Per-participant price: each paying student counts at their own custom price if one
   // was set, otherwise the session override, otherwise the course default.
   // Org-billed sessions (e.g. Beth El): the organization sends a roster and pays at
   // month end, so revenue comes from the entered headcount × per-participant price
   // instead of individual paid registrations. Any individually paid registrations on
-  // the same session still count on top. Materials are consumed per org student too.
+  // the same session still count on top.
   const orgHeadcount=(s.billToOrg&&s.billedHeadcount)?Number(s.billedHeadcount):0;
   const orgRate=s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
   // Gross = what families/orgs are charged. Processing fees apply only to individual
@@ -1542,7 +1563,9 @@ function calcFin(s){
   const grossRevenue=paying.reduce((sum,r)=>sum+regEffectivePrice(r,s),0)+orgHeadcount*orgRate;
   const procFee=paying.reduce((sum,r)=>sum+processingFee(regEffectivePrice(r,s)),0);
   const revenue=grossRevenue-procFee;   // reported revenue is NET of payment processing fees
-  const matCost=(nonHost.length+orgHeadcount)*(c.matCost||0);
+  // Handbook and student-supply cost is an overhead expense, not a per-student
+  // deduction. matCost stays on the result so older readers keep working.
+  const matCost=0;
   // Build list of instructor IDs for this session (primary from jobs, second from session)
   const primaryInstrId=(jobDataCache[s.id]||{}).instructorId||s.instructorId||null;
   const instrIds=[];
@@ -1570,7 +1593,7 @@ function calcFin(s){
       return sum+(isSecond?secondInstrDisplayFee(s,inst,jdiFin):instrDisplayFee(s,inst,jdiFin));
     },0);
   }
-  const extraCosts=(s.additionalCosts||[]).reduce((sum,x)=>sum+Number(x.amount||0),0);
+  const extraCosts=sessionExtraCosts(s.additionalCosts);
   // The $25 family referral payout is retired. Naming a referrer is information only
   // — it tells you who sent the family — and costs the session nothing. refPayout stays
   // in the return as 0 so every screen that reads it keeps working.
@@ -1755,9 +1778,10 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 // new field you fill in is "Originated by" on the session form.
 //
 //  §3.A  A flat 20% of NET Originated Revenue. Net means Collected Revenue for a
-//        booking, less the direct cost of delivering it: instructor pay, materials
-//        and any job costs entered on that session. Company overhead is NOT
-//        deducted — only costs attached to the booking itself.
+//        booking, less the direct cost of delivering it: instructor pay, the
+//        per-participant material allowance, and any job costs stored on that
+//        session. Company overhead expenses — where handbook orders are recorded —
+//        are NOT deducted. Only costs attached to the booking itself are.
 //  §3.B  Retired. There is no volume ladder and no accelerator to sit on top of.
 //  §3.C  Retired. There is no new-organization bonus. Commission is the whole
 //        of the compensation.
@@ -1920,19 +1944,22 @@ function partnerEventDates(s,ev,paidOn){
 }
 
 // ─── DIRECT COST OF A BOOKING (for §3.A net) ─────────────────
-// What it costs to deliver one session: instructor pay, participant materials and
-// any job costs you entered on it. Payment processing fees are NOT included here,
-// because revenue is already reported net of them and counting them twice would
-// understate her commission.
+// What it costs to deliver one session for a partner statement: instructor pay,
+// the per-participant material allowance, and any job costs stored on it
+// (including a leftover per-student materials line). Payment processing fees are
+// NOT included here, because revenue is already reported net of them and counting
+// them twice would understate her commission.
 //
-// Company overhead (insurance, software, the website) is deliberately excluded.
-// Those are costs of being in business, not costs of her booking, and charging
-// them against her commission would make her pay move with decisions she has no
-// part in.
+// Company overhead (insurance, software, the website, and the handbook order
+// itself) is deliberately excluded. Those are costs of being in business, not
+// costs of her booking. The allowance above is the agreement's stand-in for
+// participant materials; it is not the overhead expense, and company session
+// profit does not deduct it a second time.
 function partnerDirectCosts(s){
   if(!s)return 0;
   const f=calcFin(s);
-  return round2(Math.max(0,(f.instrFee||0)+(f.matCost||0)+(f.extraCosts||0)));
+  const storedExtra=(s.additionalCosts||[]).reduce((sum,x)=>sum+Number(x.amount||0),0);
+  return round2(Math.max(0,(f.instrFee||0)+participantMaterialAllowance(s)+storedExtra));
 }
 // Spreads that cost across the session's revenue lines in proportion to size, so a
 // booking where only half the families have paid carries only half the cost so far.
@@ -4512,41 +4539,14 @@ function openSessionMenu(ev,sessId){
 
 // ─── ADDITIONAL COSTS HELPERS ────────────────────────────────
 let _editCosts=[];
-// Which modal the costs box is sitting in. 'custom' shows the student-materials picker,
-// because custom jobs have no registrations for calcFin() to price materials from.
-// Course sessions ('session') already get materials calculated automatically, so showing
-// the picker there would double-count.
-let _costsCtx='session';
-// Builds a materials cost row from a course's per-student rate × a headcount.
-function addMaterialsCost(){
-  const course=(document.getElementById('mat-course')||{}).value||'';
-  const n=Math.max(0,Math.floor(Number((document.getElementById('mat-count')||{}).value)||0));
-  if(!course||!n){alert('Pick a course and enter how many students.');return;}
-  const rate=Number(COURSES[course]?.matCost||0);
-  if(!rate){alert('That course has no per-student material cost on file.');return;}
-  const amount=Math.round(rate*n*100)/100;
-  _editCosts.push({label:course+' materials — '+n+' × $'+rate.toFixed(2),amount,datePaid:'',paymentMethod:''});
-  renderEditCosts();
-}
-function materialsPickerHtml(){
-  if(_costsCtx!=='custom')return'';
-  const opts=materialRateCourses().map(k=>`<option value="${escapeHtml(k)}">${escapeHtml(k)} — $${Number(COURSES[k].matCost).toFixed(2)}/student</option>`).join('');
-  return `<div style="background:white;border:1px dashed var(--border);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:10px">
-      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">📚 Student materials</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <select id="mat-course" style="flex:2;min-width:180px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white">
-          <option value="">Choose a course rate…</option>${opts}
-        </select>
-        <input type="number" id="mat-count" placeholder="# students" min="1" step="1"
-          style="width:110px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white">
-        <button type="button" class="btn sm" onclick="addMaterialsCost()">Add materials</button>
-      </div>
-      <div style="font-size:14px;color:var(--muted);margin-top:6px">Uses the same per-student rate course sessions use, so a Babysitter's Club run as a custom job still carries its real material cost.</div>
-    </div>`;
+// Drop leftover per-student handbook lines when a session or job is opened.
+// Saving then clears them. Until then, session profit already ignores them.
+function loadEditCosts(list){
+  _editCosts=JSON.parse(JSON.stringify(list||[])).filter(c=>!isPerStudentMaterialLine(c));
 }
 function renderEditCosts(){
   const el=document.getElementById('extra-costs-list');if(!el)return;
-  el.innerHTML=materialsPickerHtml()+(_editCosts.length?_editCosts.map((c,i)=>`
+  el.innerHTML=(_editCosts.length?_editCosts.map((c,i)=>`
     <div style="background:var(--cream);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
         <input type="text" value="${c.label||''}" placeholder="e.g. Facility rental" oninput="_editCosts[${i}].label=this.value"
@@ -4701,7 +4701,6 @@ function toggleHoldMode(on){
 
 
 function openAddSession(){
-  _costsCtx='session';
   _editCosts=[];
   _editDays=[];
   _editClosures=[];
@@ -4874,7 +4873,6 @@ function openAddSession(){
 // post to the instructor board for someone to claim. It has a flat total pay,
 // no student registrations, and no course affiliation.
 function openAddCustomJob(){
-  _costsCtx='custom';
   _editDays=[];_editClosures=[];_editCosts=[];
   showModal(`<div class="modal-head"><h3>Add custom job</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
@@ -4944,7 +4942,7 @@ function openAddCustomJob(){
     </div>
     <div class="fg full" style="background:#f6f2ea;border:1px solid #e0d5c2;border-radius:var(--r-sm);padding:10px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-        <label style="margin-bottom:0">Costs for this job <span style="font-weight:400;color:var(--muted)">(optional — materials, student handbooks, facility rental, parking, printing)</span></label>
+        <label style="margin-bottom:0">Costs for this job <span style="font-weight:400;color:var(--muted)">(optional — facility rental, parking, printing)</span></label>
         <button type="button" class="btn sm" onclick="addEditCost()">+ Add cost</button>
       </div>
       <div id="extra-costs-list"></div>
@@ -5109,11 +5107,10 @@ async function saveCustomJob(){
 
 function openEditCustomJob(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
-  _costsCtx='custom';
   const jdi=jobDataCache[s.id]||{};
   _editDays=JSON.parse(JSON.stringify((s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}))));
   _editClosures=JSON.parse(JSON.stringify(s.closures||[]));
-  _editCosts=JSON.parse(JSON.stringify(s.additionalCosts||[]));
+  loadEditCosts(s.additionalCosts);
   showModal(`<div class="modal-head"><h3>Edit custom job</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Job title *</label><input type="text" id="cj-title" value="${s.course||''}"></div>
@@ -5196,7 +5193,7 @@ function openEditCustomJob(id){
     </div>
     <div class="fg full" style="background:#f6f2ea;border:1px solid #e0d5c2;border-radius:var(--r-sm);padding:10px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-        <label style="margin-bottom:0">Costs for this job <span style="font-weight:400;color:var(--muted)">(materials, student handbooks, facility rental, parking, printing)</span></label>
+        <label style="margin-bottom:0">Costs for this job <span style="font-weight:400;color:var(--muted)">(facility rental, parking, printing)</span></label>
         <button type="button" class="btn sm" onclick="addEditCost()">+ Add cost</button>
       </div>
       <div id="extra-costs-list"></div>
@@ -5388,8 +5385,7 @@ function openEditSession(id){
   // instructor_id on the session row. Prefer that over a blank dropdown, or the
   // next save would clear the instructor.
   const assignedInstrId=(jobDataCache[s.id]||{}).instructorId||s.instructorId||'';
-  _costsCtx='session';
-  _editCosts=JSON.parse(JSON.stringify(s.additionalCosts||[]));
+  loadEditCosts(s.additionalCosts);
   _editDays=JSON.parse(JSON.stringify((s.extraDays&&s.extraDays.length)?s.extraDays:(s.extraDates||[]).map(d=>({date:d,time:''}))));
   _editClosures=JSON.parse(JSON.stringify(s.closures||[]));
   _pricingCtxCreatedAt=s.createdAt??null; // existing session → keep the price table it was created under
@@ -6410,11 +6406,11 @@ function renderFinances(){
     const d=new Date(s.date+'T12:00:00');
     const k=finView==='monthly'?d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0'):d.getFullYear().toString();
     if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0};
-    const f=calcFin(s);buckets[k].rev+=f.revenue;buckets[k].fee+=f.procFee||0;buckets[k].mat+=f.matCost;buckets[k].instr+=f.instrFee+f.referralBonus;
+    const f=calcFin(s);buckets[k].rev+=f.revenue;buckets[k].fee+=f.procFee||0;buckets[k].instr+=f.instrFee+f.referralBonus;
     buckets[k].extra=(buckets[k].extra||0)+f.extraCosts;buckets[k].cost+=f.totalCost;buckets[k].sess++;buckets[k].students+=f.paidCount;
   });
   expenses.forEach(e=>{
-    if(finView==='monthly')return; // Overhead is reported annually only, so the monthly view shows operating costs (materials, instructor fees, extra costs).
+    if(finView==='monthly')return; // Overhead, including handbook orders, is reported annually only. The monthly view shows instructor fees, extra job costs, and partner commission.
     const d=new Date(e.date+'T12:00:00');
     const k=finView==='monthly'?d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0'):d.getFullYear().toString();
     if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0};
@@ -6433,21 +6429,20 @@ function renderFinances(){
   Object.values(buckets).forEach(b=>b.profit=b.rev-b.cost);
   const keys=Object.keys(buckets).sort().reverse();
   const t=document.getElementById('fin-table');
-  t.innerHTML=`<thead><tr><th>${finView==='monthly'?'Month':'Year'}</th><th>Sessions</th><th>Students paid</th><th>Revenue (net)</th><th title="PayPal processing fees skimmed off online payments — already deducted from net revenue, not part of expenses">Proc. fees</th><th title="Per-student handbooks and supplies consumed — not the reusable equipment on the Equipment tab">Material cost</th><th>Instructor fees</th><th>Extra costs</th><th title="Community partner commission, booked in the month it was earned — money received and class taught. Do not also log these payouts on the Expenses tab or you will count them twice.">Partner commission</th>${finView==='monthly'?'':'<th>Overhead</th>'}<th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
+  t.innerHTML=`<thead><tr><th>${finView==='monthly'?'Month':'Year'}</th><th>Sessions</th><th>Students paid</th><th>Revenue (net)</th><th title="PayPal processing fees skimmed off online payments — already deducted from net revenue, not part of expenses">Proc. fees</th><th>Instructor fees</th><th>Extra costs</th><th title="Community partner commission, booked in the month it was earned — money received and class taught. Do not also log these payouts on the Expenses tab or you will count them twice.">Partner commission</th>${finView==='monthly'?'':'<th>Overhead</th>'}<th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
     (keys.length?keys.map(k=>{
       const b=buckets[k];
       const label=finView==='monthly'?new Date(k+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}):k;
       return`<tr><td style="font-weight:500">${label}</td><td>${b.sess}</td><td>${b.students}</td>
         <td style="font-weight:500">${fmt(b.rev)}</td>
         <td style="color:var(--muted)" title="Already deducted from net revenue">${fmt(b.fee||0)}</td>
-        <td style="color:var(--danger)">${fmt(b.mat)}</td>
         <td style="color:var(--danger)">${fmt(b.instr)}</td>
         <td style="color:var(--danger)">${fmt(b.extra||0)}</td>
         <td style="color:var(--danger)">${fmt(b.comm||0)}</td>
         ${finView==='monthly'?'':`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`}
         <td style="color:var(--danger)">${fmt(b.cost)}</td>
         <td style="font-weight:500;color:${b.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(b.profit)}</td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="${finView==='monthly'?11:12}">No financial data yet.</td></tr>`)+'</tbody>';
+    }).join(''):`<tr class="empty-row"><td colspan="${finView==='monthly'?10:11}">No financial data yet.</td></tr>`)+'</tbody>';
   renderInvoices();
 }
 
@@ -7139,7 +7134,7 @@ function renderJobs(){
         </div>
         ${s.isCustomJob?`<div class="job-section">
           <div class="job-section-title">Job details</div>
-          <div style="font-size:15px;color:var(--muted);line-height:1.6">Flat-rate job — no materials or host evaluation required.${sessionRequiresRN(s)?'<br><span style="color:#2d7a5e;font-weight:500">🩺 RN instructors only — hidden from everyone else\'s job board</span>':''}${sessionRequiresSafeSitter(s)?'<br><span style="color:#1a5c8a;font-weight:500">🧒 Safe Sitter® instructors only — hidden from everyone else\'s job board</span>':''}${s.isRecurring?'<br><span style="color:#1a5c8a;font-weight:500">↻ Recurring: '+recurLabel(s)+(s.time?', '+s.time:'')+'</span>':''}${s.contactName||s.hostPhone?'<br>📞 On-site: <strong style="color:var(--text)">'+escapeHtml([s.contactName,s.hostPhone].filter(Boolean).join(' · '))+'</strong>':''}${(()=>{const cs=(s.additionalCosts||[]).filter(c=>Number(c.amount||0)>0);if(!cs.length)return'';const tot=cs.reduce((a,c)=>a+Number(c.amount||0),0);return'<br>💵 Job costs: <strong style="color:#c0392b">'+fmt(tot)+'</strong> <span style="font-size:14px">('+escapeHtml(cs.map(c=>(c.label||'unlabeled')).join(', '))+')</span>';})()}${s.notes?'<br>📝 '+s.notes:''}</div>
+          <div style="font-size:15px;color:var(--muted);line-height:1.6">Flat-rate job — no materials or host evaluation required.${sessionRequiresRN(s)?'<br><span style="color:#2d7a5e;font-weight:500">🩺 RN instructors only — hidden from everyone else\'s job board</span>':''}${sessionRequiresSafeSitter(s)?'<br><span style="color:#1a5c8a;font-weight:500">🧒 Safe Sitter® instructors only — hidden from everyone else\'s job board</span>':''}${s.isRecurring?'<br><span style="color:#1a5c8a;font-weight:500">↻ Recurring: '+recurLabel(s)+(s.time?', '+s.time:'')+'</span>':''}${s.contactName||s.hostPhone?'<br>📞 On-site: <strong style="color:var(--text)">'+escapeHtml([s.contactName,s.hostPhone].filter(Boolean).join(' · '))+'</strong>':''}${(()=>{const cs=(s.additionalCosts||[]).filter(c=>Number(c.amount||0)>0&&!isPerStudentMaterialLine(c));if(!cs.length)return'';const tot=cs.reduce((a,c)=>a+Number(c.amount||0),0);return'<br>💵 Job costs: <strong style="color:#c0392b">'+fmt(tot)+'</strong> <span style="font-size:14px">('+escapeHtml(cs.map(c=>(c.label||'unlabeled')).join(', '))+')</span>';})()}${s.notes?'<br>📝 '+s.notes:''}</div>
         </div>`:`<div class="job-section">
           <div class="job-section-title">Handbooks &amp; supplies delivery</div>
           <select style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif" onchange="setMaterialsMethod('${s.id}',this.value)">
@@ -10686,7 +10681,7 @@ function printYearReport(){
     if(d.getFullYear()!==year)return;
     const mi=d.getMonth();
     const f=calcFin(s);
-    months[mi].rev+=f.revenue;months[mi].fee+=f.procFee||0;months[mi].mat+=f.matCost;months[mi].instr+=f.instrFee;
+    months[mi].rev+=f.revenue;months[mi].fee+=f.procFee||0;months[mi].instr+=f.instrFee;
     months[mi].ship+=f.extraCosts;months[mi].cost+=f.totalCost;months[mi].sess++;months[mi].students+=f.paidCount;
   });
   expenses.forEach(e=>{
@@ -10735,7 +10730,6 @@ function printYearReport(){
       <td style="text-align:center">${m.sess||'—'}</td>
       <td style="text-align:center">${m.students||'—'}</td>
       <td style="text-align:right;font-weight:500">${m.rev?fmtN(m.rev):'—'}</td>
-      <td style="text-align:right;color:#c0392b">${m.mat?fmtN(m.mat):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.instr?fmtN(m.instr):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.ship?fmtN(m.ship):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.comm?fmtN(m.comm):'—'}</td>
@@ -10810,7 +10804,7 @@ function printYearReport(){
     <table>
       <thead><tr>
         <th>Month</th><th style="text-align:center">Sessions</th><th style="text-align:center">Students</th>
-        <th style="text-align:right">Revenue</th><th style="text-align:right">Materials</th>
+        <th style="text-align:right">Revenue</th>
         <th style="text-align:right">Instructor</th><th style="text-align:right">Extra costs</th>
         <th style="text-align:right">Partner comm.</th>
         <th style="text-align:right">Overhead</th><th style="text-align:right">Total exp.</th>
@@ -10822,7 +10816,6 @@ function printYearReport(){
         <td style="text-align:center">${tot.sess}</td>
         <td style="text-align:center">${tot.students}</td>
         <td style="text-align:right">${fmtN(tot.rev)}</td>
-        <td style="text-align:right;color:#c0392b">${fmtN(tot.mat)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.ship)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td>
@@ -10851,11 +10844,10 @@ function printYearReport(){
     </table>`:''}
 
     <h2>All expenses by category</h2>
-    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes per-session materials, instructor fees, community partner commission, and all overhead expenses.</p>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes instructor fees, extra session costs, community partner commission, and overhead. Handbook and supply orders are overhead, not a per-student charge on each class.</p>
     ${(()=>{
       // Build unified expense map: session costs + overhead
       const allCats={};
-      if(tot.mat>0)allCats['Student materials']=tot.mat;
       if(tot.instr>0)allCats['Instructor fees']=tot.instr;
       if(tot.comm>0)allCats['Partner commission']=tot.comm;
       if(tot.ship>0)allCats['Extra session costs']=tot.ship;
@@ -10904,8 +10896,8 @@ function printYearReport(){
           </table>
           <div style="margin-top:12px;padding:10px 12px;background:#f8f9fc;border-radius:6px;font-size:14px;color:#6b7a99;line-height:1.7">
             <strong style="color:#1a2744">How these are counted:</strong><br>
-            <em>Student materials</em> — handbook and supply cost per enrolled student, built into each session (${materialRateCourses().map(k=>'$'+Number(COURSES[k].matCost).toFixed(2)+' for '+k).join(', ')}). Custom jobs carry no registrations, so add materials there from the picker in the job's cost box.<br>
-            <em>Instructor fees</em> — hourly rate × course hours, plus one paid hour of travel at the same rate (virtual courses have no travel), or a flat fee for All Kids Welcome and Stay Ready.
+            <em>Instructor fees</em> — hourly rate × course hours, plus one paid hour of travel at the same rate (virtual courses have no travel), or a flat fee where the course has one. Handbook and student-supply purchases are overhead expenses, entered when you order them.<br>
+            <em>Extra session costs</em> — facility rental, parking, printing, and other costs typed on that class or job.
           </div>
         </div>
       </div>`;
@@ -10913,7 +10905,7 @@ function printYearReport(){
 
     <div class="footer">
       <span>Mindful Beginnings · Annual Report ${year}</span>
-      <span>Figures include course revenue, instructor fees, materials, shipping, and overhead expenses</span>
+      <span>Figures include course revenue, instructor fees, extra session costs, partner commission, and overhead</span>
     </div>
   </div>
   </body></html>`;
@@ -10946,7 +10938,7 @@ function printMonthReport(){
   const sessRows=monthSessions.map(s=>{
     const f=calcFin(s);
     const instrCost=f.instrFee+f.referralBonus;
-    tot.rev+=f.revenue;tot.fee+=f.procFee||0;tot.mat+=f.matCost;tot.instr+=instrCost;tot.extra+=f.extraCosts;
+    tot.rev+=f.revenue;tot.fee+=f.procFee||0;tot.instr+=instrCost;tot.extra+=f.extraCosts;
     tot.cost+=f.totalCost;tot.sess++;tot.students+=f.paidCount;tot.regs+=f.totalCount;
     if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,sess:0,regs:0,students:0,profit:0};
     courseBuckets[s.course].rev+=f.revenue;courseBuckets[s.course].sess++;
@@ -10958,7 +10950,6 @@ function printMonthReport(){
       <td style="text-align:center">${f.totalCount}</td>
       <td style="text-align:center">${f.paidCount}</td>
       <td style="text-align:right;font-weight:500">${fmtN(f.revenue)}</td>
-      <td style="text-align:right;color:#c0392b">${f.matCost?fmtN(f.matCost):'—'}</td>
       <td style="text-align:right;color:#c0392b">${instrCost?fmtN(instrCost):'—'}</td>
       <td style="text-align:right;color:#c0392b">${f.extraCosts?fmtN(f.extraCosts):'—'}</td>
       <td style="text-align:right;font-weight:600;color:${profitColor(f.profit)}">${fmtS(f.profit)}</td>
@@ -11043,23 +11034,22 @@ function printMonthReport(){
       <thead><tr>
         <th>Date</th><th>Course</th>
         <th style="text-align:center">Registrations</th><th style="text-align:center">Paid</th>
-        <th style="text-align:right">Revenue</th><th style="text-align:right">Materials</th>
+        <th style="text-align:right">Revenue</th>
         <th style="text-align:right">Instructor</th><th style="text-align:right">Extra costs</th>
         <th style="text-align:right">Net profit</th>
       </tr></thead>
-      <tbody>${sessRows||'<tr><td colspan="9" style="color:#aaa;text-align:center;padding:16px">No sessions this month</td></tr>'}</tbody>
+      <tbody>${sessRows||'<tr><td colspan="8" style="color:#aaa;text-align:center;padding:16px">No sessions this month</td></tr>'}</tbody>
       ${monthSessions.length?`<tfoot><tr class="total-row">
         <td colspan="2">TOTAL</td>
         <td style="text-align:center">${tot.regs}</td>
         <td style="text-align:center">${tot.students}</td>
         <td style="text-align:right">${fmtN(tot.rev)}</td>
-        <td style="text-align:right;color:#c0392b">${fmtN(tot.mat)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.extra)}</td>
-        <td style="text-align:right;color:${profitColor(tot.rev-tot.mat-tot.instr-tot.extra)}">${fmtS(tot.rev-tot.mat-tot.instr-tot.extra)}</td>
+        <td style="text-align:right;color:${profitColor(tot.rev-tot.instr-tot.extra)}">${fmtS(tot.rev-tot.instr-tot.extra)}</td>
       </tr></tfoot>`:''}
     </table>
-    ${monthSessions.length?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Operating net profit — revenue minus materials, instructor fees, and extra session costs. Revenue is net of payment processing fees (PayPal 2.99% + $0.49/transaction). Overhead is reported annually.</p>':''}
+    ${monthSessions.length?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Operating net profit — revenue minus instructor fees and extra session costs. Revenue is net of payment processing fees (PayPal 2.99% + $0.49/transaction). Handbook orders and other overhead are reported annually.</p>':''}
 
     <h2>Revenue by course</h2>
     <table>
@@ -11075,7 +11065,6 @@ function printMonthReport(){
     <table>
       <tbody>
         <tr><td>Revenue</td><td style="text-align:right;font-weight:500">${fmtN(tot.rev)}</td></tr>
-        <tr><td>Student materials</td><td style="text-align:right;color:#c0392b">${fmtN(tot.mat)}</td></tr>
         <tr><td>Instructor fees</td><td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td></tr>
         <tr><td>Extra session costs</td><td style="text-align:right;color:#c0392b">${fmtN(tot.extra)}</td></tr>
         ${tot.comm?`<tr><td>Community partner commission</td><td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td></tr>`:''}
@@ -11085,7 +11074,7 @@ function printMonthReport(){
 
     <div class="footer">
       <span>Mindful Beginnings · ${monthName}</span>
-      <span>Operating figures — revenue, instructor fees, materials, extra session costs, and partner commission. Overhead appears in the annual report.</span>
+      <span>Operating figures — revenue, instructor fees, extra session costs, and partner commission. Handbook orders and other overhead appear in the annual report.</span>
     </div>
   </div>
   </body></html>`;
