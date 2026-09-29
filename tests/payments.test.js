@@ -14,6 +14,12 @@ const {
   paidNotesLine,
   clearPendingPaymentNotes,
   notesForPaymentStatus,
+  paypalCapturePatch,
+  paymentMethodPatch,
+  rosterMarkPaidPatch,
+  formatPaymentMethodDisplay,
+  paymentHowText,
+  suggestPaymentMethod,
   adminTogglePaidPatch
 } = require('../lib/payment-utils');
 
@@ -103,15 +109,87 @@ test('clearPendingPaymentNotes strips reservation tags only', () => {
 });
 
 test('admin Mark paid records $0 revenue and still sets paid status', () => {
-  const paid = adminTogglePaidPatch({ currentlyPaid: false, existingPricePaid: null });
+  const paid = adminTogglePaidPatch({ currentlyPaid: false, existingPricePaid: null, method: 'venmo', ref: 'note-9' });
   assert.equal(paid.pay_status, 'paid');
   assert.equal(paid.price_paid, 0);
+  assert.equal(paid.payment_method, 'venmo');
+  assert.equal(paid.payment_ref, 'note-9');
+  const missing = adminTogglePaidPatch({ currentlyPaid: false, existingPricePaid: null });
+  assert.equal(missing.pay_status, undefined);
+  assert.match(missing.error, /Choose how they paid/);
   const unpaidZero = adminTogglePaidPatch({ currentlyPaid: true, existingPricePaid: 0 });
   assert.equal(unpaidZero.pay_status, 'unpaid');
   assert.equal(unpaidZero.price_paid, null);
   const unpaidCharged = adminTogglePaidPatch({ currentlyPaid: true, existingPricePaid: 175 });
   assert.equal(unpaidCharged.pay_status, 'unpaid');
   assert.equal(unpaidCharged.price_paid, undefined);
+});
+
+test('PayPal capture stores method paypal and the transaction id', () => {
+  const patch = paypalCapturePatch({
+    captureId: 'CAP99',
+    amount: 175,
+    existingNotes: '[Registered — awaiting payment] Nut allergy',
+    existingPaypalTxId: null
+  });
+  assert.equal(patch.pay_status, 'paid');
+  assert.equal(patch.payment_method, 'paypal');
+  assert.equal(patch.paypal_tx_id, 'CAP99');
+  assert.equal(patch.payment_ref, 'CAP99');
+  assert.match(patch.notes, /\[Paid via PayPal TX CAP99 — \$175\.00\]/);
+  assert.match(patch.notes, /Nut allergy/);
+  assert.doesNotMatch(patch.notes, /awaiting payment/);
+  assert.equal(patch.price_paid, undefined);
+});
+
+test('admin mark-paid requires Venmo or Zelle and does not change price_paid on the roster patch', () => {
+  assert.match(paymentMethodPatch({ method: '' }).error, /Choose how they paid/);
+  assert.match(paymentMethodPatch({ method: 'other' }).error, /Describe the other/);
+  const venmo = rosterMarkPaidPatch({
+    method: 'venmo',
+    ref: 'Reg abc | Lisa White',
+    amount: 65,
+    existingNotes: '[Registered — awaiting payment] Nut allergy'
+  });
+  assert.equal(venmo.pay_status, 'paid');
+  assert.equal(venmo.payment_method, 'venmo');
+  assert.equal(venmo.payment_ref, 'Reg abc | Lisa White');
+  assert.equal(venmo.price_paid, undefined);
+  assert.equal(venmo.paypal_tx_id, undefined);
+  assert.match(venmo.notes, /\[Paid via Venmo ref Reg abc \| Lisa White — \$65\.00\]/);
+  assert.match(venmo.notes, /Nut allergy/);
+  const zelle = rosterMarkPaidPatch({ method: 'zelle', ref: 'zelle-memo', amount: '40' });
+  assert.equal(zelle.payment_method, 'zelle');
+  assert.match(zelle.notes, /\[Paid via Zelle ref zelle-memo — \$40\.00\]/);
+  const other = paymentMethodPatch({ method: 'other', detail: 'Cash at the door', ref: 'envelope 3' });
+  assert.equal(other.ok, true);
+  assert.equal(other.fields.payment_method, 'other');
+  assert.equal(other.fields.payment_detail, 'Cash at the door');
+  assert.equal(other.fields.payment_ref, 'envelope 3');
+});
+
+test('display helpers show method and ref, and leave old rows unknown', () => {
+  assert.equal(formatPaymentMethodDisplay({}), '');
+  assert.equal(paymentHowText({ payStatus: 'paid' }), 'How paid unknown');
+  assert.equal(paymentHowText({ payStatus: 'pending', notes: '[Family marked VENMO sent]' }), '');
+  assert.equal(formatPaymentMethodDisplay({
+    paymentMethod: 'zelle',
+    paymentRef: 'Lisa White Safe Sitter'
+  }), 'Zelle · Lisa White Safe Sitter');
+  assert.equal(formatPaymentMethodDisplay({
+    payment_method: 'other',
+    payment_detail: 'Cash',
+    payment_ref: '12'
+  }), 'Other (Cash) · 12');
+  assert.equal(formatPaymentMethodDisplay({ paypalTxId: 'CAP99' }), 'PayPal · CAP99');
+  assert.equal(formatPaymentMethodDisplay({
+    paymentMethod: 'venmo',
+    paymentRef: 'memo',
+    paypalTxId: 'CAP99'
+  }), 'Venmo · memo');
+  assert.equal(suggestPaymentMethod({ notes: '[Family marked VENMO sent]' }), 'venmo');
+  assert.equal(suggestPaymentMethod({ paypalTxId: 'CAP99', notes: 'venmo' }), 'paypal');
+  assert.equal(suggestPaymentMethod({ payStatus: 'paid', notes: '[Registered — paid]' }), '');
 });
 
 test('notesForPaymentStatus matches pay_status so paid rows never say awaiting payment', () => {

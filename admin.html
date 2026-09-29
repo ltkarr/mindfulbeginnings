@@ -753,10 +753,10 @@ function sessionOptionalColToast(f){
 }
 
 function regFromDB(r){
-  return{id:r.id,sessionId:r.session_id,studentName:r.student_name||'',parentName:r.parent_name||'',contact:r.contact||'',grade:r.grade||'',cprPermission:r.cpr_permission||'',emergencyAuth:r.emergency_auth||'',photoConsent:r.photo_consent||'',waiverSigned:r.waiver_signed||false,signature:r.signature||'',payStatus:r.pay_status||'unpaid',paypalTxId:r.paypal_tx_id||'',referralSource:r.referral_source||'',pricePaid:r.price_paid==null?null:Number(r.price_paid),notes:r.notes||'',createdAt:r.created_at||Date.now()};
+  return{id:r.id,sessionId:r.session_id,studentName:r.student_name||'',parentName:r.parent_name||'',contact:r.contact||'',grade:r.grade||'',cprPermission:r.cpr_permission||'',emergencyAuth:r.emergency_auth||'',photoConsent:r.photo_consent||'',waiverSigned:r.waiver_signed||false,signature:r.signature||'',payStatus:r.pay_status||'unpaid',paypalTxId:r.paypal_tx_id||'',paymentMethod:r.payment_method||'',paymentRef:r.payment_ref||'',paymentDetail:r.payment_detail||'',referralSource:r.referral_source||'',pricePaid:r.price_paid==null?null:Number(r.price_paid),notes:r.notes||'',createdAt:r.created_at||Date.now()};
 }
 function regToDB(r){
-  return{id:r.id,session_id:r.sessionId,student_name:r.studentName,parent_name:r.parentName||null,contact:r.contact||null,grade:r.grade||null,cpr_permission:r.cprPermission||null,emergency_auth:r.emergencyAuth||null,waiver_signed:r.waiverSigned||false,signature:r.signature||null,pay_status:r.payStatus||'unpaid',paypal_tx_id:r.paypalTxId||null,price_paid:r.pricePaid==null?null:Number(r.pricePaid),notes:r.notes||null};
+  return{id:r.id,session_id:r.sessionId,student_name:r.studentName,parent_name:r.parentName||null,contact:r.contact||null,grade:r.grade||null,cpr_permission:r.cprPermission||null,emergency_auth:r.emergencyAuth||null,waiver_signed:r.waiverSigned||false,signature:r.signature||null,pay_status:r.payStatus||'unpaid',paypal_tx_id:r.paypalTxId||null,payment_method:r.paymentMethod||null,payment_ref:r.paymentRef||null,payment_detail:r.paymentDetail||null,price_paid:r.pricePaid==null?null:Number(r.pricePaid),notes:r.notes||null};
 }
 // Registration timestamp as a sortable number. created_at comes back from Supabase
 // as an ISO string; subtracting two ISO strings yields NaN, which silently breaks
@@ -3944,6 +3944,173 @@ function notesForPaymentStatus(payStatus, notes){
   return cleaned;
 }
 
+// How a family paid. Keep in sync with lib/payment-utils.js.
+// PAYMENT_METHOD_HELPERS_START
+const PAYMENT_METHODS=['paypal','venmo','zelle','check','other'];
+const PAYMENT_METHOD_LABELS={paypal:'PayPal',venmo:'Venmo',zelle:'Zelle',check:'Check',other:'Other'};
+function normalizePaymentMethod(value){
+  const s=String(value==null?'':value).trim().toLowerCase();
+  if(s==='card'||s==='paypal-link')return 'paypal';
+  return PAYMENT_METHODS.indexOf(s)===-1?'':s;
+}
+function paymentMethodLabel(method){
+  const key=normalizePaymentMethod(method);
+  return key?PAYMENT_METHOD_LABELS[key]:'';
+}
+function paymentMethodPatch(opts){
+  opts=opts||{};
+  const key=normalizePaymentMethod(opts.method);
+  if(!key)return {ok:false,error:'Choose how they paid (PayPal, Venmo, Zelle, check, or other).'};
+  const cleanDetail=String(opts.detail==null?'':opts.detail).replace(/\s+/g,' ').trim();
+  if(key==='other'&&!cleanDetail)return {ok:false,error:'Describe the other way they paid.'};
+  const cleanRef=String(opts.ref==null?'':opts.ref).replace(/\s+/g,' ').trim();
+  const fields={payment_method:key,payment_ref:cleanRef||null,payment_detail:key==='other'?cleanDetail:null};
+  if(key==='paypal'){
+    const tx=cleanRef||String(opts.paypalTxId==null?'':opts.paypalTxId).trim();
+    if(tx){fields.paypal_tx_id=tx;fields.payment_ref=tx;}
+  }
+  return {ok:true,fields:fields};
+}
+function appendPaidMethodNote(opts){
+  opts=opts||{};
+  const key=normalizePaymentMethod(opts.method);
+  if(key==='paypal'){
+    const captureId=opts.ref||'unknown';
+    const amount=opts.amount;
+    const n=typeof amount==='number'?amount:parseFloat(String(amount==null?'':amount).replace(/[^0-9.-]/g,''));
+    const shown=Number.isFinite(n)?(Math.round(n*100)/100).toFixed(2):(amount||'');
+    const line='[Paid via PayPal TX '+(captureId||'unknown')+' — $'+shown+']';
+    const prev=clearPendingPaymentNotes(opts.existingNotes);
+    if(prev.indexOf(captureId||'___never___')!==-1)return prev;
+    return (line+(prev?' '+prev:'')).trim();
+  }
+  const label=paymentMethodLabel(key)||'Other';
+  const detailBit=key==='other'&&String(opts.detail||'').trim()?' ('+String(opts.detail).trim()+')':'';
+  const refText=String(opts.ref||'').trim();
+  const refBit=refText?' ref '+refText:'';
+  const n=typeof opts.amount==='number'?opts.amount:parseFloat(String(opts.amount==null?'':opts.amount).replace(/[^0-9.-]/g,''));
+  const amt=Number.isFinite(n)?(Math.round(n*100)/100).toFixed(2):null;
+  const line='[Paid via '+label+detailBit+refBit+(amt?' — $'+amt:'')+']';
+  const prev=clearPendingPaymentNotes(opts.existingNotes);
+  if(prev.indexOf('[Paid via '+label)!==-1)return prev;
+  return (line+(prev?' '+prev:'')).trim();
+}
+function rosterMarkPaidPatch(opts){
+  opts=opts||{};
+  const built=paymentMethodPatch(opts);
+  if(!built.ok)return {error:built.error};
+  const notes=appendPaidMethodNote({
+    method:built.fields.payment_method,
+    ref:built.fields.payment_ref,
+    detail:built.fields.payment_detail,
+    amount:opts.amount,
+    existingNotes:opts.existingNotes
+  });
+  return Object.assign({pay_status:'paid',notes:notes},built.fields);
+}
+function formatPaymentMethodDisplay(row){
+  row=row||{};
+  const method=normalizePaymentMethod(row.paymentMethod!=null?row.paymentMethod:row.payment_method);
+  const detail=String(row.paymentDetail!=null?row.paymentDetail:(row.payment_detail||'')).trim();
+  const ref=String(row.paymentRef!=null?row.paymentRef:(row.payment_ref||'')).trim();
+  const tx=String(row.paypalTxId!=null?row.paypalTxId:(row.paypal_tx_id||'')).trim();
+  if(!method){
+    if(tx)return 'PayPal · '+tx;
+    return '';
+  }
+  let text=paymentMethodLabel(method);
+  if(method==='other'&&detail)text+=' ('+detail+')';
+  const shownRef=ref||(method==='paypal'?tx:'');
+  if(shownRef)text+=' · '+shownRef;
+  return text;
+}
+function paymentHowText(row){
+  const shown=formatPaymentMethodDisplay(row);
+  if(shown)return shown;
+  const status=String((row&&(row.payStatus||row.pay_status))||'').toLowerCase();
+  if(status==='paid')return 'How paid unknown';
+  return '';
+}
+function suggestPaymentMethod(row){
+  row=row||{};
+  const existing=normalizePaymentMethod(row.paymentMethod!=null?row.paymentMethod:row.payment_method);
+  if(existing)return existing;
+  const tx=String(row.paypalTxId!=null?row.paypalTxId:(row.paypal_tx_id||'')).trim();
+  if(tx)return 'paypal';
+  const notes=String(row.notes||'').toLowerCase();
+  if(notes.indexOf('venmo')!==-1)return 'venmo';
+  if(notes.indexOf('zelle')!==-1)return 'zelle';
+  if(/\bcheck\b/.test(notes))return 'check';
+  if(notes.indexOf('paypal')!==-1)return 'paypal';
+  return '';
+}
+// PAYMENT_METHOD_HELPERS_END
+function paymentMethodOptions(selected){
+  const opts=[['','Choose…'],['paypal','PayPal / card'],['venmo','Venmo'],['zelle','Zelle'],['check','Check'],['other','Other']];
+  return opts.map(function(pair){
+    return '<option value="'+pair[0]+'"'+(selected===pair[0]?' selected':'')+'>'+pair[1]+'</option>';
+  }).join('');
+}
+function paymentMethodFieldsHtml(prefix, selected){
+  selected=selected||{};
+  const method=selected.method||'';
+  const detail=selected.detail||'';
+  const ref=selected.ref||'';
+  const methodId=prefix+'-method';
+  const detailWrap=prefix+'-detail-wrap';
+  return '<div class="fg"><label>How they paid</label><select id="'+methodId+'" onchange="syncOtherPaymentField(\''+methodId+'\',\''+detailWrap+'\')">'+paymentMethodOptions(method)+'</select></div>'
+    +'<div class="fg" id="'+detailWrap+'" style="display:'+(method==='other'?'':'none')+'"><label>What kind of payment</label><input type="text" id="'+prefix+'-detail" value="'+escapeHtml(detail)+'" placeholder="Cash, Square, bank transfer…"></div>'
+    +'<div class="fg full"><label>Reference, memo, or transaction id</label><input type="text" id="'+prefix+'-ref" value="'+escapeHtml(ref)+'" placeholder="Paste the Venmo note, Zelle memo, check number, or PayPal TX"></div>';
+}
+function syncOtherPaymentField(methodId, wrapId){
+  const method=document.getElementById(methodId);
+  const wrap=document.getElementById(wrapId);
+  if(!method||!wrap)return;
+  wrap.style.display=method.value==='other'?'':'none';
+}
+function readPaymentMethodFields(prefix){
+  const methodEl=document.getElementById(prefix+'-method');
+  const detailEl=document.getElementById(prefix+'-detail');
+  const refEl=document.getElementById(prefix+'-ref');
+  return {method:methodEl?methodEl.value:'',detail:detailEl?detailEl.value:'',ref:refEl?refEl.value:''};
+}
+function applyPaymentFields(r, fields){
+  r.paymentMethod=fields.payment_method||'';
+  r.paymentRef=fields.payment_ref||'';
+  r.paymentDetail=fields.payment_detail||'';
+  if(fields.paypal_tx_id)r.paypalTxId=fields.paypal_tx_id;
+}
+function paymentFieldsToDB(fields){
+  const patch={payment_method:fields.payment_method||null,payment_ref:fields.payment_ref||null,payment_detail:fields.payment_detail||null};
+  if(fields.paypal_tx_id)patch.paypal_tx_id=fields.paypal_tx_id;
+  return patch;
+}
+function paymentHowHtml(r){
+  const how=paymentHowText(r);
+  if(!how)return '';
+  const warn=how==='How paid unknown'?'color:var(--warn);':'';
+  return '<div style="font-size:13px;font-weight:600;line-height:1.35;margin-top:4px;'+warn+'">'+escapeHtml(how)+'</div>';
+}
+async function writeRegistrationPatch(id, patch, label){
+  let res;
+  try{res=await sb.from('registrations').update(patch).eq('id',id);}
+  catch(e){res={error:e};}
+  const err=res&&res.error;
+  if(!err)return {ok:true};
+  const msg=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
+  const missing=msg.includes('payment_method')||msg.includes('payment_ref')||msg.includes('payment_detail');
+  if(missing){
+    const slim=Object.assign({},patch);
+    delete slim.payment_method;delete slim.payment_ref;delete slim.payment_detail;
+    const ok=await dbWrite(sb.from('registrations').update(slim).eq('id',id),label);
+    showToast('⚠️ Saved without how they paid. Run migrations/payment_method.sql in the Supabase SQL editor, then edit this registration and choose the method.');
+    return {ok:ok!==false,missingColumn:true};
+  }
+  console.error(label+' failed:',err);
+  showToast('⚠️ '+label+' did not save: '+((err.message||'database error').slice(0,90))+'. Refresh to see true state.');
+  return {ok:false};
+}
+
 // ─── CANCELLED REGISTRATIONS ─────────────────────────────────
 // Cancelling a registration frees the seat but keeps the record, so a family who
 // pays later can be put straight back into the class. The status it held before is
@@ -6009,7 +6176,7 @@ function openCancellationEmails(sessId){
   const paidRegs=regs.filter(r=>r.payStatus==='paid');
   const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const refundRows=paidRegs.length
-    ?paidRegs.map(r=>'<li>'+esc(r.studentName||'—')+(r.parentName?' — '+esc(r.parentName):'')+' · '+fmt(regEffectivePrice(r,s))+(r.contact?' · '+esc(r.contact):'')+'</li>').join('')
+    ?paidRegs.map(r=>'<li>'+esc(r.studentName||'—')+(r.parentName?' — '+esc(r.parentName):'')+' · '+fmt(regEffectivePrice(r,s))+' · '+esc(paymentHowText(r))+(r.contact?' · '+esc(r.contact):'')+'</li>').join('')
     :'<li style="color:#6b7a99">No paid registrations on this session.</li>';
   const refundHtml='<div class="facts"><strong>Refunds to issue ('+paidRegs.length+')</strong><ul>'+refundRows+'</ul><div class="facts-note">Refund each of these through the same method the family paid, then update their status on the Registrations tab. This list stays here — it is not placed in the email.</div></div>';
   const sessionLine=s.course+' · '+d+' · '+reason;
@@ -6074,13 +6241,14 @@ function renderRegs(){
       const amt=r.payStatus==='cancelled'?'<span style="color:var(--muted)">—</span>':r.payStatus==='paid'?(s?fmt(regEffectivePrice(r,s)):'—')+(isCustomStudentPrice(r,s)?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':''):r.payStatus==='host'?'Free':r.payStatus==='in_kind'?'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>':(r.pricePaid!=null?fmt(regEffectivePrice(r,s))+'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>':'—');
       const d=s?fmtSessDate(s,{month:'short',day:'numeric'}):'—';
       const partner=partnerNameOf(r);
+      const howHtml=paymentHowHtml(r);
       return`<tr>
         <td style="font-weight:500">${escapeHtml(r.studentName)}${partner?`<div style="font-weight:400;font-size:14px;color:var(--muted)">${escapeHtml(partner)}</div>`:''}</td>
         <td style="color:var(--muted)">${escapeHtml(r.grade)||'—'}</td>
         <td style="color:var(--muted)">${escapeHtml(r.parentName)||'—'}</td>
         <td style="color:var(--muted);font-size:15px">${escapeHtml(r.contact)||'—'}</td>
         <td style="font-size:15px">${s?s.course+' '+d:'—'}</td>
-        <td><span class="tag ${r.payStatus}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span></td>
+        <td><span class="tag ${r.payStatus}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span>${howHtml}</td>
         <td>${amt}</td>
         <td style="text-align:center">${r.photoConsent==='yes'?'<span style="color:var(--success)">✓ Yes</span>':r.photoConsent==='no'?'<span style="color:var(--muted)">✗ No</span>':'<span style="color:var(--muted)">—</span>'}</td>
         <td style="color:var(--muted);font-size:15px;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,notesWithoutPartner(r.notes)))||'—'}</td>
@@ -6177,6 +6345,7 @@ function openAddReg(sessId){
     <div class="fg" id="m-grade-wrap"><label>Grade</label><select id="m-grade"><option value="">—</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option></select></div>
     <div class="fg"><label>Payment status</label><select id="m-pay"><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="host">Host (free)</option><option value="in_kind">In-kind donation (auction)</option></select></div>
     <div class="fg"><label>Custom price <span style="font-weight:400;color:var(--muted)">(override, optional)</span></label><input type="number" id="m-price" placeholder="Leave blank for default" min="0" step="1"></div>
+    ${paymentMethodFieldsHtml('m-add',{})}
     <div class="fg full"><label id="m-par-label">Parent / guardian name</label><input type="text" id="m-par"></div>
     <div class="fg full"><label>Phone / email</label><input type="text" id="m-cont"></div>
     <div class="fg full"><label>Notes / allergies</label><input type="text" id="m-rnotes"></div>
@@ -6195,7 +6364,16 @@ async function saveReg(){
   const couple=seatsPerRegistration(course)>1;
   const p2=((document.getElementById('m-p2fn').value||'').trim()+' '+(document.getElementById('m-p2ln').value||'').trim()).trim();
   if(couple&&!p2){alert('Please enter both adults\' names. One registration covers the couple.');return;}
-  const reg={id:sid(),sessionId:si,studentName:fn+' '+ln,grade:adult?'':document.getElementById('m-grade').value,parentName:document.getElementById('m-par').value.trim(),contact:document.getElementById('m-cont').value.trim(),payStatus:document.getElementById('m-pay').value,pricePaid:(()=>{const v=document.getElementById('m-price').value.trim();return v===''?null:Number(v);})(),cprPermission:'',emergencyAuth:'',waiverSigned:false,signature:'',paypalTxId:'',notes:notesWithPartner(document.getElementById('m-rnotes').value.trim(), couple?p2:''),createdAt:Date.now()};
+  const payChoice=readPaymentMethodFields('m-add');
+  const reg={id:sid(),sessionId:si,studentName:fn+' '+ln,grade:adult?'':document.getElementById('m-grade').value,parentName:document.getElementById('m-par').value.trim(),contact:document.getElementById('m-cont').value.trim(),payStatus:document.getElementById('m-pay').value,pricePaid:(()=>{const v=document.getElementById('m-price').value.trim();return v===''?null:Number(v);})(),cprPermission:'',emergencyAuth:'',waiverSigned:false,signature:'',paypalTxId:'',paymentMethod:'',paymentRef:'',paymentDetail:'',notes:notesWithPartner(document.getElementById('m-rnotes').value.trim(), couple?p2:''),createdAt:Date.now()};
+  if(reg.payStatus==='paid'||payChoice.method||payChoice.ref||payChoice.detail){
+    const built=paymentMethodPatch(payChoice);
+    if(!built.ok){alert(built.error);return;}
+    applyPaymentFields(reg,built.fields);
+    if(reg.payStatus==='paid'){
+      reg.notes=appendPaidMethodNote({method:built.fields.payment_method,ref:built.fields.payment_ref,detail:built.fields.payment_detail,existingNotes:reg.notes});
+    }
+  }
   ensureInKindTag(reg);
   registrations.push(reg);
   closeModal();renderRegs();renderDashboard();
@@ -6204,14 +6382,53 @@ async function saveReg(){
 
 async function togglePaid(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
-  r.payStatus=r.payStatus==='paid'?'unpaid':'paid';
-  const update={pay_status:r.payStatus};
-  if(r.payStatus==='paid'){
-    const cleaned=notesForPaymentStatus(r.payStatus,r.notes);
-    if(cleaned!==(r.notes||'')){r.notes=cleaned;update.notes=r.notes;}
-  }
+  if(r.payStatus!=='paid'){openMarkPaid(id);return;}
+  const prev=r.payStatus;
+  r.payStatus='unpaid';
   renderRegs();renderDashboard();
-  dbWrite(sb.from('registrations').update(update).eq('id',id),'Payment status');
+  const ok=await dbWrite(sb.from('registrations').update({pay_status:'unpaid'}).eq('id',id),'Payment status');
+  if(ok===false){r.payStatus=prev;renderRegs();renderDashboard();}
+}
+function openMarkPaid(id){
+  const r=registrations.find(x=>x.id===id);if(!r)return;
+  const s=sessions.find(x=>x.id===r.sessionId);
+  const due=paymentAmountLabel(regEffectivePrice(r,s));
+  const suggested=r.paymentMethod||suggestPaymentMethod(r);
+  showModal(`<div class="modal-head"><h3>Mark paid</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.45">${escapeHtml(r.studentName||'This registration')} · ${escapeHtml(regClassLabel(r))}${due?' · $'+escapeHtml(due):''}</p>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.45;color:var(--muted)">Choose how this family paid so a refund goes back to the same place. This does not change the amount counted as revenue.</p>
+    <div class="form-grid">
+      ${paymentMethodFieldsHtml('m-paid',{method:suggested,detail:r.paymentDetail||'',ref:r.paymentRef||r.paypalTxId||''})}
+    </div>
+  </div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="confirmMarkPaid('${id}')">Mark paid</button></div>`);
+}
+async function confirmMarkPaid(id){
+  const r=registrations.find(x=>x.id===id);if(!r)return;
+  const s=sessions.find(x=>x.id===r.sessionId);
+  const due=regEffectivePrice(r,s);
+  const choice=readPaymentMethodFields('m-paid');
+  const built=rosterMarkPaidPatch({method:choice.method,ref:choice.ref,detail:choice.detail,amount:due,existingNotes:r.notes,paypalTxId:r.paypalTxId});
+  if(built.error){alert(built.error);return;}
+  const prev={payStatus:r.payStatus,notes:r.notes,paymentMethod:r.paymentMethod,paymentRef:r.paymentRef,paymentDetail:r.paymentDetail,paypalTxId:r.paypalTxId};
+  r.payStatus='paid';
+  r.notes=built.notes;
+  applyPaymentFields(r,built);
+  closeModal();renderRegs();renderDashboard();
+  const patch=Object.assign({pay_status:'paid',notes:r.notes},paymentFieldsToDB(built));
+  const saved=await writeRegistrationPatch(id,patch,'Mark paid');
+  if(!saved.ok){
+    r.payStatus=prev.payStatus;r.notes=prev.notes;r.paymentMethod=prev.paymentMethod;r.paymentRef=prev.paymentRef;r.paymentDetail=prev.paymentDetail;r.paypalTxId=prev.paypalTxId;
+    renderRegs();renderDashboard();
+    return;
+  }
+  if(saved.missingColumn){
+    r.paymentMethod=prev.paymentMethod;r.paymentRef=prev.paymentRef;r.paymentDetail=prev.paymentDetail;
+    renderRegs();renderDashboard();
+    return;
+  }
+  showToast('Marked paid via '+paymentMethodLabel(built.payment_method)+'.');
 }
 
 
@@ -6358,23 +6575,16 @@ function openMatchPayment(prefillId){
   const amt=pre?paymentAmountLabel(regEffectivePrice(pre,s)):'';
   const who=pre?(pre.parentName||pre.studentName||pre.contact||''):'';
   const memo=pre?('Reg '+pre.id):'';
-  let method='venmo';
-  const note=pre?(pre.notes||''):'';
-  if(/zelle/i.test(note))method='zelle';
-  else if(/paypal/i.test(note))method='paypal';
+  const suggested=pre?suggestPaymentMethod(pre):'';
+  const ref=pre?(pre.paymentRef||pre.paypalTxId||memo):memo;
   showModal(`<div class="modal-head"><h3>Match payment</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">
-    <p style="margin:0 0 12px;font-size:15px;line-height:1.45;color:var(--muted)">Match a PayPal, Venmo, or Zelle payment you already received. Card and PayPal payments on the registration page already mark the seat paid automatically. This tool does not read your PayPal, Venmo, or Zelle inbox.</p>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.45;color:var(--muted)">Match a PayPal, Venmo, Zelle, or check payment you already received. Card and PayPal payments on the registration page already mark the seat paid automatically. This tool does not read your PayPal, Venmo, or Zelle inbox.</p>
     <div class="form-grid">
       <div class="fg"><label>Amount received</label><input type="text" id="m-pay-amt" inputmode="decimal" value="${escapeHtml(amt)}" placeholder="185.00"></div>
-      <div class="fg"><label>How they paid</label><select id="m-pay-method">
-        <option value="paypal" ${method==='paypal'?'selected':''}>PayPal</option>
-        <option value="venmo" ${method==='venmo'?'selected':''}>Venmo</option>
-        <option value="zelle" ${method==='zelle'?'selected':''}>Zelle</option>
-        <option value="other" ${method==='other'?'selected':''}>Other</option>
-      </select></div>
       <div class="fg full"><label>Who paid (parent, student, email, or phone)</label><input type="text" id="m-pay-who" value="${escapeHtml(who)}"></div>
       <div class="fg full"><label>Memo or registration id (optional)</label><input type="text" id="m-pay-memo" value="${escapeHtml(memo)}"></div>
+      ${paymentMethodFieldsHtml('m-pay',{method:suggested,detail:pre?pre.paymentDetail:'',ref:ref})}
     </div>
     <div id="m-pay-results" style="margin-top:14px"></div>
   </div>
@@ -6415,29 +6625,37 @@ function runPaymentMatch(){
 }
 async function markMatchedPaid(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
-  const methodEl=document.getElementById('m-pay-method');
   const amtEl=document.getElementById('m-pay-amt');
-  const method=methodEl?methodEl.value:'other';
-  const labels={paypal:'PayPal',venmo:'Venmo',zelle:'Zelle',other:'Other'};
-  const label=labels[method]||'Other';
+  const memoEl=document.getElementById('m-pay-memo');
+  const choice=readPaymentMethodFields('m-pay');
+  if(!choice.ref&&memoEl&&memoEl.value.trim())choice.ref=memoEl.value.trim();
   const s=sessions.find(x=>x.id===r.sessionId);
   const due=regEffectivePrice(r,s);
   const typed=amtEl?amtEl.value.trim():'';
   const shown=paymentAmountLabel(typed!==''?typed:due);
+  const built=rosterMarkPaidPatch({method:choice.method,ref:choice.ref,detail:choice.detail,amount:shown||due,existingNotes:r.notes,paypalTxId:r.paypalTxId});
+  if(built.error){alert(built.error);return;}
+  const label=paymentMethodLabel(built.payment_method)||'Other';
   const differs=typed!==''&&shown!==''&&Math.abs(Number(shown)-Number(due))>0.01;
-  const msg='Mark '+(r.studentName||'this student')+' paid via '+label+'?\n\n'+regClassLabel(r)+(shown?'\nAmount: $'+shown:'')+(differs?'\n\nThe amount you typed does not match the class price of $'+paymentAmountLabel(due)+'.':'')+'\n\nThis only updates the registration. It does not contact PayPal, Venmo, or Zelle.';
+  const msg='Mark '+(r.studentName||'this student')+' paid via '+label+'?\n\n'+regClassLabel(r)+(shown?'\nAmount: $'+shown:'')+(built.payment_ref?'\nReference: '+built.payment_ref:'')+(differs?'\n\nThe amount you typed does not match the class price of $'+paymentAmountLabel(due)+'.':'')+'\n\nThis only updates the registration. It does not contact PayPal, Venmo, or Zelle.';
   if(!confirm(msg))return;
-  const prevStatus=r.payStatus;
-  const prevNotes=r.notes;
+  const prev={payStatus:r.payStatus,notes:r.notes,paymentMethod:r.paymentMethod,paymentRef:r.paymentRef,paymentDetail:r.paymentDetail,paypalTxId:r.paypalTxId};
   r.payStatus='paid';
-  let notes=notesForPaymentStatus('paid',r.notes);
-  if(shown&&notes.indexOf('[Paid via ')===-1){
-    notes=('[Paid via '+label+' \u2014 $'+shown+']'+(notes?' '+notes:'')).trim();
-  }
-  r.notes=notes;
+  r.notes=built.notes;
+  applyPaymentFields(r,built);
   closeModal();renderRegs();renderDashboard();
-  const ok=await dbWrite(sb.from('registrations').update({pay_status:'paid',notes:r.notes}).eq('id',id),'Match payment');
-  if(ok===false){r.payStatus=prevStatus;r.notes=prevNotes;renderRegs();renderDashboard();return;}
+  const patch=Object.assign({pay_status:'paid',notes:r.notes},paymentFieldsToDB(built));
+  const saved=await writeRegistrationPatch(id,patch,'Match payment');
+  if(!saved.ok){
+    r.payStatus=prev.payStatus;r.notes=prev.notes;r.paymentMethod=prev.paymentMethod;r.paymentRef=prev.paymentRef;r.paymentDetail=prev.paymentDetail;r.paypalTxId=prev.paypalTxId;
+    renderRegs();renderDashboard();
+    return;
+  }
+  if(saved.missingColumn){
+    r.paymentMethod=prev.paymentMethod;r.paymentRef=prev.paymentRef;r.paymentDetail=prev.paymentDetail;
+    renderRegs();renderDashboard();
+    return;
+  }
   showToast('Marked paid via '+label+'.');
 }
 
@@ -6471,6 +6689,7 @@ function openEditReg(id){
       <option value="host" ${r.payStatus==='host'?'selected':''}>Host (free)</option>
       <option value="in_kind" ${r.payStatus==='in_kind'?'selected':''}>In-kind donation (auction)</option>
     </select></div>
+    ${paymentMethodFieldsHtml('m-e',{method:r.paymentMethod||(r.payStatus==='paid'?suggestPaymentMethod(r):''),detail:r.paymentDetail||'',ref:r.paymentRef||r.paypalTxId||''})}
     <div class="fg"><label>Custom price <span style="font-weight:400;color:var(--muted)">(override)</span></label><input type="number" id="m-eprice" value="${r.pricePaid!=null?r.pricePaid:''}" placeholder="Default: ${escapeHtml(fmt(regEffectivePrice({pricePaid:null},sessions.find(x=>x.id===r.sessionId))))}" min="0" step="1" style="width:100%"></div>
     <div class="fg full"><label>${adult?'Contact name':'Parent / guardian name'}</label><input type="text" id="m-epar" value="${escapeHtml(r.parentName)}"></div>
     <div class="fg full"><label>Phone / email</label><input type="text" id="m-econt" value="${escapeHtml(r.contact)}"></div>
@@ -6489,21 +6708,40 @@ async function saveEditReg(id){
   const couple=seatsPerRegistration(s&&s.course)>1;
   const p2=((document.getElementById('m-ep2fn')&&document.getElementById('m-ep2fn').value||'').trim()+' '+(document.getElementById('m-ep2ln')&&document.getElementById('m-ep2ln').value||'').trim()).trim();
   if(couple&&!p2){alert('Please enter both adults\' names. One registration covers the couple.');return;}
+  const nextStatus=document.getElementById('m-epay').value;
+  const payChoice=readPaymentMethodFields('m-e');
+  let methodFields=null;
+  if(nextStatus==='paid'||payChoice.method){
+    const built=paymentMethodPatch(Object.assign({paypalTxId:r.paypalTxId},payChoice));
+    if(!built.ok){alert(built.error);return;}
+    methodFields=built.fields;
+  }
+  const prev={studentName:r.studentName,grade:r.grade,parentName:r.parentName,contact:r.contact,payStatus:r.payStatus,pricePaid:r.pricePaid,notes:r.notes,paymentMethod:r.paymentMethod||'',paymentRef:r.paymentRef||'',paymentDetail:r.paymentDetail||'',paypalTxId:r.paypalTxId||''};
   r.studentName=fn+' '+ln;
   r.grade=adult?'':document.getElementById('m-egrade').value;
   r.parentName=document.getElementById('m-epar').value.trim();
   r.contact=document.getElementById('m-econt').value.trim();
-  r.payStatus=document.getElementById('m-epay').value;
+  r.payStatus=nextStatus;
   const pr=document.getElementById('m-eprice').value.trim();
   r.pricePaid=pr===''?null:Number(pr);
   r.notes=notesWithPartner(document.getElementById('m-enotes').value.trim(), couple?p2:'');
   ensureInKindTag(r);
+  if(methodFields){
+    applyPaymentFields(r,methodFields);
+    if(r.payStatus==='paid')r.notes=appendPaidMethodNote({method:methodFields.payment_method,ref:methodFields.payment_ref,detail:methodFields.payment_detail,existingNotes:r.notes});
+  }
   r.notes=notesForPaymentStatus(r.payStatus,r.notes);
   closeModal();renderRegs();renderDashboard();
-  dbWrite(sb.from('registrations').update({
+  const patch={
     student_name:r.studentName,grade:r.grade,parent_name:r.parentName,
     contact:r.contact,pay_status:r.payStatus,price_paid:r.pricePaid,notes:r.notes
-  }).eq('id',id),'Registration edit');
+  };
+  if(methodFields)Object.assign(patch,paymentFieldsToDB(methodFields));
+  const saved=await writeRegistrationPatch(id,patch,'Registration edit');
+  if(!saved.ok){
+    Object.assign(r,prev);
+    renderRegs();renderDashboard();
+  }
 }
 
 // Jump the table to the cancelled list.
@@ -10852,7 +11090,7 @@ function openRoster(sessId){
       <td style="text-align:center">${r.emergencyAuth==='yes'?'✓':'✗'}</td>
       <td style="text-align:center">${r.waiverSigned?'✓':'✗'}</td>
       <td style="text-align:center">${r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—'}</td>
-      <td><span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500;background:${r.payStatus==='paid'?'#eaf5f0':r.payStatus==='host'?'#d6e9f5':r.payStatus==='in_kind'?'#f3e8fb':'#fff7e6'};color:${r.payStatus==='paid'?'#2d7a5e':r.payStatus==='host'?'#1a5c8a':r.payStatus==='in_kind'?'#6D1ED4':'#b86a00'}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span></td>
+      <td><span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500;background:${r.payStatus==='paid'?'#eaf5f0':r.payStatus==='host'?'#d6e9f5':r.payStatus==='in_kind'?'#f3e8fb':'#fff7e6'};color:${r.payStatus==='paid'?'#2d7a5e':r.payStatus==='host'?'#1a5c8a':r.payStatus==='in_kind'?'#6D1ED4':'#b86a00'}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span>${paymentHowText(r)?`<div style="font-size:13px;font-weight:600;margin-top:4px;color:${paymentHowText(r)==='How paid unknown'?'#b86a00':'#1a2744'}">${escapeHtml(paymentHowText(r))}</div>`:''}</td>
       <td style="font-size:14px;color:#888;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,notesWithoutPartner(r.notes)))||''}</td>
     </tr>`).join('')
     :'<tr><td colspan="'+emptyCols+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
