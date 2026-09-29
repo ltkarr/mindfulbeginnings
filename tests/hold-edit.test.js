@@ -37,17 +37,20 @@ test('a hold opens the same edit form and still stays off public registration', 
   }
   const dashRev = between('function renderDashboard', 'dash-metrics');
   assert.doesNotMatch(dashRev, /if\(s\.isHold\)return/);
-  assert.match(dashRev, /calcFin\(s\)/);
+  assert.match(dashRev, /dashboardRevenueTotals\(now\)/);
   const chart = between('Build a continuous 6-month window', 'const maxV');
   assert.doesNotMatch(chart, /isHold/);
+  assert.match(chart, /dashboardChartRevenue\(now\)/);
   const fin = between('function renderFinances', '// ─── CODES');
   assert.doesNotMatch(fin, /if\(s\.isHold\)return/);
   assert.doesNotMatch(fin, /filter\(s=>!s\.isHold\)/);
+  assert.match(fin, /financeRevenueBuckets\(/);
   const yearLoop = between('function printYearReport', 'expenses.forEach');
   assert.doesNotMatch(yearLoop, /isHold/);
+  assert.match(yearLoop, /annualSessionBuckets\(/);
   const monthList = between('function printMonthReport', 'const monthExpenses');
   assert.doesNotMatch(monthList, /isHold\)return false/);
-  assert.match(monthList, /isNaN\(d\.getTime\(\)\)/);
+  assert.match(monthList, /sessionsForRevenueMonth\(/);
   const partnerRev = between('function partnerRevenueEvents', 'function partnerBookingUnits');
   assert.doesNotMatch(partnerRev, /isHold/);
   assert.match(partnerRev, /isCancelled/);

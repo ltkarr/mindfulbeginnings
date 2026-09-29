@@ -1612,6 +1612,158 @@ function calcFin(s){
   return{revenue,grossRevenue,procFee,matCost,instrFee,extraCosts,refPayout,referralBonus,totalCost,profit:revenue-totalCost,paidCount:paying.length,totalCount:regs.length};
 }
 
+// Where revenue is counted. A real class date keeps its own month and year.
+// An on-hold session with no date, or a date that does not parse, counts only
+// when the money is already in: at least one paid registration (a reschedule
+// such as Nesbitt), or hold_payment saying the check/deposit was received
+// (Wyngate: "Paid by check, $780"). A billToOrg headcount or custom-job fee
+// with no paid registration and no received-payment note is a future invoice
+// (Beth El, or a troop still to be invoiced) and stays out of the totals.
+// The year is the 4-digit year in the hold term ("Fall 2026" → 2026), or the
+// current calendar year when the term has none. That collected money is in
+// year-to-date and in yearly finance / annual totals. It is also placed in
+// the current month — dashboard "Revenue this month", the 6-month chart, the
+// monthly finance view, and the printed monthly report — only when that year
+// is the current year. Any other year stays in the yearly total and is left
+// out of every month until a class date is saved. Nothing here writes
+// session.date, and public signup stays closed for holds.
+// True when the hold note says money was already received. "Paid by check,
+// $780" counts. A future-invoice note ("invoiced", "portion TBD") does not,
+// because it never says paid, deposited, received, or collected.
+function holdPaymentReceived(s){
+  const t=String((s&&s.holdPayment)||'').trim().toLowerCase();
+  if(!t)return false;
+  return /\bpaid\b/.test(t)||/\bdeposit(?:ed)?\b/.test(t)||/\b(?:received|collected)\b/.test(t);
+}
+function undatedHoldMoneyIn(s){
+  if(!s)return false;
+  const paid=(registrations||[]).some(r=>r.sessionId===s.id&&r.payStatus==='paid');
+  return paid||holdPaymentReceived(s);
+}
+function holdTermYear(term, now){
+  const m=String(term==null?'':term).match(/\b(?:19|20)\d{2}\b/);
+  if(m)return parseInt(m[0],10);
+  const n=now instanceof Date?now:new Date();
+  return n.getFullYear();
+}
+function sessionClassDate(s){
+  if(!s||s.date==null||s.date==='')return null;
+  const d=new Date(s.date+'T12:00:00');
+  return isNaN(d.getTime())?null:d;
+}
+function sessionRevenueSlot(s, now){
+  const n=now instanceof Date?now:new Date();
+  const dated=sessionClassDate(s);
+  if(dated)return {year:dated.getFullYear(),month:dated.getMonth(),undatedHold:false};
+  if(!s||!s.isHold)return null;
+  // Collected money only. An org roster with no payment yet is not revenue.
+  if(!undatedHoldMoneyIn(s))return null;
+  const f=calcFin(s);
+  if(!(f&&f.revenue>0))return null;
+  const year=holdTermYear(s.holdTerm, n);
+  return {year:year,month:year===n.getFullYear()?n.getMonth():null,undatedHold:true};
+}
+function sessionReportDateLabel(s){
+  const d=sessionClassDate(s);
+  if(d)return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const term=s&&s.holdTerm?String(s.holdTerm).trim():'';
+  return '(on hold)'+(term?' '+term:'');
+}
+function sessionsForRevenueMonth(year, month, now){
+  const n=now instanceof Date?now:new Date();
+  return sessions.filter(s=>{
+    const slot=sessionRevenueSlot(s, n);
+    return !!(slot&&slot.year===year&&slot.month===month);
+  }).sort((a,b)=>{
+    const ad=sessionClassDate(a),bd=sessionClassDate(b);
+    if(ad&&bd)return String(a.date).localeCompare(String(b.date));
+    if(ad)return -1;
+    if(bd)return 1;
+    return String((a&&a.holdTerm)||'').localeCompare(String((b&&b.holdTerm)||''));
+  });
+}
+function dashboardRevenueTotals(now){
+  const n=now instanceof Date?now:new Date();
+  const m=n.getMonth(),y=n.getFullYear();
+  let mRev=0,mCost=0,yRev=0;
+  sessions.forEach(s=>{
+    const slot=sessionRevenueSlot(s, n);
+    if(!slot||slot.year!==y)return;
+    const f=calcFin(s);
+    yRev+=f.revenue;
+    if(slot.month===m){mRev+=f.revenue;mCost+=f.totalCost;}
+  });
+  return {mRev:mRev,mCost:mCost,yRev:yRev};
+}
+// Six months anchored on the current month (3 back, 2 ahead). Undated paid
+// holds contribute only when sessionRevenueSlot gives them the current month.
+function dashboardChartRevenue(now){
+  const n=now instanceof Date?now:new Date();
+  const m=n.getMonth(),y=n.getFullYear();
+  const buckets={};const keys=[];
+  for(let off=-3;off<=2;off++){
+    const d=new Date(y,m+off,1,12,0,0);
+    const k=d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
+    keys.push(k);buckets[k]={rev:0,cost:0,profit:0};
+  }
+  sessions.forEach(s=>{
+    const slot=sessionRevenueSlot(s, n);
+    if(!slot||slot.month==null)return;
+    const k=slot.year+'-'+(slot.month+1).toString().padStart(2,'0');
+    if(!buckets[k])return;
+    const f=calcFin(s);
+    buckets[k].rev+=f.revenue;buckets[k].cost+=f.totalCost;buckets[k].profit+=f.profit;
+  });
+  return {keys:keys,buckets:buckets};
+}
+function financeRevenueBuckets(now, view){
+  const n=now instanceof Date?now:new Date();
+  const buckets={};
+  sessions.forEach(s=>{
+    const slot=sessionRevenueSlot(s, n);
+    if(!slot)return;
+    if(view==='monthly'&&slot.month==null)return;
+    const k=view==='monthly'?slot.year+'-'+(slot.month+1).toString().padStart(2,'0'):String(slot.year);
+    if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,extra:0,cost:0,profit:0,sess:0,students:0};
+    const f=calcFin(s);
+    buckets[k].rev+=f.revenue;buckets[k].fee+=f.procFee||0;buckets[k].instr+=f.instrFee+f.referralBonus;
+    buckets[k].extra+=f.extraCosts;buckets[k].cost+=f.totalCost;buckets[k].sess++;buckets[k].students+=f.paidCount;
+  });
+  return buckets;
+}
+function emptyRevBucket(){
+  return {rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0};
+}
+function annualSessionBuckets(year, now){
+  const n=now instanceof Date?now:new Date();
+  const months=Array.from({length:12},()=>emptyRevBucket());
+  const undated=emptyRevBucket();
+  sessions.forEach(s=>{
+    const slot=sessionRevenueSlot(s, n);
+    if(!slot||slot.year!==year)return;
+    const f=calcFin(s);
+    const b=slot.month==null?undated:months[slot.month];
+    b.rev+=f.revenue;b.fee+=f.procFee||0;b.instr+=f.instrFee;
+    b.ship+=f.extraCosts;b.cost+=f.totalCost;b.sess++;b.students+=f.paidCount;
+  });
+  months.forEach(b=>{b.profit=b.rev-b.cost;});
+  undated.profit=undated.rev-undated.cost;
+  return {months:months,undated:undated};
+}
+function courseRevenueForYear(year, now){
+  const n=now instanceof Date?now:new Date();
+  const courseBuckets={};
+  sessions.forEach(s=>{
+    const slot=sessionRevenueSlot(s, n);
+    if(!slot||slot.year!==year)return;
+    if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,sess:0,students:0,profit:0};
+    const f=calcFin(s);
+    courseBuckets[s.course].rev+=f.revenue;courseBuckets[s.course].sess++;
+    courseBuckets[s.course].students+=f.paidCount;courseBuckets[s.course].profit+=f.profit;
+  });
+  return courseBuckets;
+}
+
 // ─── PER-SESSION HELPERS ─────────────────────────────────────
 // Safe date label for a session. Holds (and any session saved without a date) store an
 // empty date string, which turns into "Invalid Date" when run through new Date(...).
@@ -4081,15 +4233,10 @@ function dashChecklistSessions(list, today){
 }
 function renderDashboard(){
   const now=new Date();const m=now.getMonth();const y=now.getFullYear();
-  let mRev=0,mCost=0,mProfit=0,yRev=0,mOH=0;
-  sessions.forEach(s=>{
-    // Hold pauses signup. Paid revenue still counts in the month of the class date.
-    const d=new Date((s.date||'')+'T12:00:00');
-    if(isNaN(d.getTime()))return;
-    const f=calcFin(s);
-    if(d.getFullYear()===y){yRev+=f.revenue;}
-    if(d.getFullYear()===y&&d.getMonth()===m){mRev+=f.revenue;mCost+=f.totalCost;}
-  });
+  // Dated classes stay in their own month. Undated paid holds count toward
+  // this year, and toward this month when the hold-term year is this year.
+  const revTotals=dashboardRevenueTotals(now);
+  let mRev=revTotals.mRev,mCost=revTotals.mCost,mProfit=0,yRev=revTotals.yRev,mOH=0;
   expenses.forEach(e=>{
     const d=new Date(e.date+'T12:00:00');
     if(d.getFullYear()===y&&d.getMonth()===m){mOH+=e.amount;mCost+=e.amount;}
@@ -4119,19 +4266,8 @@ function renderDashboard(){
   // back through 2 months ahead. This keeps the current month and next month
   // (e.g. June and July) always visible, and shows every month in between even
   // if it has no sessions, instead of floating to wherever the latest booking is.
-  const buckets={};const keys=[];
-  for(let off=-3;off<=2;off++){
-    const d=new Date(y,m+off,1,12,0,0);
-    const k=d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
-    keys.push(k);buckets[k]={rev:0,cost:0,profit:0};
-  }
-  sessions.forEach(s=>{
-    const d=new Date((s.date||'')+'T12:00:00');
-    if(isNaN(d.getTime()))return;
-    const k=d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
-    if(!buckets[k])return; // session falls outside the visible window
-    const f=calcFin(s);buckets[k].rev+=f.revenue;buckets[k].cost+=f.totalCost;buckets[k].profit+=f.profit;
-  });
+  const chartData=dashboardChartRevenue(now);
+  const keys=chartData.keys,buckets=chartData.buckets;
   const maxV=keys.reduce((mx,k)=>Math.max(mx,buckets[k].rev,buckets[k].cost),1);
   const chartEl=document.getElementById('monthly-chart');
   if(!keys.length){chartEl.innerHTML='<div style="color:var(--muted);font-size:16px;text-align:center;padding:20px">No data yet</div>';}
@@ -6468,25 +6604,19 @@ function printReport(){
 }
 function renderFinances(){
   invalidateCommissionCache();
-  // Populate year selector
+  // Populate year selector. Undated paid holds contribute the year in their
+  // hold term so that year can be opened even when no dated class falls in it.
+  const nowFin=new Date();
   const years=[...new Set([
-    ...sessions.filter(s=>s.date).map(s=>new Date(s.date+'T12:00:00').getFullYear()),
+    ...sessions.map(s=>{const slot=sessionRevenueSlot(s, nowFin);return slot?slot.year:NaN;}),
     ...expenses.map(e=>new Date(e.date+'T12:00:00').getFullYear()),
-    new Date().getFullYear()
+    nowFin.getFullYear()
   ])].filter(y=>!isNaN(y)).sort((a,b)=>b-a);
   const yrSel=document.getElementById('report-year');
   if(yrSel){const nowY=new Date().getFullYear();const cur=yrSel.value||(years.includes(nowY)?nowY:years[0]);yrSel.innerHTML=years.map(y=>`<option value="${y}" ${y==cur?'selected':''}>${y}</option>`).join('');}
   const moSel=document.getElementById('report-month');
   if(moSel){const curMo=(moSel.value!==''&&moSel.value!=null)?moSel.value:new Date().getMonth();moSel.innerHTML=Array.from({length:12},(_,m)=>`<option value="${m}" ${m==curMo?'selected':''}>${new Date(2000,m,1).toLocaleDateString('en-US',{month:'long'})}</option>`).join('');}
-  const buckets={};
-  sessions.forEach(s=>{
-    const d=new Date((s.date||'')+'T12:00:00');
-    if(isNaN(d.getTime()))return;
-    const k=finView==='monthly'?d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0'):d.getFullYear().toString();
-    if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0};
-    const f=calcFin(s);buckets[k].rev+=f.revenue;buckets[k].fee+=f.procFee||0;buckets[k].instr+=f.instrFee+f.referralBonus;
-    buckets[k].extra=(buckets[k].extra||0)+f.extraCosts;buckets[k].cost+=f.totalCost;buckets[k].sess++;buckets[k].students+=f.paidCount;
-  });
+  const buckets=financeRevenueBuckets(nowFin, finView);
   expenses.forEach(e=>{
     if(finView==='monthly')return; // Overhead, including handbook orders, is reported annually only. The monthly view shows instructor fees, extra job costs, and partner commission.
     const d=new Date(e.date+'T12:00:00');
@@ -10812,22 +10942,16 @@ function printYearReport(){
   const yrSel=document.getElementById('report-year');
   const year=yrSel?parseInt(yrSel.value):new Date().getFullYear();
 
-  // Build monthly breakdown for the year
-  const months=[];
-  for(let m=0;m<12;m++){
-    const key=year+'-'+(m+1).toString().padStart(2,'0');
-    const label=new Date(year,m,1,12,0,0).toLocaleDateString('en-US',{month:'long'});
-    months.push({key,label,rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0});
-  }
-
-  sessions.forEach(s=>{
-    const d=new Date((s.date||'')+'T12:00:00');
-    if(isNaN(d.getTime())||d.getFullYear()!==year)return;
-    const mi=d.getMonth();
-    const f=calcFin(s);
-    months[mi].rev+=f.revenue;months[mi].fee+=f.procFee||0;months[mi].instr+=f.instrFee;
-    months[mi].ship+=f.extraCosts;months[mi].cost+=f.totalCost;months[mi].sess++;months[mi].students+=f.paidCount;
-  });
+  // Monthly breakdown for the year. Undated paid holds join the current month
+  // when their year is this year; otherwise they stay in undatedHold so the
+  // year total still includes them without inventing a month.
+  const nowRep=new Date();
+  const built=annualSessionBuckets(year, nowRep);
+  const months=built.months.map((b,m)=>Object.assign(b,{
+    key:year+'-'+(m+1).toString().padStart(2,'0'),
+    label:new Date(year,m,1,12,0,0).toLocaleDateString('en-US',{month:'long'})
+  }));
+  const undatedHold=built.undated;
   expenses.forEach(e=>{
     const d=new Date(e.date+'T12:00:00');
     if(d.getFullYear()!==year)return;
@@ -10840,22 +10964,22 @@ function printYearReport(){
     months[mi].comm+=amt;months[mi].cost+=amt;
   });
   months.forEach(m=>m.profit=m.rev-m.cost);
+  undatedHold.profit=undatedHold.rev-undatedHold.cost;
 
-  // Totals
+  // Totals. undatedHold is empty when that revenue was placed in the current month.
   const tot=months.reduce((acc,m)=>({
     rev:acc.rev+m.rev,fee:acc.fee+m.fee,mat:acc.mat+m.mat,instr:acc.instr+m.instr,
     comm:acc.comm+m.comm,ship:acc.ship+m.ship,overhead:acc.overhead+m.overhead,cost:acc.cost+m.cost,
     profit:acc.profit+m.profit,sess:acc.sess+m.sess,students:acc.students+m.students
   }),{rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0});
+  if(undatedHold.sess){
+    tot.rev+=undatedHold.rev;tot.fee+=undatedHold.fee;tot.mat+=undatedHold.mat;tot.instr+=undatedHold.instr;
+    tot.comm+=undatedHold.comm;tot.ship+=undatedHold.ship;tot.overhead+=undatedHold.overhead;tot.cost+=undatedHold.cost;
+    tot.profit+=undatedHold.profit;tot.sess+=undatedHold.sess;tot.students+=undatedHold.students;
+  }
 
-  // Course breakdown
-  const courseBuckets={};
-  sessions.filter(s=>new Date(s.date+'T12:00:00').getFullYear()===year).forEach(s=>{
-    if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,sess:0,students:0,profit:0};
-    const f=calcFin(s);
-    courseBuckets[s.course].rev+=f.revenue;courseBuckets[s.course].sess++;
-    courseBuckets[s.course].students+=f.paidCount;courseBuckets[s.course].profit+=f.profit;
-  });
+  // Course breakdown, including undated paid holds that belong to this year.
+  const courseBuckets=courseRevenueForYear(year, nowRep);
 
   // Expense breakdown by category
   const catBuckets={};
@@ -10868,7 +10992,7 @@ function printYearReport(){
   const fmtS=n=>(n<0?'-':'')+fmtN(n);
   const profitColor=n=>n>=0?'#2d7a5e':'#c0392b';
 
-  const monthRows=months.map(m=>`
+  let monthRows=months.map(m=>`
     <tr style="${m.sess===0?'color:#aaa':''}">
       <td>${m.label}</td>
       <td style="text-align:center">${m.sess||'—'}</td>
@@ -10881,6 +11005,20 @@ function printYearReport(){
       <td style="text-align:right;color:#c0392b">${m.cost?fmtN(m.cost):'—'}</td>
       <td style="text-align:right;font-weight:600;color:${profitColor(m.profit)}">${m.sess?fmtS(m.profit):'—'}</td>
     </tr>`).join('');
+  if(undatedHold.sess){
+    monthRows+=`<tr>
+      <td>On hold (no date)</td>
+      <td style="text-align:center">${undatedHold.sess}</td>
+      <td style="text-align:center">${undatedHold.students||'—'}</td>
+      <td style="text-align:right;font-weight:500">${fmtN(undatedHold.rev)}</td>
+      <td style="text-align:right;color:#c0392b">${undatedHold.instr?fmtN(undatedHold.instr):'—'}</td>
+      <td style="text-align:right;color:#c0392b">${undatedHold.ship?fmtN(undatedHold.ship):'—'}</td>
+      <td style="text-align:right;color:#c0392b">${undatedHold.comm?fmtN(undatedHold.comm):'—'}</td>
+      <td style="text-align:right;color:#c0392b">${undatedHold.overhead?fmtN(undatedHold.overhead):'—'}</td>
+      <td style="text-align:right;color:#c0392b">${undatedHold.cost?fmtN(undatedHold.cost):'—'}</td>
+      <td style="text-align:right;font-weight:600;color:${profitColor(undatedHold.profit)}">${fmtS(undatedHold.profit)}</td>
+    </tr>`;
+  }
 
   const courseRows=Object.entries(courseBuckets).sort((a,b)=>b[1].rev-a[1].rev).map(([name,b])=>`
     <tr>
@@ -10968,6 +11106,7 @@ function printYearReport(){
         <td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td>
       </tr></tfoot>
     </table>
+    ${undatedHold.sess?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">On-hold sessions with no class date are listed on their own row when their year is not the current year. Their revenue is in the year total and is not assigned to a calendar month until a date is saved.</p>':''}
 
     <h2>Revenue by course</h2>
     <table>
@@ -11072,8 +11211,11 @@ function printMonthReport(){
   const fmtS=n=>(n<0?'-':'')+fmtN(n);
   const profitColor=n=>n>=0?'#2d7a5e':'#c0392b';
 
-  // Sessions in this month, sorted by date
-  const monthSessions=sessions.filter(s=>{const d=new Date((s.date||'')+'T12:00:00');return !isNaN(d.getTime())&&d.getFullYear()===year&&d.getMonth()===mi;}).sort((a,b)=>a.date.localeCompare(b.date));
+  // Dated sessions in this month, plus undated paid holds when this month is
+  // the current month and their hold-term year is the current year.
+  const nowMo=new Date();
+  const monthSessions=sessionsForRevenueMonth(year, mi, nowMo);
+  const undatedListed=monthSessions.some(s=>!sessionClassDate(s));
   const monthExpenses=expenses.filter(e=>{const d=new Date(e.date+'T12:00:00');return d.getFullYear()===year&&d.getMonth()===mi;});
 
   const tot={rev:0,fee:0,mat:0,instr:0,extra:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0,regs:0};
@@ -11087,7 +11229,7 @@ function printMonthReport(){
     if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,sess:0,regs:0,students:0,profit:0};
     courseBuckets[s.course].rev+=f.revenue;courseBuckets[s.course].sess++;
     courseBuckets[s.course].regs+=f.totalCount;courseBuckets[s.course].students+=f.paidCount;courseBuckets[s.course].profit+=f.profit;
-    const dlabel=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const dlabel=escapeHtml(sessionReportDateLabel(s));
     return`<tr>
       <td>${dlabel}</td>
       <td>${s.course}${s.isHold?' (on hold)':''}</td>
@@ -11194,6 +11336,7 @@ function printMonthReport(){
       </tr></tfoot>`:''}
     </table>
     ${monthSessions.length?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Operating net profit — revenue minus instructor fees and extra session costs. Revenue is net of payment processing fees (PayPal 2.99% + $0.49/transaction). Handbook orders and other overhead are reported annually.</p>':''}
+    ${undatedListed?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Sessions marked (on hold) have no class date. Revenue already collected — paid registrations, or a payment note such as a deposited check — is included in this month because the hold term falls in the current year (or names no year). An organization roster that has not been paid yet is not included. Saving a date moves that revenue to the class month.</p>':''}
 
     <h2>Revenue by course</h2>
     <table>
