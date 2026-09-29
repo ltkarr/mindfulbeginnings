@@ -147,9 +147,14 @@ test('edit registration shows the class, and match payment stays inside the admi
   assert.match(admin, /Class not on file/);
   assert.match(admin, /onclick="openMatchPayment\(\)"/);
   assert.match(admin, /This tool does not read your PayPal, Venmo, or Zelle inbox/);
-  const markAt = admin.indexOf('function markMatchedPaid');
-  const mark = admin.slice(markAt, markAt + 1600);
+  const markAt = admin.indexOf('async function markMatchedPaid');
+  const markEnd = admin.indexOf('function openEditReg', markAt);
+  const mark = admin.slice(markAt, markEnd);
   assert.match(mark, /does not contact PayPal, Venmo, or Zelle/);
   assert.doesNotMatch(mark, /price_paid/);
-  assert.match(mark, /\[Paid via /);
+  assert.match(mark, /paymentFieldsToDB/);
+  assert.match(mark, /rosterMarkPaidPatch/);
+  assert.match(admin, /\[Paid via /);
+  assert.match(admin, /How paid unknown/);
+  assert.match(admin, /function openMarkPaid/);
 });

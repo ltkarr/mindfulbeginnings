@@ -72,4 +72,22 @@ Card and PayPal checkout on the registration page and on `pay.html` still mark t
 
 When money arrives outside that flow, use **Registrations → Match payment** (or **Match** on an unpaid or pending row, or **Match payment** on the 48-hour pending alert). Enter the amount and the parent name, email, or phone. The Venmo/Zelle memo’s `Reg <registration id>` is enough on its own. The tool lists open registrations that fit, including the class, and **Mark paid** asks you to confirm first.
 
-Confirming sets `pay_status` to `paid` and adds a note such as `[Paid via Venmo — $185.00]`. It does not change `price_paid`, and it does not contact PayPal, Venmo, or Zelle.
+Confirming sets `pay_status` to `paid`, stores **how** they paid, and adds a note such as `[Paid via Venmo ref … — $185.00]`. It does not change `price_paid`, and it does not contact PayPal, Venmo, or Zelle.
+
+## How they paid
+
+Each registration can store:
+
+| Column | What it is |
+|---|---|
+| `payment_method` | `paypal`, `venmo`, `zelle`, `check`, or `other` |
+| `payment_ref` | PayPal transaction id, Venmo/Zelle memo, or check number |
+| `payment_detail` | Free text when the method is `other` (cash, Square, and so on) |
+
+`paypal_tx_id` is still the PayPal capture id. A successful card/PayPal capture sets `payment_method` to `paypal` and copies that capture id into both `paypal_tx_id` and `payment_ref`.
+
+Venmo and Zelle on the public registration page stay **pending** until you confirm the money. When the family taps that they sent it, the row records `venmo` or `zelle` and the memo, so the Registrations list shows the method before you mark it paid. Mark paid, Match payment, and Edit all require a method once the status is paid, and they let you paste a transaction id or memo. The method and reference show on the registration row, the class roster, and the cancellation refund list.
+
+Older registrations are left blank (`How paid unknown` when they are already marked paid). Nothing in this change guesses a method for past payments.
+
+Run `migrations/payment_method.sql` once in the Supabase SQL editor if those columns are not there yet. Until then, PayPal can still mark a seat paid, and the admin shows a reminder to run the script.
