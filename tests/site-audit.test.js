@@ -86,6 +86,47 @@ test('Venmo/Zelle memos on register include the registration id helper', () => {
   assert.match(register, /buildPaymentMemo/);
 });
 
+test('admin expenses can record how they were paid', () => {
+  const vm = require('vm');
+  const sql = fs.readFileSync(path.join(root, 'migrations/expense_payment_method.sql'), 'utf8');
+  assert.match(sql, /alter table public\.expenses/);
+  assert.match(sql, /add column if not exists payment_method text/);
+  assert.match(sql, /payment_method is null/);
+  for (const key of ['amex', 'visa', 'paypal', 'check', 'zelle', 'venmo']) {
+    assert.match(sql, new RegExp("'" + key + "'"));
+  }
+  assert.doesNotMatch(sql, /update public\.expenses set/i);
+  const add = admin.slice(admin.indexOf('function openAddExpense'), admin.indexOf('async function saveExpense'));
+  const edit = admin.slice(admin.indexOf('function openEditExpense'), admin.indexOf('async function updateExpense'));
+  assert.match(add, /id="m-epay"/);
+  assert.match(edit, /id="m-epay"/);
+  assert.match(add, /Payment method/);
+  assert.match(admin, /<th>Paid with<\/th>/);
+  assert.match(admin, /payment_method:method\|\|null/);
+  assert.match(admin, /migrations\/expense_payment_method\.sql/);
+  const start = admin.indexOf('const EXP_PAY_METHODS');
+  const end = admin.indexOf('function expenseFromDB');
+  const sandbox = {};
+  vm.runInNewContext(admin.slice(start, end) + '\nthis.normalizeExpensePay=normalizeExpensePay; this.expensePayLabel=expensePayLabel; this.expensePayOptions=expensePayOptions;', sandbox);
+  assert.equal(sandbox.normalizeExpensePay('VISA'), 'visa');
+  assert.equal(sandbox.normalizeExpensePay('PayPal'), 'paypal');
+  assert.equal(sandbox.normalizeExpensePay(''), '');
+  assert.equal(sandbox.normalizeExpensePay(null), '');
+  assert.equal(sandbox.normalizeExpensePay('cash'), '');
+  assert.equal(sandbox.expensePayLabel('amex'), 'Amex');
+  assert.equal(sandbox.expensePayLabel('venmo'), 'Venmo');
+  assert.equal(sandbox.expensePayLabel(''), '');
+  const opts = sandbox.expensePayOptions('zelle');
+  assert.match(opts, /value="zelle" selected/);
+  assert.match(opts, />Not recorded</);
+  for (const label of ['Amex', 'Visa', 'PayPal', 'Check', 'Zelle', 'Venmo']) {
+    assert.match(opts, new RegExp('>' + label + '<'));
+  }
+  const blank = sandbox.expensePayOptions('');
+  assert.match(blank, /value="" selected|value="">Not recorded/);
+  assert.doesNotMatch(blank, /selected>Amex|selected>Visa|selected>PayPal|selected>Check|selected>Zelle|selected>Venmo/);
+});
+
 test('admin expense categories include Curriculum Development', () => {
   assert.match(admin, /<option>Curriculum Development<\/option>/);
   assert.match(admin, /const EXP_CATS=\[[^\]]*Curriculum Development[^\]]*\]/);
