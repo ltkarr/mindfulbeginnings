@@ -1395,7 +1395,7 @@ async function loadData(){
     sortInstructors();
     jobDataCache={};
     (j.data||[]).forEach(row=>{jobDataCache[row.session_id]=jobFromDB(row);});
-    expenses=(e.data||[]).map(x=>({id:x.id,description:x.description,amount:Number(x.amount),date:x.date,category:x.category||'Other',createdAt:x.created_at||Date.now()}));
+    expenses=(e.data||[]).map(expenseFromDB);
     invoices=(inv.data||[]).map(invoiceFromDB);
     equipmentTablesReady=!eq.error&&!co.error;
     if(eq.error)console.warn('Equipment table not loaded (run the Materials setup SQL if you haven\'t):',eq.error);
@@ -8701,6 +8701,31 @@ function downloadAllWaivers(){
 
 // ─── EXPENSES ────────────────────────────────────────────────
 const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Curriculum Development','Other'];
+// How an overhead expense was paid. Stored lowercase; the label is what shows
+// in the form and the list. Empty means not recorded, so older rows still load.
+const EXP_PAY_METHODS=[['amex','Amex'],['visa','Visa'],['paypal','PayPal'],['check','Check'],['zelle','Zelle'],['venmo','Venmo']];
+function normalizeExpensePay(v){
+  const raw=String(v==null?'':v).trim().toLowerCase();
+  if(!raw)return '';
+  const hit=EXP_PAY_METHODS.find(([k,label])=>k===raw||label.toLowerCase()===raw);
+  return hit?hit[0]:'';
+}
+function expensePayLabel(v){
+  const key=normalizeExpensePay(v);
+  const hit=EXP_PAY_METHODS.find(([k])=>k===key);
+  return hit?hit[1]:'';
+}
+function expensePayOptions(selected){
+  const cur=normalizeExpensePay(selected);
+  return '<option value="">Not recorded</option>'+EXP_PAY_METHODS.map(([k,label])=>`<option value="${k}"${k===cur?' selected':''}>${label}</option>`).join('');
+}
+function expenseFromDB(x){
+  return {id:x.id,description:x.description,amount:Number(x.amount),date:x.date,category:x.category||'Other',paymentMethod:normalizeExpensePay(x.payment_method),createdAt:x.created_at||Date.now()};
+}
+function readExpensePay(){
+  const el=document.getElementById('m-epay');
+  return normalizeExpensePay(el?el.value:'');
+}
 
 function renderExpenses(){
   const catF=document.getElementById('ef-cat').value;
@@ -8718,16 +8743,18 @@ function renderExpenses(){
     <div class="metric"><div class="m-label">Year to date (${thisYear})</div><div class="m-val red">${fmt(ytd)}</div><div class="m-sub">All categories</div></div>
   `;
   const t=document.getElementById('expenses-table');
-  t.innerHTML='<thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th></th></tr></thead><tbody>'+
+  t.innerHTML='<thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Paid with</th><th>Amount</th><th></th></tr></thead><tbody>'+
     (list.length?list.map(e=>{
       const d=new Date(e.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const pay=expensePayLabel(e.paymentMethod);
       return`<tr>
         <td style="white-space:nowrap">${d}</td>
         <td style="font-weight:500">${e.description}</td>
         <td><span class="tag pending">${e.category}</span></td>
+        <td style="white-space:nowrap;color:${pay?'var(--text)':'var(--muted)'}">${pay?escapeHtml(pay):'—'}</td>
         <td style="color:var(--danger);font-weight:500">${fmt(e.amount)}</td>
         <td><div class="btn-row"><button class="btn sm" onclick="openEditExpense('${e.id}')">Edit</button><button class="btn sm danger" onclick="deleteExpense('${e.id}')">Delete</button></div></td></tr>`;
-    }).join(''):'<tr class="empty-row"><td colspan="5">No expenses yet.</td></tr>')+'</tbody>';
+    }).join(''):'<tr class="empty-row"><td colspan="6">No expenses yet.</td></tr>')+'</tbody>';
 }
 
 function openAddExpense(){
@@ -8737,7 +8764,8 @@ function openAddExpense(){
     <div class="fg full"><label>Description *</label><input type="text" id="m-edesc" placeholder="e.g. Liability insurance renewal"></div>
     <div class="fg"><label>Amount *</label><input type="number" id="m-eamt" placeholder="0.00" min="0" step="0.01"></div>
     <div class="fg"><label>Date *</label><input type="date" id="m-edate" value="${new Date().toISOString().slice(0,10)}"></div>
-    <div class="fg full"><label>Category</label><select id="m-ecat">${catOpts}</select></div>
+    <div class="fg"><label>Category</label><select id="m-ecat">${catOpts}</select></div>
+    <div class="fg"><label>Payment method</label><select id="m-epay">${expensePayOptions('')}</select></div>
     <div class="fg full" style="background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);padding:10px 12px;font-size:14px;color:var(--warn);line-height:1.5">Community partner commission does not belong here. It is already carried on the Finances tab as its own expense line, pulled from each partner&rsquo;s statement. Entering a payout here as well would count it twice.</div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveExpense()">Add expense</button></div>`);
@@ -8748,10 +8776,10 @@ async function saveExpense(){
   const amt=parseFloat(document.getElementById('m-eamt').value);
   const date=document.getElementById('m-edate').value;
   if(!desc||!amt||!date){alert('Please fill in description, amount, and date.');return;}
-  const e={id:sid(),description:desc,amount:amt,date,category:document.getElementById('m-ecat').value,createdAt:Date.now()};
+  const e={id:sid(),description:desc,amount:amt,date,category:document.getElementById('m-ecat').value,paymentMethod:readExpensePay(),createdAt:Date.now()};
   expenses.unshift(e);
   closeModal();renderExpenses();renderDashboard();renderFinances();
-  dbWrite(sb.from('expenses').insert({id:e.id,description:e.description,amount:e.amount,date:e.date,category:e.category,created_at:e.createdAt}),'New expense');
+  writeExpenseRow('insert',e,'New expense');
 }
 
 function openEditExpense(id){
@@ -8762,7 +8790,8 @@ function openEditExpense(id){
     <div class="fg full"><label>Description *</label><input type="text" id="m-edesc" value="${e.description}"></div>
     <div class="fg"><label>Amount *</label><input type="number" id="m-eamt" value="${e.amount}" min="0" step="0.01"></div>
     <div class="fg"><label>Date *</label><input type="date" id="m-edate" value="${e.date}"></div>
-    <div class="fg full"><label>Category</label><select id="m-ecat">${catOpts}</select></div>
+    <div class="fg"><label>Category</label><select id="m-ecat">${catOpts}</select></div>
+    <div class="fg"><label>Payment method</label><select id="m-epay">${expensePayOptions(e.paymentMethod)}</select></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="updateExpense('${id}')">Save changes</button></div>`);
 }
@@ -8773,9 +8802,38 @@ async function updateExpense(id){
   const amt=parseFloat(document.getElementById('m-eamt').value);
   const date=document.getElementById('m-edate').value;
   if(!desc||!amt||!date){alert('Please fill in description, amount, and date.');return;}
-  e.description=desc;e.amount=amt;e.date=date;e.category=document.getElementById('m-ecat').value;
+  e.description=desc;e.amount=amt;e.date=date;e.category=document.getElementById('m-ecat').value;e.paymentMethod=readExpensePay();
   closeModal();renderExpenses();renderDashboard();renderFinances();
-  dbWrite(sb.from('expenses').update({description:e.description,amount:e.amount,date:e.date,category:e.category}).eq('id',id),'Expense edit');
+  writeExpenseRow('update',e,'Expense edit');
+}
+
+// Insert or update one expense. payment_method is optional. If the column has
+// not been added yet, the rest of the row still saves and Lindsay is told to
+// run migrations/expense_payment_method.sql.
+async function writeExpenseRow(kind,e,label){
+  const method=normalizeExpensePay(e.paymentMethod);
+  const fields={description:e.description,amount:e.amount,date:e.date,category:e.category,payment_method:method||null};
+  if(kind==='insert'){fields.id=e.id;fields.created_at=e.createdAt;}
+  const run=(payload)=>{
+    const q=sb.from('expenses');
+    return kind==='insert'?q.insert(payload):q.update(payload).eq('id',e.id);
+  };
+  let res;
+  try{res=await run(fields);}catch(err){res={error:err};}
+  const err=res&&res.error;
+  if(!err)return true;
+  const msg=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
+  const missing=/payment_method/.test(msg)&&(/schema cache|does not exist|could not find/.test(msg));
+  if(missing){
+    const slim=Object.assign({},fields);
+    delete slim.payment_method;
+    const ok=await dbWrite(run(slim),label);
+    if(ok)showToast('⚠️ Saved without payment method. Run migrations/expense_payment_method.sql in the Supabase SQL editor, then edit this expense and choose how it was paid.');
+    return ok!==false;
+  }
+  console.error(label+' failed:',err);
+  showToast('⚠️ '+label+' did not save: '+((err.message||'database error').slice(0,90))+'. Refresh to see true state.');
+  return false;
 }
 
 async function deleteExpense(id){
