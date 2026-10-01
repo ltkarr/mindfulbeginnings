@@ -38,6 +38,7 @@ function loadSaver() {
     REQUIRES_RN_COL: true,
     EXTERNAL_URL_COL: true,
     ADMIN_PRIVATE_NOTES_COL: true,
+    ORG_PORTION_COL: true,
     HOSTED_FOR_COL: true,
     ORIGINATED_COL: true,
     EXTRA_DAYS_COL: true,

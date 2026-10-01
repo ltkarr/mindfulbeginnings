@@ -564,7 +564,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -620,6 +620,13 @@ let EXTERNAL_URL_COL=true;
 // the session still saves.
 let ADMIN_PRIVATE_NOTES_COL=true;
 const PRIVATE_NOTES_SQL_TOAST='⚠️ Saved, but WITHOUT private notes — run migrations/admin_private_notes.sql in the Supabase SQL editor, then re-save this session.';
+// Per-girl amount an organization pays on top of (or instead of repeating) the
+// family checkout price. Anon is not granted this column — public registration
+// keeps charging price_override and never needs the troop's share.
+// See migrations/org_portion.sql. Set false automatically if that SQL has not
+// been run yet, so the rest of the session still saves.
+let ORG_PORTION_COL=true;
+const ORG_PORTION_SQL_TOAST='⚠️ Saved, but WITHOUT the organization-per-girl amount — run migrations/org_portion.sql in the Supabase SQL editor, then re-save this session.';
 function adminPrivateNotesFieldHtml(value){
   return `<div class="fg full" style="background:#f6f3ee;border:1px dashed #d9cfc0;border-radius:var(--r-sm);padding:10px 12px">
       <label>Private notes <span style="font-weight:400;color:var(--muted)">(admin only)</span></label>
@@ -655,6 +662,9 @@ function readExternalRegistrationUrl(){
 const CANCEL_COL_SQL_TOAST='\u26a0\ufe0f NOT saved \u2014 the database is missing the cancellation columns. Run the cancel-session SQL in Supabase, then try again. See the console for the exact statements.';
 function sessionToDB(s){
   const o={id:s.id,code:s.code,course:s.course,date:s.date||null,time:s.time||null,location:s.location||null,host_address:s.hostAddress||null,city:s.city||null,state:s.state||null,zip:s.zip||null,contact_name:s.contactName||null,host_phone:s.hostPhone||null,owner_taught:s.ownerTaught||false,host_taken:s.hostTaken||false,has_host:s.hasHost!==false,instructor_id:s.instructorId||null,second_instructor_id:s.secondInstructorId||null,max_students_override:s.maxStudentsOverride||null,notes:s.notes||null,additional_costs:s.additionalCosts||[],wifi_info:s.wifiInfo||null,price_override:s.priceOverride==null?null:Number(s.priceOverride),instr_pay_override:s.instrPayOverride==null?null:Number(s.instrPayOverride),is_virtual:s.isVirtual||false,zoom_link:s.zoomLink||null,is_custom_job:s.isCustomJob||false,is_hold:s.isHold||false,allow_waitlist:s.allowWaitlist!==false,reserved_seats:s.reservedSeats||null,hold_term:s.holdTerm||null,hold_payment:s.holdPayment||null,is_recurring:s.isRecurring||false,recur_pattern:s.recurPattern||null,recur_end_date:s.recurEndDate||null,bill_to_org:s.billToOrg||null,billed_headcount:s.billedHeadcount==null||s.billedHeadcount===''?null:Number(s.billedHeadcount)};
+  // Only sent once migrations/org_portion.sql has added the column. A session
+  // object that never loaded the field must not blank a value already stored.
+  if(ORG_PORTION_COL&&s.orgPortion!==undefined)o.org_portion=s.orgPortion==null||s.orgPortion===''?null:Number(s.orgPortion);
   // created_at drives ALL pricing, so write it explicitly rather than trusting a
   // database default to exist. A session that arrives without one is stamped with the
   // pre-cutover sentinel, never with "now" — guessing "now" is what caused every
@@ -689,6 +699,7 @@ function sessionUpsertRejectColumn(msg){
   if(REQUIRES_RN_COL&&/requires_rn/i.test(msg))return 'rn';
   if(EXTERNAL_URL_COL&&/external_registration_url/i.test(msg))return 'external';
   if(ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(msg))return 'private';
+  if(ORG_PORTION_COL&&/org_portion/i.test(msg))return 'org_portion';
   if(HOSTED_FOR_COL&&/hosted_for/i.test(msg))return 'hosted_for';
   if(ORIGINATED_COL&&/originated_by|origination_note/i.test(msg))return 'origin';
   if(EXTRA_DAYS_COL&&/extra_days/i.test(msg))return 'extra_days';
@@ -703,6 +714,7 @@ function applySessionUpsertReject(which,flags){
   else if(which==='rn'){REQUIRES_RN_COL=false;flags.missingRnCol=true;}
   else if(which==='external'){EXTERNAL_URL_COL=false;flags.missingExternalUrl=true;}
   else if(which==='private'){ADMIN_PRIVATE_NOTES_COL=false;flags.missingPrivateNotes=true;}
+  else if(which==='org_portion'){ORG_PORTION_COL=false;flags.missingOrgPortion=true;}
   else if(which==='hosted_for'){HOSTED_FOR_COL=false;flags.missingHostedFor=true;}
   else if(which==='origin'){ORIGINATED_COL=false;flags.missingOrigin=true;}
   else if(which==='extra_days'){EXTRA_DAYS_COL=false;flags.missingDays=true;}
@@ -712,7 +724,7 @@ function applySessionUpsertReject(which,flags){
   return !!which;
 }
 function blankSessionUpsertFlags(){
-  return{missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false};
+  return{missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false};
 }
 // Every session write goes through here: course sessions, custom jobs, holds,
 // publish, cancel. One unknown column used to abort custom-job and hold saves
@@ -722,7 +734,7 @@ async function upsertSessionRow(s){
   const flags=blankSessionUpsertFlags();
   try{
     let error=null;
-    for(let attempt=0;attempt<8;attempt++){
+    for(let attempt=0;attempt<12;attempt++){
       let res;
       try{res=await sb.from('sessions').upsert(sessionToDB(s));}
       catch(e){return Object.assign({error:e},flags);}
@@ -746,6 +758,7 @@ function sessionOptionalColToast(f){
   if(f.missingRnCol)return RN_COL_SQL_TOAST;
   if(f.missingExternalUrl)return EXTERNAL_URL_SQL_TOAST;
   if(f.missingPrivateNotes)return PRIVATE_NOTES_SQL_TOAST;
+  if(f.missingOrgPortion)return ORG_PORTION_SQL_TOAST;
   if(f.missingSsCol)return SS_COL_SQL_TOAST;
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
@@ -1300,8 +1313,68 @@ function knownOrgs(){
 function orgDatalistHtml(){return`<datalist id="org-datalist">${knownOrgs().map(o=>`<option value="${escapeHtml(o)}">`).join('')}</datalist>`;}
 function toggleOrgHeadcount(){
   const org=(document.getElementById('m-billorg')?.value||'').trim();
+  const show=org?'block':'none';
   const wrap=document.getElementById('m-billcount-wrap');
-  if(wrap)wrap.style.display=org?'block':'none';
+  const portion=document.getElementById('m-orgportion-wrap');
+  if(wrap)wrap.style.display=show;
+  if(portion)portion.style.display=show;
+  updateOrgSplitPreview();
+}
+// The session open in the add/edit modal, so the split preview can say how
+// many girls have actually registered. Null while adding a new session.
+let _orgSplitSessionId=null;
+function orgBillingFieldsHtml(s){
+  s=s||{};
+  const show=s.billToOrg?'block':'none';
+  const count=s.billedHeadcount!=null?s.billedHeadcount:'';
+  const portion=s.orgPortion!=null?s.orgPortion:'';
+  return `<div class="fg full" style="background:#eef5f0;border:1px solid #cfe3d6;border-radius:var(--r-sm);padding:12px 14px">
+      <label style="margin-bottom:2px">Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — invoiced at month end)</span></label>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Name the partner when they pay some or all of this class. If families also register, enter what the organization pays per girl. Leave that blank when the organization pays the whole registration price (for example Beth El).</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:200px"><label style="font-size:14px;margin-bottom:4px;display:block">Organization name</label><input type="text" id="m-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. GS Troop 42086 or Congregation Beth El" oninput="toggleOrgHeadcount()" style="width:100%"></div>
+        <div id="m-billcount-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Girls the organization is paying for</label><input type="number" id="m-billcount" value="${count}" min="0" step="1" placeholder="e.g. 6" oninput="updateOrgSplitPreview()" style="width:130px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:220px">Roster count, not class capacity. Leave blank on a split to bill each registered girl.</div></div>
+        <div id="m-orgportion-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Organization pays per girl</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;color:var(--muted)">$</span><input type="number" id="m-org-portion" value="${portion}" min="0" step="0.01" placeholder="Whole price" oninput="updateOrgSplitPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"></div><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:220px">Blank means they pay the registration price. $25 means families pay the price above and the organization owes $25 per girl.</div></div>
+      </div>
+      <div id="m-org-split-preview" style="font-size:14px;margin-top:10px;line-height:1.5;font-weight:500"></div>
+      ${orgDatalistHtml()}
+    </div>`;
+}
+function updateOrgSplitPreview(){
+  const out=document.getElementById('m-org-split-preview');
+  if(!out)return;
+  const org=(document.getElementById('m-billorg')?.value||'').trim();
+  if(!org){out.textContent='';return;}
+  const courseEl=document.getElementById('m-course');
+  const dateVal=(document.getElementById('m-date')||{}).value||'';
+  const priceRaw=document.getElementById('m-price-override')?.value;
+  const base=courseEl?getCoursePrice(courseEl.value,dateVal,_pricingCtxCreatedAt??Date.now()):0;
+  const family=priceRaw===''||priceRaw==null?base:Number(priceRaw)||0;
+  const countRaw=document.getElementById('m-billcount')?.value;
+  const portionRaw=document.getElementById('m-org-portion')?.value;
+  const registered=_orgSplitSessionId?registrations.filter(r=>r.sessionId===_orgSplitSessionId&&isLiveReg(r)).length:0;
+  const hasRoster=countRaw!==''&&countRaw!=null;
+  const girls=hasRoster?(Number(countRaw)||0):registered;
+  const girlLabel=girls===1?'girl':'girls';
+  if(portionRaw===''||portionRaw==null){
+    out.style.color='var(--muted)';
+    out.style.fontWeight='400';
+    if(hasRoster){
+      out.textContent='Organization invoice uses the registration price: '+fmt(family)+' × '+girls+' '+girlLabel+' = '+fmt(girls*family)+'. Enter what the organization pays per girl when families pay a lower price and the organization pays the rest.';
+    }else{
+      out.textContent='No roster count yet, so organization revenue stays off this class until you enter how many girls they are paying for. Enter what the organization pays per girl to split the price.';
+    }
+    return;
+  }
+  const portion=Math.max(0,Number(portionRaw)||0);
+  const bill=girls*portion;
+  const registeredNote=_orgSplitSessionId?(registered+' registered so far. '):'';
+  const countNote=hasRoster
+    ? 'The organization bill uses this roster count, not class capacity.'
+    : 'Roster count is blank, so the bill follows girls who have registered (not waitlist or cancelled).';
+  out.style.color='#1d6b45';
+  out.style.fontWeight='500';
+  out.textContent='Families pay '+fmt(family)+' at checkout. '+org+' owes '+fmt(portion)+' × '+girls+' '+girlLabel+' = '+fmt(bill)+'. Full price '+fmt(family+portion)+' per girl. '+registeredNote+countNote;
 }
 
 // ─── PAGED TABLE LOADS ───────────────────────────────────────
@@ -1546,6 +1619,72 @@ function participantMaterialAllowance(s){
   return (head+orgHeadcount)*rate;
 }
 
+// ─── ORGANIZATION SPLIT VS FULL BILLING ─────────────────────
+// Two ways a named organization pays for a course session:
+//
+//   FULL — "Organization pays per girl" is blank. The invoice uses the
+//   registration price (the session override, or the course default). Beth El
+//   works this way: the synagogue pays the whole per-participant price, and
+//   families do not check out on their own.
+//
+//   SPLIT — that field is the organization's share per girl. Families check
+//   out at the registration price. The organization is invoiced for its share
+//   only. SS-261009: families pay $150, GS Troop 42086 pays $25, full price $175.
+//
+// Who is counted (roster girls, not class capacity):
+//   The roster count entered on the session is the number of girls the
+//   organization is paying for. That is the existing partner pattern — Beth El
+//   sends a roster, and this troop's expected 6 is already stored there — so a
+//   committed roster is billed even before every family has registered.
+//   If that count is left blank AND a per-girl organization amount is set, the
+//   bill follows live registrations (not waitlist, cancelled, or host).
+//   A full-org session with a blank roster still adds no organization revenue
+//   until a count is entered, same as before. The invoice builder still falls
+//   back to live registrations when it draws a line and the count is blank.
+//   Capacity (max students) is never the billable count.
+function orgPortionAmount(s){
+  if(!s||s.orgPortion==null||s.orgPortion==='')return null;
+  const n=Number(s.orgPortion);
+  if(isNaN(n))return null;
+  return n<0?0:n;
+}
+function familyPrice(s){
+  if(!s)return 0;
+  return s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
+}
+function orgBillRate(s){
+  const portion=orgPortionAmount(s);
+  if(portion!=null)return portion;
+  return familyPrice(s);
+}
+function orgRevenueHeadcount(s){
+  if(!s||!s.billToOrg||s.isCustomJob)return 0;
+  if(s.billedHeadcount!=null&&s.billedHeadcount!=='')return Number(s.billedHeadcount)||0;
+  if(orgPortionAmount(s)==null)return 0;
+  // Registered girls only. A host seat is free and is not a girl the organization
+  // is subsidizing. Waitlist and cancelled are already outside isLiveReg.
+  return (registrations||[]).filter(r=>r.sessionId===s.id&&isLiveReg(r)&&r.payStatus!=='host').length;
+}
+function orgBillAmount(s){
+  return orgRevenueHeadcount(s)*orgBillRate(s);
+}
+// Sub-line under Revenue on the sessions table. A split must not be labeled
+// with only the family price, which is what made SS-261009 look like $150/student
+// for the whole class.
+function sessionRevenueNotes(s,f){
+  if(!s||s.isCustomJob)return '';
+  const portion=orgPortionAmount(s);
+  if(s.billToOrg&&portion!=null){
+    const girls=f&&f.orgHeadcount!=null?f.orgHeadcount:orgRevenueHeadcount(s);
+    const orgAmt=girls*portion;
+    const family=familyPrice(s);
+    const title='Revenue is what families have paid, after the card fee, plus the organization bill (no card fee on an invoice). Families pay '+fmt(family)+' at registration. '+s.billToOrg+' is billed '+fmt(portion)+' × '+girls+' '+(girls===1?'girl':'girls')+' = '+fmt(orgAmt)+'. Class capacity is not billed.';
+    return `<span class="pay-note" title="${escapeHtml(title)}">Families ${fmt(family)}/girl · Org ${fmt(portion)} × ${girls} = ${fmt(orgAmt)}</span>`;
+  }
+  if(s.priceOverride!=null)return `<span class="pay-note" style="color:var(--warn)" title="$${s.priceOverride} per student">$${s.priceOverride}/student</span>`;
+  return '';
+}
+
 function calcFin(s){
   // Custom jobs have no registrations or course pricing. Pay is the flat instructor amount;
   // revenue is whatever the organization pays Mindful Beginnings (stored in priceOverride, optional).
@@ -1555,21 +1694,23 @@ function calcFin(s){
     // Facility rental, parking, printing, and other costs entered on the job come off
     // the top. Per-student handbook lines do not — those purchases are overhead.
     const extra=sessionExtraCosts(s.additionalCosts);
-    return{revenue:orgFee,grossRevenue:orgFee,procFee:0,matCost:0,instrFee:pay,extraCosts:extra,refPayout:0,referralBonus:0,totalCost:pay+extra,profit:orgFee-pay-extra,paidCount:0,totalCount:0};
+    return{revenue:orgFee,grossRevenue:orgFee,procFee:0,matCost:0,instrFee:pay,extraCosts:extra,refPayout:0,referralBonus:0,totalCost:pay+extra,profit:orgFee-pay-extra,paidCount:0,totalCount:0,orgRevenue:orgFee,orgHeadcount:0,orgRate:null,familyGross:0};
   }
   const regs=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r));
   const paying=regs.filter(r=>r.payStatus==='paid');
   // Per-participant price: each paying student counts at their own custom price if one
   // was set, otherwise the session override, otherwise the course default.
   // Org-billed sessions (e.g. Beth El): the organization sends a roster and pays at
-  // month end, so revenue comes from the entered headcount × per-participant price
-  // instead of individual paid registrations. Any individually paid registrations on
-  // the same session still count on top.
-  const orgHeadcount=(s.billToOrg&&s.billedHeadcount)?Number(s.billedHeadcount):0;
-  const orgRate=s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
+  // month end. On a full bill that rate is the registration price. On a split, the
+  // organization pays only its per-girl share (orgPortion) and families still pay
+  // the registration price above. Paid registrations count on top of either bill.
+  const orgHeadcount=orgRevenueHeadcount(s);
+  const orgRate=orgBillRate(s);
+  const orgRevenue=orgHeadcount*orgRate;
   // Gross = what families/orgs are charged. Processing fees apply only to individual
-  // paid registrations (paid online); org-billed headcount is invoiced, so no fee.
-  const grossRevenue=paying.reduce((sum,r)=>sum+regEffectivePrice(r,s),0)+orgHeadcount*orgRate;
+  // paid registrations (paid online); the organization invoice has no card fee.
+  const familyGross=paying.reduce((sum,r)=>sum+regEffectivePrice(r,s),0);
+  const grossRevenue=familyGross+orgRevenue;
   const procFee=paying.reduce((sum,r)=>sum+processingFee(regEffectivePrice(r,s)),0);
   const revenue=grossRevenue-procFee;   // reported revenue is NET of payment processing fees
   // Handbook and student-supply cost is an overhead expense, not a per-student
@@ -1609,7 +1750,7 @@ function calcFin(s){
   const refPayout=0;
   const referralBonus=(jobDataCache[s.id]||{}).referralBonus||0;
   const totalCost=matCost+instrFee+extraCosts+referralBonus;
-  return{revenue,grossRevenue,procFee,matCost,instrFee,extraCosts,refPayout,referralBonus,totalCost,profit:revenue-totalCost,paidCount:paying.length,totalCount:regs.length};
+  return{revenue,grossRevenue,procFee,matCost,instrFee,extraCosts,refPayout,referralBonus,totalCost,profit:revenue-totalCost,paidCount:paying.length,totalCount:regs.length,orgRevenue,orgHeadcount,orgRate,familyGross};
 }
 
 // Where revenue is counted. A real class date keeps its own month and year.
@@ -2163,11 +2304,11 @@ function partnerRevenueEvents(s){
       amount:round2(gross-fee),fee:round2(fee)},d));
   });
 
-  // An organization's roster headcount, invoiced at month end. No processing fee
-  // applies — you are paid by check or transfer, not through PayPal.
-  if(s.billToOrg&&s.billedHeadcount){
-    const rate=s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
-    const amt=Number(s.billedHeadcount)*rate;
+  // An organization's roster, invoiced at month end. No processing fee applies —
+  // you are paid by check or transfer, not through PayPal. A split uses the
+  // per-girl organization amount; a full bill uses the registration price.
+  if(s.billToOrg){
+    const amt=orgBillAmount(s);
     if(amt>0){
       const c=sessionOrgCollectedDate(s);
       out.push(partnerEventDates(s,{sessionId:s.id,kind:'org',gross:round2(amt),amount:round2(amt),fee:0},c));
@@ -4676,7 +4817,13 @@ function renderSessions(){
   const codeLine=c=>`<span class="code-badge" onclick="copyCode('${c}')" title="Click to copy">${c}</span>`;
   const netLine=v=>`<span class="pay-note" style="color:${v>=0?'var(--success)':'var(--danger)'}">Net ${fmtSigned(v)}</span>`;
   const pill=(label,bg,color,title)=>`<span class="sess-pill" style="background:${bg};color:${color}"${title?` title="${escapeHtml(title)}"`:''}>${label}</span>`;
-  const orgLine=org=>org?`<span class="sess-sub" title="Billed to ${escapeHtml(org)}">Billed to ${escapeHtml(org)}</span>`:'';
+  const orgLine=s=>{
+    const org=s&&s.billToOrg;
+    if(!org)return '';
+    const portion=orgPortionAmount(s);
+    const extra=portion!=null?' · '+fmt(portion)+'/girl':'';
+    return `<span class="sess-sub" title="Billed to ${escapeHtml(org)}">Billed to ${escapeHtml(org)}${extra}</span>`;
+  };
   const locCell=text=>{
     const name=String(text||'').trim();
     if(!name)return'<span class="sess-sub">—</span>';
@@ -4706,7 +4853,7 @@ function renderSessions(){
       // refunds). The badge is one short stacked pill; the reason sits on its own line.
       const reasonLine=s.isCancelled&&s.cancelReason?`<span class="sess-sub" title="${escapeHtml(s.cancelReason)}">${escapeHtml(s.cancelReason)}</span>`:'';
       const kit=matSessBadge(s);
-      const courseCell=pills=>`<span class="sess-title" title="${escapeHtml(s.course)}">${escapeHtml(s.course)}</span>${pills.length?`<span class="sess-pills">${pills.join('')}</span>`:''}${orgLine(s.billToOrg)}${reasonLine}${codeLine(s.code)}`;
+      const courseCell=pills=>`<span class="sess-title" title="${escapeHtml(s.course)}">${escapeHtml(s.course)}</span>${pills.length?`<span class="sess-pills">${pills.join('')}</span>`:''}${orgLine(s)}${reasonLine}${codeLine(s.code)}`;
       // Dimming marks a cancelled row out among live ones. In the Cancelled view every row
       // is cancelled, so dimming there would just make the whole table hard to read.
       const cxRowStyle=(s.isCancelled&&scope!=='cancelled')?'opacity:.55':'';
@@ -4725,7 +4872,7 @@ function renderSessions(){
         // run in a single unwrapped line through the title and the ON HOLD badge.
         const whenCell=`<span class="sess-clamp when" title="${escapeHtml(whenTip)}">${escapeHtml(when)}</span>`+(timeNote?`<span class="sess-clip" title="${escapeHtml(timeNote)}">${escapeHtml(timeNote)}</span>`:'');
         const holdNote=s.holdPayment?`<span class="sess-clamp" title="${escapeHtml(s.holdPayment)}">${escapeHtml(s.holdPayment)}</span>`:'';
-        const payCell=`<span class="sess-wrap">${fmt(f.revenue)}</span>${holdNote}${netLine(f.profit)}`;
+        const payCell=`<span class="sess-wrap">${fmt(f.revenue)}</span>${holdNote}${orgPortionAmount(s)!=null?sessionRevenueNotes(s,f):''}${netLine(f.profit)}`;
         const pills=[pill('ON HOLD','#e7e0f5','#5b4a8a')];
         if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
         const seatLabel=`${enrolled} / ${sessionMaxStudents(s)}${wlHold?' · '+wlHold+' waitlist':''}${s.reservedSeats!=null?' · '+s.reservedSeats+' reserved':''}`;
@@ -4770,7 +4917,7 @@ function renderSessions(){
         <td><div class="cell-stack">${where}</div></td>
         <td><div class="cell-stack"><span class="sess-wrap" title="${escapeHtml(instr)}">${escapeHtml(instr)}</span></div></td>
         <td><div class="cell-stack"><span class="sess-wrap">${registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course)} / ${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''}</span></div></td>
-        <td><div class="cell-stack"><span class="sess-wrap">${fmt(f.revenue)}</span>${s.priceOverride!=null?`<span class="pay-note" style="color:var(--warn)" title="$${s.priceOverride} per student">$${s.priceOverride}/student</span>`:''}${netLine(f.profit)}</div></td>
+        <td><div class="cell-stack"><span class="sess-wrap">${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${netLine(f.profit)}</div></td>
         <td>${isPast?`<div class="cell-stack"><span>${wrapDots}</span><span class="pay-note" style="color:${wrapAllDone?'var(--success)':'var(--muted)'}">${wrapAllDone?'Done':wrapDone+'/'+wrapTotal}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
         ${mgr('white')}</tr>`;
     }).join(''):`<tr class="empty-row"><td colspan="8">No sessions found.</td></tr>`)+'</tbody>';
@@ -5023,6 +5170,7 @@ function toggleHoldMode(on){
 
 
 function openAddSession(){
+  _orgSplitSessionId=null;
   _editCosts=[];
   _editDays=[];
   _editClosures=[];
@@ -5113,7 +5261,7 @@ function openAddSession(){
       <label>Zoom link <span style="font-weight:400;color:var(--muted)">(sent to registered families)</span></label>
       <input type="text" id="m-zoom" placeholder="e.g. https://zoom.us/j/123456789">
     </div>
-    <div class="fg full"><label>Registration price per participant <span style="font-weight:400;color:var(--muted)">(optional — leave blank to use the course default)</span></label>
+    <div class="fg full"><label>Registration price per participant <span style="font-weight:400;color:var(--muted)">(what each family pays at checkout — leave blank to use the course default)</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
         <input type="number" id="m-price-override" placeholder="Default" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
@@ -5121,15 +5269,7 @@ function openAddSession(){
       </div>
     </div>
     ${externalRegistrationFieldHtml(null)}
-    <div class="fg full" style="background:#eef5f0;border:1px solid #cfe3d6;border-radius:var(--r-sm);padding:12px 14px">
-      <label style="margin-bottom:2px">Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — partner sessions invoiced at month end)</span></label>
-      <div style="font-size:14px;color:var(--muted);margin-bottom:8px">If a partner organization (e.g. Congregation Beth El) pays for this session instead of individual families, enter the organization name and the roster headcount they send you. Completed sessions appear under Finances → Organization invoices, and revenue counts as headcount × the per-participant price above.</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div style="flex:1;min-width:200px"><label style="font-size:14px;margin-bottom:4px;display:block">Organization name</label><input type="text" id="m-billorg" list="org-datalist" placeholder="e.g. Congregation Beth El" oninput="toggleOrgHeadcount()" style="width:100%"></div>
-        <div id="m-billcount-wrap" style="display:none"><label style="font-size:14px;margin-bottom:4px;display:block">Roster headcount</label><input type="number" id="m-billcount" min="0" step="1" placeholder="e.g. 8" style="width:130px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"></div>
-      </div>
-      ${orgDatalistHtml()}
-    </div>
+    ${orgBillingFieldsHtml(null)}
     ${partnerOriginFieldHtml(null)}${orgPartnerFieldHtml(null)}
     <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee)</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -5652,13 +5792,14 @@ function updatePricePreview(){
   const courseEl=document.getElementById('m-course');
   const priceEl=document.getElementById('m-price-override');
   const out=document.getElementById('m-price-preview');
-  if(!courseEl||!priceEl||!out)return;
+  if(!courseEl||!priceEl||!out){updateOrgSplitPreview();return;}
   const dateVal=(document.getElementById('m-date')||{}).value||'';
   const base=getCoursePrice(courseEl.value,dateVal,_pricingCtxCreatedAt??Date.now());
   const raw=priceEl.value;
   if(raw===''){
     out.style.color='var(--muted)';
     out.textContent='Using course default of $'+base;
+    updateOrgSplitPreview();
     return;
   }
   const v=Number(raw);
@@ -5675,6 +5816,7 @@ function updatePricePreview(){
     out.style.color='var(--warn)';
     out.textContent='Higher than default of $'+base;
   }
+  updateOrgSplitPreview();
 }
 
 function updateInstrPayPreview(){
@@ -5701,6 +5843,7 @@ function updateInstrPayPreview(){
 }
 
 function openEditSession(id){
+  _orgSplitSessionId=id;
   const s=sessions.find(x=>x.id===id);if(!s)return;
   if(s.isCustomJob){openEditCustomJob(id);return;}
   // Job data is the live assignment, but a hold (or any class) may only have
@@ -5814,7 +5957,7 @@ function openEditSession(id){
       <label>Zoom link <span style="font-weight:400;color:var(--muted)">(sent to registered families)</span></label>
       <input type="text" id="m-zoom" value="${s.zoomLink||''}" placeholder="e.g. https://zoom.us/j/123456789">
     </div>
-    <div class="fg full"><label>Registration price per participant <span style="font-weight:400;color:var(--muted)">(optional — leave blank to use the course default of $${getCoursePrice(s.course,s.date,s.createdAt)})</span></label>
+    <div class="fg full"><label>Registration price per participant <span style="font-weight:400;color:var(--muted)">(what each family pays at checkout — leave blank to use the course default of $${getCoursePrice(s.course,s.date,s.createdAt)})</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
         <input type="number" id="m-price-override" value="${s.priceOverride!=null?s.priceOverride:''}" placeholder="Default: ${getCoursePrice(s.course,s.date,s.createdAt)}" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
@@ -5822,15 +5965,7 @@ function openEditSession(id){
       </div>
     </div>
     ${externalRegistrationFieldHtml(s)}
-    <div class="fg full" style="background:#eef5f0;border:1px solid #cfe3d6;border-radius:var(--r-sm);padding:12px 14px">
-      <label style="margin-bottom:2px">Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — partner sessions invoiced at month end)</span></label>
-      <div style="font-size:14px;color:var(--muted);margin-bottom:8px">If a partner organization pays for this session instead of individual families, enter the organization name and the roster headcount they send you. Completed sessions appear under Finances → Organization invoices, and revenue counts as headcount × the per-participant price above.</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div style="flex:1;min-width:200px"><label style="font-size:14px;margin-bottom:4px;display:block">Organization name</label><input type="text" id="m-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. Congregation Beth El" oninput="toggleOrgHeadcount()" style="width:100%"></div>
-        <div id="m-billcount-wrap" style="display:${s.billToOrg?'block':'none'}"><label style="font-size:14px;margin-bottom:4px;display:block">Roster headcount</label><input type="number" id="m-billcount" value="${s.billedHeadcount!=null?s.billedHeadcount:''}" min="0" step="1" placeholder="e.g. 8" style="width:130px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"></div>
-      </div>
-      ${orgDatalistHtml()}
-    </div>
+    ${orgBillingFieldsHtml(s)}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
     <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee of ${fmt((()=>{const dc=COURSES[s.course]||{};return (dc.instrFlatFee!==undefined?dc.instrFlatFee:(dc.hours||0)*INSTR_RATE+INSTR_RATE)+INSTR_EXTRA_HOURS*INSTR_RATE;})())})</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -5940,6 +6075,8 @@ async function saveSession(editId){
   const billToOrg=(document.getElementById('m-billorg')?.value||'').trim();
   const billCountRaw=document.getElementById('m-billcount')?.value;
   const billedHeadcount=(billToOrg&&billCountRaw!==''&&billCountRaw!=null)?Number(billCountRaw):null;
+  const orgPortionRaw=document.getElementById('m-org-portion')?.value;
+  const orgPortion=(billToOrg&&orgPortionRaw!==''&&orgPortionRaw!=null)?Math.max(0,Number(orgPortionRaw)||0):null;
   const originatedBy=readOriginatedBy();
   const originationNote=readOriginationNote();
   const hostedFor=readHostedFor();
@@ -5970,9 +6107,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl};
     sessions.push(s);
   }
   const matChoice=sessionMaterialsFromForm(editId);
@@ -10678,15 +10815,20 @@ function invoicedSessionIds(){
   return set;
 }
 // Default invoice line for a session: custom jobs bill their flat org fee; course
-// sessions bill roster headcount × per-participant price (session override or course default).
+// sessions bill girls × the organization rate. A split uses the per-girl
+// organization amount. A full bill uses the registration price.
 function invoiceLineFor(s){
   if(s.isCustomJob){
     const amt=s.priceOverride!=null?Number(s.priceOverride):0;
     return{sessionId:s.id,date:s.date,desc:s.course,qty:null,rate:null,amount:amt,flat:true};
   }
-  const qty=s.billedHeadcount!=null?Number(s.billedHeadcount):registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
-  const rate=s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
-  return{sessionId:s.id,date:s.date,desc:s.course,qty,rate,amount:qty*rate,flat:false};
+  const split=orgPortionAmount(s)!=null;
+  // A blank roster on a split follows registered girls (same count as revenue).
+  // A blank roster on a full bill still falls back to every live registration,
+  // which is how an invoice was drawn before split pricing existed.
+  const qty=s.billedHeadcount!=null?Number(s.billedHeadcount):(split?orgRevenueHeadcount(s):registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length);
+  const rate=orgBillRate(s);
+  return{sessionId:s.id,date:s.date,desc:split?s.course+' — organization portion':s.course,qty,rate,amount:qty*rate,flat:false};
 }
 function sessionIsComplete(s){
   const end=sessionEndDate(s);if(!end)return false;

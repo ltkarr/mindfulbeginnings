@@ -28,6 +28,7 @@ const names = [
   'isPerStudentMaterialLine', 'sessionExtraCosts', 'participantMaterialAllowance',
   'processingFee', 'isLiveReg', 'regEffectivePrice',
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
+  'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'calcFin', 'round2', 'partnerDirectCosts', 'loadEditCosts'
 ];
 
