@@ -26,7 +26,10 @@ test('a hold opens the same edit form and still stays off public registration', 
   assert.match(row, /ON HOLD/);
   assert.match(row, /isLiveReg\(r\)/);
   assert.match(row, /sessionMaxStudents\(s\)/);
-  assert.match(row, /fmt\(f\.revenue\)/);
+  assert.match(row, /revenueCell\(s,f,holdNote\)/);
+  const revenueFn = admin.slice(admin.indexOf('const revenueCell='), admin.indexOf('const locCell='));
+  assert.match(revenueFn, /fmt\(f\.revenue\)/);
+  assert.match(revenueFn, /splitBillCaption/);
   assert.doesNotMatch(row, /<td style="color:var\(--muted\)">—<\/td>/);
 
   function between(startMark, endMark) {
