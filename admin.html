@@ -120,6 +120,16 @@ tr:hover td{background:#fafbfd}
 .tag.lvl-established{background:var(--sky-l);color:#1a5c8a}
 .tag.lvl-senior{background:#f5ecd8;color:#8a6d1f}
 .tag.lvl-lead{background:var(--navy);color:#fff}
+/* Wrap-up "pay instructor" amount. The dollar line is the thing Lindsay
+   reads before she sends Zelle, so it is set in the page's headline type. */
+.pay-send{margin-top:8px;padding:10px 12px;border-radius:8px}
+.pay-send-due{background:#f3f7fb;border:1px solid #c5d8ea}
+.pay-send-paid{background:var(--success-bg);border:1px solid #c5e0d0}
+.pay-send-missing{background:var(--warn-bg);border:1px solid #f0d9b5}
+.pay-send-amt{font-family:'DM Serif Display',serif;font-size:22px;line-height:1.25;color:#16324d}
+.pay-send-paid .pay-send-amt{color:var(--success)}
+.pay-send-missing .pay-send-amt{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:#8a5a12}
+.pay-send-sub{font-size:14px;color:var(--muted);margin-top:4px;line-height:1.45}
 .btn{padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:white;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;cursor:pointer;font-weight:500;transition:all .15s;white-space:nowrap}
 .btn:hover{background:var(--cream);border-color:#c0c8d8}
 .btn.primary{background:var(--navy);color:white;border-color:transparent}
@@ -1597,6 +1607,49 @@ function secondInstrDisplayFee(s,instr,jdi){
   jdi=jdi||{};
   if(jdi.secondInstrPaid&&jdi.secondInstrPaidFee!=null)return Number(jdi.secondInstrPaidFee);
   return instrBaseFee(s,instr);
+}
+
+// Amount to send one instructor at wrap-up. Same number the pay screens already
+// use: the frozen paid fee once that slot is marked paid, otherwise instrBaseFee
+// (session pay override, else the course flat fee or hours × rate + travel + the
+// extra 30 minutes). The primary slot also adds any referral bonus, matching the
+// instructor pay totals. Returns null when there is no real amount — a custom job
+// with no pay entered, or a fee that is not a number. Callers must say pay is not
+// set yet; null is not $0 owed.
+function wrapupPayAmount(s,instr,jdi,slot){
+  jdi=jdi||{};
+  const second=slot==='second';
+  const frozen=second
+    ?(jdi.secondInstrPaid&&jdi.secondInstrPaidFee!=null)
+    :(jdi.payStatus==='paid'&&jdi.paidFee!=null);
+  const overrideSet=s&&s.instrPayOverride!=null&&s.instrPayOverride!==''&&isFinite(Number(s.instrPayOverride));
+  if(!frozen&&s&&s.isCustomJob&&!overrideSet)return null;
+  const base=second?secondInstrDisplayFee(s,instr,jdi):instrDisplayFee(s,instr,jdi);
+  if(!isFinite(Number(base)))return null;
+  let amount=Number(base);
+  if(!second){
+    const bonus=Number(jdi.referralBonus)||0;
+    if(isFinite(bonus)&&bonus>0)amount+=bonus;
+  }
+  return amount;
+}
+// Prominent "Send $X to [name]" (or the not-set warning) for one wrap-up pay row.
+function wrapupPayCallout(inst,amount,opts){
+  opts=opts||{};
+  const name=(inst&&inst.name)?inst.name:(opts.fallbackName||'this instructor');
+  const safeName=escapeHtml(name);
+  if(amount==null||!isFinite(Number(amount))){
+    return `<div class="pay-send pay-send-missing"><div class="pay-send-amt">Pay isn't set yet for ${safeName}</div><div class="pay-send-sub">Add this instructor's pay on the session before sending money. This is not $0 owed.</div></div>`;
+  }
+  const paid=!!opts.paid;
+  const verb=paid?'Sent':'Send';
+  const zelle=(inst&&inst.zelle)?escapeHtml(inst.zelle):'not on file';
+  const bonus=Number(opts.bonus)||0;
+  const bonusNote=bonus>0?` · includes ${fmt(bonus)} referral bonus`:'';
+  const status=paid
+    ?('Marked paid'+(opts.payDate?' on '+escapeHtml(opts.payDate):''))
+    :'Check the box after you send it via Zelle';
+  return `<div class="pay-send ${paid?'pay-send-paid':'pay-send-due'}"><div class="pay-send-amt">${verb} ${fmt(amount)} to ${safeName}</div><div class="pay-send-sub">Zelle: ${zelle}${bonusNote} · ${status}</div></div>`;
 }
 
 // ─── PAYMENT PROCESSING FEES ─────────────────────────────────
@@ -8022,6 +8075,22 @@ function openWrapup(sessId){
       //     a rescue prompt offering to mark the session as one you taught.
       // (2) SECOND: shown only when a second instructor is assigned; payable from this modal.
       const rows=[];
+      // The dollar amount sits beside the checkbox, not inside its label, so
+      // reading "Send $X" does not mark the instructor paid.
+      function payRow(id,checked,title,callout,onchange){
+        return `<div style="display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:0.5px solid var(--border)">
+          <input type="checkbox" id="${id}" ${checked?'checked':''} onchange="${onchange}" style="margin-top:3px;width:16px;height:16px;accent-color:var(--success);cursor:pointer">
+          <div style="flex:1;min-width:0">
+            <label for="${id}" style="cursor:pointer;display:block"><span style="font-weight:500;font-size:16px">${title}</span></label>
+            ${callout}
+          </div>
+        </div>`;
+      }
+      function payCallout(inst,slot,paid,payDate,fallbackName){
+        const amount=wrapupPayAmount(s,inst,jdi,slot);
+        const bonus=slot==='second'?0:(Number(jdi.referralBonus)||0);
+        return wrapupPayCallout(inst,amount,{paid,payDate,bonus,fallbackName});
+      }
 
       // ── PRIMARY SLOT ────────────────────────────────────────
       if(s.ownerTaught){
@@ -8032,14 +8101,9 @@ function openWrapup(sessId){
       }else if(jdi.instructorId){
         const inst=instructors.find(x=>x.id===jdi.instructorId);
         const paid=jdi.payStatus==='paid';
-        const subtitle=paid
-          ?`✓ Marked paid${jdi.payDate?' on '+jdi.payDate:''}`
-          :'Click to mark paid via Zelle';
-        const subColor=paid?'var(--success)':'var(--muted)';
-        rows.push(chk('wu-paid-primary',paid,false,`toggleInstrPaidFromWrap('${sessId}',this.checked)`)+
-          `<span style="font-weight:500;font-size:16px">Paid ${inst?inst.name:'primary instructor'}${s.secondInstructorId?' (primary)':''}</span>`+
-          `<div style="font-size:14px;color:${subColor};margin-top:3px">${subtitle}</div>`+
-          `</label></div>`);
+        const who=inst&&inst.name?escapeHtml(inst.name):'primary instructor';
+        const role=s.secondInstructorId?' (primary)':'';
+        rows.push(payRow('wu-paid-primary',paid,`Paid ${who}${role}`,payCallout(inst,'primary',paid,jdi.payDate,'the instructor'),`toggleInstrPaidFromWrap('${sessId}',this.checked)`));
       }else{
         // Stuck state: nobody in the primary slot and the session isn't flagged as owner-taught.
         // Give the user a one-click way to mark it owner-taught so they can wrap up.
@@ -8058,14 +8122,8 @@ function openWrapup(sessId){
         const inst2=instructors.find(x=>x.id===s.secondInstructorId);
         const paid2=!!jdi.secondInstrPaid;
         const role=s.ownerTaught?'co-instructor':'second instructor';
-        const subtitle2=paid2
-          ?`✓ Marked paid${jdi.secondInstrPayDate?' on '+jdi.secondInstrPayDate:''}`
-          :'Click to mark paid via Zelle';
-        const subColor2=paid2?'var(--success)':'var(--muted)';
-        rows.push(chk('wu-paid-second',paid2,false,`toggleSecondInstrPaidFromWrap('${sessId}',this.checked)`)+
-          `<span style="font-weight:500;font-size:16px">Paid ${inst2?inst2.name:role} (${role})</span>`+
-          `<div style="font-size:14px;color:${subColor2};margin-top:3px">${subtitle2}</div>`+
-          `</label></div>`);
+        const who2=inst2&&inst2.name?escapeHtml(inst2.name):role;
+        rows.push(payRow('wu-paid-second',paid2,`Paid ${who2} (${role})`,payCallout(inst2,'second',paid2,jdi.secondInstrPayDate,role),`toggleSecondInstrPaidFromWrap('${sessId}',this.checked)`));
       }
 
       return rows.join('');
