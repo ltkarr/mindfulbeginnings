@@ -32,7 +32,9 @@ const names = [
   'isLiveReg', 'regEffectivePrice', 'processingFee',
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
-  'calcFin', 'invoiceLineFor'
+  'splitBillCaption', 'sessionRevenueNotes',
+  'calcFin', 'invoiceLineFor',
+  'escapeHtml', 'fmt'
 ];
 
 const sandbox = {
@@ -100,7 +102,19 @@ test('SS-261009 bills the troop $25 times the roster, and the family price stays
   assert.equal(line.qty, 6);
   assert.equal(line.rate, 25);
   assert.equal(line.amount, 150);
-  assert.match(line.desc, /organization portion/);
+  assert.match(line.desc, /organization flat fee/);
+
+  const notes = sandbox.sessionRevenueNotes(session, fin);
+  assert.match(notes, /Families collected/);
+  assert.match(notes, /after fees/);
+  assert.match(notes, /Org invoice \$150 — not cash yet/);
+  assert.match(notes, /\$25 flat fee × 6 girls/);
+  assert.match(notes, /Family \$150\/girl at checkout/);
+  assert.match(sandbox.splitBillCaption(session, fin), /not the family price times the roster/);
+  assert.match(sandbox.splitBillCaption(session, fin), /not cash received yet/);
+  // The row total is family net + $25×6, about $295, never the old $150×6 bill.
+  assert.ok(fin.revenue < 400);
+  assert.ok(fin.revenue > 250);
 });
 
 test('a blank roster on a split follows registered girls and ignores capacity and host seats', () => {
@@ -141,16 +155,29 @@ test('a full organization bill still uses the registration price when no per-gir
   const line = sandbox.invoiceLineFor(beth);
   assert.equal(line.rate, 94);
   assert.equal(line.amount, 752);
-  assert.doesNotMatch(line.desc, /organization portion/);
+  assert.doesNotMatch(line.desc, /organization flat fee/);
 });
 
-test('the sessions table and the edit form show both portions', () => {
-  assert.match(admin, /Families \$\{fmt\(family\)\}\/girl · Org \$\{fmt\(portion\)\} × \$\{girls\} = \$\{fmt\(orgAmt\)\}/);
+test('the sessions table and the edit form show the family checkout and the org invoice separately', () => {
+  assert.match(admin, /Org invoice \$\{fmt\(orgAmt\)\} — not cash yet/);
+  assert.match(admin, /Families collected \$\{fmt\(familyNet\)\} after fees/);
+  assert.match(admin, /Family \$\{fmt\(family\)\}\/girl at checkout/);
+  assert.match(admin, /\$\{fmt\(portion\)\} flat fee × \$\{girls\}/);
+  assert.match(admin, /function splitBillCaption/);
+  assert.match(admin, /not the family price times the roster/);
+  assert.match(admin, /\$\{fmt\(f\.revenue\)\}/);
+  assert.match(admin, /const revenueCell=\(s,f,extra=''\)/);
   assert.match(admin, /id="m-org-portion"/);
-  assert.match(admin, /Organization pays per girl/);
-  assert.match(admin, /what each family pays at checkout/);
-  assert.match(admin, /Class capacity is not billed/);
-  assert.match(admin, /Roster count, not class capacity/);
+  assert.match(admin, /Organization flat fee per girl/);
+  assert.match(admin, /Girls on the org invoice/);
+  assert.match(admin, /Org invoice total/);
+  assert.match(admin, /Family price at registration/);
+  assert.match(admin, /Family checkout: /);
+  assert.match(admin, /Not mixed into family checkout/);
+  assert.match(admin, /Not cash received yet/);
+  assert.doesNotMatch(admin, /Organization pays per girl/);
+  assert.doesNotMatch(admin, /Registration price per participant/);
+  assert.doesNotMatch(admin, /splitRevenueHeadline/);
   assert.equal((admin.match(/\$\{orgBillingFieldsHtml\(/g) || []).length, 2);
 });
 
