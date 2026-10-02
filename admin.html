@@ -147,6 +147,23 @@ tr:hover td{background:#fafbfd}
 .modal-close{background:none;border:none;font-size:23px;cursor:pointer;color:var(--muted);line-height:1;padding:4px}
 .modal-body{padding:18px 22px}
 .modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.modal.about-modal{width:640px}
+.about-title{font-family:'DM Serif Display',serif;font-size:22px;line-height:1.25;color:var(--navy)}
+.about-block{padding:14px 0 2px;border-top:1px solid var(--border);margin-top:14px}
+.about-kicker{font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.about-value{font-size:16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.about-value a{color:var(--sky)}
+.about-empty{font-size:16px;color:var(--muted);font-style:italic}
+.about-who{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.about-who:last-child{margin-bottom:0}
+.about-who-name{font-size:16px;font-weight:600}
+.about-status{display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;font-size:13px;font-weight:600;background:var(--sky-l);color:#1a5c8a}
+.about-status.assigned{background:#f5ecd8;color:#8a6d1f}
+.about-note-label{font-size:15px;font-weight:500;color:var(--text);margin:10px 0 6px}
+.about-note-label span{font-weight:400;color:var(--muted)}
+.about-note{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-size:16px;line-height:1.55}
+.about-note a{color:var(--sky)}
+.about-note.private{background:#f6f3ee;border:1px dashed #d9cfc0}
 .filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
 .filter-row select,.filter-row input{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none}
 .filter-row select:focus,.filter-row input:focus{border-color:var(--sky)}
@@ -4969,6 +4986,8 @@ function openSessionMenu(ev,sessId){
   const isPast=new Date(sessionEndDate(s)+'T12:00:00')<new Date();
   const esc=t=>String(t).replace(/'/g,"\\'");
   const items=[];
+  // Skim location, time, who is teaching, and both note fields without opening Edit.
+  items.push({label:'ℹ️ About',act:`openSessionAbout('${sessId}')`});
   // A hold is still a class. Existing registrations stay on the roster and the
   // Registrations tab — putting a class on hold does not hide or delete them.
   // Publish stays hold-only (it takes the class off hold and onto the instructor
@@ -5026,6 +5045,123 @@ function openSessionMenu(ev,sessId){
   window.addEventListener('scroll',closeSessionMenu,true);
   window.addEventListener('resize',closeSessionMenu);
   window.addEventListener('keydown',_sessionMenuKey);
+}
+
+// ─── SESSION ABOUT (skim, not edit) ──────────────────────────
+// Manage ▾ → About. A read-only panel so the four things Lindsay checks most
+// often — where, when, who is teaching, and the notes — are readable in full
+// without opening the edit form. Edit stays on the menu.
+// Instructor-facing notes and the older "job details" box both showed on the
+// job board, so they are one block here, the same way the edit form folds them.
+function sessionJobNotesText(s){
+  const n=String((s&&s.notes)||'').trim();
+  const info=String((s&&s.instructorInfo)||'').trim();
+  if(n&&info&&n!==info)return n+'\n\n'+info;
+  return n||info;
+}
+function sessionAboutWhereText(s){
+  if(!s)return '';
+  if(s.isVirtual){
+    const link=String(s.zoomLink||'').trim();
+    return link?('Virtual (Zoom)\n'+link):'Virtual (Zoom)';
+  }
+  const name=String(s.location||'').trim();
+  const cityState=[s.city,s.state].filter(Boolean).join(', ');
+  const csz=(cityState+(s.zip?(' '+String(s.zip).trim()):'')).trim();
+  const street=String(s.hostAddress||'').trim();
+  const addr=[street,csz].filter(Boolean).join(', ');
+  const lines=[];
+  if(name)lines.push(name);
+  if(addr&&addr.toLowerCase()!==name.toLowerCase())lines.push(addr);
+  return lines.join('\n');
+}
+function _aboutDateLabel(iso){
+  const dt=new Date(iso+'T12:00:00');
+  if(isNaN(dt))return String(iso||'');
+  return dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+function sessionAboutWhenText(s){
+  if(!s)return '';
+  const meetings=[];
+  const push=function(date,time){
+    if(!date)return;
+    const t=String(time||'').trim();
+    const hit=meetings.find(m=>m.date===date);
+    if(hit){if(!hit.time&&t)hit.time=t;return;}
+    meetings.push({date:date,time:t});
+  };
+  push(s.date,s.time);
+  const extras=(s.extraDays&&s.extraDays.length)?s.extraDays:(Array.isArray(s.extraDates)?s.extraDates:[]).filter(Boolean).map(d=>({date:d,time:''}));
+  extras.forEach(x=>{if(x&&x.date)push(x.date,x.time||s.time||'');});
+  meetings.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const lines=[];
+  if(!meetings.length){
+    lines.push(String(s.holdTerm||'').trim()||'Date TBD');
+    if(String(s.time||'').trim())lines.push(String(s.time).trim());
+  }else{
+    meetings.forEach(m=>lines.push(m.time?(_aboutDateLabel(m.date)+' · '+m.time):_aboutDateLabel(m.date)));
+  }
+  if(s.isRecurring&&typeof recurLabel==='function'){
+    const label=recurLabel(s);
+    if(label)lines.push(label);
+  }
+  return lines.join('\n');
+}
+// Who holds the class. A job-board claim wins the label "Claimed". A person
+// only on the session row (not yet on the job) is "Assigned". The second
+// instructor is always assigned — there is no claim step for that slot.
+function sessionAboutInstructors(s){
+  const list=[];
+  if(!s)return list;
+  const roster=(typeof instructors!=='undefined'&&instructors)||[];
+  const nameOf=id=>{const i=roster.find(x=>x&&x.id===id);return i&&i.name?i.name:'';};
+  const seen={};
+  const add=(id,status)=>{
+    if(!id||seen[id])return;
+    seen[id]=true;
+    list.push({name:nameOf(id)||'Unknown instructor',status:status});
+  };
+  if(s.ownerTaught){
+    list.push({name:'Lindsay Karr',status:'You are teaching'});
+    if(s.secondInstructorId)add(s.secondInstructorId,'Assigned');
+    return list;
+  }
+  const job=(typeof jobDataCache!=='undefined'&&jobDataCache&&jobDataCache[s.id])||{};
+  if(job.instructorId)add(job.instructorId,'Claimed');
+  if(s.instructorId)add(s.instructorId,'Assigned');
+  if(s.secondInstructorId)add(s.secondInstructorId,'Assigned');
+  return list;
+}
+function _aboutLinked(text){
+  return escapeHtml(text).replace(/https:\/\/[^\s<]+/g,url=>'<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+url+'</a>');
+}
+function sessionAboutBodyHtml(s){
+  const who=sessionAboutInstructors(s);
+  const whoHtml=who.length?who.map(p=>`<div class="about-who"><span class="about-who-name">${escapeHtml(p.name)}</span><span class="about-status${p.status==='Assigned'?' assigned':''}">${escapeHtml(p.status)}</span></div>`).join(''):'<div class="about-empty">No instructor yet</div>';
+  const where=sessionAboutWhereText(s);
+  const when=sessionAboutWhenText(s);
+  const priv=String((s&&s.adminPrivateNotes)||'').trim();
+  const job=sessionJobNotesText(s);
+  const code=s.code?`<div style="margin-top:6px"><span class="code-badge" style="cursor:default">${escapeHtml(s.code)}</span></div>`:'';
+  return `<div class="about-title">${escapeHtml(s.course||(s.isCustomJob?'Custom job':'Session'))}</div>${code}
+    <div class="about-block"><div class="about-kicker">Where</div>${where?`<div class="about-value">${_aboutLinked(where)}</div>`:'<div class="about-empty">No location yet</div>'}</div>
+    <div class="about-block"><div class="about-kicker">When</div><div class="about-value">${_aboutLinked(when)}</div></div>
+    <div class="about-block"><div class="about-kicker">Who's teaching</div>${whoHtml}</div>
+    <div class="about-block"><div class="about-kicker">Notes to me</div>
+      <div class="about-note-label">Private notes <span>(admin only)</span></div>
+      ${priv?`<div class="about-note private">${_aboutLinked(priv)}</div>`:'<div class="about-empty">None</div>'}
+      <div class="about-note-label">Notes / job description <span>(what instructors see)</span></div>
+      ${job?`<div class="about-note">${_aboutLinked(job)}</div>`:'<div class="about-empty">None</div>'}
+    </div>`;
+}
+function openSessionAbout(id){
+  const s=sessions.find(x=>x.id===id);if(!s)return;
+  const editLabel=s.isCustomJob?'Edit job':'Edit session';
+  showModal(`<div class="modal-head"><h3>About</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">${sessionAboutBodyHtml(s)}</div>
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Close</button><button class="btn primary" onclick="openEditSession('${s.id}')">${editLabel}</button></div>`);
+  const box=document.querySelector('#modal-root .modal');
+  if(box)box.classList.add('about-modal');
 }
 
 // ─── ADDITIONAL COSTS HELPERS ────────────────────────────────
@@ -5461,7 +5597,7 @@ function openAddCustomJob(){
     </div>
     ${externalRegistrationFieldHtml(null)}
     <div class="fg full"><label>Notes / job description <span style="font-weight:400;color:var(--muted)">(optional — what the instructor needs to know)</span></label>
-      <input type="text" id="cj-notes" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID"></div>
+      <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
     ${adminPrivateNotesFieldHtml('')}
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCustomJob()">Add job</button></div>`);
@@ -5712,7 +5848,7 @@ function openEditCustomJob(id){
     </div>
     ${externalRegistrationFieldHtml(s)}
     <div class="fg full"><label>Notes / job description</label>
-      <input type="text" id="cj-notes" value="${escapeHtml(s.notes||'')}" placeholder="e.g. Wear MB shirt, check in at volunteer tent"></div>
+      <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea></div>
     ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveEditCustomJob('${id}')">Save changes</button></div>`);
