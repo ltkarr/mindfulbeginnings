@@ -221,14 +221,21 @@ test('every admin email composer opens its Google Doc with an empty message', ()
   assert.match(admin, /&su=/);
   assert.doesNotMatch(admin, /&body=/);
   for (const key of [
-    'classEmail', 'openJobs', 'classReminder', 'instructorFollowup',
-    'hostLetter', 'hostReminder', 'instructorReminder', 'cancellationInstructor', 'cancellationFamily'
+    'classEmail', 'openJobs', 'instructorFollowup',
+    'hostLetter', 'instructorReminder', 'cancellationInstructor', 'cancellationFamily'
   ]) {
     assert.match(admin, new RegExp(key + ': EMAIL_DOC_DEFAULT'));
   }
-  const postCourseDoc = 'https://docs.google.com/document/d/1KRLMTB6BF6R50zUfdqy6REShDH0CFr41CsRkJIVjcF0/edit?tab=t.0';
-  assert.match(admin, new RegExp('postCourse:[\'"]' + postCourseDoc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.doesNotMatch(admin, /postCourse:\s*EMAIL_DOC_DEFAULT/);
+  const dedicatedDocs = {
+    postCourse: 'https://docs.google.com/document/d/1KRLMTB6BF6R50zUfdqy6REShDH0CFr41CsRkJIVjcF0/edit?tab=t.0',
+    classReminder: 'https://docs.google.com/document/d/1bzhZDi2OzSvU_Epo6wGovO_gvz0LjIkHEczGMBB52kY/edit?tab=t.0',
+    hostReminder: 'https://docs.google.com/document/d/1PaAUHRPQRRFAKxSUqPDMKCTb5IrgX9A8R3pEa6KJdYE/edit?tab=t.0'
+  };
+  for (const [key, url] of Object.entries(dedicatedDocs)) {
+    assert.match(admin, new RegExp(key + ':[\'"]' + url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.doesNotMatch(admin, new RegExp(key + ':\\s*EMAIL_DOC_DEFAULT'));
+  }
+  assert.match(admin, /1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/);
   const slice = (a, b) => {
     const start = admin.indexOf(a);
     const end = admin.indexOf(b);
@@ -254,8 +261,14 @@ test('every admin email composer opens its Google Doc with an empty message', ()
     assert.doesNotMatch(fn, /const emailText=/);
   }
   assert.match(slice('function openCancellationEmails', '// ─── REGISTRATIONS'), /type:'cancellationFamily'/);
+  assert.match(slice('function openPostCourseEmail', 'function openClassReminder'), /Safe Sitter post-course letter home from its Google Doc/);
+  assert.match(slice('function openHostLetter', 'function openHostReminder'), /Paste the host letter from the Google Doc/);
   assert.match(slice('function openClassReminder', 'function openInstructorFollowup'), /Send reminder to the class/);
+  assert.match(slice('function openClassReminder', 'function openInstructorFollowup'), /Family Class Reminder \(before course\) from its Google Doc/);
   assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /Send reminder to host/);
+  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /Host Reminder \(one week before\) from its Google Doc/);
+  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /Print the roster and attach it/);
+  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /session facts below are for this class only/);
   assert.match(slice('function openInstructorReminder', '// ─── ERROR TRACKING'), /Send reminder \+ roster to instructor/);
   assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /hasRoster:true/);
   assert.match(slice('function openInstructorReminder', '// ─── ERROR TRACKING'), /hasRoster:true/);

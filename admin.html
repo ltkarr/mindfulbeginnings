@@ -8220,10 +8220,12 @@ const EMAIL_DOCS={
   openJobs: EMAIL_DOC_DEFAULT,
   // Safe Sitter Post Course letter home. Do not point this at the Host Letter.
   postCourse:'https://docs.google.com/document/d/1KRLMTB6BF6R50zUfdqy6REShDH0CFr41CsRkJIVjcF0/edit?tab=t.0',
-  classReminder: EMAIL_DOC_DEFAULT,
+  // Family Class Reminder (before course). Do not point this at the Host Letter.
+  classReminder:'https://docs.google.com/document/d/1bzhZDi2OzSvU_Epo6wGovO_gvz0LjIkHEczGMBB52kY/edit?tab=t.0',
   instructorFollowup: EMAIL_DOC_DEFAULT,
   hostLetter: EMAIL_DOC_DEFAULT,
-  hostReminder: EMAIL_DOC_DEFAULT,
+  // Host Reminder (one week before). Do not point this at the Host Letter.
+  hostReminder:'https://docs.google.com/document/d/1PaAUHRPQRRFAKxSUqPDMKCTb5IrgX9A8R3pEa6KJdYE/edit?tab=t.0',
   instructorReminder: EMAIL_DOC_DEFAULT,
   cancellationInstructor: EMAIL_DOC_DEFAULT,
   cancellationFamily: EMAIL_DOC_DEFAULT
@@ -8519,7 +8521,7 @@ function openClassReminder(sessId){
     subject:'Reminder: your '+s.course+' class on '+shortD,
     emails:emails,
     field:'bcc',
-    note:'Attach the course overview if this class uses one. Paste the class-reminder section from the Google Doc into the empty message.'
+    note:'Attach the course overview if this class uses one. Paste the Family Class Reminder (before course) from its Google Doc into the empty message.'
   });
 }
 
@@ -12090,7 +12092,7 @@ function openHostReminder(sessId){
     field:'to',
     emails:emails,
     subject:'Your '+s.course+' is one week away — class roster and details inside',
-    note:'Paste the host reminder from the Google Doc. Print the roster and attach it. The session facts below are for this class only.',
+    note:'Paste the Host Reminder (one week before) from its Google Doc. Print the roster and attach it. The session facts below are for this class only.',
     extraHtml:emailFactsHtml('Session facts', facts.join('\n'))+classRosterSection(s, regs, {when:d, where:where, who:instr, privateCols:false}),
     copyExtra:facts.join('\n'),
     copyExtraLabel:'Copy details',
