@@ -49,6 +49,7 @@ test('public cards show price; private/host sessions are excluded from the list'
   assert.match(register, /sessionPriceLabel/);
   assert.match(register, /isPrivateHostSession|has_host/);
   assert.match(register, /\.eq\('has_host',false\)/);
+  assert.match(register, /\.eq\('is_custom_job',false\)/);
   assert.match(config, /audience:'Grades 6–8'/);
 });
 

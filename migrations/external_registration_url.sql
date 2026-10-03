@@ -27,10 +27,9 @@ grant select (external_registration_url) on public.sessions to anon;
 
 -- Ready. Period. at District Dabble Lab, Oct 23 2026.
 -- Parent-facing name matches config.js COURSES. The RN-only note stays in
--- notes (job board), not in the course title. is_custom_job is left as-is:
--- the public list shows a custom job only when this URL is set, so the
--- current register page keeps it off Mindful Beginnings checkout until the
--- matching register.html change is deployed.
+-- notes (job board), not in the course title. is_custom_job is left as-is.
+-- Custom jobs are not offered on the public register page. A public course
+-- with this URL opens the partner site instead of Mindful Beginnings checkout.
 update public.sessions
 set
   course = 'Ready. Period.',

@@ -906,8 +906,9 @@ function rememberSessionCode(code){
 }
 
 // Upcoming public sessions on the code step. List logic lives in
-  // /js/public-sessions.js. Private/host (has_host) and private (is_private)
-  // sessions never appear here.
+  // /js/public-sessions.js. Private/host (has_host), private (is_private),
+  // and custom jobs (is_custom_job) never appear here. A session code still
+  // opens that session, including a custom job.
 const PUBLIC_SESSION_COLS='id,code,course,date,time,city,location,is_virtual,price_override,max_students_override,created_at,is_cancelled,is_hold,is_custom_job,has_host,is_private,external_registration_url';
 const PUBLIC_SESSION_COLS_CORE='id,code,course,date,time,city,is_virtual,price_override,max_students_override,created_at,has_host,is_private';
 let publicSessionRows=[];
@@ -995,19 +996,20 @@ async function loadPublicSessions(){
   const helpers=window.MBPublicSessions;
   const today=helpers?helpers.todayLocalISO():'';
   try{
-    // has_host and is_private are required so private/host home sessions never
-    // appear publicly. Fail closed if those columns cannot be read.
-    let res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('has_host',false).eq('is_private',false).gte('date',today).order('date',{ascending:true}).limit(200);
+    // has_host, is_private, and is_custom_job are required so private/host
+    // sessions and custom jobs never appear publicly. Fail closed if those
+    // columns cannot be read. The same filters run again in public-sessions.js.
+    let res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('has_host',false).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
     if(res&&res.error){
       console.warn('Public session list (has_host filter) failed, retrying without eq:',res.error);
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('is_private',false).gte('date',today).order('date',{ascending:true}).limit(200);
+      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
     }
     if(res&&res.error){
       console.warn('Public session list (full columns) failed, retrying core columns:',res.error);
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('has_host',false).eq('is_private',false).gte('date',today).order('date',{ascending:true}).limit(200);
+      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('has_host',false).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
     }
     if(res&&res.error){
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('is_private',false).gte('date',today).order('date',{ascending:true}).limit(200);
+      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
     }
     if(res&&res.error){
       console.error('Public session list failed:',res.error);
