@@ -8059,8 +8059,9 @@ function openWrapup(sessId){
   const jdi=jobDataCache[sessId];
   const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
-  const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact);
-  const emailList=emails.length?`<div style="margin-top:8px;background:var(--cream);border-radius:var(--r-sm);padding:8px 12px;font-size:14px;color:var(--muted);word-break:break-all">${emails.join('; ')}</div>`:'';
+  // Contact is stored as "email / phone". The box is pasted into To/Bcc, so it is emails only.
+  const emails=parentLetterEmails(regs);
+  const emailList=emails.length?`<div style="margin-top:8px;background:var(--cream);border-radius:var(--r-sm);padding:8px 12px;font-size:14px;color:var(--muted);word-break:break-all">${escapeHtml(emails.join('; '))}</div>`:'';
   function chk(id,checked,disabled,onchange){
     return`<div style="display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:0.5px solid var(--border)">
       <input type="checkbox" id="${id}" ${checked?'checked':''} ${disabled?'disabled':''} onchange="${onchange}" style="margin-top:3px;width:16px;height:16px;accent-color:var(--success);cursor:${disabled?'default':'pointer'}">
@@ -8234,6 +8235,13 @@ function emailsInField(text){
   const out=[];
   found.forEach(e=>{if(!out.some(x=>x.toLowerCase()===e.toLowerCase()))out.push(e);});
   return out;
+}
+// Emails from registration contacts, in roster order. Phone numbers are dropped
+// so the parent-letter box can be pasted straight into an email To or Bcc field.
+function parentLetterEmails(regs){
+  const emails=[];
+  (regs||[]).forEach(r=>{emailsInField(r&&r.contact).forEach(e=>emails.push(e));});
+  return emails;
 }
 function bookingApi(){
   return (typeof window!=='undefined'&&window.MBCourseBooking)||(typeof MBCourseBooking!=='undefined'?MBCourseBooking:null);
