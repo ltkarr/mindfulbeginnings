@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/course-booking.js"></script>
+<script src="/js/admin-ops-emails.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -4753,8 +4754,8 @@ function renderDashboard(){
         const items=[];
         items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,'Put out handbooks &amp; supplies',''));
         if(hasInstr)items.push(item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,'Send reminder + roster to instructor',sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee')));
-        if(hasHost)items.push(item(!!jd.hostReminderSent,`toggleReminderFlag('${s.id}','hostReminderSent',this.checked)`,'Send reminder to host',sendBtn(`openHostReminder('${s.id}')`,'📬','#b86a00','#fff7e6','#f0d090')));
-        items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Send reminder to the class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
+        if(hasHost)items.push(item(!!jd.hostReminderSent,`toggleReminderFlag('${s.id}','hostReminderSent',this.checked)`,'Host reminder — 1 week before',sendBtn(`openHostReminder('${s.id}')`,'📬','#b86a00','#fff7e6','#f0d090')));
+        items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Family reminder — before class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
         return`<div style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid ${accent}">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px">
             <div style="font-size:15px;min-width:0">
@@ -5058,7 +5059,7 @@ function openSessionMenu(ev,sessId){
   items.push({label:'📋 Roster',act:`openRoster('${sessId}')`});
   items.push({label:'✉️ Email class',act:`emailClass('${sessId}')`});
   items.push({label:'➕ Add student',act:`openAddReg('${sessId}')`});
-  if(!isPast&&s.hasHost!==false)items.push({label:'📬 Host reminder',act:`openHostReminder('${sessId}')`});
+  if(!isPast&&s.hasHost!==false)items.push({label:'📬 Host reminder — 1 week before',act:`openHostReminder('${sessId}')`});
   // Email an assigned instructor their session info + roster. Available for upcoming
   // sessions (this is the main way to send the instructor the course details ahead of
   // time) as well as past ones.
@@ -7272,7 +7273,7 @@ function renderCodes(){
         <div class="btn-row" style="margin-top:10px">
           <button class="btn sm" onclick="copyLink('${link}')">Copy link</button>
           <button class="btn sm" onclick="copyText('${s.code}','${s.course}','${d}','${s.time||''}','${s.location||''}','${getCoursePrice(s.course,s.date,s.createdAt)}')">Copy text message</button>
-          <button class="btn sm primary" onclick="openHostLetter('${s.id}')">✉️ Host letter</button>
+          <button class="btn sm primary" onclick="openHostLetter('${s.id}')">✉️ Host letter — initial confirm</button>
         </div>
       </div>
     </div>`;
@@ -8010,7 +8011,7 @@ function toggleMaterialsFromDash(sessId,checked){
 function toggleReminderFlag(sessId,field,checked){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   jobDataCache[sessId][field]=checked;
-  const labels={instrReminderSent:'Instructor reminder',hostReminderSent:'Host reminder',classReminderSent:'Class reminder'};
+  const labels={instrReminderSent:'Instructor reminder',hostReminderSent:'Host reminder (1 week before)',classReminderSent:'Family reminder (before class)'};
   showToast((labels[field]||'Reminder')+(checked?' marked sent':' marked not sent'));
   renderDashboard();
   upsertJobData(sessId);
@@ -8070,7 +8071,7 @@ function openWrapup(sessId){
   <div class="modal-body">
     <div style="font-size:16px;color:var(--muted);margin-bottom:16px">${s.course} &nbsp;·&nbsp; ${d}</div>
     ${chk('wu-rep',jdi.repNotified,false,`toggleWrapField('${sessId}','repNotified',this.checked)`)}<span style="font-weight:500;font-size:16px">Sent course completion to SafeSitter rep</span></label></div>
-    ${chk('wu-letter',jdi.parentLetterSent,false,`toggleWrapField('${sessId}','parentLetterSent',this.checked)`)}<span style="font-weight:500;font-size:16px">Sent parent letter to class</span><div style="font-size:14px;color:var(--muted);margin-top:3px">${emails.length} email address${emails.length!==1?'es':''} from registrations${emailList}</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button class="btn sm primary" onclick="openPostCourseEmail('${sessId}')">📧 Open post-course email</button><span style="font-size:14px;color:var(--warn)">📎 Remember to attach the PDF</span></div></label></div>
+    ${chk('wu-letter',jdi.parentLetterSent,false,`toggleWrapField('${sessId}','parentLetterSent',this.checked)`)}<span style="font-weight:500;font-size:16px">Sent post-course letter to families</span><div style="font-size:14px;color:var(--muted);margin-top:3px">After class. ${emails.length} email address${emails.length!==1?'es':''} from registrations${emailList}</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button class="btn sm primary" onclick="openPostCourseEmail('${sessId}')">📧 Post-course email — after class</button><span style="font-size:14px;color:var(--warn)">📎 Remember to attach the PDF</span></div></label></div>
     ${(()=>{
       // Build the list of instructor-payment rows. We show one row per applicable slot:
       // (1) PRIMARY: either "you taught it" (auto-checked), or a hired primary's pay state,
@@ -8209,11 +8210,15 @@ function markOwnerTaughtFromWrap(sessId){
 }
 
 // ─── EMAIL COMPOSERS ─────────────────────────────────────────
-// Every admin email opens the Google Doc for that type and leaves the
-// message empty so Lindsay can paste. Recipient lists and copy buttons stay.
+// Lindsay's four ops emails (host letter, host reminder, family reminder,
+// post-course letter) are filled in this window from the session. She copies
+// the subject, the message, and the To or BCC list into her own mail app.
+// Addresses are separated with semicolons for Outlook. Nothing is sent here.
+// The other emails still open their Google Doc and leave the message empty.
 // Point a key at its own Doc (or a tab on the same Doc) when she sends the URL.
 // Types without a dedicated Doc still use EMAIL_DOC_DEFAULT (the Host Letter).
-// The Doc is not loaded here.
+// The Doc is not loaded here. A filled email may still offer Open template
+// as a backup. That is not the way the message is written.
 const EMAIL_DOC_DEFAULT='https://docs.google.com/document/d/1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/edit?tab=t.0';
 const EMAIL_DOCS={
   classEmail: EMAIL_DOC_DEFAULT,
@@ -8327,7 +8332,8 @@ function emailFactsHtml(title, text){
   return '<div class="section-label">'+escapeHtml(title)+'</div><div class="facts" style="white-space:pre-wrap">'+escapeHtml(text)+'</div>';
 }
 // One composer window. opts or opts.panes[]: type, category, sessionLine, subject,
-// emails, field ('bcc' or 'to'), note, extraHtml, copyExtra, copyExtraLabel, hasRoster.
+// emails, field ('bcc' or 'to'), body, note, extraHtml, copyExtra, copyExtraLabel, hasRoster.
+// A non-empty body is the in-portal draft: copy buttons, no mail-client links.
 function openDocEmail(opts){
   const panesIn=(opts&&Array.isArray(opts.panes)&&opts.panes.length)?opts.panes:[opts||{}];
   const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -8349,12 +8355,16 @@ function openDocEmail(opts){
     const mailto=field==='to'
       ?'mailto:'+joined+'?subject='+encodeURIComponent(subject)
       :'mailto:?bcc='+encodeURIComponent(joined)+'&subject='+encodeURIComponent(subject);
+    const body=String(p.body||'');
+    const filled=!!body.trim();
     return {
       label:p.label||p.category||'Email',
       category:p.category||p.label||'Email',
       sessionLine:p.sessionLine||'',
-      note:p.note||'Paste this email from the Google Doc. The compose window is left empty on purpose.',
+      note:p.note||(filled?'This message is filled in from the session. Edit it if needed, then copy it into your own email.':'Paste this email from the Google Doc. The compose window is left empty on purpose.'),
       subject:subject,
+      body:body,
+      filled:filled,
       field:field,
       emails:uniq,
       listText:uniq.join('; ')||'(no emails on file)',
@@ -8368,12 +8378,22 @@ function openDocEmail(opts){
       hasRoster:!!p.hasRoster
     };
   });
-  const data=panes.map(p=>({docUrl:p.docUrl,outlook:p.outlook,gmail:p.gmail,mailto:p.mailto,listText:p.emails.join('; '),copyExtra:p.copyExtra,copyExtraLabel:p.copyExtraLabel,field:p.field,hasRoster:p.hasRoster}));
+  const data=panes.map(p=>({docUrl:p.docUrl,outlook:p.outlook,gmail:p.gmail,mailto:p.mailto,listText:p.emails.join('; '),subject:p.subject,body:p.body,filled:p.filled,copyExtra:p.copyExtra,copyExtraLabel:p.copyExtraLabel,field:p.field,hasRoster:p.hasRoster}));
   const panesJson=JSON.stringify(data).replace(/</g,'\\u003c');
   const tabBtns=panes.length>1?panes.map((p,i)=>'<button type="button" class="tab'+(i===0?' on':'')+'" onclick="showPane('+i+')">'+esc(p.label)+'</button>').join(''):'';
   const paneHtml=panes.map((p,i)=>{
     const who=p.field==='to'?'To':'BCC';
-    return '<div class="pane'+(i===0?'':' hidden')+'" id="pane-'+i+'"><h2>'+esc(p.category)+'</h2>'+(p.sessionLine?'<div class="sub">'+esc(p.sessionLine)+'</div>':'')+'<div class="note">'+esc(p.note)+' Nothing is sent from this screen.</div><div class="bcc-box"><strong>'+p.emails.length+' recipient'+(p.emails.length!==1?'s':'')+' — '+who+'</strong><div class="bcc-addr">'+esc(p.listText)+'</div></div><div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>'+esc(p.subject)+'</strong></div>'+safeHtml(p.extraHtml)+'</div>';
+    const semiHint=p.emails.length>1?' <span class="semi-hint">semicolons, ready to paste into Outlook</span>':'';
+    const addrHtml=p.filled
+      ?'<textarea class="bcc-edit">'+esc(p.emails.join('; '))+'</textarea>'
+      :'<div class="bcc-addr">'+esc(p.listText)+'</div>';
+    const subjectHtml=p.filled
+      ?'<div class="subject-line"><label>Subject</label><input class="subj-input" value="'+esc(p.subject)+'"></div>'
+      :'<div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>'+esc(p.subject)+'</strong></div>';
+    const messageHtml=p.filled
+      ?'<div class="section-label">Message</div><textarea class="email-body">'+esc(p.body).replace(/<\/textarea/ig,'&lt;/textarea')+'</textarea>'
+      :'';
+    return '<div class="pane'+(i===0?'':' hidden')+'" id="pane-'+i+'"><h2>'+esc(p.category)+'</h2>'+(p.sessionLine?'<div class="sub">'+esc(p.sessionLine)+'</div>':'')+'<div class="note">'+esc(p.note)+' Nothing is sent from this screen.</div><div class="bcc-box"><strong>'+p.emails.length+' recipient'+(p.emails.length!==1?'s':'')+' — '+who+semiHint+'</strong>'+addrHtml+'</div>'+subjectHtml+messageHtml+safeHtml(p.extraHtml)+'</div>';
   }).join('');
   const first=panes[0];
   const html=[
@@ -8397,7 +8417,12 @@ function openDocEmail(opts){
     '.bcc-box{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:15px;color:#1a5c8a}',
     '.bcc-box strong{display:block;margin-bottom:4px;font-size:13px;letter-spacing:.6px;text-transform:uppercase}',
     '.bcc-addr{word-break:break-all;line-height:1.8;color:#27496b}',
-    '.subject-line{background:white;border:1px solid #dde4ee;border-radius:8px;padding:10px 16px;font-size:16px}',
+    '.semi-hint{font-weight:500;text-transform:none;letter-spacing:0;color:#4a7394;font-size:13px}',
+    '.bcc-edit{width:100%;min-height:72px;border:none;background:transparent;font:inherit;color:#27496b;resize:vertical;outline:none;line-height:1.6}',
+    '.subject-line{background:white;border:1px solid #dde4ee;border-radius:8px;padding:10px 16px;font-size:16px;margin-bottom:8px}',
+    '.subject-line label{display:block;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#6b7a99;margin-bottom:4px}',
+    '.subj-input{width:100%;border:none;font:inherit;font-weight:600;color:#1a2744;background:transparent;outline:none;padding:0}',
+    '.email-body{width:100%;min-height:440px;padding:16px 18px;border:1px solid #dde4ee;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:16px;line-height:1.55;color:#1a2744;background:white;resize:vertical}',
     '.section-label{font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#6b7a99;margin:18px 0 8px}',
     '.facts{background:white;border:1px solid #dde4ee;border-radius:8px;padding:14px 16px;font-size:15px;line-height:1.7}',
     '.facts ul{margin:8px 0 0 18px}',
@@ -8412,11 +8437,13 @@ function openDocEmail(opts){
     '.hidden{display:none}',
     '</style></head><body>',
     '<div class="toolbar">',tabBtns,
-    '<button class="b-doc" onclick="openDoc()">Open this Google Doc</button>',
-    '<button class="b-outlook" onclick="openOutlook()">Open in Outlook</button>',
-    '<button class="b-gmail" onclick="openGmail()">Open in Gmail</button>',
-    '<button class="b-mail" onclick="openMail()">Default mail app</button>',
+    '<button class="b-doc" id="copy-body" style="display:none" onclick="copyBody()">Copy email</button>',
     '<button class="b-bcc" id="copy-list" onclick="copyList()">',esc(first.field==='to'?'Copy To':'Copy BCC'),'</button>',
+    '<button class="b-extra" id="copy-subject" style="display:none" onclick="copySubject()">Copy subject</button>',
+    '<button class="b-doc" id="open-doc" onclick="openDoc()">Open this Google Doc</button>',
+    '<button class="b-outlook mail-link" onclick="openOutlook()">Open in Outlook</button>',
+    '<button class="b-gmail mail-link" onclick="openGmail()">Open in Gmail</button>',
+    '<button class="b-mail mail-link" onclick="openMail()">Default mail app</button>',
     '<button class="b-extra" id="copy-extra" style="display:none" onclick="copyExtra()">Copy details</button>',
     '<button class="b-extra" id="print-roster" style="display:none" onclick="printRoster()">Print roster</button>',
     '<button class="b-close" onclick="window.close()">Close</button>',
@@ -8424,12 +8451,14 @@ function openDocEmail(opts){
     '<script>',
     'const PANES=',panesJson,';',
     'let active=0;',
-    'function showPane(n){active=n;document.querySelectorAll(".pane").forEach((el,i)=>{el.className="pane"+(i===n?"":" hidden");});document.querySelectorAll(".tab").forEach((el,i)=>{el.className="tab"+(i===n?" on":"");});const p=PANES[n];const copyBtn=document.getElementById("copy-list");if(copyBtn)copyBtn.textContent=p.field==="to"?"Copy To":"Copy BCC";const extraBtn=document.getElementById("copy-extra");if(extraBtn){extraBtn.style.display=p.copyExtra?"":"none";extraBtn.textContent=p.copyExtraLabel||"Copy details";}const rosterBtn=document.getElementById("print-roster");if(rosterBtn)rosterBtn.style.display=p.hasRoster?"":"none";}',
+    'function showPane(n){active=n;document.querySelectorAll(".pane").forEach((el,i)=>{el.className="pane"+(i===n?"":" hidden");});document.querySelectorAll(".tab").forEach((el,i)=>{el.className="tab"+(i===n?" on":"");});const p=PANES[n];const copyBtn=document.getElementById("copy-list");if(copyBtn)copyBtn.textContent=p.field==="to"?"Copy To":"Copy BCC";const extraBtn=document.getElementById("copy-extra");if(extraBtn){extraBtn.style.display=p.copyExtra?"":"none";extraBtn.textContent=p.copyExtraLabel||"Copy details";}const rosterBtn=document.getElementById("print-roster");if(rosterBtn)rosterBtn.style.display=p.hasRoster?"":"none";const bodyBtn=document.getElementById("copy-body");if(bodyBtn)bodyBtn.style.display=p.filled?"":"none";const subBtn=document.getElementById("copy-subject");if(subBtn)subBtn.style.display=p.filled?"":"none";const docBtn=document.getElementById("open-doc");if(docBtn){docBtn.textContent=p.filled?"Open template":"Open this Google Doc";docBtn.className=p.filled?"b-gmail":"b-doc";}document.querySelectorAll(".mail-link").forEach((el)=>{el.style.display=p.filled?"none":"";});}',
     'function openDoc(){window.open(PANES[active].docUrl,"_blank","noopener,noreferrer,width=1100,height=800");}',
     'function openOutlook(){window.open(PANES[active].outlook,"_blank");}',
     'function openGmail(){window.open(PANES[active].gmail,"_blank");}',
     'function openMail(){window.location.href=PANES[active].mailto;}',
-    'function copyList(){const p=PANES[active];const t=p.listText||"";navigator.clipboard.writeText(t).then(()=>alert((p.field==="to"?"To":"BCC")+" addresses copied.")).catch(()=>alert("Could not copy automatically — select the list and copy it."));}',
+    'function copyList(){const p=PANES[active];const pane=document.getElementById("pane-"+active);const box=pane&&pane.querySelector(".bcc-edit");const t=box?box.value:(p.listText||"");navigator.clipboard.writeText(t).then(()=>alert((p.field==="to"?"To":"BCC")+" addresses copied. They are separated with semicolons.")).catch(()=>{if(box){box.focus();box.select();}alert("Could not copy automatically — select the list and copy it.");});}',
+    'function copyBody(){const pane=document.getElementById("pane-"+active);const ta=pane&&pane.querySelector(".email-body");const t=ta?ta.value:(PANES[active].body||"");navigator.clipboard.writeText(t).then(()=>alert("Email copied. Paste it into your own message.")).catch(()=>{if(ta){ta.focus();ta.select();}alert("Could not copy automatically — the message is selected so you can copy it.");});}',
+    'function copySubject(){const pane=document.getElementById("pane-"+active);const inp=pane&&pane.querySelector(".subj-input");const t=inp?inp.value:(PANES[active].subject||"");navigator.clipboard.writeText(t).then(()=>alert("Subject copied.")).catch(()=>{if(inp){inp.focus();inp.select();}alert("Could not copy automatically — the subject is selected so you can copy it.");});}',
     'function copyExtra(){const t=PANES[active].copyExtra||"";if(!t)return;navigator.clipboard.writeText(t).then(()=>alert("Copied.")).catch(()=>alert("Could not copy automatically — select the details and copy them."));}',
     'function printRoster(){const pane=document.getElementById("pane-"+active);const roster=pane&&pane.querySelector(".roster-section");if(!roster){alert("No roster on this email.");return;}const w=window.open("","_blank","width=960,height=660");if(!w){alert("Your browser blocked the popup window.");return;}w.document.write("<!DOCTYPE html><html><head><title>Roster</title><style>body{font-family:sans-serif;padding:24px;color:#1a2744}.roster-hdr{background:#1a2744;color:white;padding:10px 20px}table{width:100%;border-collapse:collapse}th,td{padding:7px 8px;border-bottom:1px solid #eee;text-align:left}.roster-meta{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;font-size:14px}</style></head><body>"+roster.outerHTML+"<div style=\\"margin-top:16px\\"><button onclick=\\"window.print()\\">Print roster</button></div></body></html>");w.document.close();}',
     'showPane(0);',
@@ -8492,36 +8521,129 @@ function emailOpenJobs(){
   });
 }
 
+function opsEmailsApi(){
+  return (typeof window!=='undefined'&&window.MBOpsEmails)||(typeof MBOpsEmails!=='undefined'?MBOpsEmails:null);
+}
+function sessionAddressLine(s){
+  if(!s)return 'To be confirmed';
+  if(s.isVirtual)return s.zoomLink?('Virtual (Zoom) — '+s.zoomLink):'Virtual (Zoom)';
+  const cityState=[s.city,s.state].filter(Boolean).join(', ');
+  const csz=(cityState+(s.zip?' '+s.zip:'')).trim();
+  const street=String(s.hostAddress||'').trim();
+  const place=String(s.location||'').trim();
+  if(street){
+    const line=[street,csz].filter(Boolean).join(', ');
+    if(place&&place.toLowerCase()!==street.toLowerCase()&&line.toLowerCase().indexOf(place.toLowerCase())===-1)return place+' — '+line;
+    return line;
+  }
+  if(place||csz)return [place,csz].filter(Boolean).join(', ');
+  return 'To be confirmed';
+}
+function sessionInstructorPlain(s){
+  const list=sessionInstructorList(s);
+  if(!list.length)return '';
+  return list.map(x=>String(x.name||'').replace(' (owner)','')).filter(Boolean).join(' and ');
+}
+function familyEmailsForSession(sessId){
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
+  const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
+  const uniq=[];
+  emails.forEach(e=>{if(!uniq.some(x=>x.toLowerCase()===e.toLowerCase()))uniq.push(e);});
+  return uniq;
+}
+function hostEmailsForSession(sessId){
+  const s=sessions.find(x=>x.id===sessId);
+  const hostRegs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus==='host');
+  const emails=[...emailsInField(s&&s.hostPhone),...hostRegs.flatMap(r=>emailsInField(r.contact))];
+  const uniq=[];
+  emails.forEach(e=>{if(!uniq.some(x=>x.toLowerCase()===e.toLowerCase()))uniq.push(e);});
+  return uniq;
+}
+// Public session notes, legacy instructor notes, host registration notes, and cost labels.
+// adminPrivateNotes are never copied into an email.
+function opsEmailInfo(s){
+  const api=opsEmailsApi();
+  const regs=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r));
+  const hostRegs=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='host');
+  const nameOf=full=>api?api.firstName(full):(String(full||'').trim().split(/\s+/)[0]||'');
+  const hostName=nameOf(s.contactName)||hostRegs.map(r=>nameOf(r.parentName)||nameOf(r.studentName)).find(Boolean)||'';
+  const mealChunks=[];
+  const specialChunks=[];
+  [s.notes,s.instructorInfo].forEach(chunk=>{
+    if(chunk){mealChunks.push(chunk);specialChunks.push(chunk);}
+  });
+  hostRegs.forEach(r=>{
+    const n=notesWithoutPartner(r.notes||'');
+    if(n)mealChunks.push(n);
+  });
+  regs.forEach(r=>{
+    const n=notesWithoutPartner(r.notes||'');
+    if(n)specialChunks.push(n);
+  });
+  (s.additionalCosts||[]).forEach(c=>{
+    const label=String((c&&(c.label||c.name))||'').trim();
+    if(label)mealChunks.push(label);
+  });
+  let price='';
+  try{const n=sessionListPrice(s);if(n||n===0)price=fmt(n);}catch(e){price='';}
+  const dateLong=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'To be confirmed';
+  const dateShort=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date';
+  return {
+    course:s.course||'Safe Sitter®',
+    dateLong:dateLong,
+    dateShort:dateShort,
+    time:s.time||'To be confirmed',
+    address:sessionAddressLine(s),
+    instructor:sessionInstructorPlain(s),
+    code:s.code||'',
+    countPhrase:rosterCountPhrase(s.course, regs),
+    hostFirst:hostName,
+    mealText:api?api.mealText(mealChunks):'',
+    specialNotes:api?api.specialNotes(specialChunks):'',
+    wifi:s.wifiInfo||'',
+    priceText:price,
+    regLink:REG_PAGE+'?code='+(s.code||''),
+    hasHostSpot:s.hasHost!==false
+  };
+}
+function opsDraft(kind,s){
+  const api=opsEmailsApi();
+  const info=opsEmailInfo(s);
+  if(!api)return {subject:'',body:'',field:kind==='classReminder'||kind==='postCourse'?'bcc':'to'};
+  return api.draft(kind, info);
+}
+
 function openPostCourseEmail(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
-  const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
+  const emails=familyEmailsForSession(sessId);
+  const draft=opsDraft('postCourse', s);
   openDocEmail({
     type:'postCourse',
-    category:'Post-course family email',
+    category:'Post-course — after class',
     sessionLine:s.course+' · '+d,
-    subject:'Your Safe Sitter® Babysitting Course Follow-up',
+    subject:draft.subject,
     emails:emails,
     field:'bcc',
-    note:'Attach Letter-to-Parents_English-and-Spanish.pdf before sending. Paste the Safe Sitter post-course letter home from its Google Doc into the empty message.'
+    body:draft.body,
+    note:'This is the after-class letter for families. Attach Letter-to-Parents_English-and-Spanish.pdf before sending. Copy the letter and the BCC list into your own email. Addresses are separated with semicolons.'
   });
 }
 
 function openClassReminder(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Date to be confirmed';
-  const shortD=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date';
-  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
-  const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact.split(' / ')[0].trim());
+  const emails=familyEmailsForSession(sessId);
+  const draft=opsDraft('classReminder', s);
   openDocEmail({
     type:'classReminder',
-    category:'Send reminder to the class',
+    category:'Family class reminder — before class',
     sessionLine:s.course+' · '+d,
-    subject:'Reminder: your '+s.course+' class on '+shortD,
+    subject:draft.subject,
     emails:emails,
     field:'bcc',
-    note:'Attach the course overview if this class uses one. Paste the Family Class Reminder (before course) from its Google Doc into the empty message.'
+    body:draft.body,
+    note:'This is the before-class note for families (what to pack, and the meal). Everyone is BCC so families cannot see each other. Edit the meal line if it still shows a placeholder, then copy the message and the BCC list. Addresses are separated with semicolons.'
   });
 }
 
@@ -12034,68 +12156,44 @@ function printMonthReport(){
 }
 
 // ─── HOST LETTER ─────────────────────────────────────────────
-// The letter wording lives in the Google Doc. This window keeps the host
-// address (when we have one), the registration link, and the session facts.
+// Initial confirm with the host. The letter is filled from this session.
 function openHostLetter(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
-  const instr=sessionInstructorList(s).map(x=>x.name.replace(' (owner)','')).join(' and ')||'Lindsay Karr';
-  const regLink=REG_PAGE+'?code='+s.code;
-  const hostRegs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus==='host');
-  const emails=[...emailsInField(s.hostPhone),...hostRegs.flatMap(r=>emailsInField(r.contact))];
-  const facts=[
-    'Course: '+s.course,
-    'Date: '+(d||'To be confirmed'),
-    'Time: '+(s.time||'To be confirmed'),
-    'Location: '+(s.location?s.location+(s.city?', '+s.city:''):'Your home'),
-    'Instructor: '+(instr||'To be confirmed'),
-    'Registration link: '+regLink,
-    'Session code: '+s.code
-  ].join('\n');
+  const emails=hostEmailsForSession(sessId);
+  const draft=opsDraft('hostLetter', s);
   openDocEmail({
     type:'hostLetter',
-    category:'Host letter',
+    category:'Host letter — initial confirm with host',
     sessionLine:s.course+' · '+(d||'Date to be confirmed'),
     field:'to',
     emails:emails,
-    subject:'Hosting your '+s.course+' course',
-    note:'Paste the host letter from the Google Doc and attach the Host Family FAQ. Copy the registration link below into the letter.',
-    extraHtml:emailFactsHtml('Details for this session', facts),
-    copyExtra:facts,
-    copyExtraLabel:'Copy details'
+    subject:draft.subject,
+    body:draft.body,
+    note:'This is the first letter to the host, when you are confirming the private group. Attach the Host Family FAQ if you include it. Copy the letter and the host address into your own email. Addresses are separated with semicolons.'
   });
 }
 
 // ─── HOST REMINDER ───────────────────────────────────────────
+// About one week before. Checklist, meal plan, and a roster to print.
 function openHostReminder(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
-  const instr=(()=>{const list=sessionInstructorList(s);return list.length?list.map(x=>x.name.replace(' (owner)','')).join(' and '):'your instructor';})();
+  const instr=sessionInstructorPlain(s)||'your instructor';
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r)).sort((a,b)=>(a.studentName||'').localeCompare(b.studentName||''));
-  const where=s.location?(s.location+(s.city?', '+s.city:'')):'Your home';
-  const facts=[
-    'Course: '+s.course,
-    'Date: '+(d||'To be confirmed'),
-    'Time: '+(s.time||'To be confirmed'),
-    'Location: '+where,
-    'Instructor: '+instr,
-    'Session code: '+s.code,
-    rosterCountPhrase(s.course, regs)
-  ];
-  if(s.wifiInfo)facts.push('WiFi: '+s.wifiInfo);
-  const hostRegs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus==='host');
-  const emails=[...emailsInField(s.hostPhone),...hostRegs.flatMap(r=>emailsInField(r.contact))];
+  const where=sessionAddressLine(s);
+  const emails=hostEmailsForSession(sessId);
+  const draft=opsDraft('hostReminder', s);
   openDocEmail({
     type:'hostReminder',
-    category:'Send reminder to host',
+    category:'Host reminder — 1 week before',
     sessionLine:s.course+' · '+(d||'Date to be confirmed'),
     field:'to',
     emails:emails,
-    subject:'Your '+s.course+' is one week away — class roster and details inside',
-    note:'Paste the Host Reminder (one week before) from its Google Doc. Print the roster and attach it. The session facts below are for this class only.',
-    extraHtml:emailFactsHtml('Session facts', facts.join('\n'))+classRosterSection(s, regs, {when:d, where:where, who:instr, privateCols:false}),
-    copyExtra:facts.join('\n'),
-    copyExtraLabel:'Copy details',
+    subject:draft.subject,
+    body:draft.body,
+    note:'This is the one-week hosting checklist. Print the class roster below and attach it. Edit the meal plan in the message if it still shows a placeholder, then copy the message and the host address. Addresses are separated with semicolons.',
+    extraHtml:classRosterSection(s, regs, {when:d, where:where, who:instr, privateCols:false}),
     hasRoster:true
   });
 }
