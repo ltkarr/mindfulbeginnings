@@ -203,7 +203,7 @@ test('create-session form reserves materials and the dashboard lists materials c
   assert.match(sql, /was 4, plus 3 purchased Sep 2026/);
 });
 
-test('every admin email composer opens its Google Doc with an empty message', () => {
+test('ops emails are filled in ADMIN; other composers still open a Google Doc with an empty message', () => {
   const doc = 'https://docs.google.com/document/d/1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/edit?tab=t.0';
   assert.match(admin, new RegExp(doc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(admin, /const EMAIL_DOC_DEFAULT=/);
@@ -261,14 +261,6 @@ test('every admin email composer opens its Google Doc with an empty message', ()
     assert.doesNotMatch(fn, /const emailText=/);
   }
   assert.match(slice('function openCancellationEmails', '// ─── REGISTRATIONS'), /type:'cancellationFamily'/);
-  assert.match(slice('function openPostCourseEmail', 'function openClassReminder'), /Safe Sitter post-course letter home from its Google Doc/);
-  assert.match(slice('function openHostLetter', 'function openHostReminder'), /Paste the host letter from the Google Doc/);
-  assert.match(slice('function openClassReminder', 'function openInstructorFollowup'), /Send reminder to the class/);
-  assert.match(slice('function openClassReminder', 'function openInstructorFollowup'), /Family Class Reminder \(before course\) from its Google Doc/);
-  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /Send reminder to host/);
-  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /Host Reminder \(one week before\) from its Google Doc/);
-  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /Print the roster and attach it/);
-  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /session facts below are for this class only/);
   assert.match(slice('function openInstructorReminder', '// ─── ERROR TRACKING'), /Send reminder \+ roster to instructor/);
   assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /hasRoster:true/);
   assert.match(slice('function openInstructorReminder', '// ─── ERROR TRACKING'), /hasRoster:true/);
@@ -276,8 +268,38 @@ test('every admin email composer opens its Google Doc with an empty message', ()
   assert.doesNotMatch(admin, /Just a reminder that you are scheduled to teach/);
   assert.doesNotMatch(admin, /Thank you so much for opening your home/);
   assert.doesNotMatch(admin, /Here are the jobs currently open and available to claim/);
-  assert.doesNotMatch(admin, /Please review the important details below as you prepare for the class/);
-  assert.doesNotMatch(admin, /Thank you for trusting Mindful Beginnings/);
+  assert.doesNotMatch(admin, /three small things would mean a great deal/);
+  const filled = [
+    ['function openPostCourseEmail', 'function openClassReminder', "opsDraft('postCourse'", 'Post-course — after class'],
+    ['function openClassReminder', 'function openInstructorFollowup', "opsDraft('classReminder'", 'Family class reminder — before class'],
+    ['function openHostLetter', 'function openHostReminder', "opsDraft('hostLetter'", 'Host letter — initial confirm with host'],
+    ['function openHostReminder', 'function openInstructorReminder', "opsDraft('hostReminder'", 'Host reminder — 1 week before']
+  ];
+  for (const [start, end, call, label] of filled) {
+    const fn = slice(start, end);
+    assert.match(fn, /body:draft\.body/);
+    assert.match(fn, new RegExp(call.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(fn, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.doesNotMatch(fn, /Paste the/);
+    assert.doesNotMatch(fn, /Google Doc/);
+    assert.doesNotMatch(fn, /openGmail\(/);
+    assert.doesNotMatch(fn, /mailto:/);
+  }
+  assert.match(admin, /Copy email/);
+  assert.match(admin, /Copy subject/);
+  assert.match(admin, /class="email-body"/);
+  assert.match(admin, /class="bcc-edit"/);
+  assert.match(admin, /join\('; '\)/);
+  assert.match(admin, /p\.filled\?"none"/);
+  assert.match(admin, /Open template/);
+  assert.match(admin, /\/js\/admin-ops-emails\.js/);
+  assert.match(admin, /Host letter — initial confirm/);
+  assert.match(admin, /Host reminder — 1 week before/);
+  assert.match(admin, /Family reminder — before class/);
+  assert.match(admin, /Post-course email — after class/);
+  assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /Print the class roster below and attach it/);
+  const infoFn = slice('function opsEmailInfo', 'function opsDraft');
+  assert.doesNotMatch(infoFn, /adminPrivateNotes/);
 });
 
 test('Care Ready is wired into the instructor config and the admin course list', () => {
