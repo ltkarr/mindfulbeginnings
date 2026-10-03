@@ -1460,9 +1460,10 @@ function renderPartner(){
 
 // Under the amended Section 3 there is no ladder to show. What a partner actually
 // needs to see is the arithmetic: what came in, what it cost to deliver, and the
-// 20% taken from the difference.
+// 40% of that profit taken from the difference. Lindsay keeps 60%.
+// Fallback matches admin.html PARTNER_FLAT_RATE when a published snapshot has no rate.
 function partnerTierCardHtml(d,cur){
-  const rate=Math.round((d.flatRate||0.20)*100);
+  const rate=Math.round((d.flatRate!=null?d.flatRate:0.40)*100);
   const gross=cur?cur.monthTotal:0;
   const costs=cur?(cur.monthCosts||0):0;
   const net=cur?(cur.monthNet!=null?cur.monthNet:gross-costs):0;
@@ -1470,7 +1471,7 @@ function partnerTierCardHtml(d,cur){
     <div style="font-weight:500;font-size:15px;margin-bottom:12px">How you are paid</div>
     ${cur?`<div class="info-row"><span>Collected revenue, ${pMonthLabel(cur.period)}</span><span>${fmt(gross)}</span></div>
     <div class="info-row"><span>Less direct costs of delivery</span><span>${costs?'−'+fmt(costs):fmt(0)}</span></div>
-    <div class="info-row" style="font-weight:500"><span>Net revenue</span><span>${fmt(net)}</span></div>
+    <div class="info-row" style="font-weight:500"><span>Profit</span><span>${fmt(net)}</span></div>
     <div class="info-row" style="font-weight:500;font-size:16px"><span>Your ${rate}%</span><span>${fmt(cur.commission)}</span></div>`:''}
   </div>`;
 }
@@ -1490,7 +1491,7 @@ function partnerStatementBodyHtml(cur){
         </div>
         <div style="text-align:right;min-width:118px">
           <div style="font-weight:500;font-size:13px">${fmt(r.commission)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${pRate(r.rate)} of ${fmt(r.net!=null?r.net:r.collected)} net</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${pRate(r.rate)} of ${fmt(r.net!=null?r.net:r.collected)} profit</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">${fmt(r.collected)} in, ${fmt(r.costs||0)} costs</div>
         </div>
       </div>`).join('')}
@@ -1523,7 +1524,7 @@ function partnerPendingHtml(d){
         </div>
         <div style="text-align:right;min-width:104px">
           <div style="font-weight:500;font-size:13px;color:var(--warn)">${fmt(x.estCommission||0)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">est. ${pRate(x.estRate)} of ${fmt(x.net!=null?x.net:x.amount)} net</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">est. ${pRate(x.estRate)} of ${fmt(x.net!=null?x.net:x.amount)} profit</div>
           ${x.projectedMonth?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${pMonthLabel(x.projectedMonth)}</div>`:''}
         </div>
       </div>`).join('')}
@@ -1550,12 +1551,12 @@ function partnerProjectedHtml(d){
 }
 
 function partnerRulesHtml(d){
-  const rate=Math.round((d.flatRate||0.20)*100);
+  const rate=Math.round((d.flatRate!=null?d.flatRate:0.40)*100);
   return `<div class="info-card">
     <div style="font-weight:500;font-size:15px;margin-bottom:10px">How this is calculated</div>
     <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--muted);line-height:1.9">
-      <li>You earn ${rate}% of net revenue on every booking you originate, new or repeat, with no tiers, no monthly minimum and no cap. The commission is the whole of the compensation.</li>
-      <li>Net revenue means what was collected for the booking, less the direct cost of delivering it. Collected revenue is already net of refunds, discounts and payment-processing fees.</li>
+      <li>You earn ${rate}% of the profit on every booking you originate, new or repeat, with no tiers, no monthly minimum and no cap. Mindful Beginnings keeps the other ${100-rate}%. The commission is the whole of the compensation.</li>
+      <li>Profit means what was collected for the booking, less the direct cost of delivering it. It is not a share of the gross fee. Collected revenue is already net of refunds, discounts and payment-processing fees.</li>
       <li>Direct costs are instructor pay, participant materials, and costs entered on that job. Company overhead is not deducted.</li>
       <li>Commission is earned when the money has been collected <strong>and</strong> the class has been taught. A booking lands on the statement for whichever comes second.</li>
       <li>A booking that costs more to deliver than it collects pays no commission. It never counts against you.</li>

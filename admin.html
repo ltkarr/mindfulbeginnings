@@ -2166,10 +2166,11 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 // number below is derived from data you already enter for a session — the only
 // new field you fill in is "Originated by" on the session form.
 //
-//  §3.A  A flat 20% of NET Originated Revenue. Net means Collected Revenue for a
-//        booking, less the direct cost of delivering it: instructor pay, the
-//        per-participant material allowance, and any job costs stored on that
-//        session. Company overhead expenses — where handbook orders are recorded —
+//  §3.A  A flat 40% of PROFIT on what the liaison brings in. Lindsay keeps 60%.
+//        Profit is Collected Revenue for a booking, less the direct cost of
+//        delivering it: instructor pay, the per-participant material allowance,
+//        and any job costs stored on that session. It is not a share of gross
+//        revenue. Company overhead expenses — where handbook orders are recorded —
 //        are NOT deducted. Only costs attached to the booking itself are.
 //  §3.B  Retired. There is no volume ladder and no accelerator to sit on top of.
 //  §3.C  Retired. There is no new-organization bonus. Commission is the whole
@@ -2180,17 +2181,18 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 //  §3.F  Repeat and renewal bookings — see PARTNER_SETTINGS.repeatPolicy.
 
 // Amended Section 3, effective with the revised liaison agreement: one flat rate
-// on NET revenue. The monthly volume ladder, and the organizational accelerator
-// that sat on top of it, are both retired. The single-entry list below keeps the
-// rest of the engine and every screen working unchanged.
+// on profit, not on gross revenue. The monthly volume ladder, and the
+// organizational accelerator that sat on top of it, are both retired. The
+// single-entry list below keeps the rest of the engine and every screen working
+// unchanged.
 // Amended again: the same flat rate also applies to a single family the partner
-// refers into a class she did not originate. There, the 20% is taken on that one
-// registration's net — what the family paid, less the processing fee, less that
+// refers into a class she did not originate. There, the 40% is taken on that one
+// registration's profit — what the family paid, less the processing fee, less that
 // child's materials and their share of the instructor and job costs — not on the
-// whole room. See partnerBookingUnits().
-const PARTNER_FLAT_RATE=0.20;      // §3.A — 20% of net, originated or referred
+// whole room and not on the gross fee. See partnerBookingUnits().
+const PARTNER_FLAT_RATE=0.40;      // §3.A — 40% of profit; Lindsay keeps 60%
 const PARTNER_TIERS=[
-  {min:0, max:Infinity, rate:PARTNER_FLAT_RATE, name:'Flat rate', label:'20% of net'}
+  {min:0, max:Infinity, rate:PARTNER_FLAT_RATE, name:'Flat rate', label:Math.round(PARTNER_FLAT_RATE*100)+'% of profit'}
 ];
 const PARTNER_ACCEL_MIN=Infinity;  // §3.B retired — no volume accelerator
 const PARTNER_ACCEL_RATE=PARTNER_FLAT_RATE;
@@ -2414,14 +2416,14 @@ function partnerRevenueEvents(s){
 //     and named her under "how did you hear about us". Only that family's money is
 //     hers to earn on, not the rest of the room.
 //
-// Both are paid at the same flat 20% of NET (§3.A), so they run through the same
+// Both are paid at the same flat 40% of profit (§3.A), so they run through the same
 // engine. partnerRevenueEvents has already deducted the processing fee from each
 // family's payment and spread the session's direct costs — instructor pay, per-student
 // handbooks and materials, and any job costs you entered — across its revenue lines in
 // proportion to size. So one referred child in a class of eight carries their own
-// handbook plus their share of the instructor, and the commission is 20% of what is
-// left. If a session is BOTH originated and referred, origination wins and the whole
-// session counts once — never twice.
+// handbook plus their share of the instructor, and the commission is 40% of what is
+// left. Lindsay keeps the other 60%. If a session is BOTH originated and referred,
+// origination wins and the whole session counts once — never twice.
 function partnerBookingUnits(partnerId){
   const referredIds={};
   (registrations||[]).forEach(r=>{
@@ -2495,14 +2497,15 @@ function applyPartnerRowRates(rows,monthTotal,cfg){
     const gt=groupTotals[groupKey(r)]||0;
     if(r.isOrg&&gt>=PARTNER_ACCEL_MIN&&rate<PARTNER_ACCEL_RATE){
       rate=PARTNER_ACCEL_RATE;r.accelerated=true;
-      reason=`Large-scale organizational accelerator — ${fmtPlain(gt)} contract earns 20% (§3.B)`;
+      reason=`Large-scale organizational accelerator — ${fmtPlain(gt)} contract earns ${Math.round(PARTNER_ACCEL_RATE*100)}% (§3.B)`;
     }
-    // §3.A — the rate applies to NET, not to collected revenue. A booking that
-    // cost more to deliver than it brought in pays no commission rather than a
-    // negative one; she is never charged for a job that lost money.
+    // §3.A — 40% of profit, not of gross or collected revenue. Profit is what is
+    // left after direct costs. A booking that cost more to deliver than it brought
+    // in pays no commission rather than a negative one; she is never charged for
+    // a job that lost money. Lindsay keeps the other 60%.
     const base=Math.max(0,Number(r.net!=null?r.net:r.collected)||0);
     r.rate=rate;r.commission=round2(base*rate);
-    r.reason=`${Math.round(rate*100)}% of ${fmtPlain(base)} net (${fmtPlain(Number(r.collected)||0)} collected less ${fmtPlain(Number(r.costs)||0)} direct costs)`
+    r.reason=`${Math.round(rate*100)}% of ${fmtPlain(base)} profit (${fmtPlain(Number(r.collected)||0)} collected less ${fmtPlain(Number(r.costs)||0)} direct costs; not a share of gross)`
       +(r.isReferral?' — referred family, this registration only':'');
   });
 }
@@ -2613,8 +2616,8 @@ function partnerStatement(partnerId,period){
   });
   const rows=rowsByMonth[period]||[];
 
-  // §3.A — the tier is set by the month's TOTAL originated collected revenue, and
-  // then applies to every dollar of it.
+  // §3.A — one flat rate. Month volume only names the tier. The rate is applied
+  // to profit (collected revenue less direct costs), not to gross revenue.
   const monthTotal=round2(rows.reduce((a,r)=>a+r.collected,0));
   const tier=tierFor(monthTotal);
   const next=nextTierFor(monthTotal);
@@ -3523,7 +3526,7 @@ function partnerCardHtml(p,st){
 
     <div class="metrics" style="margin-bottom:16px">
       <div class="metric"><div class="m-label">Collected revenue</div><div class="m-val">${fmt(st.monthTotal)}</div><div class="m-sub">Originated in ${periodLabel(st.period)}</div></div>
-      <div class="metric"><div class="m-label">Commission rate</div><div class="m-val" style="font-size:23px">${Math.round(st.tier.rate*100)}%</div><div class="m-sub">Flat rate on net — originated or referred (§3.A)</div></div>
+      <div class="metric"><div class="m-label">Commission rate</div><div class="m-val" style="font-size:23px">${Math.round(st.tier.rate*100)}%</div><div class="m-sub">${Math.round(PARTNER_FLAT_RATE*100)}% of profit — you keep ${Math.round((1-PARTNER_FLAT_RATE)*100)}%. Originated or referred.</div></div>
       <div class="metric"><div class="m-label">Commission</div><div class="m-val">${fmt(st.commission)}</div><div class="m-sub">${st.bonusTotal?'+ '+fmt(st.bonusTotal)+' in bonuses':'No bonuses this month'}</div></div>
       <div class="metric"><div class="m-label">${paid?'Paid':'Total due'}</div><div class="m-val ${paid?'green':''}">${fmt(paid?st.payout.amount:st.total)}</div><div class="m-sub">${dueSub}</div></div>
     </div>
@@ -3972,7 +3975,7 @@ function openPartnerStatement(partnerId){
           </tbody></table>`:''}
       </div>`:''}
       <div style="margin-top:18px;font-size:14px;color:var(--muted);line-height:1.6">
-        Calculated under Section 3 of the Independent Contractor Agreement — Community Partnerships Liaison. Rows marked <em>Referral</em> are families who named ${escapeHtml(p.name)} under “how did you hear about us” when registering for a class she did not originate; commission is earned on that registration alone, at the same rate, after that child’s share of instructor pay, materials and processing fees. Collected Revenue is net of refunds, chargebacks, discounts, taxes and third-party payment processing fees, and is credited in the month the course was delivered or the month payment was received, whichever is later. No commission is earned on a course that has not been taught, or on a cancelled course. Remitted via Zelle by the tenth day of the following month.
+        Calculated under Section 3 of the Independent Contractor Agreement — Community Partnerships Liaison. The liaison earns ${Math.round(PARTNER_FLAT_RATE*100)}% of the profit on what they bring in, and Mindful Beginnings keeps ${Math.round((1-PARTNER_FLAT_RATE)*100)}%. Profit is collected revenue less the direct cost of that booking. It is not a percentage of gross revenue. Rows marked <em>Referral</em> are families who named ${escapeHtml(p.name)} under “how did you hear about us” when registering for a class she did not originate; commission is earned on that registration alone, at the same rate, after that child’s share of instructor pay, materials and processing fees. Collected Revenue is net of refunds, chargebacks, discounts, taxes and third-party payment processing fees, and is credited in the month the course was delivered or the month payment was received, whichever is later. No commission is earned on a course that has not been taught, or on a cancelled course. Remitted via Zelle by the tenth day of the following month.
       </div>
     </div>
   </div>
@@ -4419,7 +4422,7 @@ function renderReports(){
   document.getElementById('rep-partner-ref-metrics').innerHTML=`
     <div class="metric"><div class="m-label">Families sent by a partner</div><div class="m-val">${partnerFams}</div><div class="m-sub">${partnerGroups.length} partner${partnerGroups.length===1?'':'s'} named</div></div>
     <div class="metric"><div class="m-label">Revenue from those families</div><div class="m-val">${fmt(partnerRev)}</div><div class="m-sub">paid registrations only</div></div>
-    <div class="metric"><div class="m-label">Commission on referrals</div><div class="m-val">${fmt(partnerComm)}</div><div class="m-sub">${Math.round(PARTNER_FLAT_RATE*100)}% of net, incl. not-yet-payable</div></div>
+    <div class="metric"><div class="m-label">Commission on referrals</div><div class="m-val">${fmt(partnerComm)}</div><div class="m-sub">${Math.round(PARTNER_FLAT_RATE*100)}% of profit, incl. not-yet-payable</div></div>
   `;
   document.getElementById('partner-ref-table').innerHTML=
     '<thead><tr><th>Named on the form</th><th style="text-align:center">Partner?</th><th style="text-align:right">Families</th><th style="text-align:right">Paid</th><th style="text-align:right">Collected</th><th style="text-align:right">Net after costs</th><th style="text-align:right">Commission</th><th style="text-align:right">Payable now</th></tr></thead><tbody>'+
