@@ -669,7 +669,7 @@ function externalRegistrationFieldHtml(s){
   const v=escapeHtml((s&&s.externalRegistrationUrl)||'');
   return `<div class="fg full"><label>External registration link <span style="font-weight:400;color:var(--muted)">(optional — leave blank to register on this site)</span></label>
       <input type="url" id="m-external-url" value="${v}" placeholder="https://" autocomplete="off" style="width:100%">
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">If families book this class on a partner site, paste a full https link. The public Register button opens that link and does not take payment here.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">If families book this class on a partner site, paste a full https link. A public class card opens that link and does not take payment here. Custom jobs stay off the public list; someone who enters the session code is still sent to this link.</div>
     </div>`;
 }
 // '' clears the link. null means the value is not a usable https URL and the save should stop.

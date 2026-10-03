@@ -5,9 +5,10 @@
    is the list + display logic so register.html and the unit tests stay in
    sync.    There is no is_public column on sessions — public means "a regular
    upcoming course at a public venue," not a private/host home, ops, custom,
-   hold, or cancelled job. A custom job is listed only when it has an https
-   external_registration_url, so a partner-hosted class can be booked on the
-   partner site without opening Mindful Beginnings payment.
+   hold, or cancelled job. Custom jobs never appear here, even when they have
+   an https external_registration_url. A real public course can still use that
+   link so families book on a partner site instead of paying here. Someone
+   with the session code can still open a custom job; that path is separate.
 
    The register page does not expose Course / When / City / Price filters.
    applyBrowseFilters still applies a default upcoming window internally.
@@ -118,9 +119,9 @@
     if (row.date && String(row.date) < day) return false;
     if (flagOn(row, 'is_cancelled') || flagOn(row, 'isCancelled')) return false;
     if (flagOn(row, 'is_hold') || flagOn(row, 'isHold')) return false;
-    // Custom jobs stay off the family list unless registration is handed to a
-    // partner site. Cancelled, hold, private, and host checks above still apply.
-    if ((flagOn(row, 'is_custom_job') || flagOn(row, 'isCustomJob')) && !externalRegistrationUrl(row)) return false;
+    // Custom jobs (Shatterproof, instructor booths, partner events) are not
+    // public classes. An https partner link does not put them on this list.
+    if (flagOn(row, 'is_custom_job') || flagOn(row, 'isCustomJob')) return false;
      // Admin "private" flag (e.g. Beth El sessions): never listed publicly.
      if (flagOn(row, 'is_private') || flagOn(row, 'isPrivate')) return false;
     if (isPrivateHostSession(row)) return false;

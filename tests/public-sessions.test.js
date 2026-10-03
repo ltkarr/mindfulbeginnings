@@ -81,7 +81,28 @@ test('externalRegistrationLabel names District DabbleLab and stays generic other
   assert.equal(externalRegistrationLabel('https://partner.example/register'), 'Register externally');
 });
 
-test('partner-hosted custom jobs with an https registration link stay on the public list', () => {
+test('custom jobs stay off the public list even with an https registration link', () => {
+  assert.equal(isPublicSession(row({
+    code: 'SFF-261011',
+    course: 'SWDCCC Fall Family Fest — Info Table & Safety Demo',
+    date: '2026-10-11',
+    city: 'Washington',
+    location: 'Waterfront Park (SWDCCC Fall Family Fest)',
+    is_custom_job: true,
+    has_host: false,
+    is_private: false,
+    external_registration_url: 'https://www.swdccc.org/fall-family-fest'
+  }), TODAY), false);
+  assert.equal(isPublicSession(row({
+    code: 'RUA-261017',
+    course: 'Represent us at Shatterproof Walk DC',
+    date: '2026-10-17',
+    city: 'Washington',
+    is_custom_job: true,
+    has_host: false,
+    is_private: false,
+    external_registration_url: 'https://fundraise.shatterproof.org/pages/1814'
+  }), TODAY), false);
   assert.equal(isPublicSession(row({
     code: 'RP-261023',
     course: 'Ready. Period.',
@@ -91,9 +112,10 @@ test('partner-hosted custom jobs with an https registration link stay on the pub
     is_custom_job: true,
     has_host: false,
     external_registration_url: DABBLE_URL
-  }), TODAY), true);
+  }), TODAY), false);
   assert.equal(isPublicSession(row({ is_custom_job: true, external_registration_url: '   ' }), TODAY), false);
   assert.equal(isPublicSession(row({ is_custom_job: true, external_registration_url: 'http://example.com/book' }), TODAY), false);
+  assert.equal(isPublicSession(row({ isCustomJob: true, externalRegistrationUrl: DABBLE_URL }), TODAY), false);
   assert.equal(isPublicSession(row({
     is_custom_job: true,
     is_cancelled: true,
@@ -109,7 +131,12 @@ test('partner-hosted custom jobs with an https registration link stay on the pub
     is_private: true,
     external_registration_url: DABBLE_URL
   }), TODAY), false);
-  assert.equal(isPublicSession(row({ external_registration_url: DABBLE_URL }), TODAY), true);
+  assert.equal(isPublicSession(row({
+    code: 'RP-261023',
+    course: 'Ready. Period.',
+    is_custom_job: false,
+    external_registration_url: DABBLE_URL
+  }), TODAY), true);
   assert.equal(sessionPrice(row({
     course: 'Ready. Period.',
     price_override: null
@@ -156,6 +183,7 @@ test('filterPublicSessions sorts by date then code and drops private/host rows',
     row({ code: 'SS-261010', date: '2026-10-10' }),
     row({ code: 'HOST-1010', date: '2026-10-10', has_host: true }),
     row({ code: 'CJ-0921', course: 'Caregiving for Grandparents Workshop', is_custom_job: true, date: '2026-09-19' }),
+    row({ code: 'SFF-261011', course: 'SWDCCC Fall Family Fest — Info Table & Safety Demo', is_custom_job: true, date: '2026-10-11', external_registration_url: 'https://www.swdccc.org/fall-family-fest' }),
     row({ code: 'SAH-1016', course: 'Safe@Home', date: '2026-10-16' }),
     row({ code: 'SS-261003', date: '2026-10-03' }),
     row({ code: 'RUA-261024', course: 'Represent us at Geneva Day School Fall Fest!', date: '2026-10-24' })
