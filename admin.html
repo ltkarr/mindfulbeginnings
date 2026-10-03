@@ -8212,12 +8212,14 @@ function markOwnerTaughtFromWrap(sessId){
 // Every admin email opens the Google Doc for that type and leaves the
 // message empty so Lindsay can paste. Recipient lists and copy buttons stay.
 // Point a key at its own Doc (or a tab on the same Doc) when she sends the URL.
-// Until then every type uses EMAIL_DOC_DEFAULT. The Doc is not loaded here.
+// Types without a dedicated Doc still use EMAIL_DOC_DEFAULT (the Host Letter).
+// The Doc is not loaded here.
 const EMAIL_DOC_DEFAULT='https://docs.google.com/document/d/1JnuoHRPu-T0A3PvKmCr1Z1SMT1mME8o7K0BSHCWioRI/edit?tab=t.0';
 const EMAIL_DOCS={
   classEmail: EMAIL_DOC_DEFAULT,
   openJobs: EMAIL_DOC_DEFAULT,
-  postCourse: EMAIL_DOC_DEFAULT,
+  // Safe Sitter Post Course letter home. Do not point this at the Host Letter.
+  postCourse:'https://docs.google.com/document/d/1KRLMTB6BF6R50zUfdqy6REShDH0CFr41CsRkJIVjcF0/edit?tab=t.0',
   classReminder: EMAIL_DOC_DEFAULT,
   instructorFollowup: EMAIL_DOC_DEFAULT,
   hostLetter: EMAIL_DOC_DEFAULT,
@@ -8500,7 +8502,7 @@ function openPostCourseEmail(sessId){
     subject:'Your Safe Sitter® Babysitting Course Follow-up',
     emails:emails,
     field:'bcc',
-    note:'Attach Letter-to-Parents_English-and-Spanish.pdf before sending. Paste the post-course section from the Google Doc into the empty message.'
+    note:'Attach Letter-to-Parents_English-and-Spanish.pdf before sending. Paste the Safe Sitter post-course letter home from its Google Doc into the empty message.'
   });
 }
 

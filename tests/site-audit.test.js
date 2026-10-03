@@ -221,11 +221,14 @@ test('every admin email composer opens its Google Doc with an empty message', ()
   assert.match(admin, /&su=/);
   assert.doesNotMatch(admin, /&body=/);
   for (const key of [
-    'classEmail', 'openJobs', 'postCourse', 'classReminder', 'instructorFollowup',
+    'classEmail', 'openJobs', 'classReminder', 'instructorFollowup',
     'hostLetter', 'hostReminder', 'instructorReminder', 'cancellationInstructor', 'cancellationFamily'
   ]) {
     assert.match(admin, new RegExp(key + ': EMAIL_DOC_DEFAULT'));
   }
+  const postCourseDoc = 'https://docs.google.com/document/d/1KRLMTB6BF6R50zUfdqy6REShDH0CFr41CsRkJIVjcF0/edit?tab=t.0';
+  assert.match(admin, new RegExp('postCourse:[\'"]' + postCourseDoc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(admin, /postCourse:\s*EMAIL_DOC_DEFAULT/);
   const slice = (a, b) => {
     const start = admin.indexOf(a);
     const end = admin.indexOf(b);
