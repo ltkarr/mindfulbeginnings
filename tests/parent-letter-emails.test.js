@@ -46,7 +46,7 @@ test('the parent-letter paste list is emails only, separated by semicolons', () 
     { contact: '' },
     { contact: null }
   ];
-  const emails = sandbox.parentLetterEmails(regs);
+  const emails = Array.from(sandbox.parentLetterEmails(regs));
   const pasted = emails.join('; ');
   assert.deepEqual(emails, [
     'debra.example@gmail.com',
