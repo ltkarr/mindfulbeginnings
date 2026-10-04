@@ -8594,6 +8594,12 @@ function emailClass(sessId){
 
 // Where instructors claim a job. The open-jobs email includes this link.
 const INSTRUCTOR_PORTAL_URL='https://instructorportal.mindfulbeginnings.org/';
+// Lindsay does not use em dashes. The open-jobs note she copies (subject,
+// headings, job lines, pay, eligibility, portal line) uses a hyphen instead.
+// Course titles stored with an em dash are rewritten only in this email.
+function openJobCopyText(text){
+  return String(text==null?'':text).replace(/\u2014/g,'-');
+}
 function openJobPayIsFlat(s){
   return !!(s&&s.instrPayOverride!=null&&s.instrPayOverride!==''&&isFinite(Number(s.instrPayOverride)));
 }
@@ -8638,26 +8644,30 @@ function openJobPayText(s,instr){
   }
   const h=openJobHourlyHours(s);
   if(perPerson)return 'Instructor pay: '+fmt(Number(instr.hourlyRate)*h.total);
-  if(h.virtual)return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + '+hourLabel(h.add)+', virtual — no travel hour)';
+  if(h.virtual)return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + '+hourLabel(h.add)+', virtual, no travel hour)';
   return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + 1.5 hours travel)';
 }
 function openJobDigestLine(s,idx,dateText){
-  const loc=s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed');
-  const when=(dateText||'')+(s&&s.time?' · '+s.time:'');
-  const title=(s&&s.course)||'Session';
-  return (idx+1)+'. '+title+' — '+openJobPayText(s)+' — '+sessionWhoCanTeach(s)+'\n   '+when+'\n   '+loc;
+  const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed'));
+  const when=openJobCopyText((dateText||'')+(s&&s.time?' · '+s.time:''));
+  const title=openJobCopyText((s&&s.course)||'Session');
+  const pay=openJobCopyText(openJobPayText(s));
+  const who=openJobCopyText(sessionWhoCanTeach(s));
+  return (idx+1)+'. '+title+' - '+pay+' - '+who+'\n   '+when+'\n   '+loc;
 }
 function openJobDigestHtml(s,idx,dateText){
-  const loc=s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed');
-  const title=(s&&s.course)||'Session';
-  const when=escapeHtml(dateText||'')+(s&&s.time?' · '+escapeHtml(s.time):'');
-  return '<div style="margin-bottom:10px"><strong>'+escapeHtml((idx+1)+'. '+title)+'</strong> — '+escapeHtml(openJobPayText(s))+' — '+escapeHtml(sessionWhoCanTeach(s))+'<br>'+when+'<br><span style="color:#6b7a99">'+escapeHtml(loc)+'</span></div>';
+  const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed'));
+  const title=openJobCopyText((s&&s.course)||'Session');
+  const when=escapeHtml(openJobCopyText(dateText||''))+(s&&s.time?' · '+escapeHtml(openJobCopyText(s.time)):'');
+  const pay=openJobCopyText(openJobPayText(s));
+  const who=openJobCopyText(sessionWhoCanTeach(s));
+  return '<div style="margin-bottom:10px"><strong>'+escapeHtml((idx+1)+'. '+title)+'</strong> - '+escapeHtml(pay)+' - '+escapeHtml(who)+'<br>'+when+'<br><span style="color:#6b7a99">'+escapeHtml(loc)+'</span></div>';
 }
 function openJobPortalText(){
-  return 'Claim a job in the instructor portal: '+INSTRUCTOR_PORTAL_URL;
+  return openJobCopyText('Claim a job in the instructor portal: '+INSTRUCTOR_PORTAL_URL);
 }
 function openJobPortalHtml(){
-  return '<div class="facts-note">Claim a job in the instructor portal: <a href="'+INSTRUCTOR_PORTAL_URL+'">'+INSTRUCTOR_PORTAL_URL+'</a></div>';
+  return '<div class="facts-note">'+escapeHtml(openJobPortalText()).replace(INSTRUCTOR_PORTAL_URL,'<a href="'+INSTRUCTOR_PORTAL_URL+'">'+INSTRUCTOR_PORTAL_URL+'</a>')+'</div>';
 }
 // Weekly digest Lindsay sends from Instructors → Email open jobs. One message,
 // BCC to every active instructor. The on-screen list is the job section she
@@ -8677,11 +8687,11 @@ function emailOpenJobs(){
     type:'openJobs',
     category:'Open jobs digest',
     sessionLine:open.length+' open job'+(open.length===1?'':'s'),
-    subject:'Mindful Beginnings jobs available now',
+    subject:openJobCopyText('Mindful Beginnings jobs available now'),
     emails:recips,
     field:'bcc',
-    note:'Copy the job list below into your message. Each job shows the instructor pay and who can teach it. The instructor portal link is at the bottom of the list.',
-    extraHtml:'<div class="section-label">Jobs open right now</div><div class="facts">'+preview+openJobPortalHtml()+'</div>',
+    note:openJobCopyText('Copy the job list below into your message. Each job shows the instructor pay and who can teach it. The instructor portal link is at the bottom of the list.'),
+    extraHtml:'<div class="section-label">'+escapeHtml(openJobCopyText('Jobs open right now'))+'</div><div class="facts">'+preview+openJobPortalHtml()+'</div>',
     copyExtra:jobText,
     copyExtraLabel:'Copy job list'
   });
