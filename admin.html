@@ -373,7 +373,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 
     <div class="screen" id="screen-registrations">
       <div class="page-header">
-        <div><div class="page-title">Registrations</div><div class="page-sub">All students across all sessions</div></div>
+        <div><div class="page-title">Registrations</div><div class="page-sub" id="reg-page-sub">All students across all sessions</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn" onclick="downloadAllWaivers()">📄 Download signed waivers</button>
           <button class="btn" onclick="openMatchPayment()">Match payment</button>
@@ -390,6 +390,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div id="reg-alerts"></div>
       <div id="reg-cancelled-note"></div>
+      <div id="reg-referral"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="regs-table"></table></div></div>
     </div>
 
@@ -4063,6 +4064,56 @@ const PROMO_NOTE_RE=/\[Promo\s+([A-Za-z0-9]+)\s+applied:\s*[−-]\s*\$?(\d+(?:\.
 //   2. The family picks "Other" and types a name, which register.html saves
 //      as "Other: NAME" (older registrations: "Other/Referral: NAME").
 // Both are handled here.
+
+// What the family answered on the registration form. A blank is "Not specified"
+// so it does not look like the field failed to load. If the column was missing
+// when the row was saved, register.html folded the answer into notes as
+// "[How they heard about us: …]"; that still counts.
+const HEARD_NOTE_RE=/\[How they heard about us:\s*([^\]]+)\]/i;
+function referralSourceLabel(r){
+  const raw=String(r&&r.referralSource!=null?r.referralSource:'').trim();
+  if(raw)return raw;
+  const notes=String(r&&r.notes||'');
+  const m=HEARD_NOTE_RE.exec(notes);
+  const fromNotes=m&&m[1]?String(m[1]).trim():'';
+  return fromNotes||'Not specified';
+}
+function sessionReferralBreakdown(regs){
+  const counts={};
+  (regs||[]).forEach(r=>{
+    const src=referralSourceLabel(r);
+    counts[src]=(counts[src]||0)+1;
+  });
+  return Object.keys(counts).map(source=>({source:source,count:counts[source]}))
+    .sort((a,b)=>b.count-a.count||(a.source<b.source?-1:a.source>b.source?1:0));
+}
+function sessionReferralSummaryHtml(regs){
+  const rows=sessionReferralBreakdown(regs);
+  if(!rows.length)return '';
+  const lines=rows.map((row,i)=>{
+    const quiet=row.source==='Not specified';
+    const border=i?'border-top:1px solid var(--border);':'';
+    return `<div style="display:flex;justify-content:space-between;gap:16px;padding:6px 0;${border}font-size:15.5px">
+      <span style="${quiet?'color:var(--muted)':''}">${escapeHtml(row.source)}</span>
+      <span style="font-weight:600;font-variant-numeric:tabular-nums;${quiet?'color:var(--muted)':''}">${row.count}</span>
+    </div>`;
+  }).join('');
+  return `<div class="card" style="padding:14px 16px;margin-bottom:12px">
+    <div style="font-weight:600;margin-bottom:4px">How they heard about us</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Counts for the registrations in this list</div>
+    ${lines}
+  </div>`;
+}
+function referralSourceCellHtml(r){
+  const label=referralSourceLabel(r);
+  const quiet=label==='Not specified';
+  return `<td style="font-size:15px;max-width:200px;${quiet?'color:var(--muted)':''}">${escapeHtml(label)}</td>`;
+}
+function referralSourceDetailHtml(r){
+  const label=referralSourceLabel(r);
+  const quiet=label==='Not specified';
+  return `<div class="fg full"><label>How did you hear about us?</label><div style="background:#f7f4ee;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:16px;line-height:1.4;${quiet?'color:var(--muted)':''}">${escapeHtml(label)}</div></div>`;
+}
 function referrerName(r){
   const raw=(r.referralSource||'').trim();
   if(!raw)return '';
@@ -4380,19 +4431,18 @@ function renderReports(){
   const regs=reportRegsInScope();
 
   // ── How did you hear about us? ──
-  const refCounts={};
-  regs.forEach(r=>{const src=(r.referralSource||'').trim()||'Not specified';refCounts[src]=(refCounts[src]||0)+1;});
-  const refRows=Object.entries(refCounts).sort((a,b)=>b[1]-a[1]);
+  const refRows=sessionReferralBreakdown(regs);
   const refTotal=regs.length;
+  const unspecified=(refRows.find(row=>row.source==='Not specified')||{count:0}).count;
   document.getElementById('rep-referral-metrics').innerHTML=`
     <div class="metric"><div class="m-label">Registrations counted</div><div class="m-val">${refTotal}</div></div>
-    <div class="metric"><div class="m-label">Top source</div><div class="m-val" style="font-size:21px">${refRows.length?escapeHtml(refRows[0][0]):'—'}</div><div class="m-sub">${refRows.length?refRows[0][1]+' families':''}</div></div>
-    <div class="metric"><div class="m-label">Did not specify</div><div class="m-val">${refCounts['Not specified']||0}</div></div>
+    <div class="metric"><div class="m-label">Top source</div><div class="m-val" style="font-size:21px">${refRows.length?escapeHtml(refRows[0].source):'—'}</div><div class="m-sub">${refRows.length?refRows[0].count+' families':''}</div></div>
+    <div class="metric"><div class="m-label">Did not specify</div><div class="m-val">${unspecified}</div></div>
   `;
   document.getElementById('referral-table').innerHTML=
     '<thead><tr><th>How they heard about you</th><th style="text-align:right">Families</th><th style="text-align:right">Share</th></tr></thead><tbody>'+
     (refRows.length
-      ?refRows.map(([src,n])=>`<tr><td>${escapeHtml(src)}</td><td style="text-align:right">${n}</td><td style="text-align:right">${refTotal?Math.round(n/refTotal*100):0}%</td></tr>`).join('')
+      ?refRows.map(row=>`<tr><td>${escapeHtml(row.source)}</td><td style="text-align:right">${row.count}</td><td style="text-align:right">${refTotal?Math.round(row.count/refTotal*100):0}%</td></tr>`).join('')
       :'<tr><td colspan="3" style="color:var(--muted);padding:18px;text-align:center">No registrations in this period</td></tr>')+
     '</tbody>';
 
@@ -4522,8 +4572,8 @@ function reportDownloadCSV(rows,name){
   const a=document.createElement('a');a.href=url;a.download=name+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
 }
 function exportReferralCSV(){
-  const c={};reportRegsInScope().forEach(r=>{const s=(r.referralSource||'').trim()||'Not specified';c[s]=(c[s]||0)+1;});
-  reportDownloadCSV([['Source','Families']].concat(Object.entries(c).sort((a,b)=>b[1]-a[1])),'referral-sources');
+  const rows=sessionReferralBreakdown(reportRegsInScope());
+  reportDownloadCSV([['Source','Families']].concat(rows.map(row=>[row.source,row.count])),'referral-sources');
 }
 function exportPromoCSV(){
   const p={};reportRegsInScope().forEach(r=>{const m=PROMO_NOTE_RE.exec(r.notes||'');if(m){const code=m[1].toUpperCase();if(!p[code])p[code]={uses:0,total:0};p[code].uses++;p[code].total+=parseFloat(m[2])||0;}});
@@ -6586,7 +6636,7 @@ function renderRegs(){
     return true;
   }).sort((a,b)=>regCreatedTime(b)-regCreatedTime(a));
   const t=document.getElementById('regs-table');
-  t.innerHTML=`<thead><tr><th>Student</th><th>Grade</th><th>Parent</th><th>Contact</th><th>Course / date</th><th>Status</th><th>Amount</th><th style="text-align:center">Photo OK</th><th>Notes</th><th></th></tr></thead><tbody>`+
+  t.innerHTML=`<thead><tr><th>Student</th><th>How they heard</th><th>Grade</th><th>Parent</th><th>Contact</th><th>Course / date</th><th>Status</th><th>Amount</th><th style="text-align:center">Photo OK</th><th>Notes</th><th></th></tr></thead><tbody>`+
     (list.length?list.map(r=>{
       const s=sessions.find(x=>x.id===r.sessionId);
       const c=s?COURSES[s.course]:null;
@@ -6596,6 +6646,7 @@ function renderRegs(){
       const howHtml=paymentHowHtml(r);
       return`<tr>
         <td style="font-weight:500">${escapeHtml(r.studentName)}${partner?`<div style="font-weight:400;font-size:14px;color:var(--muted)">${escapeHtml(partner)}</div>`:''}</td>
+        ${referralSourceCellHtml(r)}
         <td style="color:var(--muted)">${escapeHtml(r.grade)||'—'}</td>
         <td style="color:var(--muted)">${escapeHtml(r.parentName)||'—'}</td>
         <td style="color:var(--muted);font-size:15px">${escapeHtml(r.contact)||'—'}</td>
@@ -6614,7 +6665,16 @@ function renderRegs(){
           <button class="btn sm" onclick="openEditReg('${r.id}')">Edit</button>
           <button class="btn sm danger" onclick="cancelReg('${r.id}')">Cancel</button>`}
         </div></td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="10">No registrations found.</td></tr>`)+'</tbody>';
+    }).join(''):`<tr class="empty-row"><td colspan="11">No registrations found.</td></tr>`)+'</tbody>';
+  const refEl=document.getElementById('reg-referral');
+  if(refEl)refEl.innerHTML=sf?sessionReferralSummaryHtml(list):'';
+  const sub=document.getElementById('reg-page-sub');
+  if(sub){
+    if(sf){
+      const sess=sessions.find(x=>x.id===sf);
+      sub.textContent=sess?(sess.course+' · '+fmtSessDate(sess,{month:'short',day:'numeric',year:'numeric'})):'This session';
+    }else sub.textContent='All students across all sessions';
+  }
   const cxEl=document.getElementById('reg-cancelled-note');
   if(cxEl){
     const hidden=pf?0:registrations.filter(r=>r.payStatus==='cancelled'&&(!sf||r.sessionId===sf)).length;
@@ -7024,6 +7084,7 @@ function openEditReg(id){
   showModal(`<div class="modal-head"><h3>${couple?'Edit couple':(adult?'Edit participant':'Edit registration')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Class</label><div id="m-eclass" style="background:#f7f4ee;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:16px;font-weight:500;line-height:1.4">${escapeHtml(regClassLabel(r))}</div></div>
+    ${referralSourceDetailHtml(r)}
     <div class="fg"><label>${adult?'First name *':'Student first name *'}</label><input type="text" id="m-efn" value="${escapeHtml(fn)}"></div>
     <div class="fg"><label>${adult?'Last name *':'Student last name *'}</label><input type="text" id="m-eln" value="${escapeHtml(ln)}"></div>
     <div class="fg full" id="m-epartner-wrap" style="display:${couple?'':'none'}"><label>Partner's name * <span style="font-weight:400;color:var(--muted)">(second adult)</span></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input type="text" id="m-ep2fn" value="${escapeHtml(p2fn)}" placeholder="First name"><input type="text" id="m-ep2ln" value="${escapeHtml(p2ln)}" placeholder="Last name"></div></div>
