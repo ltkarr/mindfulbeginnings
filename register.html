@@ -13,6 +13,7 @@
 <script src="/config.js"></script>
 <script src="/js/public-sessions.js"></script>
 <script src="/js/course-booking.js"></script>
+<script src="/js/registration-copy.js"></script>
 <script src="/js/payments.js"></script>
 <script src="/js/confirmation-email.js"></script>
 
@@ -192,6 +193,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
   <div class="screen" id="screen-info">
   <div class="sess-banner" id="banner-info"></div>
   <div id="couple-notice" class="notice-box" style="display:none;margin-bottom:16px"><strong>One registration, two adults.</strong> The price is per couple and holds two seats. Enter both names so both adults appear on the class roster.</div>
+  <div id="virtual-class-notice" class="notice-box" style="display:none;margin-bottom:16px"></div>
   <div class="trust-box" id="trust-box">
     <div class="trust-title">Before you continue</div>
     <p><strong>Privacy.</strong> We use your information only to run this class and reach you about it. We do not sell your data.</p>
@@ -241,7 +243,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
     <div class="field" style="margin-top:12px"><label>Special needs, allergies, or accommodations</label><textarea id="p-notes" rows="3" placeholder="Please share anything that will help your child succeed in the course (optional)"></textarea></div>
   </div>
   <div class="fsec" id="permissions-section"><div class="fsec-title">Permissions</div>
-    <div class="perm-item">
+    <div class="perm-item" id="cpr-perm-item">
       <div class="perm-title">CPR manikin practice</div>
       <div class="perm-desc">Safe Sitter® includes practice of rescue skills on CPR manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?</div>
       <div class="perm-radios">
@@ -249,7 +251,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
         <label class="radio-lbl"><input type="radio" name="cpr-perm" value="no"> No, I do not give permission</label>
       </div>
     </div>
-    <div class="perm-item" style="margin-top:14px">
+    <div class="perm-item" id="emerg-perm-item" style="margin-top:14px">
       <div class="perm-title">Emergency medical care</div>
       <div class="perm-desc">In the event of a health emergency, do you authorize the Instructor to seek emergency care for your child?</div>
       <div class="perm-radios">
@@ -308,6 +310,8 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
         <p><strong>Release and indemnification.</strong> In exchange for participation, I, the undersigned parent or legal guardian, release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this workshop, except to the extent caused by gross negligence or willful misconduct.</p>
         <p><strong>Emergency care.</strong> I authorize the instructor and Mindful Beginnings LLC to arrange emergency medical care for the participant if it becomes necessary during the workshop, and I accept financial responsibility for that care.</p>
       </div>
+      <!-- Virtual sessions only. Filled by registration-copy.js when is_virtual is set. -->
+      <div id="terms-virtual" style="display:none"></div>
       <!-- Refund / cancellation applies to everyone -->
       <p class="policy-sep"><strong>Refund and transfer policy.</strong> All sales are final. If a participant is unable to attend, you may transfer the registration to another student. Please email lindsay@mindfulbeginnings.org with the new participant's name. Any payment settlement for the spot must be handled directly between the involved parties.</p>
       <p><strong>Course cancellations.</strong> Mindful Beginnings reserves the right to cancel any course that does not meet its minimum enrollment requirement. If a course is canceled due to low enrollment, registered families will be notified at least five (5) days before the scheduled date and will receive a full refund.</p>
@@ -1398,6 +1402,9 @@ function setBanner(id){
   // Reset the agreement box to the top whenever the form is reconfigured
   const wBox=document.getElementById('waiver-terms');
   if(wBox)wBox.scrollTop=0;
+  // Course blocks above are the in-person waivers. A virtual session replaces
+  // them with the Zoom form (no manikin consent, no classroom emergency care).
+  if(window.MBRegistrationCopy)window.MBRegistrationCopy.applyRegistrationMode(s);
 }
 
 // Sitter referral list opt-in (All Kids Welcome) — reveal the contact fields and
@@ -1438,7 +1445,8 @@ async function goToPayment(){
   if(pe&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pe)){emailEl.classList.add('err');ok=false;if(!firstBad)firstBad=emailEl;}
   const phoneEl=document.getElementById('p-phone');
   if(pp&&pp.replace(/\D/g,'').length<10){phoneEl.classList.add('err');ok=false;if(!firstBad)firstBad=phoneEl;}
-  const isNoCPR=currentSession&&(currentSession.course==='Intro to Babysitting'||/^Safe@Home/.test(currentSession.course||'')||currentSession.course==='All Kids Welcome');
+  const isVirtualForm=window.MBRegistrationCopy?window.MBRegistrationCopy.sessionIsVirtual(currentSession):!!(currentSession&&currentSession.isVirtual);
+  const isNoCPR=isVirtualForm||(currentSession&&(currentSession.course==='Intro to Babysitting'||/^Safe@Home/.test(currentSession.course||'')||currentSession.course==='All Kids Welcome'));
   const isAdult=isAdultCourseName(currentSession&&currentSession.course);
   const isCouple=seatsPerCourse(currentSession&&currentSession.course)>1;
   // Grade — required for every course except the adult courses, where the field is hidden.
@@ -1464,7 +1472,7 @@ async function goToPayment(){
     ok=false;
   }else if(cprPermItem){cprPermItem.classList.remove('err');}
   const emergPermItem=document.querySelectorAll('#permissions-section .perm-item')[1];
-  if(!document.querySelector('input[name="emerg-perm"]:checked')){
+  if(!isVirtualForm&&!document.querySelector('input[name="emerg-perm"]:checked')){
     if(emergPermItem){emergPermItem.classList.add('err');if(!firstBad)firstBad=emergPermItem;}
     ok=false;
   }else if(emergPermItem){emergPermItem.classList.remove('err');}
@@ -2164,8 +2172,8 @@ function buildRegistration(method,txId){
     parent_name:document.getElementById('p-name').value.trim(),
     contact:document.getElementById('p-email').value.trim()+(document.getElementById('p-phone').value.trim()?' / '+document.getElementById('p-phone').value.trim():''),
     grade:isAdultCourseName(s.course)?'':document.getElementById('s-grade').value,
-    cpr_permission:document.querySelector('input[name="cpr-perm"]:checked')?.value||'',
-    emergency_auth:document.querySelector('input[name="emerg-perm"]:checked')?.value||'',
+    cpr_permission:(window.MBRegistrationCopy&&window.MBRegistrationCopy.sessionIsVirtual(s))?'':(document.querySelector('input[name="cpr-perm"]:checked')?.value||''),
+    emergency_auth:(window.MBRegistrationCopy&&window.MBRegistrationCopy.sessionIsVirtual(s))?'':(document.querySelector('input[name="emerg-perm"]:checked')?.value||''),
     waiver_signed:true,
     signature:document.getElementById('p-signature').value.trim(),
     photo_consent:photoConsent,
