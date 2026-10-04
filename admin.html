@@ -1653,6 +1653,26 @@ function wrapupPayCallout(inst,amount,opts){
     :'Check the box after you send it via Zelle';
   return `<div class="pay-send ${paid?'pay-send-paid':'pay-send-due'}"><div class="pay-send-amt">${verb} ${fmt(amount)} to ${safeName}</div><div class="pay-send-sub">Zelle: ${zelle}${bonusNote} · ${status}</div></div>`;
 }
+// Dollar amount one instructor is paid for this session. Same figure as wrap-up
+// and Pay instructor: a session instr_pay_override is a flat amount (no hourly
+// add-on). Otherwise wrapupPayAmount — the course flat fee, or hours × rate,
+// plus travel, plus the extra 30 minutes. Uses the assigned instructor's rate
+// when someone is on the job, and the default rate when it is still open.
+// Null when there is nothing to pay: you are teaching it yourself with no
+// co-instructor, or a custom job with no pay entered. Null is not $0.
+function sessionInstructorPayAmount(s){
+  if(!s)return null;
+  const jdi=(typeof jobDataCache!=='undefined'&&jobDataCache&&s.id)?(jobDataCache[s.id]||{}):{};
+  const roster=(typeof instructors!=='undefined'&&Array.isArray(instructors))?instructors:[];
+  if(s.ownerTaught){
+    if(!s.secondInstructorId)return null;
+    const second=roster.find(x=>x&&x.id===s.secondInstructorId)||null;
+    return wrapupPayAmount(s,second,jdi,'second');
+  }
+  const id=jdi.instructorId||s.instructorId||null;
+  const instr=id?(roster.find(x=>x&&x.id===id)||null):null;
+  return wrapupPayAmount(s,instr,jdi,'primary');
+}
 
 // ─── PAYMENT PROCESSING FEES ─────────────────────────────────
 // Families pay each registration online, and the processor skims a fee off the top
@@ -2107,6 +2127,17 @@ function sessionRequiresRN(s){
 function sessionRequiresSafeSitter(s){
   if(!s)return false;
   return !!(s.requiresSS||(COURSES[s.course]||{}).requiresSafeSitter);
+}
+// Who may teach this job. Same rules as the instructor board: an RN flag on
+// the session or the course, a Safe Sitter® flag on the session or the course,
+// or every instructor when neither flag is set.
+function sessionWhoCanTeach(s){
+  const rn=sessionRequiresRN(s);
+  const ss=sessionRequiresSafeSitter(s);
+  if(rn&&ss)return 'RN and Safe Sitter® instructors only';
+  if(rn)return 'RN instructors only';
+  if(ss)return 'Safe Sitter® instructors only';
+  return 'Any instructor';
 }
 // Can this instructor see/accept this particular job? Same as instrEligible, plus the
 // per-job RN flag. Mirrors the instructor portal's canTeach().
@@ -5155,8 +5186,8 @@ function openSessionMenu(ev,sessId){
 }
 
 // ─── SESSION ABOUT (skim, not edit) ──────────────────────────
-// Manage ▾ → About. A read-only panel so the four things Lindsay checks most
-// often — where, when, who is teaching, and the notes — are readable in full
+// Manage ▾ → About. A read-only panel so Lindsay can read where, when, who is
+// teaching, the instructor pay for that session, and the notes in full
 // without opening the edit form. Edit stays on the menu.
 // Instructor-facing notes and the older "job details" box both showed on the
 // job board, so they are one block here, the same way the edit form folds them.
@@ -5242,6 +5273,16 @@ function sessionAboutInstructors(s){
 function _aboutLinked(text){
   return escapeHtml(text).replace(/https:\/\/[^\s<]+/g,url=>'<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+url+'</a>');
 }
+function sessionAboutPayHtml(s){
+  if(s&&s.ownerTaught&&!s.secondInstructorId){
+    return '<div class="about-empty">No instructor pay — you are teaching</div>';
+  }
+  const amount=sessionInstructorPayAmount(s);
+  if(amount==null||!isFinite(Number(amount))){
+    return '<div class="about-empty">Pay isn\'t set yet</div>';
+  }
+  return '<div class="about-value">'+escapeHtml(fmt(amount))+'</div>';
+}
 function sessionAboutBodyHtml(s){
   const who=sessionAboutInstructors(s);
   const whoHtml=who.length?who.map(p=>`<div class="about-who"><span class="about-who-name">${escapeHtml(p.name)}</span><span class="about-status${p.status==='Assigned'?' assigned':''}">${escapeHtml(p.status)}</span></div>`).join(''):'<div class="about-empty">No instructor yet</div>';
@@ -5254,6 +5295,7 @@ function sessionAboutBodyHtml(s){
     <div class="about-block"><div class="about-kicker">Where</div>${where?`<div class="about-value">${_aboutLinked(where)}</div>`:'<div class="about-empty">No location yet</div>'}</div>
     <div class="about-block"><div class="about-kicker">When</div><div class="about-value">${_aboutLinked(when)}</div></div>
     <div class="about-block"><div class="about-kicker">Who's teaching</div>${whoHtml}</div>
+    <div class="about-block"><div class="about-kicker">Instructor pay</div>${sessionAboutPayHtml(s)}</div>
     <div class="about-block"><div class="about-kicker">Notes to me</div>
       <div class="about-note-label">Private notes <span>(admin only)</span></div>
       ${priv?`<div class="about-note private">${_aboutLinked(priv)}</div>`:'<div class="about-empty">None</div>'}
@@ -8550,8 +8592,77 @@ function emailClass(sessId){
   });
 }
 
-// Weekly digest of jobs instructors can claim. The wording is in the Google Doc.
-// The live job list stays on this screen so it can be copied into that message.
+// Where instructors claim a job. The open-jobs email includes this link.
+const INSTRUCTOR_PORTAL_URL='https://instructorportal.mindfulbeginnings.org/';
+function openJobPayIsFlat(s){
+  return !!(s&&s.instrPayOverride!=null&&s.instrPayOverride!==''&&isFinite(Number(s.instrPayOverride)));
+}
+function formatPayHours(n){
+  const v=Math.round(Number(n)*100)/100;
+  if(!isFinite(v))return '0';
+  return Number.isInteger(v)?String(v):String(v);
+}
+function hourLabel(n){
+  return formatPayHours(n)+(Number(n)===1?' hour':' hours');
+}
+// Paid hours on an hourly job, same split as instrBaseFee. In person that is
+// the course length plus 1.5 hours (one travel hour + the extra 30 minutes).
+// A virtual class has no travel hour, so only the extra 30 minutes is added.
+function openJobHourlyHours(s){
+  const c=(typeof COURSES!=='undefined'&&COURSES[s&&s.course])||{};
+  const teach=Number(c.hours);
+  const courseHours=isFinite(teach)?teach:0;
+  const virtual=!!(c.virtual||(s&&s.isVirtual));
+  const extra=(typeof INSTR_EXTRA_HOURS!=='undefined')?INSTR_EXTRA_HOURS:0.5;
+  const add=(virtual?0:1)+extra;
+  return {courseHours:courseHours,add:add,total:courseHours+add,virtual:virtual};
+}
+// Pay line for one job in the open-jobs email.
+// A custom amount or instr_pay_override is a flat total, the same for every
+// instructor, so the email shows that dollar amount (the five virtual classes
+// set to $100, a custom-job fee, and so on).
+// Otherwise pay depends on the instructor's own rate. This email is one note
+// to everyone, so it says "your hourly pay" and the hour count instead of
+// inventing a single dollar total. Pass instr only when the note is for one
+// person; then the line uses that person's rate and the same formula as
+// wrap-up. A course flat fee stays "$X plus 30 minutes at your hourly pay"
+// in the group note, because that half hour is not the same for everyone.
+function openJobPayText(s,instr){
+  if(openJobPayIsFlat(s))return 'Instructor pay: '+fmt(Number(s.instrPayOverride));
+  if(s&&s.isCustomJob)return "Pay isn't set yet";
+  const c=(typeof COURSES!=='undefined'&&COURSES[s&&s.course])||{};
+  const perPerson=!!(instr&&isFinite(Number(instr.hourlyRate))&&Number(instr.hourlyRate)>0);
+  if(c.instrFlatFee!==undefined){
+    if(perPerson)return 'Instructor pay: '+fmt(instrBaseFee(s,instr));
+    return 'Instructor pay: '+fmt(c.instrFlatFee)+' plus 30 minutes at your hourly pay';
+  }
+  const h=openJobHourlyHours(s);
+  if(perPerson)return 'Instructor pay: '+fmt(Number(instr.hourlyRate)*h.total);
+  if(h.virtual)return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + '+hourLabel(h.add)+', virtual — no travel hour)';
+  return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + 1.5 hours travel)';
+}
+function openJobDigestLine(s,idx,dateText){
+  const loc=s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed');
+  const when=(dateText||'')+(s&&s.time?' · '+s.time:'');
+  const title=(s&&s.course)||'Session';
+  return (idx+1)+'. '+title+' — '+openJobPayText(s)+' — '+sessionWhoCanTeach(s)+'\n   '+when+'\n   '+loc;
+}
+function openJobDigestHtml(s,idx,dateText){
+  const loc=s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed');
+  const title=(s&&s.course)||'Session';
+  const when=escapeHtml(dateText||'')+(s&&s.time?' · '+escapeHtml(s.time):'');
+  return '<div style="margin-bottom:10px"><strong>'+escapeHtml((idx+1)+'. '+title)+'</strong> — '+escapeHtml(openJobPayText(s))+' — '+escapeHtml(sessionWhoCanTeach(s))+'<br>'+when+'<br><span style="color:#6b7a99">'+escapeHtml(loc)+'</span></div>';
+}
+function openJobPortalText(){
+  return 'Claim a job in the instructor portal: '+INSTRUCTOR_PORTAL_URL;
+}
+function openJobPortalHtml(){
+  return '<div class="facts-note">Claim a job in the instructor portal: <a href="'+INSTRUCTOR_PORTAL_URL+'">'+INSTRUCTOR_PORTAL_URL+'</a></div>';
+}
+// Weekly digest Lindsay sends from Instructors → Email open jobs. One message,
+// BCC to every active instructor. The on-screen list is the job section she
+// copies: each job has instructor pay and who can teach it, and the instructor
+// portal link is at the bottom. Nothing here sends mail.
 function emailOpenJobs(){
   const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
   const open=sessions.filter(s=>!s.ownerTaught&&!s.isHold&&!s.isCancelled&&s.date&&new Date(s.date+'T12:00:00')>=startOfToday&&!(jobDataCache[s.id]||{}).instructorId).sort((a,b)=>a.date.localeCompare(b.date));
@@ -8559,25 +8670,19 @@ function emailOpenJobs(){
   if(!recips.length){alert('No instructor email addresses are on file yet. Add each instructor\'s email on the Instructors tab (use Add instructor or edit an existing one), then try again.');return;}
   if(!open.length){alert('There are no open jobs right now, so there is nothing to send. A job counts as open when it is not taught by you, not on hold, not cancelled, dated today or later, and not yet claimed by an instructor.');return;}
   const fmtD=s=>new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  const lines=open.map((s,idx)=>{
-    const loc=s.isVirtual?'Virtual (Zoom)':([s.location,s.city].filter(Boolean).join(', ')||'Location to be confirmed');
-    const time=s.time?'\n   Time: '+s.time:'';
-    return (idx+1)+'. '+s.course+'\n   '+fmtD(s)+time+'\n   '+loc;
-  });
-  const preview=open.map((s,idx)=>{
-    const loc=s.isVirtual?'Virtual (Zoom)':([s.location,s.city].filter(Boolean).join(', ')||'Location to be confirmed');
-    return '<div style="margin-bottom:10px"><strong>'+(idx+1)+'. '+escapeHtml(s.course)+'</strong><br>'+escapeHtml(fmtD(s))+(s.time?' · '+escapeHtml(s.time):'')+'<br><span style="color:#6b7a99">'+escapeHtml(loc)+'</span></div>';
-  }).join('');
+  const lines=open.map((s,idx)=>openJobDigestLine(s,idx,fmtD(s)));
+  const preview=open.map((s,idx)=>openJobDigestHtml(s,idx,fmtD(s))).join('');
+  const jobText=lines.join('\n\n')+'\n\n'+openJobPortalText();
   openDocEmail({
     type:'openJobs',
     category:'Open jobs digest',
     sessionLine:open.length+' open job'+(open.length===1?'':'s'),
-    subject:'Open babysitting jobs available now',
+    subject:'Mindful Beginnings jobs available now',
     emails:recips,
     field:'bcc',
-    note:'Paste the open-jobs note from the Google Doc. Copy the live job list below into that message. Instructors claim jobs at instructorportal.mindfulbeginnings.org.',
-    extraHtml:'<div class="section-label">Jobs open right now</div><div class="facts">'+preview+'</div>',
-    copyExtra:lines.join('\n\n'),
+    note:'Copy the job list below into your message. Each job shows the instructor pay and who can teach it. The instructor portal link is at the bottom of the list.',
+    extraHtml:'<div class="section-label">Jobs open right now</div><div class="facts">'+preview+openJobPortalHtml()+'</div>',
+    copyExtra:jobText,
     copyExtraLabel:'Copy job list'
   });
 }

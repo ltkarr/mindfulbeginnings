@@ -28,17 +28,38 @@ function loadAbout() {
   const sandbox = {
     instructors: [],
     jobDataCache: {},
-    recurLabel: s => (s && s.isRecurring ? 'Weekly, Oct 4 – Dec 13' : '')
+    recurLabel: s => (s && s.isRecurring ? 'Weekly, Oct 4 – Dec 13' : ''),
+    COURSES: {
+      'Safe Sitter®': { hours: 5, requiresSafeSitter: true },
+      'Safe@Home': { hours: 1.5 },
+      'Safe@Home — Virtual': { hours: 1, instrFlatFee: 75, virtual: true },
+      'All Kids Welcome': { hours: 1.5, instrFlatFee: 75, virtual: true },
+      'Ready. Period.': { hours: 1.5, requiresRN: true },
+      'Stay Ready: Choking Rescue and CPR': { hours: 1.5, requiresRN: true },
+      'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': { hours: 1, requiresRN: true },
+      'Care Ready': { hours: 2.5 }
+    },
+    INSTR_RATE: 50,
+    INSTR_EXTRA_HOURS: 0.5
   };
   vm.runInNewContext(
     [
       extractFn(admin, 'escapeHtml'),
+      extractFn(admin, 'fmt'),
+      extractFn(admin, 'instrBaseFee'),
+      extractFn(admin, 'instrDisplayFee'),
+      extractFn(admin, 'secondInstrDisplayFee'),
+      extractFn(admin, 'wrapupPayAmount'),
+      extractFn(admin, 'sessionInstructorPayAmount'),
+      extractFn(admin, 'sessionRequiresRN'),
+      extractFn(admin, 'sessionRequiresSafeSitter'),
       extractFn(admin, 'sessionJobNotesText'),
       extractFn(admin, 'sessionAboutWhereText'),
       extractFn(admin, '_aboutDateLabel'),
       extractFn(admin, 'sessionAboutWhenText'),
       extractFn(admin, 'sessionAboutInstructors'),
       extractFn(admin, '_aboutLinked'),
+      extractFn(admin, 'sessionAboutPayHtml'),
       extractFn(admin, 'sessionAboutBodyHtml')
     ].join('\n'),
     sandbox
@@ -169,6 +190,90 @@ test('owner-taught, virtual, hold, and custom-job notes all render', () => {
   assert.match(job, />Claimed</);
   assert.match(job, /Invoice GOTR at month end/);
   assert.match(job, new RegExp(longJobNotes.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
+
+test('About shows instructor pay, including a flat session override', () => {
+  const api = loadAbout();
+  api.instructors = [{ id: 'i1', name: 'Dana Rivera', hourlyRate: 40 }];
+  api.jobDataCache = { claimed: { instructorId: 'i1' } };
+
+  const override = api.sessionAboutBodyHtml({
+    id: 'sear',
+    code: 'SEAR-261206',
+    course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes',
+    isVirtual: true,
+    instrPayOverride: 100,
+    priceOverride: 25,
+    date: '2026-12-06',
+    time: '10:00 AM',
+    requiresRN: true
+  });
+  assert.match(override, /Instructor pay/);
+  assert.match(override, /\$100/);
+  assert.doesNotMatch(override, /\$75/);
+  assert.doesNotMatch(override, /\$25/);
+  assert.equal(api.sessionInstructorPayAmount({
+    course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes',
+    isVirtual: true,
+    instrPayOverride: 100,
+    priceOverride: 25
+  }), 100);
+
+  const usual = api.sessionAboutBodyHtml({
+    id: 'ss',
+    code: 'SS-261018',
+    course: 'Safe Sitter®',
+    date: '2026-10-18',
+    time: '9:00 AM',
+    location: 'Bethesda Community Center',
+    instructorId: 'i1'
+  });
+  // 5 hours × $40 + 1 travel hour + 30 minutes, at Dana's rate. No override.
+  assert.match(usual, /Instructor pay/);
+  assert.match(usual, /\$260/);
+  assert.equal(api.sessionInstructorPayAmount({
+    id: 'claimed',
+    course: 'Safe Sitter®',
+    instructorId: 'i1'
+  }), api.wrapupPayAmount({
+    id: 'claimed',
+    course: 'Safe Sitter®',
+    instructorId: 'i1'
+  }, api.instructors[0], api.jobDataCache.claimed, 'primary'));
+
+  const openUsual = api.sessionAboutBodyHtml({
+    id: 'care',
+    course: 'Care Ready',
+    date: '2026-11-02',
+    time: '4:00 PM',
+    location: 'Library'
+  });
+  // 2.5 hours × $50 + travel + 30 minutes, default rate, nobody assigned yet.
+  assert.match(openUsual, /\$200/);
+  assert.doesNotMatch(openUsual, /Pay isn't set yet/);
+});
+
+test('About says when instructor pay is not owed or not set', () => {
+  const api = loadAbout();
+  const owner = api.sessionAboutBodyHtml({
+    id: 'own2',
+    ownerTaught: true,
+    course: 'Safe@Home',
+    date: '2026-11-01',
+    time: '10:00 AM'
+  });
+  assert.match(owner, /No instructor pay — you are teaching/);
+  assert.doesNotMatch(owner, /\$/);
+
+  const custom = api.sessionAboutBodyHtml({
+    id: 'fair',
+    isCustomJob: true,
+    course: 'Library fair table',
+    date: '2026-11-08',
+    instrPayOverride: null
+  });
+  assert.match(custom, /Pay isn't set yet/);
+  assert.doesNotMatch(custom, /\$0/);
 });
 
 test('About escapes note text instead of rendering it as HTML', () => {
