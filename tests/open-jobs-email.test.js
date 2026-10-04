@@ -58,6 +58,7 @@ function loadEmail() {
       extractFn(admin, 'sessionRequiresRN'),
       extractFn(admin, 'sessionRequiresSafeSitter'),
       extractFn(admin, 'sessionWhoCanTeach'),
+      extractFn(admin, 'openJobCopyText'),
       extractFn(admin, 'openJobPayIsFlat'),
       extractFn(admin, 'formatPayHours'),
       extractFn(admin, 'hourLabel'),
@@ -107,11 +108,13 @@ test('the five virtual overrides show $100 and who can teach them', () => {
       time: '4:00 to 5:00 PM'
     };
     const line = api.openJobDigestLine(session, idx, 'Sunday, November 8, 2026');
-    assert.match(line, new RegExp(row.course.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    assert.match(line, /Instructor pay: \$100/);
+    const shownCourse = row.course.replace(/\u2014/g, '-');
+    assert.match(line, new RegExp(shownCourse.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(line, /Instructor pay: \$100 - /);
     assert.match(line, new RegExp(row.who.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(line, /Sunday, November 8, 2026 · 4:00 to 5:00 PM/);
     assert.match(line, /Virtual \(Zoom\)/);
+    assert.doesNotMatch(line, /\u2014/);
     assert.doesNotMatch(line, /\$25/);
     assert.doesNotMatch(line, /your hourly pay/);
     assert.doesNotMatch(line, /\$75/);
@@ -119,6 +122,7 @@ test('the five virtual overrides show $100 and who can teach them', () => {
     assert.match(html, /Instructor pay: \$100/);
     assert.match(html, new RegExp(row.who.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(html, /4:00 to 5:00 PM/);
+    assert.doesNotMatch(html, /\u2014/);
   });
 });
 
@@ -134,9 +138,12 @@ test('a custom job with a flat fee shows that total, and an hourly job does not 
     city: 'Leesburg'
   };
   const fairLine = api.openJobDigestLine(fair, 0, 'Saturday, October 31, 2026');
-  assert.match(fairLine, /Instructor pay: \$300 — Any instructor/);
+  assert.match(fairLine, /Instructor pay: \$300 - Any instructor/);
+  assert.match(fairLine, /Girl Scouts - Monster Birthday Bash Table/);
+  assert.match(fairLine, /Camp Potomac Woods - Monster Birthday Bash/);
   assert.match(fairLine, /Saturday, October 31, 2026 · Event 5:00 PM/);
   assert.match(fairLine, /Leesburg/);
+  assert.doesNotMatch(fairLine, /\u2014/);
   assert.doesNotMatch(fairLine, /your hourly pay/);
 
   const sitter = { course: 'Safe Sitter®', time: '9:00 AM', location: 'Library', city: 'Bethesda' };
@@ -175,8 +182,9 @@ test('a course flat fee is not rewritten as hourly times 1.5 travel, and a virtu
 
 test('the admin open-jobs email is the Jobs open right now list, with a portal link and no babysitting subject', () => {
   const fn = admin.slice(admin.indexOf('function emailOpenJobs'), admin.indexOf('function opsEmailsApi'));
-  assert.match(fn, /subject:'Mindful Beginnings jobs available now'/);
+  assert.match(fn, /openJobCopyText\('Mindful Beginnings jobs available now'\)/);
   assert.doesNotMatch(fn, /babysitting/i);
+  assert.doesNotMatch(fn, /\u2014/);
   assert.match(fn, /Jobs open right now/);
   assert.match(fn, /openJobDigestLine/);
   assert.match(fn, /openJobDigestHtml/);
@@ -184,9 +192,21 @@ test('the admin open-jobs email is the Jobs open right now list, with a portal l
   assert.match(fn, /openJobPortalHtml/);
   assert.match(fn, /copyExtra:jobText/);
   assert.doesNotMatch(fn, /\bbody:/);
-  assert.doesNotMatch(admin.slice(admin.indexOf("subject:'Mindful Beginnings jobs available now'"), admin.indexOf('function opsEmailsApi')), /babysitting/i);
-  const portal = loadEmail().openJobPortalText();
+  assert.doesNotMatch(admin.slice(admin.indexOf('Mindful Beginnings jobs available now'), admin.indexOf('function opsEmailsApi')), /babysitting/i);
+  const api = loadEmail();
+  const portal = api.openJobPortalText();
   assert.equal(portal, 'Claim a job in the instructor portal: https://instructorportal.mindfulbeginnings.org/');
+  assert.doesNotMatch(portal, /\u2014/);
+  assert.doesNotMatch(api.openJobPayText({ course: 'Ready. Period.', isVirtual: true }), /\u2014/);
+  const pasted = [
+    'Mindful Beginnings jobs available now',
+    'Jobs open right now',
+    api.openJobDigestLine({ course: 'Safe@Home — Virtual', isVirtual: true, instrPayOverride: 100, time: '4:00 to 5:00 PM' }, 1, 'Sunday, November 8, 2026'),
+    api.openJobPayText({ course: 'Safe Sitter®' }),
+    api.sessionWhoCanTeach({ course: 'Ready. Period.', requiresRN: true }),
+    portal
+  ].join('\n');
+  assert.doesNotMatch(pasted, /\u2014/);
   assert.match(admin, /function emailOpenJobs\(\)/);
   assert.match(admin, /onclick="emailOpenJobs\(\)"/);
 });
