@@ -106,8 +106,12 @@ test('header branding is multi-course, not Safe Sitter-only', () => {
 test('full public sessions show WAITLIST ONLY as a mailto, not inside the register button', () => {
   const render = register.slice(register.indexOf('function renderPublicSessions'), register.indexOf('async function loadPublicSessions'));
   assert.match(render, /seatsLabel\(left, per\)/);
+  assert.match(render, /FEW_SEATS_LABEL/);
+  assert.match(render, /pseats'\+\(scarce\?' few':''\)/);
   assert.match(render, /waitlistMailto\(r\)/);
   assert.match(render, /<a class="pseats full public-waitlist"/);
+  assert.doesNotMatch(register, /seats left/);
+  assert.doesNotMatch(register, /All '\+max\+' spots/);
   assert.match(register, /\.public-card a\.public-waitlist\{display:block/);
   assert.match(render, /escapeHtml\(seats\)/);
   const card = render.slice(render.indexOf("html+='<div class=\"public-card\""));

@@ -205,6 +205,11 @@
     return Math.max(0, cap - regs * per);
   }
 
+  // Families never see an exact remaining count. Under this many open seats
+  // the public card shows a scarcity line; at or above it, no seat text.
+  var SCARCITY_BELOW = 5;
+  var FEW_SEATS_LABEL = 'FEW SEATS LEFT';
+
   function seatsLabel(left, seatsNeeded) {
     if (left == null) return '';
     var need = Number(seatsNeeded);
@@ -212,8 +217,8 @@
     // Not enough room for one more registration. The public card turns this
     // into a mailto; a session code still opens the on-page waitlist form.
     if (left < need) return 'WAITLIST ONLY';
-    if (left === 1) return '1 seat left';
-    return left + ' seats left';
+    if (left < SCARCITY_BELOW) return FEW_SEATS_LABEL;
+    return '';
   }
 
   var WAITLIST_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -352,6 +357,8 @@
     seatsPerRegistration: seatsPerRegistration,
     seatsLeft: seatsLeft,
     seatsLabel: seatsLabel,
+    SCARCITY_BELOW: SCARCITY_BELOW,
+    FEW_SEATS_LABEL: FEW_SEATS_LABEL,
     waitlistMailto: waitlistMailto,
     monthLabel: monthLabel,
     courseAudience: courseAudience,

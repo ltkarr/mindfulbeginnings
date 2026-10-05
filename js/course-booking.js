@@ -3,7 +3,7 @@
    instructor.html.
 
    seatsPerRegistration is how many people one saved registration holds.
-   Capacity (maxStudents, overrides, "N seats left") is always in people.
+   Capacity (maxStudents, overrides, remaining seats) is always in people.
    register_student() in the database still counts registration rows, so
    the register page passes floor(peopleCap / seatsPerRegistration) as
    p_max. One Baby Ready payment is one row and two people.
