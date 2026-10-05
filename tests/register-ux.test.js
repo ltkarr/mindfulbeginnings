@@ -103,6 +103,24 @@ test('header branding is multi-course, not Safe Sitter-only', () => {
   assert.doesNotMatch(pay, /<div class="tag">Safe Sitter® Courses<\/div>/);
 });
 
+test('full public sessions show WAITLIST ONLY as a mailto, not inside the register button', () => {
+  const render = register.slice(register.indexOf('function renderPublicSessions'), register.indexOf('async function loadPublicSessions'));
+  assert.match(render, /seatsLabel\(left, per\)/);
+  assert.match(render, /waitlistMailto\(r\)/);
+  assert.match(render, /<a class="pseats full public-waitlist"/);
+  assert.match(render, /escapeHtml\(seats\)/);
+  const card = render.slice(render.indexOf("html+='<div class=\"public-card\""));
+  assert.ok(card.indexOf('public-card-hit') >= 0);
+  assert.ok(card.indexOf('</button>') < card.indexOf('seatsHtml'), 'the register hit target closes before the waitlist link is inserted');
+  assert.doesNotMatch(render, /<button[^>]*class="public-card"/);
+  assert.doesNotMatch(register, /Full — waitlist/);
+  const click = register.slice(register.indexOf("list.addEventListener('click'"), register.indexOf("list.addEventListener('click'") + 900);
+  assert.match(click, /public-waitlist/);
+  assert.match(click, /public-card-hit/);
+  assert.ok(click.indexOf('public-waitlist') < click.indexOf('selectPublicSession'), 'waitlist mailto returns before registration');
+  assert.ok(click.indexOf('openExternalRegistration') < click.indexOf('selectPublicSession'));
+});
+
 test('deep links and waitlist stay on this page', () => {
   assert.match(register, /p\.get\('paycode'\)/);
   assert.match(register, /p\.get\('code'\)/);

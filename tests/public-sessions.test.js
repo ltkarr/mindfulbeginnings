@@ -14,6 +14,7 @@ const {
   seatsPerRegistration,
   seatsLeft,
   seatsLabel,
+  waitlistMailto,
   todayLocalISO,
   addDaysISO,
   courseAudience,
@@ -214,10 +215,10 @@ test('seatsLeft uses override cap, then course cap', () => {
   assert.equal(seatsLeft(row(), 3, { 'Safe Sitter®': 16 }), 13);
   assert.equal(seatsLeft(row({ max_students_override: 8 }), 8, { 'Safe Sitter®': 16 }), 0);
   assert.equal(seatsLeft(row(), 1, {}), null);
-  assert.equal(seatsLabel(0), 'Full — waitlist');
+  assert.equal(seatsLabel(0), 'WAITLIST ONLY');
   assert.equal(seatsLabel(1), '1 seat left');
   assert.equal(seatsLabel(4), '4 seats left');
-  assert.equal(seatsLabel(1, 2), 'Full — waitlist');
+  assert.equal(seatsLabel(1, 2), 'WAITLIST ONLY');
 });
 
 test('Baby Ready couple bookings consume two seats each', () => {
@@ -229,7 +230,16 @@ test('Baby Ready couple bookings consume two seats each', () => {
   assert.equal(seatsLeft(baby, 5, { 'Baby Ready': 12 }), 2);
   assert.equal(seatsLeft(baby, 6, { 'Baby Ready': 12 }), 0);
   assert.equal(seatsLabel(2, 2), '2 seats left');
-  assert.equal(seatsLabel(0, 2), 'Full — waitlist');
+  assert.equal(seatsLabel(0, 2), 'WAITLIST ONLY');
+});
+
+test('waitlistMailto addresses Lindsay with course, code, and date', () => {
+  const href = waitlistMailto({ course: 'Safe Sitter®', code: 'SS-1103', date: '2026-11-03' });
+  assert.match(href, /^mailto:lindsay@mindfulbeginnings\.org\?/);
+  const params = new URL(href).searchParams;
+  assert.equal(params.get('subject'), 'Waitlist request: Safe Sitter® — SS-1103 — Nov 3, 2026');
+  assert.equal(params.get('body'), 'I would like to join the waitlist for Safe Sitter® — SS-1103 — Nov 3, 2026.');
+  assert.equal(waitlistMailto({ course: '', code: '', date: '' }), 'mailto:lindsay@mindfulbeginnings.org?subject=' + encodeURIComponent('Waitlist request: Class') + '&body=' + encodeURIComponent('I would like to join the waitlist for Class.'));
 });
 
 test('sessionCardPlace shows city or Virtual and never a street address', () => {
