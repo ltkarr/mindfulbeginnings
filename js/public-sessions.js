@@ -43,7 +43,8 @@
     'My First Babysitters Club': 'Younger sitters · 8-week series',
     'My First Babysitters Club — Single Session': 'Younger sitters',
     'Ready. Period.': 'Grades 5–7',
-    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 'Student athletes · Grades 6–12'
+    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 'Student athletes · Grades 6–12',
+    'Social Ready': 'Grades 4–8'
   };
 
   function todayLocalISO(now) {

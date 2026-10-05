@@ -4,6 +4,7 @@
    Aug 17 2026 · Safe Sitter® and Grandparents caps raised 8 → 16 to match admin.html
    Sep  6 2026 · Added My First Babysitters Club — Single Session, Ready. Period.,
                  and Season Ready; corrected My First Babysitters Club matCost to $30
+   Oct  5 2026 · Added Social Ready ($35, 1 hour, cap 20, $100 flat fee, virtual)
    ════════════════════════════════════════════════════════════════════════
 
    Loaded by register.html and instructor.html. This file is the single
@@ -94,7 +95,14 @@ const COURSES={
   // RN instructors only (hands-only CPR, AED trainers, heat-illness and concussion
   // response). No flat fee, so the instructor is paid 1 teaching hour + 1 travel
   // hour + the standard extra 30 minutes.
-  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true,audience:'Student athletes · Grades 6–12'}
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true,audience:'Student athletes · Grades 6–12'},
+  // Social Ready — 60-minute workshop for grades 4–8, $35/participant, up to 20.
+  // Any instructor may teach it (no Safe Sitter® or RN flag, and it is not an adult course).
+  // The flat instructor fee is $100, the same as the other Girl Scouts virtual workshops.
+  // virtual:true matches Safe@Home — Virtual and All Kids Welcome so Zoom pay has no
+  // travel hour. A session can still be taught in person; Girl Scouts virtual series
+  // may raise the cap to 30 with the session-level max-students override.
+  'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true,audience:'Grades 4–8'}
 };
 
 
@@ -198,7 +206,8 @@ const MAX_STUDENTS={
   'My First Babysitters Club':12,
   'My First Babysitters Club — Single Session':12,
   'Ready. Period.':18,
-  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,
+  'Social Ready':20
 };
 
 
