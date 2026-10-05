@@ -14,6 +14,8 @@ const {
   seatsPerRegistration,
   seatsLeft,
   seatsLabel,
+  FEW_SEATS_LABEL,
+  SCARCITY_BELOW,
   waitlistMailto,
   todayLocalISO,
   addDaysISO,
@@ -215,10 +217,17 @@ test('seatsLeft uses override cap, then course cap', () => {
   assert.equal(seatsLeft(row(), 3, { 'Safe Sitter®': 16 }), 13);
   assert.equal(seatsLeft(row({ max_students_override: 8 }), 8, { 'Safe Sitter®': 16 }), 0);
   assert.equal(seatsLeft(row(), 1, {}), null);
+  assert.equal(SCARCITY_BELOW, 5);
+  assert.equal(FEW_SEATS_LABEL, 'FEW SEATS LEFT');
   assert.equal(seatsLabel(0), 'WAITLIST ONLY');
-  assert.equal(seatsLabel(1), '1 seat left');
-  assert.equal(seatsLabel(4), '4 seats left');
+  assert.equal(seatsLabel(1), 'FEW SEATS LEFT');
+  assert.equal(seatsLabel(4), 'FEW SEATS LEFT');
+  assert.equal(seatsLabel(5), '');
+  assert.equal(seatsLabel(13), '');
+  assert.equal(seatsLabel(null), '');
   assert.equal(seatsLabel(1, 2), 'WAITLIST ONLY');
+  assert.doesNotMatch(seatsLabel(4), /\d/);
+  assert.doesNotMatch(seatsLabel(12), /\d/);
 });
 
 test('Baby Ready couple bookings consume two seats each', () => {
@@ -229,7 +238,9 @@ test('Baby Ready couple bookings consume two seats each', () => {
   assert.equal(seatsLeft(baby, 1, { 'Baby Ready': 12 }), 10);
   assert.equal(seatsLeft(baby, 5, { 'Baby Ready': 12 }), 2);
   assert.equal(seatsLeft(baby, 6, { 'Baby Ready': 12 }), 0);
-  assert.equal(seatsLabel(2, 2), '2 seats left');
+  assert.equal(seatsLabel(2, 2), 'FEW SEATS LEFT');
+  assert.equal(seatsLabel(4, 2), 'FEW SEATS LEFT');
+  assert.equal(seatsLabel(6, 2), '');
   assert.equal(seatsLabel(0, 2), 'WAITLIST ONLY');
 });
 

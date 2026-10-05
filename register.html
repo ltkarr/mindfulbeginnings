@@ -114,7 +114,7 @@ main{max-width:640px;margin:0 auto;padding:32px 24px 64px}
 .public-card .pside{position:relative;z-index:2;pointer-events:none;text-align:right;flex-shrink:0}
 .public-card .pprice{font-weight:600;color:var(--navy);font-size:15px;white-space:nowrap}
 .public-card .pseats{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap}
-.public-card .pseats.full{color:#9a6800;font-weight:600}
+.public-card .pseats.full,.public-card .pseats.few{color:#9a6800;font-weight:600}
 .public-card a.public-waitlist{display:block;pointer-events:auto;position:relative;z-index:3;color:#9a6800;font-weight:600;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .public-card a.public-waitlist:hover{color:#7a5000}
 .public-card a.public-waitlist:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
@@ -984,6 +984,7 @@ function renderPublicSessions(){
     const externalUrl=helpers.externalRegistrationUrl(r);
     const full=!externalUrl&&left!=null&&left<per;
     const seats=externalUrl?'':helpers.seatsLabel(left, per);
+    const scarce=!full&&!!seats&&seats===helpers.FEW_SEATS_LABEL;
     const goLabel=externalUrl?helpers.externalRegistrationLabel(externalUrl):'Register →';
     const ariaLabel=(externalUrl?goLabel:'Register')+': '+[r.course||'Course',when,place,(!full&&seats)?seats:''].filter(Boolean).join(', ');
     let seatsHtml='';
@@ -991,7 +992,7 @@ function renderPublicSessions(){
       if(full){
         seatsHtml='<a class="pseats full public-waitlist" href="'+escapeHtml(helpers.waitlistMailto(r))+'">'+escapeHtml(seats)+'</a>';
       }else{
-        seatsHtml='<div class="pseats" aria-hidden="true">'+escapeHtml(seats)+'</div>';
+        seatsHtml='<div class="pseats'+(scarce?' few':'')+'" aria-hidden="true">'+escapeHtml(seats)+'</div>';
       }
     }
     html+='<div class="public-card" data-code="'+escapeHtml(r.code)+'"'+(externalUrl?' data-external="1"':'')+'>'+
@@ -1193,9 +1194,9 @@ async function checkCode(){
     const forceWaitlist=new URLSearchParams(window.location.search).get('waitlist')==='1';
     if((!registrationFits(max, regCount, r.course)||forceWaitlist)&&!compMode&&!auctionMode){
       setBanner('banner-waitlist');
-      // Update the dynamic "All N spots have been claimed" text
+      // Full classes stay on the waitlist screen, without the class size.
       const wlText=document.querySelector('#screen-waitlist .waitlist-box p');
-      if(wlText)wlText.textContent='All '+max+' spots for this session have been claimed. You are welcome to join the waitlist and we will reach out right away if a spot opens up!';
+      if(wlText)wlText.textContent='All spots for this session have been claimed. You are welcome to join the waitlist and we will reach out right away if a spot opens up!';
       goToWaitlist();
     }else{
       setBanner('banner-info');goToScreen(2);
