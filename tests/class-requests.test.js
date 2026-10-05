@@ -89,7 +89,17 @@ test('organization course choices match the catalog, including Girl Scout badge 
   model.coursesFor('organization').forEach(function (course) {
     assert.match(orgPage, new RegExp('value="' + course.key + '"'));
   });
-  assert.match(orgPage, /mindfulbeginnings\.org\/gsnc/);
+  assert.match(orgPage, /href="https:\/\/mindfulbeginnings\.org\/girl-scouts"/);
+  assert.match(orgPage, />https:\/\/mindfulbeginnings\.org\/girl-scouts</);
+  assert.doesNotMatch(orgPage, /gsnc/);
+  assert.doesNotMatch(hostPage, /gsnc/);
+  assert.doesNotMatch(hostPage, /lindsay/i);
+  assert.doesNotMatch(orgPage, /lindsay/i);
+  assert.doesNotMatch(hostPage, /changes later/i);
+  assert.doesNotMatch(orgPage, /changes later/i);
+  const formScript = fs.readFileSync(path.join(root, 'js/class-request-form.js'), 'utf8');
+  assert.match(formScript, /We will confirm the date/);
+  assert.doesNotMatch(formScript, /lindsay/i);
   assert.match(orgPage, /name="badge"/);
   assert.match(orgPage, /value="org_full_external"/);
   assert.match(orgPage, /value="org_full_link"/);

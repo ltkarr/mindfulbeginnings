@@ -11,13 +11,10 @@
 <body>
 <header>
   <img src="/email-logo-white.png" alt="Mindful Beginnings">
-  <div class="htext">
-    <div class="tag">Organization site information</div>
-  </div>
 </header>
 <div class="hero">
   <h1>Organization site information</h1>
-  <p>Tell us how to find the room, who to call that day, and how registration should work. If anything changes later, email lindsay@mindfulbeginnings.org.</p>
+  <p>Tell us how to find the room, who to call that day, and how registration should work.</p>
 </div>
 <main>
   <form id="request-form" data-kind="organization" novalidate>
@@ -37,7 +34,7 @@
 
     <div class="card">
       <h2>Course</h2>
-      <p class="lead">Girl Scout troops: badge descriptions are on <a href="https://mindfulbeginnings.org/gsnc">mindfulbeginnings.org/gsnc</a>. Hosting at a private home instead? <a href="/host.html">Use the home host form</a>.</p>
+      <p class="lead">Girl Scout troops: badge descriptions are on <a href="https://mindfulbeginnings.org/girl-scouts">https://mindfulbeginnings.org/girl-scouts</a>. Hosting at a private home instead? <a href="/host.html">Use the home host form</a>.</p>
       <div class="field">
         <label for="courseKey">Name of course</label>
         <select id="courseKey" name="courseKey" required>
@@ -122,17 +119,16 @@
     </div>
 
     <button class="btn-p" id="submit-btn" type="submit">Submit site information</button>
-    <p class="hint" style="text-align:center;margin-top:10px">Lindsay reviews a draft and sends the confirmation herself. This form does not email you automatically.</p>
+    <p class="hint" style="text-align:center;margin-top:10px">We will confirm the date. This form does not email you automatically.</p>
     <div class="hp" aria-hidden="true"><label>Company website<input name="companyWebsite" tabindex="-1" autocomplete="off"></label></div>
   </form>
 
   <div id="success" class="card ok" hidden>
     <h2 id="success-hello">Thank you.</h2>
     <p id="success-extra"></p>
-    <p class="hint">Questions in the meantime? Email <a href="mailto:lindsay@mindfulbeginnings.org">lindsay@mindfulbeginnings.org</a>.</p>
   </div>
 </main>
-<footer>© 2026 Mindful Beginnings · <a href="/host.html">Hosting at home?</a> · <a href="/register.html">Register for a class</a> · <a href="https://mindfulbeginnings.org/gsnc">Girl Scout programs</a></footer>
+<footer>© 2026 Mindful Beginnings · <a href="/host.html">Hosting at home?</a> · <a href="/register.html">Register for a class</a> · <a href="https://mindfulbeginnings.org/girl-scouts">Girl Scout programs</a></footer>
 <script src="/js/class-request-form.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
