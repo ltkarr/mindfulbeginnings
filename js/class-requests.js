@@ -734,7 +734,11 @@
       var letter = ops ? ops.draft('hostLetter', info) : { subject: 'Hosting your course', body: '' };
       var body = letter.body || '';
       var extras = [];
-      if (n.days.length > 1) extras.push('Additional dates:\n' + when.detail);
+      if (n.days.length > 1) {
+        extras.push('Additional dates:\n' + n.days.slice(1).map(function (d) {
+          return longDate(d.date) + (d.time ? ', ' + d.time : '');
+        }).join('\n'));
+      }
       if (n.checklistQuestions) extras.push('Your checklist questions: ' + n.checklistQuestions);
       if (n.specialInstructions) extras.push('Notes you sent: ' + n.specialInstructions);
       if (extras.length && body.indexOf("Please don't hesitate") >= 0) {
@@ -770,7 +774,7 @@
     if (code) lines.push('Session code: ' + code);
     lines.push(paymentParagraph(n, code));
     if (n.instructorRequest) lines.push('Instructor request: ' + n.instructorRequest + ' — I will confirm who is teaching as we get closer.');
-    else lines.push('I will share your instructor’s name as we get closer to the date.');
+    else lines.push('I will share your instructor\'s name as we get closer to the date.');
     var notes = [];
     if (n.parking) notes.push('Parking: ' + n.parking);
     if (n.arrival) notes.push('Arrival: ' + n.arrival);
