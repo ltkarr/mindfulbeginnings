@@ -108,6 +108,7 @@ test('full public sessions show WAITLIST ONLY as a mailto, not inside the regist
   assert.match(render, /seatsLabel\(left, per\)/);
   assert.match(render, /waitlistMailto\(r\)/);
   assert.match(render, /<a class="pseats full public-waitlist"/);
+  assert.match(register, /\.public-card a\.public-waitlist\{display:block/);
   assert.match(render, /escapeHtml\(seats\)/);
   const card = render.slice(render.indexOf("html+='<div class=\"public-card\""));
   assert.ok(card.indexOf('public-card-hit') >= 0);
