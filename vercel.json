@@ -84,6 +84,30 @@
       ]
     },
     {
+      "source": "/js/class-requests.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/js/class-requests-admin.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/js/class-request-form.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/css/intake.css",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
       "source": "/config-instructor.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, must-revalidate" }
