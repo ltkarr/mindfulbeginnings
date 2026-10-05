@@ -209,9 +209,35 @@
     if (left == null) return '';
     var need = Number(seatsNeeded);
     if (!isFinite(need) || need < 1) need = 1;
-    if (left < need) return 'Full — waitlist';
+    // Not enough room for one more registration. The public card turns this
+    // into a mailto; a session code still opens the on-page waitlist form.
+    if (left < need) return 'WAITLIST ONLY';
     if (left === 1) return '1 seat left';
     return left + ' seats left';
+  }
+
+  var WAITLIST_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function formatWaitlistDate(dateStr) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr || ''));
+    if (!m) return '';
+    var month = Number(m[2]);
+    var day = Number(m[3]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return '';
+    return WAITLIST_MONTHS[month - 1] + ' ' + day + ', ' + m[1];
+  }
+
+  // mailto Lindsay can answer without opening the registration form.
+  // Subject shape: Waitlist request: Safe Sitter® — SS-1103 — Nov 3, 2026
+  function waitlistMailto(row) {
+    row = row || {};
+    var course = String(row.course || '').trim() || 'Class';
+    var code = String(row.code || '').trim();
+    var when = formatWaitlistDate(row.date);
+    var detail = [course, code, when].filter(Boolean).join(' — ');
+    var subject = 'Waitlist request: ' + detail;
+    var body = 'I would like to join the waitlist for ' + detail + '.';
+    return 'mailto:lindsay@mindfulbeginnings.org?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   }
 
   function monthLabel(dateStr) {
@@ -326,6 +352,7 @@
     seatsPerRegistration: seatsPerRegistration,
     seatsLeft: seatsLeft,
     seatsLabel: seatsLabel,
+    waitlistMailto: waitlistMailto,
     monthLabel: monthLabel,
     courseAudience: courseAudience,
     sessionPriceLabel: sessionPriceLabel,
