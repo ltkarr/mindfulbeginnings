@@ -62,14 +62,16 @@ test('host and organization headers use the large white logo without a duplicate
   assert.equal(fs.existsSync(path.join(root, 'email-logo-white.png')), true);
   assert.match(hostPage, /<img src="\/email-logo-white\.png" alt="Mindful Beginnings">/);
   assert.match(orgPage, /<img src="\/email-logo-white\.png" alt="Mindful Beginnings">/);
-  assert.match(hostPage, /<div class="tag">Host a private group course<\/div>/);
-  assert.match(orgPage, /<div class="tag">Organization site information<\/div>/);
+  assert.doesNotMatch(hostPage, /class="tag"/);
+  assert.doesNotMatch(orgPage, /class="tag"/);
   assert.doesNotMatch(hostPage, /class="brand"/);
   assert.doesNotMatch(orgPage, /class="brand"/);
   assert.doesNotMatch(hostPage, /email-logo\.png/);
   assert.doesNotMatch(orgPage, /email-logo\.png/);
   assert.doesNotMatch(intakeCss, /border-radius:\s*50%/);
   assert.match(intakeCss, /width:min\(320px,86vw\)/);
+  assert.match(hostPage, /we will confirm the date/);
+  assert.match(orgPage, /<h1>Organization site information<\/h1>/);
 });
 
 test('host course choices on the page match the catalog, and organizations are sent to the other form', () => {
