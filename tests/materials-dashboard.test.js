@@ -641,3 +641,130 @@ test('a new kit is reserved from a week before class through a week after', () =
   assert.match(admin, /one week before class/);
   shelf();
 });
+
+test('more than 8 registered students reserves 2 infant and 2 child manikins', () => {
+  shelf();
+  planSandbox.equipment.push(
+    { id: 'ss-book', name: 'Safe Sitter handbooks', qty: 30, consumable: true },
+    { id: 'ss-note', name: 'Safe Sitter notebooks', qty: 30, consumable: true },
+    { id: 'adult', name: 'Adult Manikins', qty: 4 }
+  );
+  const savedSeats = planSandbox.seatsOnSession;
+  planSandbox.seatsOnSession = undefined;
+  const small = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-11-02', person: 'Helena Carboy', extraDates: [], headcount: 8
+  });
+  assert.equal(line(small, 'infant').need, 1);
+  assert.equal(line(small, 'infant').requested, 1);
+  assert.equal(line(small, 'child').need, 1);
+  assert.equal(line(small, 'av').need, 1);
+  assert.equal(small.largeKit, false);
+  assert.equal(small.books.find((b) => b.eqId === 'ss-book').requested, 8);
+
+  const big = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-11-02', person: 'Helena Carboy', extraDates: [], headcount: 9
+  });
+  assert.equal(big.largeKit, true);
+  assert.equal(line(big, 'infant').need, 2);
+  assert.equal(line(big, 'child').need, 2);
+  assert.equal(line(big, 'av').need, 1);
+  assert.equal(line(big, 'infant').requested, 2);
+  assert.equal(line(big, 'child').requested, 2);
+  assert.equal(big.books.find((b) => b.eqId === 'ss-book').requested, 9);
+  assert.equal(big.books.find((b) => b.kind === 'ssNotebook').requested, 9);
+  const fresh = planSandbox.matCheckoutItemsFromPlan(big, false);
+  assert.equal(fresh.map((it) => it.equipmentId + ':' + it.qty).join(','), 'infant:2,child:2,av:1');
+  assert.equal(fresh.some((it) => it.equipmentId === 'ss-book'), false);
+
+  const home = planSandbox.matPlanForSession({
+    course: 'Safe@Home', date: '2026-11-02', person: 'Helena Carboy', extraDates: [], headcount: 12
+  });
+  assert.equal(home.lines.map((l) => l.kind).join(','), 'av');
+  assert.equal(line(home, 'av').need, 1);
+
+  const stay = planSandbox.matPlanForSession({
+    course: 'Stay Ready: Choking Rescue and CPR', date: '2026-11-02', extraDates: [], headcount: 9
+  });
+  assert.equal(line(stay, 'infant').need, 2);
+  assert.equal(line(stay, 'child').need, 2);
+  assert.equal(line(stay, 'adult').need, 1);
+  assert.equal(line(stay, 'av').need, 1);
+
+  planSandbox.matCheckouts = [{
+    id: 'full', person: 'Helena Carboy', returnedDate: null,
+    items: [
+      { equipmentId: 'infant', qty: 2 },
+      { equipmentId: 'child', qty: 2 },
+      { equipmentId: 'av', qty: 1 }
+    ],
+    outDate: '2026-10-26', dueDate: '2026-11-09'
+  }];
+  const covered = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-11-02', person: 'Helena Carboy', extraDates: [], headcount: 9, reuse: true
+  });
+  assert.equal(covered.fullyCovered, true);
+  assert.equal(covered.topUp, false);
+  assert.equal(covered.bumps.length, 0);
+  const coveredItems = planSandbox.matCheckoutItemsFromPlan(covered, true);
+  assert.equal(coveredItems.length, 1);
+  assert.equal(coveredItems[0].usesExisting, true);
+  assert.equal(coveredItems[0].qty, 0);
+
+  planSandbox.matCheckouts[0].items = [
+    { equipmentId: 'infant', qty: 1 },
+    { equipmentId: 'child', qty: 1 },
+    { equipmentId: 'av', qty: 1 }
+  ];
+  const short = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-11-02', person: 'Helena Carboy', extraDates: [], headcount: 9, reuse: true
+  });
+  assert.equal(short.fullyCovered, true);
+  assert.equal(short.topUp, true);
+  assert.equal(line(short, 'infant').requested, 0);
+  assert.equal(line(short, 'child').requested, 0);
+  assert.equal(line(short, 'av').requested, 0);
+  assert.equal(line(short, 'infant').bumpTo, 2);
+  assert.equal(line(short, 'child').bumpTo, 2);
+  assert.equal([...short.bumps].map((b) => b.kind).sort().join(','), 'child,infant');
+  const shortItems = planSandbox.matCheckoutItemsFromPlan(short, true);
+  assert.equal(shortItems[0].usesExisting, true);
+  assert.equal(shortItems.some((it) => it.equipmentId), false);
+
+  planSandbox.instructors = [
+    { id: 'helena', name: 'Helena Carboy' },
+    { id: 'kim', name: 'Kim Varner' }
+  ];
+  planSandbox.jobDataCache = { big: { instructorId: 'helena' } };
+  planSandbox.sessions = [{
+    id: 'big', course: 'Safe Sitter®', date: '2026-11-02', instructorId: 'helena', secondInstructorId: 'kim', extraDates: []
+  }];
+  planSandbox.matCheckouts = [
+    {
+      id: 'h', person: 'Helena Carboy', returnedDate: null,
+      items: [{ equipmentId: 'infant', qty: 1 }, { equipmentId: 'child', qty: 1 }, { equipmentId: 'av', qty: 1 }],
+      outDate: '2026-10-26', dueDate: '2026-11-09'
+    },
+    {
+      id: 'k', person: 'Kim Varner', returnedDate: null,
+      items: [{ equipmentId: 'infant', qty: 1 }, { equipmentId: 'child', qty: 1 }],
+      outDate: '2026-10-26', dueDate: '2026-11-09'
+    }
+  ];
+  const team = planSandbox.matPlanForSession({
+    course: 'Safe Sitter®', date: '2026-11-02', person: 'Helena Carboy', sessionId: 'big',
+    extraDates: [], headcount: 9, reuse: true
+  });
+  assert.equal(line(team, 'infant').held, 2);
+  assert.equal(line(team, 'child').held, 2);
+  assert.equal(team.topUp, false);
+  assert.equal(team.fullyCovered, true);
+  assert.equal(team.bumps.length, 0);
+  const teamItems = planSandbox.matCheckoutItemsFromPlan(team, true);
+  assert.equal(teamItems[0].usesExisting, true);
+
+  planSandbox.seatsOnSession = savedSeats;
+  assert.match(admin, /MAT_LARGE_CLASS/);
+  assert.match(admin, /function syncLargeClassKits/);
+  assert.match(admin, /syncLargeClassKits\(\)/);
+  shelf();
+});

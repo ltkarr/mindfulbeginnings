@@ -396,7 +396,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 
     <div class="screen" id="screen-finances">
       <div class="page-header">
-        <div><div class="page-title">Finances</div><div class="page-sub">Revenue (net of payment processing fees), expenses, and profit</div></div>
+        <div><div class="page-title">Finances</div><div class="page-sub" id="fin-page-sub">Revenue (net of payment processing fees), expenses, and profit</div></div>
         <button class="btn primary" onclick="openAddExpense()">+ Add expense</button>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
@@ -406,11 +406,12 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <select id="report-month" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
-          <select id="report-year" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
+          <select id="report-year" onchange="renderFinances()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
           <button class="btn" id="print-report-btn" onclick="printReport()">🖨️ Print monthly report</button>
         </div>
       </div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="fin-table"></table></div></div>
+      <div id="fin-fee-section"></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:16px">
         <div><div class="page-title" style="font-size:23px">Organization invoices</div><div class="page-sub">End-of-month invoices for partner organizations (e.g. Beth El). Sessions marked "Bill to organization" appear here once complete.</div></div>
@@ -1515,7 +1516,10 @@ async function loadData(){
     }
     // An instructor may have accepted a job since the last load — let the
     // equipment checkouts pick up the newly assigned name.
-    if(equipmentTablesReady)syncCheckoutInstructors();
+    if(equipmentTablesReady){
+      syncCheckoutInstructors();
+      syncLargeClassKits();
+    }
   }catch(e){
     console.error('Failed to load data:',e);
     showToast('⚠️ Could not connect to database. Check your Supabase config.');
@@ -1676,13 +1680,27 @@ function sessionInstructorPayAmount(s){
 
 // ─── PAYMENT PROCESSING FEES ─────────────────────────────────
 // Families pay each registration online, and the processor skims a fee off the top
-// before the money lands. We report revenue NET of that fee. Assumption: every online
-// payment goes through PayPal (2.99% + $0.49 per transaction). Venmo, if used, is
-// cheaper (1.9% + $0.10) — swap PAYPAL_* for VENMO_* below if that ever changes.
+// before the money lands. Every paid family registration uses the PayPal formula
+// below (2.99% + $0.49), including payments marked Venmo. Venmo's own published
+// rate (1.9% + $0.10) is kept as a reference and is not applied separately.
 // Org month-end billing and custom-job org fees are invoiced (no processor fee).
+// Session math (calcFin) still stores revenue NET of this fee so monthly screens,
+// the dashboard, and partner statements stay as they are. The yearly finance view
+// rebuilds gross payments and counts the fee once as its own cost (financeYearFigures).
 const PAYPAL_PCT=0.0299, PAYPAL_FIXED=0.49;   // PayPal: 2.99% + $0.49
-const VENMO_PCT=0.019,  VENMO_FIXED=0.10;     // Venmo:  1.9% + $0.10 (reference)
+const VENMO_PCT=0.019,  VENMO_FIXED=0.10;     // Venmo:  1.9% + $0.10 (reference only)
 function processingFee(amount){const a=Number(amount)||0;return a>0?a*PAYPAL_PCT+PAYPAL_FIXED:0;}
+// Yearly story: gross payments, processing fees as a cost, profit once.
+// rev is net revenue, fee is the processing fee already removed from it, cost is
+// every other expense. Profit equals net minus those other expenses.
+function financeYearFigures(rev, fee, cost){
+  const net=Number(rev)||0;
+  const fees=Number(fee)||0;
+  const expenses=Number(cost)||0;
+  const gross=round2(net+fees);
+  const total=round2(expenses+fees);
+  return {gross:gross,fees:round2(fees),expenses:total,profit:round2(gross-total)};
+}
 
 // The old custom-job materials picker wrote lines like
 // "Safe Sitter® materials — 8 × $20.35". Those are per-student handbook costs.
@@ -2006,9 +2024,9 @@ function courseRevenueForYear(year, now){
   sessions.forEach(s=>{
     const slot=sessionRevenueSlot(s, n);
     if(!slot||slot.year!==year)return;
-    if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,sess:0,students:0,profit:0};
+    if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,fee:0,sess:0,students:0,profit:0};
     const f=calcFin(s);
-    courseBuckets[s.course].rev+=f.revenue;courseBuckets[s.course].sess++;
+    courseBuckets[s.course].rev+=f.revenue;courseBuckets[s.course].fee+=f.procFee||0;courseBuckets[s.course].sess++;
     courseBuckets[s.course].students+=f.paidCount;courseBuckets[s.course].profit+=f.profit;
   });
   return courseBuckets;
@@ -6831,6 +6849,7 @@ async function saveReg(){
   ensureInKindTag(reg);
   registrations.push(reg);
   closeModal();renderRegs();renderDashboard();
+  syncLargeClassKits();
   dbWrite(sb.from('registrations').insert(regToDB(reg)),'New student');
 }
 
@@ -7222,6 +7241,7 @@ async function cancelReg(id){
   renderRegs();renderDashboard();
   const ok=await dbWrite(sb.from('registrations').update({pay_status:'cancelled',notes:r.notes}).eq('id',id),'Cancel registration');
   if(ok===false){r.payStatus=prev.payStatus;r.notes=prev.notes;renderRegs();renderDashboard();return;}
+  syncLargeClassKits();
   showToast('Registration cancelled. Find it under the Cancelled filter if you need to re-enroll.');
 }
 
@@ -7268,6 +7288,7 @@ async function saveReEnroll(id){
   closeModal();renderRegs();renderDashboard();
   const ok=await dbWrite(sb.from('registrations').update({pay_status:r.payStatus,notes:r.notes}).eq('id',id),'Re-enroll registration');
   if(ok===false){r.payStatus=prev.payStatus;r.notes=prev.notes;renderRegs();renderDashboard();return;}
+  syncLargeClassKits();
   showToast((r.studentName||'Student')+' is back in the class.');
 }
 
@@ -7277,6 +7298,7 @@ async function deleteReg(id){
   if(!confirm('Delete this registration for good?\n\nThis erases the record, including the signed waiver. If you only want to free the seat, use Cancel instead — that keeps everything and lets you re-enroll them later.'))return;
   registrations=registrations.filter(x=>x.id!==id);
   renderRegs();renderDashboard();
+  syncLargeClassKits();
   dbWrite(sb.from('registrations').delete().eq('id',id),'Registration delete');
 }
 
@@ -7327,23 +7349,60 @@ function renderFinances(){
     buckets[k].comm=round2((buckets[k].comm||0)+commByMonth[mk]);
     buckets[k].cost=round2(buckets[k].cost+commByMonth[mk]);
   });
-  Object.values(buckets).forEach(b=>b.profit=b.rev-b.cost);
+  const yearly=finView==='yearly';
+  Object.values(buckets).forEach(b=>{
+    if(yearly){
+      const fig=financeYearFigures(b.rev,b.fee,b.cost);
+      b.gross=fig.gross;b.expenses=fig.expenses;b.profit=fig.profit;
+    }else{
+      b.gross=b.rev;b.expenses=b.cost;b.profit=b.rev-b.cost;
+    }
+  });
   const keys=Object.keys(buckets).sort().reverse();
+  const sub=document.getElementById('fin-page-sub');
+  if(sub)sub.textContent=yearly
+    ?'Gross payments, with PayPal, Venmo, and card fees as their own cost. Profit subtracts those fees once.'
+    :'Monthly revenue is net of payment processing fees. Switch to Yearly to see those fees as a cost.';
+  const feeTitle=yearly
+    ?'PayPal, Venmo, and card processing fees. A cost, included once in Total expenses. Revenue on this view is gross payments before these fees.'
+    :'PayPal processing fees skimmed off online payments — already deducted from net revenue, not part of expenses';
+  const feeCell=yearly?'Included once in total expenses':'Already deducted from net revenue';
   const t=document.getElementById('fin-table');
-  t.innerHTML=`<thead><tr><th>${finView==='monthly'?'Month':'Year'}</th><th>Sessions</th><th>Students paid</th><th>Revenue (net)</th><th title="PayPal processing fees skimmed off online payments — already deducted from net revenue, not part of expenses">Proc. fees</th><th>Instructor fees</th><th>Extra costs</th><th title="Community partner commission, booked in the month it was earned — money received and class taught. Do not also log these payouts on the Expenses tab or you will count them twice.">Partner commission</th>${finView==='monthly'?'':'<th>Overhead</th>'}<th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
+  t.innerHTML=`<thead><tr><th>${yearly?'Year':'Month'}</th><th>Sessions</th><th>Students paid</th><th>${yearly?'Revenue (gross)':'Revenue (net)'}</th><th title="${feeTitle}">Proc. fees</th><th>Instructor fees</th><th>Extra costs</th><th title="Community partner commission, booked in the month it was earned — money received and class taught. Do not also log these payouts on the Expenses tab or you will count them twice.">Partner commission</th>${yearly?'<th>Overhead</th>':''}<th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
     (keys.length?keys.map(k=>{
       const b=buckets[k];
-      const label=finView==='monthly'?new Date(k+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}):k;
+      const label=yearly?k:new Date(k+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'});
       return`<tr><td style="font-weight:500">${label}</td><td>${b.sess}</td><td>${b.students}</td>
-        <td style="font-weight:500">${fmt(b.rev)}</td>
-        <td style="color:var(--muted)" title="Already deducted from net revenue">${fmt(b.fee||0)}</td>
+        <td style="font-weight:500">${fmt(b.gross)}</td>
+        <td style="color:${yearly?'var(--danger)':'var(--muted)'}" title="${feeCell}">${fmt(b.fee||0)}</td>
         <td style="color:var(--danger)">${fmt(b.instr)}</td>
         <td style="color:var(--danger)">${fmt(b.extra||0)}</td>
         <td style="color:var(--danger)">${fmt(b.comm||0)}</td>
-        ${finView==='monthly'?'':`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`}
-        <td style="color:var(--danger)">${fmt(b.cost)}</td>
+        ${yearly?`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`:''}
+        <td style="color:var(--danger)">${fmt(b.expenses)}</td>
         <td style="font-weight:500;color:${b.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(b.profit)}</td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="${finView==='monthly'?10:11}">No financial data yet.</td></tr>`)+'</tbody>';
+    }).join(''):`<tr class="empty-row"><td colspan="${yearly?11:10}">No financial data yet.</td></tr>`)+'</tbody>';
+  const feeHost=document.getElementById('fin-fee-section');
+  if(feeHost){
+    if(!yearly)feeHost.innerHTML='';
+    else{
+      const sel=document.getElementById('report-year');
+      const focus=sel&&sel.value?String(sel.value):(keys[0]||'');
+      const rows=keys.map(k=>{
+        const b=buckets[k];
+        const here=k===focus;
+        return `<tr style="${here?'background:#f7f4ee':''}"><td style="font-weight:${here?'650':'500'}">${k}</td><td style="color:var(--danger);font-weight:600">${fmt(b.fee||0)}</td><td>${fmt(b.gross)}</td><td>${fmt(b.expenses)}</td><td style="font-weight:600;color:${b.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(b.profit)}</td></tr>`;
+      }).join('');
+      const focusBucket=focus&&buckets[focus]?buckets[focus]:null;
+      const focusFee=focusBucket?focusBucket.fee||0:0;
+      feeHost.innerHTML=`<div class="card" style="margin-top:16px">
+        <div class="card-title">Payment processing fees</div>
+        <div style="font-size:15px;color:var(--muted);line-height:1.55;margin:-4px 0 12px">PayPal, Venmo, and card fees on paid family registrations, calculated at ${((PAYPAL_PCT||0.0299)*100).toFixed(2)}% + ${fmt(PAYPAL_FIXED||0.49)} each. This is a cost. Gross payments are shown before the fee, and the fee is included once in that year's total expenses, so profit does not subtract it again. Organization invoices and custom-job org fees are not charged a processing fee. Payments marked Venmo use this same formula.</div>
+        ${focus?`<div style="font-size:18px;font-weight:650;margin-bottom:10px">${focus}: ${fmt(focusFee)} <span style="font-size:15px;font-weight:500;color:var(--muted)">processing fees, included in expenses</span></div>`:''}
+        <div class="tbl-wrap"><table><thead><tr><th>Year</th><th>Processing fees</th><th>Gross payments</th><th>Total expenses</th><th>Net profit</th></tr></thead><tbody>${rows||'<tr class="empty-row"><td colspan="5">No payment processing fees this year.</td></tr>'}</tbody></table></div>
+      </div>`;
+    }
+  }
   renderInvoices();
 }
 
@@ -9581,6 +9640,9 @@ function coIsOverdue(c){return!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returned
 // adult → "adult", av → "AV" / "laptop" / "projector".
 // null = the course brings its own materials (nothing to check out).
 // Virtual sessions never need anything, regardless of course.
+// These counts are the baseline for 8 or fewer registered students. A larger
+// class (more than MAT_LARGE_CLASS on the roster) reserves 2 infant and 2 child
+// manikins. AV and adult counts stay as written here. Handbooks stay per student.
 const MAT_NEEDS={
   'Safe Sitter®':{infant:1,child:1,av:1},
   'Grandparents: Getting Started':{infant:1,child:1,av:1},
@@ -9594,6 +9656,7 @@ const MAT_NEEDS={
   // pulls nothing off the equipment shelf.
   'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{adult:1,av:1}
 };
+const MAT_LARGE_CLASS=8;
 const MAT_KIND_RX={infant:/infant/i,child:/child/i,adult:/adult/i,av:/\bav\b|laptop|projector/i};
 function matEqOfKind(kind){const rx=MAT_KIND_RX[kind];return rx?equipment.find(e=>rx.test(e.name)):null;}
 // A following class within two weeks counts as "soon" (Oct 3 and Oct 10 are 7 days).
@@ -9665,6 +9728,30 @@ function matCourseNeeds(course){
   if(key&&Object.prototype.hasOwnProperty.call(MAT_NEEDS,key))return MAT_NEEDS[key];
   return undefined;
 }
+// Registered students only. Capacity is not a roster, so an empty class of 16
+// still plans the 1+1 baseline until kids are actually signed up.
+function matRegisteredHeadcount(s){
+  if(!s||!s.id||typeof seatsOnSession!=='function')return 0;
+  try{return Math.max(0,Number(seatsOnSession(s.id))||0);}catch(e){return 0;}
+}
+function matKitRoster(draft,s){
+  if(draft&&draft.rosterCount!=null&&draft.rosterCount!=='')return Math.max(0,Number(draft.rosterCount)||0);
+  if(s&&s.id&&typeof seatsOnSession==='function'){
+    try{return Math.max(0,Number(seatsOnSession(s.id))||0);}catch(e){return 0;}
+  }
+  if(draft&&draft.headcount!=null&&draft.headcount!=='')return Math.max(0,Number(draft.headcount)||0);
+  return matRegisteredHeadcount(s);
+}
+function matNeedsForHeadcount(base,headcount){
+  if(!base)return base;
+  const n=Number(headcount)||0;
+  if(!(n>MAT_LARGE_CLASS))return base;
+  const out={};
+  Object.keys(base).forEach(function(k){out[k]=base[k];});
+  if(out.infant)out.infant=Math.max(Number(out.infant)||0,2);
+  if(out.child)out.child=Math.max(Number(out.child)||0,2);
+  return out;
+}
 function matCourseBooks(course){
   if(course&&MAT_BOOKS[course])return MAT_BOOKS[course];
   const key=matAliasCourse(course);
@@ -9673,10 +9760,12 @@ function matCourseBooks(course){
 function matBookEq(kind){const rx=MAT_BOOK_RX[kind];return rx?(equipment||[]).find(function(e){return rx.test(e.name);}):null;}
 // The {kind:qty} needs for one SESSION — null when nothing is needed
 // (virtual session, own-materials course, or a course not in the table above).
-function sessionMatNeeds(s){
+function sessionMatNeeds(s,rosterCount){
   if(!s||s.isVirtual)return null;
   const n=matCourseNeeds(s.course);
-  return n&&Object.keys(n).length?n:null;
+  if(!n||!Object.keys(n).length)return null;
+  const count=(rosterCount!=null&&rosterCount!=='')?Math.max(0,Number(rosterCount)||0):matRegisteredHeadcount(s);
+  return matNeedsForHeadcount(n,count);
 }
 // Checkouts this person already has that overlap the session dates.
 function matPersonOverlaps(person,outDate,dueDate,excludeId){
@@ -9685,14 +9774,54 @@ function matPersonOverlaps(person,outDate,dueDate,excludeId){
   return matCheckouts.filter(c=>c.id!==excludeId&&!c.returnedDate&&!coUsesExisting(c)&&!coNoEquipment(c)&&(c.person||'').trim().toLowerCase()===who&&c.outDate<=dueDate&&outDate<=coEnd(c));
 }
 function matHeldQty(overlaps,eqId){
-  let n=0;
-  (overlaps||[]).forEach(c=>(c.items||[]).forEach(it=>{
-    if(it&&it.equipmentId===eqId&&!matItemIsConsumable(it)){
-      const q=Number(it.qty)||0;
-      if(q>n)n=q;
-    }
-  }));
+  // One instructor's overlapping checkouts are the same kit (keep the largest
+  // qty). Two instructors are two kits, so their quantities add.
+  const by={};
+  let loose=0;
+  (overlaps||[]).forEach(c=>{
+    let q=0;
+    (c.items||[]).forEach(it=>{
+      if(it&&it.equipmentId===eqId&&!matItemIsConsumable(it)){
+        const n=Number(it.qty)||0;
+        if(n>q)q=n;
+      }
+    });
+    if(!q)return;
+    const who=(c.person||'').trim().toLowerCase();
+    if(!who){loose+=q;return;}
+    if(q>(by[who]||0))by[who]=q;
+  });
+  let n=loose;
+  Object.keys(by).forEach(function(k){n+=by[k];});
   return n;
+}
+function matPlanPeople(draft,s){
+  const names=[];
+  function add(n){
+    const t=(n||'').trim();
+    if(!t)return;
+    const k=t.toLowerCase();
+    if(names.some(function(x){return x.toLowerCase()===k;}))return;
+    names.push(t);
+  }
+  add(draft&&draft.person);
+  if(s&&typeof sessionInstructorList==='function'){
+    try{sessionInstructorList(s).forEach(function(x){add(x&&x.name);});}catch(e){}
+  }
+  return names;
+}
+function matPlanHits(draft,s,outDate,dueDate,excludeId){
+  const names=matPlanPeople(draft,s);
+  const seen={};
+  const hits=[];
+  names.forEach(function(name){
+    matPersonKeepHits(name,outDate,dueDate,excludeId).forEach(function(c){
+      if(!c||seen[c.id])return;
+      seen[c.id]=true;
+      hits.push(c);
+    });
+  });
+  return hits;
 }
 function sessionHeadcount(s,override){
   if(override!=null&&override!=='')return Math.max(0,Number(override)||0);
@@ -9838,6 +9967,10 @@ function matKeepSentence(plan){
   }
   const earlier=k.earlier||[];
   const from=earlier.length?(' from '+earlier.map(function(row){return row.course+' on '+matShortDate(row.date);}).join(', ')):'';
+  if(plan.topUp){
+    const extra=(plan.lines||[]).filter(function(l){return l.topUp;}).map(function(l){return (l.need-l.held)+' more '+(l.name||l.kind);});
+    return first+' already holds part of this kit'+from+'. Add '+extra.join(' and ')+' to that kit. Do not check out a second set.';
+  }
   if(plan.reuseOffer&&plan.fullyCovered)return first+' already has this durable kit'+from+'. Keep it out for this class.';
   if(earlier.length)return first+' teaches '+earlier.map(function(row){return row.course+' on '+matShortDate(row.date);}).join(', ')+' just before this class. If the durable kit is still with them, KEEP it out.';
   return '';
@@ -9873,30 +10006,60 @@ function matReorderLines(){
 // purchase is durable equipment that is short. bookBuy is the one handbook/notebook note.
 function matPlanForSession(draft){
   draft=draft||{};
-  const s={id:draft.sessionId||null,course:draft.course,isVirtual:!!draft.isVirtual,date:draft.date||'',extraDates:draft.extraDates||[]};
-  const needs=sessionMatNeeds(s);
+  const s={id:draft.sessionId||null,course:draft.course,isVirtual:!!draft.isVirtual,date:draft.date||'',extraDates:draft.extraDates||[],instructorId:draft.instructorId||null,secondInstructorId:draft.secondInstructorId||null,ownerTaught:!!draft.ownerTaught};
+  if(draft.sessionId&&typeof sessions!=='undefined'){
+    const live=(sessions||[]).find(function(x){return x&&x.id===draft.sessionId;});
+    if(live){
+      s.instructorId=live.instructorId||null;
+      s.secondInstructorId=live.secondInstructorId||null;
+      s.ownerTaught=!!live.ownerTaught;
+    }
+  }
+  const roster=matKitRoster(draft,s);
+  const needs=sessionMatNeeds(s,roster);
   const bookNeeds=sessionBookNeeds(s,draft.headcount);
   const classDate=draft.date||'';
   const classEnd=classDate?(sessionEndDate(s)||classDate):'';
   // Inventory sees the week before and the week after, not just the class day.
   const outDate=classDate?matKitOutDate(s):'';
   const dueDate=classEnd?matKitDueDate(s):'';
-  const empty={skip:true,lines:[],books:[],bookBuy:[],purchase:[],overlaps:[],reuseOffer:false,fullyCovered:false,outDate:outDate,dueDate:dueDate,classDate:classDate,classEnd:classEnd,holdUntil:dueDate,keep:null,person:draft.person||''};
+  const empty={skip:true,lines:[],books:[],bookBuy:[],purchase:[],overlaps:[],reuseOffer:false,fullyCovered:false,topUp:false,bumps:[],largeKit:false,roster:roster,outDate:outDate,dueDate:dueDate,classDate:classDate,classEnd:classEnd,holdUntil:dueDate,keep:null,person:draft.person||''};
   if(!needs&&!bookNeeds)return empty;
-  const hits=needs?matPersonKeepHits(draft.person,outDate,dueDate,draft.excludeCheckoutId||null):[];
+  const hits=needs?matPlanHits(draft,s,outDate,dueDate,draft.excludeCheckoutId||null):[];
   const reuse=!!draft.reuse;
   const lines=[];
   const purchase=[];
+  const bumps=[];
   const bookLines=[];
   const bookBuy=[];
-  function pushLine(kind,q,eq,name,held,covered){
+  function pushLine(kind,q,eq,name,held){
+    let bumpTo=0;
+    let bumpId=null;
+    if(reuse&&held>0&&held<q&&eq){
+      let best=null,bestQty=-1;
+      hits.forEach(function(c){
+        (c.items||[]).forEach(function(it){
+          if(!it||it.equipmentId!==eq.id||matItemIsConsumable(it))return;
+          const cur=Number(it.qty)||0;
+          if(cur>bestQty){bestQty=cur;best=c;}
+        });
+      });
+      if(best&&bestQty>0&&bestQty<q){
+        bumpTo=bestQty+(q-held);
+        bumpId=best.id;
+        bumps.push({checkoutId:best.id,equipmentId:eq.id,from:bestQty,to:bumpTo,kind:kind});
+      }
+    }
+    const topUp=!!(reuse&&held>0&&held<q&&bumpId);
+    const covered=held>=q||topUp;
     let requested;
     if(reuse&&covered)requested=0;
     else if(draft.qtys&&eq&&draft.qtys[eq.id]!=null)requested=Number(draft.qtys[eq.id])||0;
     else requested=q;
+    const adding=topUp?Math.max(0,q-held):requested;
     const free=(eq&&outDate&&dueDate&&dueDate>=outDate)?minAvailInRange(eq.id,outDate,dueDate,draft.excludeCheckoutId||null):(eq?eq.qty:0);
-    const shortfall=requested>free?requested-free:0;
-    const line={kind:kind,eqId:eq?eq.id:null,name:name,owned:eq?eq.qty:0,need:q,requested:requested,free:free,shortfall:shortfall,held:held,covered:!!covered,consumable:false};
+    const shortfall=adding>free?adding-free:0;
+    const line={kind:kind,eqId:eq?eq.id:null,name:name,owned:eq?eq.qty:0,need:q,requested:requested,free:free,shortfall:shortfall,held:held,covered:!!covered,topUp:topUp,bumpTo:bumpTo,consumable:false};
     lines.push(line);
     if(shortfall>0&&eq)purchase.push({name:line.name,shortfall:shortfall,owned:line.owned,free:line.free});
   }
@@ -9905,7 +10068,7 @@ function matPlanForSession(draft){
       const kind=pair[0],q=pair[1];
       const eq=matEqOfKind(kind);
       const held=eq?matHeldQty(hits,eq.id):0;
-      pushLine(kind,q,eq,eq?eq.name:kind,held,held>=q);
+      pushLine(kind,q,eq,eq?eq.name:kind,held);
     });
   }
   if(bookNeeds){
@@ -9929,7 +10092,9 @@ function matPlanForSession(draft){
     if(back&&(!holdUntil||back>holdUntil))holdUntil=back;
   });
   const extendIds=hits.filter(function(c){return c&&c.id&&c.dueDate&&holdUntil&&c.dueDate<holdUntil;}).map(function(c){return c.id;});
-  return{skip:false,lines:lines,books:bookLines,bookBuy:bookBuy,purchase:purchase,overlaps:hits,reuseOffer:lines.some(function(l){return l.held>0;}),fullyCovered:lines.length>0&&lines.every(function(l){return l.covered;}),outDate:outDate,dueDate:dueDate,classDate:classDate,classEnd:classEnd,holdUntil:holdUntil,person:draft.person||'',keep:{later:later,earlier:earlier,extendIds:extendIds}};
+  const topUp=lines.some(function(l){return l.topUp;});
+  const largeKit=roster>MAT_LARGE_CLASS&&lines.some(function(l){return l.kind==='infant'||l.kind==='child';});
+  return{skip:false,lines:lines,books:bookLines,bookBuy:bookBuy,purchase:purchase,overlaps:hits,reuseOffer:lines.some(function(l){return l.held>0;}),fullyCovered:lines.length>0&&lines.every(function(l){return l.covered;}),topUp:topUp,bumps:bumps,largeKit:largeKit,roster:roster,outDate:outDate,dueDate:dueDate,classDate:classDate,classEnd:classEnd,holdUntil:holdUntil,person:draft.person||'',keep:{later:later,earlier:earlier,extendIds:extendIds}};
 }
 function matCheckoutItemsFromPlan(plan,reuse){
   if(!plan||plan.skip)return null;
@@ -10038,7 +10203,15 @@ function dashMatCue(s){
     course:s.course,isVirtual:false,date:s.date,extraDates:s.extraDates||[],
     person:person,reuse:true,sessionId:s.id,excludeCheckoutId:co?co.id:null
   });
-  const covered=!!(keeping||plan.fullyCovered);
+  if(plan.topUp&&!keeping){
+    const extra=(plan.lines||[]).filter(function(l){return l.topUp;}).map(function(l){
+      return (l.need-l.held)+' more '+dashMatKindLabel(l.kind);
+    });
+    let text='Add '+extra.join(' and ')+' to the kit '+who+' already has — do not check out a second set';
+    if(bookPhrase)text+='; you\'ll put handbooks out. '+bookPhrase;
+    return pack(text+'.');
+  }
+  const covered=!!(keeping||(plan.fullyCovered&&!plan.topUp));
   if(covered){
     if(keeping&&!bookPhrase)return null;
     let text=who+' already has the kit — email them to keep materials';
@@ -10328,7 +10501,7 @@ var _matReuseTouched=false;
 var _matSeedQtys=null;
 var _sessionMatEditId=null;
 function sessionMaterialsPanelHtml(){
-  return '<div class="fg full" id="m-mat-panel" style="background:#f7f4ee;border:1px solid #e4dcc8;border-radius:var(--r-sm);padding:12px 14px"><label style="margin-bottom:4px">Materials for this session</label><div style="font-size:14px;color:var(--muted);margin-bottom:8px">Durable kit only. A new kit goes out one week before the class and is due back one week after. If this instructor already has the kit, keep it with them instead of booking a second one. Handbooks and notebooks are counted from the roster and are not listed here.</div><div id="m-mat-body"></div></div>';
+  return '<div class="fg full" id="m-mat-panel" style="background:#f7f4ee;border:1px solid #e4dcc8;border-radius:var(--r-sm);padding:12px 14px"><label style="margin-bottom:4px">Materials for this session</label><div style="font-size:14px;color:var(--muted);margin-bottom:8px">Durable kit only. A new kit goes out one week before the class and is due back one week after. If this instructor already has the kit, keep it with them instead of booking a second one. More than 8 registered students reserves 2 infant and 2 child manikins. Handbooks and notebooks are counted from the roster and are not listed here.</div><div id="m-mat-body"></div></div>';
 }
 function defaultMatPerson(){
   if(document.getElementById('m-owner')&&document.getElementById('m-owner').value==='yes')return 'Lindsay Karr (owner)';
@@ -10369,6 +10542,10 @@ function formMatHeadcount(){
   const course=document.getElementById('m-course')?document.getElementById('m-course').value:'';
   return (COURSES[course]||{maxStudents:0}).maxStudents||0;
 }
+function formRosterCount(){
+  if(!_sessionMatEditId||typeof seatsOnSession!=='function')return 0;
+  try{return seatsOnSession(_sessionMatEditId)||0;}catch(e){return 0;}
+}
 function sessionMaterialsDraft(){
   const course=document.getElementById('m-course')?document.getElementById('m-course').value:'';
   const isVirtual=document.getElementById('m-virtual')&&document.getElementById('m-virtual').value==='yes';
@@ -10384,7 +10561,7 @@ function sessionMaterialsDraft(){
     if(inp&&!inp.disabled){qtys[eq.id]=parseInt(inp.value,10)||0;any=true;}
   });
   const existing=currentSessionCheckout();
-  return {course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:any?qtys:(_matSeedQtys&&Object.keys(_matSeedQtys).length?_matSeedQtys:null),excludeCheckoutId:existing?existing.id:null,personForField:person,headcount:formMatHeadcount(),sessionId:_sessionMatEditId};
+  return {course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:any?qtys:(_matSeedQtys&&Object.keys(_matSeedQtys).length?_matSeedQtys:null),excludeCheckoutId:existing?existing.id:null,personForField:person,headcount:formMatHeadcount(),rosterCount:formRosterCount(),sessionId:_sessionMatEditId};
 }
 function renderSessionMaterials(){
   const body=document.getElementById('m-mat-body');if(!body)return;
@@ -10427,7 +10604,7 @@ function paintSessionMaterialsStatus(){
     if(inp&&!inp.disabled)qtys[eq.id]=parseInt(inp.value,10)||0;
   });
   const existing=currentSessionCheckout();
-  const planArgs={course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,qtys:qtys,excludeCheckoutId:existing?existing.id:null,headcount:formMatHeadcount(),sessionId:_sessionMatEditId};
+  const planArgs={course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,qtys:qtys,excludeCheckoutId:existing?existing.id:null,headcount:formMatHeadcount(),rosterCount:formRosterCount(),sessionId:_sessionMatEditId};
   let reuseNow=!!((reuseBox&&reuseBox.checked)||_matSeedReuse);
   if(!_matReuseTouched&&!reuseNow){
     const preview=matPlanForSession(Object.assign({reuse:false},planArgs));
@@ -10462,13 +10639,16 @@ function paintSessionMaterialsStatus(){
     }).join('<br>');
     const checked=reuseNow||plan.fullyCovered;
     const whoLabel=person||'this instructor';
-    const reuseLabel=plan.fullyCovered
+    const reuseLabel=plan.topUp
+      ?('Add the extra manikins to the kit already with '+escapeHtml(whoLabel)+' (usesExisting — do not check out a second set).')
+      :(plan.fullyCovered
       ?('Keeping kit already with '+escapeHtml(whoLabel)+' — nothing extra comes off the shelf')
-      :('Reuse the pieces '+escapeHtml(whoLabel)+' already has (usesExisting — do not check out a second one). Only what is still missing is reserved below.');
+      :('Reuse the pieces '+escapeHtml(whoLabel)+' already has (usesExisting — do not check out a second one). Only what is still missing is reserved below.'));
     html+='<div class="alert info" style="margin:0 0 8px"><strong>'+escapeHtml(whoLabel)+' already has this equipment out for other sessions.</strong><br>'+bits+'<label style="display:flex;align-items:flex-start;gap:8px;margin-top:8px;cursor:pointer;font-weight:500"><input type="checkbox" id="m-mat-reuse" '+(checked?'checked':'')+(plan.fullyCovered?' disabled':'')+' onchange="matReuseTyped()" style="margin-top:3px"> '+reuseLabel+'</label></div>';
   }
   const bookNote=matBookBuySentence(plan);
   if(bookNote)html+='<div class="alert warn" style="margin:0 0 8px"><strong>'+escapeHtml(bookNote)+'</strong></div>';
+  if(plan.largeKit)html+='<div style="font-size:14px;color:var(--muted);margin:0 0 8px">More than '+MAT_LARGE_CLASS+' students are registered, so this class reserves 2 infant and 2 child manikins'+(plan.lines.some(function(l){return l.kind==='av';})?', plus the AV kit':'')+'.</div>';
   if(plan.outDate&&plan.dueDate&&!plan.fullyCovered){
     const back=plan.holdUntil||plan.dueDate;
     html+='<div style="font-size:14px;color:var(--muted);margin:0 0 8px">New kit: out '+fd(plan.outDate)+' (one week before class), due back '+fd(back)+(back!==plan.dueDate?' (through the next class, plus one week).':'.')+'</div>';
@@ -10494,15 +10674,48 @@ function sessionMaterialsFromForm(editId){
     const inp=document.getElementById('m-mat-qty-'+eq.id);
     if(inp)qtys[eq.id]=parseInt(inp.value,10)||0;
   });
-  const preview=matPlanForSession({course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:false,excludeCheckoutId:existing?existing.id:null,headcount:formMatHeadcount(),sessionId:prevId});
+  const preview=matPlanForSession({course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:false,excludeCheckoutId:existing?existing.id:null,headcount:formMatHeadcount(),rosterCount:formRosterCount(),sessionId:prevId});
   if(preview.fullyCovered)reuse=true;
-  const plan=matPlanForSession({course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:qtys,excludeCheckoutId:existing?existing.id:null,headcount:formMatHeadcount(),sessionId:prevId});
+  const plan=matPlanForSession({course:course,isVirtual:isVirtual,date:date,extraDates:extraDates,person:person,reuse:reuse,qtys:qtys,excludeCheckoutId:existing?existing.id:null,headcount:formMatHeadcount(),rosterCount:formRosterCount(),sessionId:prevId});
   return {plan:plan,person:person,reuse:reuse,existingId:existing?existing.id:null};
 }
-function applySessionMaterials(sessionId,choice){
-  if(!choice||!choice.plan||choice.plan.skip||!choice.plan.outDate)return;
-  const items=matCheckoutItemsFromPlan(choice.plan,choice.reuse);
-  if(!items)return;
+function matApplyHeldTopUps(plan){
+  if(!plan||!plan.bumps||!plan.bumps.length)return false;
+  let changed=false;
+  const touched={};
+  plan.bumps.forEach(function(b){
+    const c=(matCheckouts||[]).find(function(x){return x.id===b.checkoutId;});
+    if(!c||c.returnedDate||coUsesExisting(c)||coNoEquipment(c))return;
+    let rowChanged=false;
+    (c.items||[]).forEach(function(it){
+      if(!it||it.equipmentId!==b.equipmentId||matItemIsConsumable(it))return;
+      const cur=Number(it.qty)||0;
+      if(cur>0&&cur<b.to){it.qty=b.to;rowChanged=true;}
+    });
+    if(!rowChanged)return;
+    changed=true;
+    touched[c.id]=c;
+  });
+  Object.keys(touched).forEach(function(id){
+    dbWrite(sb.from('equipment_checkouts').update(checkoutToDB(touched[id])).eq('id',id),'Add manikins to kit already out');
+  });
+  return changed;
+}
+function matMergeCheckoutItems(existingItems,desired){
+  if(!desired)return existingItems||[];
+  if(desired.some(function(it){return it&&(it.usesExisting||it.noEquipment);}))return desired;
+  const ids={};
+  desired.forEach(function(it){if(it&&it.equipmentId)ids[it.equipmentId]=true;});
+  const extra=(existingItems||[]).filter(function(it){
+    return it&&it.equipmentId&&!ids[it.equipmentId]&&Number(it.qty)>0&&!matItemIsConsumable(it);
+  });
+  return desired.concat(extra);
+}
+function applySessionMaterials(sessionId,choice,quiet){
+  if(!choice||!choice.plan||choice.plan.skip||!choice.plan.outDate)return false;
+  matApplyHeldTopUps(choice.plan);
+  let items=matCheckoutItemsFromPlan(choice.plan,choice.reuse);
+  if(!items)return false;
   const person=choice.person||'';
   // A reuse row is not a new reservation, so it keeps the class dates.
   // A new kit uses the week-before / week-after window (longer if they keep it).
@@ -10510,6 +10723,7 @@ function applySessionMaterials(sessionId,choice){
   const outDate=keeping?(choice.plan.classDate||choice.plan.outDate):choice.plan.outDate;
   const dueDate=keeping?(choice.plan.classEnd||choice.plan.classDate||choice.plan.dueDate):(choice.plan.holdUntil||choice.plan.dueDate||outDate);
   let note=choice.reuse&&(choice.plan.fullyCovered||items.some(function(it){return it.usesExisting;}))?'Keeping kit already with '+(person||'this instructor'):'Reserved when the session was saved';
+  if(choice.plan.topUp)note='Added the extra manikins to the kit already with '+(person||'this instructor')+'. This class uses that kit.';
   if(choice.plan.keep&&choice.plan.keep.later&&choice.plan.keep.later.length)note='KEEP the durable kit for the next class.';
   if(choice.reuse&&choice.plan.keep&&choice.plan.keep.extendIds){
     choice.plan.keep.extendIds.forEach(function(id){
@@ -10524,11 +10738,12 @@ function applySessionMaterials(sessionId,choice){
   }
   if(choice.existingId){
     const c=matCheckouts.find(function(x){return x.id===choice.existingId;});
-    if(!c)return;
+    if(!c)return false;
     // A kit already marked out (out date today or earlier) stays out. Saving the
     // class must not push that date forward to the class day, or Who has what
     // would drop a kit that has already left.
     const alreadyOut=c.outDate&&c.outDate<=matToday()&&(!outDate||c.outDate<outDate);
+    if(choice.keepExtra)items=matMergeCheckoutItems(c.items,items);
     c.person=person;c.items=items;
     if(!alreadyOut)c.outDate=outDate;
     c.dueDate=dueDate;
@@ -10539,14 +10754,69 @@ function applySessionMaterials(sessionId,choice){
     matCheckouts.push(c);
     dbWrite(sb.from('equipment_checkouts').insert(checkoutToDB(c)),'Session materials');
   }
-  const keepLine=matKeepSentence(choice.plan);
-  if(keepLine)showToast(keepLine);
-  if(choice.plan.purchase&&choice.plan.purchase.length){
-    showToast('Purchase '+choice.plan.purchase.map(function(p){return p.shortfall+' more '+p.name;}).join('; '));
+  if(!quiet){
+    const keepLine=matKeepSentence(choice.plan);
+    if(keepLine)showToast(keepLine);
+    if(choice.plan.purchase&&choice.plan.purchase.length){
+      showToast('Purchase '+choice.plan.purchase.map(function(p){return p.shortfall+' more '+p.name;}).join('; '));
+    }
+    const bookNote=matBookBuySentence(choice.plan);
+    if(bookNote)showToast(bookNote);
+    renderMaterials();
   }
-  const bookNote=matBookBuySentence(choice.plan);
-  if(bookNote)showToast(bookNote);
-  renderMaterials();
+  return true;
+}
+
+function checkoutMeetsKitPlan(existing, plan){
+  if(!plan||plan.skip||!plan.lines.length)return true;
+  if(!existing)return false;
+  if(coNoEquipment(existing))return true;
+  if(plan.bumps&&plan.bumps.length)return false;
+  if(coUsesExisting(existing))return !!(plan.fullyCovered&&!plan.topUp);
+  const have={};
+  (existing.items||[]).forEach(function(it){
+    if(it&&it.equipmentId&&!matItemIsConsumable(it)){
+      const q=Number(it.qty)||0;
+      if(q>(have[it.equipmentId]||0))have[it.equipmentId]=q;
+    }
+  });
+  return plan.lines.every(function(l){
+    if(!l.eqId)return true;
+    return Math.max(have[l.eqId]||0, l.held||0)>=l.need;
+  });
+}
+function syncOneSessionKit(s){
+  if(!s||s.isVirtual||s.isCancelled||s.isHold||!s.date)return false;
+  if(typeof sessionEndDate==='function'&&sessionEndDate(s)<matToday())return false;
+  const base=matCourseNeeds(s.course);
+  if(!base||!(base.infant||base.child))return false;
+  const existing=(matCheckouts||[]).find(function(c){return c.sessionId===s.id&&!c.returnedDate;});
+  if(existing&&coNoEquipment(existing))return false;
+  const roster=matRegisteredHeadcount(s);
+  const large=roster>MAT_LARGE_CLASS;
+  if(!existing&&!large)return false;
+  const person=(existing&&existing.person)||dashMatPersonName(s)||'';
+  const plan=matPlanForSession({
+    course:s.course,isVirtual:!!s.isVirtual,date:s.date,extraDates:s.extraDates||[],
+    person:person,reuse:true,sessionId:s.id,
+    excludeCheckoutId:existing?existing.id:null,
+    rosterCount:roster,
+    headcount:roster>0?roster:undefined
+  });
+  if(!plan||plan.skip||!plan.lines.length)return false;
+  if(checkoutMeetsKitPlan(existing, plan))return false;
+  return applySessionMaterials(s.id,{
+    plan:plan,person:person,reuse:true,existingId:existing?existing.id:null,keepExtra:true
+  },true);
+}
+function syncLargeClassKits(){
+  if(typeof sessions==='undefined'||!sessions||!equipmentTablesReady)return;
+  let n=0;
+  sessions.forEach(function(s){if(syncOneSessionKit(s))n++;});
+  if(n){
+    renderMaterials();
+    showToast('Equipment updated for '+n+' class'+(n===1?'':'es')+' with more than '+MAT_LARGE_CLASS+' students.');
+  }
 }
 
 function renderMaterials(){
@@ -11136,6 +11406,7 @@ async function saveCheckout(editId){
   if(sKeep&&person){
     const plan=matPlanForSession({course:sKeep.course,isVirtual:!!sKeep.isVirtual,date:sKeep.date||outDate,extraDates:sKeep.extraDates||[],person:person,sessionId:sessionId,headcount:sessionHeadcount(sKeep),excludeCheckoutId:editId||null,reuse:true});
     keepToast=matKeepSentence(plan);
+    matApplyHeldTopUps(plan);
     if(plan.fullyCovered){
       items=[{usesExisting:true,qty:0}];
       if(!notes)notes='Keeping kit already with '+person;
@@ -11922,20 +12193,26 @@ function printYearReport(){
     if(!amt)return;
     months[mi].comm+=amt;months[mi].cost+=amt;
   });
-  months.forEach(m=>m.profit=m.rev-m.cost);
-  undatedHold.profit=undatedHold.rev-undatedHold.cost;
+  months.forEach(m=>{
+    const fig=financeYearFigures(m.rev,m.fee,m.cost);
+    m.gross=fig.gross;m.expenses=fig.expenses;m.profit=fig.profit;
+  });
+  const undatedFig=financeYearFigures(undatedHold.rev,undatedHold.fee,undatedHold.cost);
+  undatedHold.gross=undatedFig.gross;undatedHold.expenses=undatedFig.expenses;undatedHold.profit=undatedFig.profit;
 
   // Totals. undatedHold is empty when that revenue was placed in the current month.
   const tot=months.reduce((acc,m)=>({
     rev:acc.rev+m.rev,fee:acc.fee+m.fee,mat:acc.mat+m.mat,instr:acc.instr+m.instr,
     comm:acc.comm+m.comm,ship:acc.ship+m.ship,overhead:acc.overhead+m.overhead,cost:acc.cost+m.cost,
-    profit:acc.profit+m.profit,sess:acc.sess+m.sess,students:acc.students+m.students
+    profit:0,sess:acc.sess+m.sess,students:acc.students+m.students
   }),{rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,cost:0,profit:0,sess:0,students:0});
   if(undatedHold.sess){
     tot.rev+=undatedHold.rev;tot.fee+=undatedHold.fee;tot.mat+=undatedHold.mat;tot.instr+=undatedHold.instr;
     tot.comm+=undatedHold.comm;tot.ship+=undatedHold.ship;tot.overhead+=undatedHold.overhead;tot.cost+=undatedHold.cost;
-    tot.profit+=undatedHold.profit;tot.sess+=undatedHold.sess;tot.students+=undatedHold.students;
+    tot.sess+=undatedHold.sess;tot.students+=undatedHold.students;
   }
+  const yearFig=financeYearFigures(tot.rev,tot.fee,tot.cost);
+  tot.gross=yearFig.gross;tot.expenses=yearFig.expenses;tot.profit=yearFig.profit;
 
   // Course breakdown, including undated paid holds that belong to this year.
   const courseBuckets=courseRevenueForYear(year, nowRep);
@@ -11956,12 +12233,13 @@ function printYearReport(){
       <td>${m.label}</td>
       <td style="text-align:center">${m.sess||'—'}</td>
       <td style="text-align:center">${m.students||'—'}</td>
-      <td style="text-align:right;font-weight:500">${m.rev?fmtN(m.rev):'—'}</td>
+      <td style="text-align:right;font-weight:500">${m.gross?fmtN(m.gross):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.instr?fmtN(m.instr):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.ship?fmtN(m.ship):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.comm?fmtN(m.comm):'—'}</td>
       <td style="text-align:right;color:#c0392b">${m.overhead?fmtN(m.overhead):'—'}</td>
-      <td style="text-align:right;color:#c0392b">${m.cost?fmtN(m.cost):'—'}</td>
+      <td style="text-align:right;color:#c0392b">${m.fee?fmtN(m.fee):'—'}</td>
+      <td style="text-align:right;color:#c0392b">${m.expenses?fmtN(m.expenses):'—'}</td>
       <td style="text-align:right;font-weight:600;color:${profitColor(m.profit)}">${m.sess?fmtS(m.profit):'—'}</td>
     </tr>`).join('');
   if(undatedHold.sess){
@@ -11969,22 +12247,23 @@ function printYearReport(){
       <td>On hold (no date)</td>
       <td style="text-align:center">${undatedHold.sess}</td>
       <td style="text-align:center">${undatedHold.students||'—'}</td>
-      <td style="text-align:right;font-weight:500">${fmtN(undatedHold.rev)}</td>
+      <td style="text-align:right;font-weight:500">${fmtN(undatedHold.gross)}</td>
       <td style="text-align:right;color:#c0392b">${undatedHold.instr?fmtN(undatedHold.instr):'—'}</td>
       <td style="text-align:right;color:#c0392b">${undatedHold.ship?fmtN(undatedHold.ship):'—'}</td>
       <td style="text-align:right;color:#c0392b">${undatedHold.comm?fmtN(undatedHold.comm):'—'}</td>
       <td style="text-align:right;color:#c0392b">${undatedHold.overhead?fmtN(undatedHold.overhead):'—'}</td>
-      <td style="text-align:right;color:#c0392b">${undatedHold.cost?fmtN(undatedHold.cost):'—'}</td>
+      <td style="text-align:right;color:#c0392b">${undatedHold.fee?fmtN(undatedHold.fee):'—'}</td>
+      <td style="text-align:right;color:#c0392b">${fmtN(undatedHold.expenses)}</td>
       <td style="text-align:right;font-weight:600;color:${profitColor(undatedHold.profit)}">${fmtS(undatedHold.profit)}</td>
     </tr>`;
   }
 
-  const courseRows=Object.entries(courseBuckets).sort((a,b)=>b[1].rev-a[1].rev).map(([name,b])=>`
+  const courseRows=Object.entries(courseBuckets).sort((a,b)=>(b[1].rev+(b[1].fee||0))-(a[1].rev+(a[1].fee||0))).map(([name,b])=>`
     <tr>
       <td style="font-weight:500">${name}</td>
       <td style="text-align:center">${b.sess}</td>
       <td style="text-align:center">${b.students}</td>
-      <td style="text-align:right;font-weight:500">${fmtN(b.rev)}</td>
+      <td style="text-align:right;font-weight:500">${fmtN(b.rev+(b.fee||0))}</td>
       <td style="text-align:right;color:${profitColor(b.profit)};font-weight:600">${fmtS(b.profit)}</td>
     </tr>`).join('');
 
@@ -12035,20 +12314,32 @@ function printYearReport(){
     </div>
 
     <div class="kpi-row">
-      <div class="kpi"><div class="label">Total revenue</div><div class="val">${fmtN(tot.rev)}</div><div style="font-size:14px;color:#6b7a99;margin-top:2px">net · ${fmtN(tot.fee)} processing fees</div></div>
-      <div class="kpi"><div class="label">Total expenses</div><div class="val red">${fmtN(tot.cost)}</div></div>
+      <div class="kpi"><div class="label">Gross payments</div><div class="val">${fmtN(tot.gross)}</div><div style="font-size:14px;color:#6b7a99;margin-top:2px">before processing fees</div></div>
+      <div class="kpi"><div class="label">Total expenses</div><div class="val red">${fmtN(tot.expenses)}</div><div style="font-size:14px;color:#6b7a99;margin-top:2px">includes ${fmtN(tot.fee)} card fees</div></div>
       <div class="kpi"><div class="label">Net profit</div><div class="val ${tot.profit>=0?'green':'red'}">${fmtS(tot.profit)}</div></div>
       <div class="kpi"><div class="label">Sessions · Students</div><div class="val">${tot.sess} · ${tot.students}</div></div>
     </div>
+
+    <h2>Payment processing fees</h2>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:10px">PayPal, Venmo, and card fees on paid family registrations. Each one is ${((PAYPAL_PCT||0.0299)*100).toFixed(2)}% + ${fmtN(PAYPAL_FIXED||0.49)}. Payments marked Venmo use this same formula. Organization invoices are not charged a fee. The amount below is a cost: it is included once in total expenses. Gross payments are shown before the fee, so profit does not subtract it a second time.</p>
+    <table>
+      <tbody>
+        <tr><td>Processing fees for ${year}</td><td style="text-align:right;color:#c0392b;font-weight:600">${fmtN(tot.fee)}</td></tr>
+        <tr><td>Gross payments</td><td style="text-align:right;font-weight:500">${fmtN(tot.gross)}</td></tr>
+        <tr><td>Total expenses, including these fees</td><td style="text-align:right;color:#c0392b">${fmtN(tot.expenses)}</td></tr>
+        <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td></tr>
+      </tbody>
+    </table>
 
     <h2>Monthly breakdown</h2>
     <table>
       <thead><tr>
         <th>Month</th><th style="text-align:center">Sessions</th><th style="text-align:center">Students</th>
-        <th style="text-align:right">Revenue</th>
+        <th style="text-align:right">Gross payments</th>
         <th style="text-align:right">Instructor</th><th style="text-align:right">Extra costs</th>
         <th style="text-align:right">Partner comm.</th>
-        <th style="text-align:right">Overhead</th><th style="text-align:right">Total exp.</th>
+        <th style="text-align:right">Overhead</th><th style="text-align:right">Card fees</th>
+        <th style="text-align:right">Total exp.</th>
         <th style="text-align:right">Net profit</th>
       </tr></thead>
       <tbody>${monthRows}</tbody>
@@ -12056,12 +12347,13 @@ function printYearReport(){
         <td>TOTAL ${year}</td>
         <td style="text-align:center">${tot.sess}</td>
         <td style="text-align:center">${tot.students}</td>
-        <td style="text-align:right">${fmtN(tot.rev)}</td>
+        <td style="text-align:right">${fmtN(tot.gross)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.ship)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.overhead)}</td>
-        <td style="text-align:right;color:#c0392b">${fmtN(tot.cost)}</td>
+        <td style="text-align:right;color:#c0392b">${fmtN(tot.fee)}</td>
+        <td style="text-align:right;color:#c0392b">${fmtN(tot.expenses)}</td>
         <td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td>
       </tr></tfoot>
     </table>
@@ -12071,7 +12363,7 @@ function printYearReport(){
     <table>
       <thead><tr>
         <th>Course</th><th style="text-align:center">Sessions</th>
-        <th style="text-align:center">Students</th><th style="text-align:right">Revenue</th>
+        <th style="text-align:center">Students</th><th style="text-align:right">Gross payments</th>
         <th style="text-align:right">Net profit</th>
       </tr></thead>
       <tbody>${courseRows||'<tr><td colspan="5" style="color:#aaa;text-align:center;padding:16px">No course data for this year</td></tr>'}</tbody>
@@ -12086,13 +12378,14 @@ function printYearReport(){
     </table>`:''}
 
     <h2>All expenses by category</h2>
-    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes instructor fees, extra session costs, community partner commission, and overhead. Handbook and supply orders are overhead, not a per-student charge on each class.</p>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes instructor fees, extra session costs, community partner commission, payment processing fees, and overhead. Handbook and supply orders are overhead, not a per-student charge on each class. Processing fees are counted here once and are not also removed from gross payments.</p>
     ${(()=>{
       // Build unified expense map: session costs + overhead
       const allCats={};
       if(tot.instr>0)allCats['Instructor fees']=tot.instr;
       if(tot.comm>0)allCats['Partner commission']=tot.comm;
       if(tot.ship>0)allCats['Extra session costs']=tot.ship;
+      if(tot.fee>0)allCats['Payment processing fees']=tot.fee;
       Object.entries(catBuckets).forEach(([k,v])=>{if(v>0)allCats[k]=(allCats[k]||0)+v;});
       const grandTotal=Object.values(allCats).reduce((s,v)=>s+v,0);
       if(!grandTotal)return '<p style="color:#aaa;font-style:italic">No expense data for this year.</p>';
@@ -12139,7 +12432,8 @@ function printYearReport(){
           <div style="margin-top:12px;padding:10px 12px;background:#f8f9fc;border-radius:6px;font-size:14px;color:#6b7a99;line-height:1.7">
             <strong style="color:#1a2744">How these are counted:</strong><br>
             <em>Instructor fees</em> — hourly rate × course hours, plus one paid hour of travel at the same rate (virtual courses have no travel), or a flat fee where the course has one. Handbook and student-supply purchases are overhead expenses, entered when you order them.<br>
-            <em>Extra session costs</em> — facility rental, parking, printing, and other costs typed on that class or job.
+            <em>Extra session costs</em> — facility rental, parking, printing, and other costs typed on that class or job.<br>
+            <em>Payment processing fees</em> — PayPal, Venmo, and card fees on paid family registrations (2.99% + $0.49). A cost, subtracted once. Organization invoices are not included.
           </div>
         </div>
       </div>`;
@@ -12147,7 +12441,7 @@ function printYearReport(){
 
     <div class="footer">
       <span>Mindful Beginnings · Annual Report ${year}</span>
-      <span>Figures include course revenue, instructor fees, extra session costs, partner commission, and overhead</span>
+      <span>Figures include gross payments, processing fees as a cost, instructor fees, extra session costs, partner commission, and overhead</span>
     </div>
   </div>
   </body></html>`;

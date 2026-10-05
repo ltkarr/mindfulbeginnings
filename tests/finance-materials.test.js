@@ -29,7 +29,7 @@ const names = [
   'processingFee', 'isLiveReg', 'regEffectivePrice',
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
-  'calcFin', 'round2', 'partnerDirectCosts', 'loadEditCosts'
+  'calcFin', 'round2', 'financeYearFigures', 'partnerDirectCosts', 'loadEditCosts'
 ];
 
 const sandbox = {
@@ -181,6 +181,47 @@ test('a hand-typed job cost that is not a generated materials line still reduces
     { label: 'Safe Sitter handbooks', amount: 80 },
     { label: 'Safe Sitter® materials — 4 × $20.35', amount: 81.4 }
   ]), 80);
+});
+
+test('yearly finances count processing fees once as their own cost', () => {
+  const fig = sandbox.financeYearFigures(1000, 40.5, 300);
+  assert.equal(fig.gross, 1040.5);
+  assert.equal(fig.fees, 40.5);
+  assert.equal(fig.expenses, 340.5);
+  assert.equal(fig.profit, 700);
+  // Net revenue minus other costs is the same profit. Subtracting the fee again would be 659.5.
+  assert.equal(fig.profit, 1000 - 300);
+  assert.notEqual(fig.profit, 1000 - 300 - 40.5);
+
+  const session = {
+    id: 'fee-year',
+    course: 'Safe Sitter®',
+    date: '2026-10-04',
+    priceOverride: 225,
+    additionalCosts: []
+  };
+  sandbox.registrations = [{ id: 'paid', sessionId: 'fee-year', payStatus: 'paid' }];
+  sandbox.jobDataCache = {};
+  const fin = sandbox.calcFin(session);
+  const year = sandbox.financeYearFigures(fin.revenue, fin.procFee, fin.totalCost);
+  assert.equal(Math.round(year.gross * 100) / 100, 225);
+  assert.equal(Math.round(year.fees * 100) / 100, Math.round(fee(225) * 100) / 100);
+  assert.equal(Math.round(year.profit * 100) / 100, Math.round(fin.profit * 100) / 100);
+  assert.equal(Math.round((year.gross - year.fees - (year.expenses - year.fees)) * 100) / 100, Math.round(year.profit * 100) / 100);
+
+  const finStart = admin.indexOf('function renderFinances(');
+  const finEnd = admin.indexOf('// ─── CODES', finStart);
+  const screen = admin.slice(finStart, finEnd);
+  assert.match(screen, /financeYearFigures/);
+  assert.match(screen, /Payment processing fees/);
+  assert.match(screen, /id="fin-fee-section"|fin-fee-section/);
+  assert.match(screen, /Gross payments are shown before the fee/);
+  const yearlyTitle = screen.slice(screen.indexOf('const feeTitle'));
+  assert.match(yearlyTitle, /included once in Total expenses/);
+  assert.match(admin, /<h2>Payment processing fees<\/h2>/);
+  assert.match(admin, /Processing fees for \$\{year\}/);
+  assert.match(admin, /does not subtract it a second time/);
+  assert.match(admin, /includes \$\{fmtN\(tot\.fee\)\} card fees/);
 });
 
 test('finances screens no longer show a per-student material cost column', () => {
