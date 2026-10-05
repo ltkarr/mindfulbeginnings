@@ -25,6 +25,10 @@
     { key: 'intro-virtual', course: 'Intro to Babysitting', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Grades 6–8', where: 'virtual', virtual: true, host: true, org: true },
     { key: 'all-kids-welcome', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '1 hour', audience: 'Experienced sitters', where: 'in person', host: true, org: true },
     { key: 'all-kids-welcome-virtual', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '1 hour', audience: 'Experienced sitters', where: 'virtual', virtual: true, host: true, org: true },
+    // Social Ready matches config.js: $35/kid, 1 hour, grades 4–8, code SOC.
+    // In person and virtual are separate choices, same as All Kids Welcome.
+    { key: 'social-ready', course: 'Social Ready', abbr: 'SOC', price: 35, hours: '1 hour', audience: 'Grades 4–8', where: 'in person', host: true, org: true },
+    { key: 'social-ready-virtual', course: 'Social Ready', abbr: 'SOC', price: 35, hours: '1 hour', audience: 'Grades 4–8', where: 'virtual', virtual: true, host: true, org: true },
     { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 225, hours: '2.5 hours', audience: 'Expecting or new parents · per couple', where: 'in person', host: false, org: true },
     { key: 'season-ready', course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', abbr: 'SEAR', price: 25, hours: '60 minutes', audience: 'Student athletes', where: 'in person', requiresRN: true, host: false, org: true },
     { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet — I would like guidance' },
