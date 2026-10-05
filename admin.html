@@ -9,6 +9,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/course-booking.js"></script>
 <script src="/js/admin-ops-emails.js"></script>
+<script src="/js/class-requests.js"></script>
+<script src="/js/class-requests-admin.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -304,6 +306,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
     <div class="nav-items">
       <div class="nav-item active" title="Dashboard" onclick="showScreen('dashboard',this)"><span class="nav-icon">◈</span> <span class="nav-label">Dashboard</span></div>
       <div class="nav-item" title="Sessions" onclick="showScreen('sessions',this)"><span class="nav-icon">◷</span> <span class="nav-label">Sessions</span></div>
+      <div class="nav-item" id="nav-requests" title="Class requests" onclick="showScreen('requests',this)"><span class="nav-icon">✉</span> <span class="nav-label">Class requests</span></div>
       <div class="nav-item" title="Registrations" onclick="showScreen('registrations',this)"><span class="nav-icon">◻</span> <span class="nav-label">Registrations</span></div>
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
       <div class="nav-item" title="Session codes" onclick="showScreen('codes',this)"><span class="nav-icon">⬡</span> <span class="nav-label">Session codes</span></div>
@@ -326,6 +329,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-date"></div></div>
         <button class="btn primary" onclick="openAddSession()">+ New session</button>
       </div>
+      <div id="class-request-banner"></div>
       <div class="metrics" id="dash-metrics"></div>
       <div id="dash-materials" style="margin-bottom:16px"></div>
       <div id="org-billing" style="margin-bottom:16px"></div>
@@ -340,6 +344,22 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <span><span class="legend-dot" style="background:#c0392b"></span>Over budget (loss)</span>
         </div>
       </div>
+    </div>
+
+    <div class="screen" id="screen-requests">
+      <div class="page-header">
+        <div><div class="page-title">Class requests</div><div class="page-sub">Private host and organization forms. Confirmation emails stay drafts until you send them.</div></div>
+      </div>
+      <div class="filter-row">
+        <select id="cr-filter" onchange="renderClassRequests()">
+          <option value="open">Needs attention</option>
+          <option value="received">Just received</option>
+          <option value="done">Done</option>
+          <option value="archived">Archived</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+      <div id="class-requests-root"></div>
     </div>
 
     <div class="screen" id="screen-sessions">
@@ -1001,6 +1021,7 @@ function rerenderActiveScreen(){
   const active=document.querySelector('.screen.active');
   const name=active?active.id.replace('screen-',''):'dashboard';
   if(name==='dashboard')renderDashboard();
+  else if(name==='requests'&&typeof renderClassRequests==='function')renderClassRequests();
   else if(name==='sessions')renderSessions();
   else if(name==='registrations')renderRegs();
   else if(name==='finances'){renderFinances();renderExpenses();}
@@ -1179,6 +1200,7 @@ let equipment=[],matCheckouts=[],equipmentTablesReady=true;
 // partnersTableReady goes false when the setup SQL has not been run yet, and the
 // Partners screen shows the instructions instead of an empty table.
 let partners=[],partnerPayouts=[],partnersTableReady=true,partnerPeriod=null;
+let classRequests=[],classRequestsTableReady=true;
 // Community Partnerships: ORGANIZATIONS on a revenue share, not individuals on
 // commission. Separate tables, separate tab, separate agreement.
 let orgPartners=[],orgPartnerPayouts=[],orgPartnersTableReady=true,orgPartnerPeriod=null;
@@ -1484,6 +1506,11 @@ async function loadData(){
     if((pt.data||[]).length&&!('instructor_id' in pt.data[0]))PARTNER_INSTRUCTOR_COL=false;
     partners=(pt.data||[]).map(partnerFromDB);
     partnerPayouts=(pp.data||[]).map(payoutFromDB);
+    const cr=await fetchAll('class_requests',q=>q.order('created_at',{ascending:false}));
+    classRequestsTableReady=!cr.error;
+    if(cr.error)console.warn('Class requests table not loaded (run migrations/class_requests.sql):',cr.error);
+    classRequests=cr.data||[];
+    if(typeof renderClassRequestNav==='function')renderClassRequestNav();
     // Supabase returns errors on the result object instead of throwing. If any table
     // failed to load, say so loudly — otherwise the dashboard quietly shows wrong numbers.
     // The two equipment tables are newer — if they haven't been created yet the rest of
@@ -4094,6 +4121,7 @@ function showScreen(name,el){
   if(el)el.classList.add('active');
   if(name==='dashboard')renderDashboard();
   if(name==='sessions')renderSessions();
+  if(name==='requests'&&typeof renderClassRequests==='function')renderClassRequests();
   if(name==='registrations')renderRegs();
   if(name==='finances'){renderFinances();renderExpenses();}
   if(name==='codes')renderCodes();
@@ -4738,6 +4766,7 @@ function dashChecklistSessions(list, today){
   return incomplete.slice(0,5);
 }
 function renderDashboard(){
+  if(typeof renderClassRequestBanner==='function')renderClassRequestBanner();
   const now=new Date();const m=now.getMonth();const y=now.getFullYear();
   // Dated classes stay in their own month. Undated paid holds count toward
   // this year, and toward this month when the hold-term year is this year.

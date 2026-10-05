@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Organization site information — Mindful Beginnings</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/intake.css">
+</head>
+<body>
+<header>
+  <img src="/email-logo.png" alt="">
+  <div class="htext">
+    <div class="brand">Mindful Beginnings</div>
+    <div class="tag">Organization site information</div>
+  </div>
+</header>
+<div class="hero">
+  <h1>Organization site information</h1>
+  <p>Tell us how to find the room, who to call that day, and how registration should work. If anything changes later, email lindsay@mindfulbeginnings.org.</p>
+</div>
+<main>
+  <form id="request-form" data-kind="organization" novalidate>
+    <div id="form-error" class="alert" hidden tabindex="-1"></div>
+
+    <div class="card">
+      <h2>Day-of contact</h2>
+      <p class="lead">The best person for our instructor to reach on the day of the course.</p>
+      <div class="field"><label for="organizationName">Organization name</label><input id="organizationName" name="organizationName" required placeholder="GS Troop 42086 or Bethesda Elementary"></div>
+      <div class="grid">
+        <div class="field"><label for="name">Contact person — full name</label><input id="name" name="name" autocomplete="name" required></div>
+        <div class="field"><label for="phone">Cell phone</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="referral">Who referred you to us?</label><input id="referral" name="referral"></div>
+    </div>
+
+    <div class="card">
+      <h2>Course</h2>
+      <p class="lead">Girl Scout troops: badge descriptions are on <a href="https://mindfulbeginnings.org/gsnc">mindfulbeginnings.org/gsnc</a>. Hosting at a private home instead? <a href="/host.html">Use the home host form</a>.</p>
+      <div class="field">
+        <label for="courseKey">Name of course</label>
+        <select id="courseKey" name="courseKey" required>
+          <option value="">Choose a course</option>
+          <option value="safe-sitter" data-note="Safe Sitter® instructors.">Safe Sitter® — Grades 6–8, 5 hours, in person ($225)</option>
+          <option value="safe-at-home" data-note="">Safe@Home — Grades 3–5, 90 minutes, in person ($85)</option>
+          <option value="safe-at-home-virtual" data-note="This class is virtual.">Safe@Home — Virtual — Grades 3–5, 60 minutes, virtual ($40)</option>
+          <option value="care-ready" data-note="">Care Ready — Adult caregivers, 2.5 hours, in person ($185)</option>
+          <option value="grandparents" data-note="Safe Sitter® instructors.">Grandparents: Getting Started — Adults, 3 hours, in person ($185)</option>
+          <option value="mfbc-single" data-note="">My First Babysitters Club — Single Session — Grades 4–5, 2.5 hours, in person ($95)</option>
+          <option value="mfbc-series" data-note="">My First Babysitters Club — Younger sitters · multi-week, 1 hour a week, in person ($165)</option>
+          <option value="campus-ready" data-note="Taught by a registered nurse.">Campus Ready: Safety Skills for College Life — Ages 16+, 1 hour, in person ($75)</option>
+          <option value="ready-period" data-note="Taught by a registered nurse.">Ready. Period. — Grades 5–8, 90 minutes, in person ($75)</option>
+          <option value="stay-ready" data-note="Taught by a registered nurse.">Stay Ready: Choking Rescue and CPR — Grades 8+, 90 minutes, in person ($75)</option>
+          <option value="steady-ready" data-note="">Steady and Ready — Ages 8+, 1.5 hours, in person ($65)</option>
+          <option value="intro" data-note="">Intro to Babysitting — Grades 6–8, 1 hour, in person ($40)</option>
+          <option value="intro-virtual" data-note="This class is virtual.">Intro to Babysitting — Grades 6–8, 1 hour, virtual ($40)</option>
+          <option value="all-kids-welcome" data-note="">All Kids Welcome — Experienced sitters, 1 hour, in person ($25)</option>
+          <option value="all-kids-welcome-virtual" data-note="This class is virtual.">All Kids Welcome — Experienced sitters, 1 hour, virtual ($25)</option>
+          <option value="baby-ready" data-note="">Baby Ready — Expecting or new parents · per couple, 2.5 hours, in person ($225)</option>
+          <option value="season-ready" data-note="Taught by a registered nurse.">Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes — Student athletes, 60 minutes, in person ($25)</option>
+          <option value="custom" data-note="">Custom course — we will follow up with pricing</option>
+        </select>
+      </div>
+      <p id="course-note" class="price-note" hidden></p>
+      <div class="field"><label for="badge">Girl Scouts: which badge would you like? <span class="hint">Leave blank if this is not a troop program.</span></label><input id="badge" name="badge"></div>
+      <div class="field"><label for="instructorRequest">Request a specific instructor? <span class="hint">Optional. We will confirm who is available.</span></label><input id="instructorRequest" name="instructorRequest"></div>
+      <div id="custom-wrap" class="field" hidden>
+        <label for="customRequest">Custom course request</label>
+        <textarea id="customRequest" name="customRequest" rows="3" placeholder="Tell us what you would like us to create."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Where and when</h2>
+      <div class="field">
+        <label for="location">Course location <span class="hint">School or building, full street address, and the room (cafeteria, media center, Room 114).</span></label>
+        <textarea id="location" name="location" rows="3" required placeholder="Bethesda Elementary, 123 Oak St, Room 114, Bethesda, MD 20814"></textarea>
+      </div>
+      <div class="field">
+        <span class="check-title">Course dates and times</span>
+        <span class="hint">Add every date. A multi-week series should list each meeting.</span>
+      </div>
+      <div id="day-list"></div>
+      <button type="button" class="add-day" id="add-day">Add another day</button>
+      <div class="field"><label for="expectedCount">How many participants do you anticipate?</label><input id="expectedCount" name="expectedCount" inputmode="numeric" required></div>
+    </div>
+
+    <div class="card">
+      <h2>Arrival</h2>
+      <p class="check-title">AV equipment you have for us</p>
+      <p class="hint" style="margin:0 0 8px">We can bring anything you do not have. A screen or blank wall is what we need to project.</p>
+      <label class="choice"><input type="checkbox" name="av" value="Laptop"> <span>Laptop</span></label>
+      <label class="choice"><input type="checkbox" name="av" value="Projector"> <span>Projector</span></label>
+      <label class="choice"><input type="checkbox" name="av" value="Screen or blank wall"> <span>Screen or blank wall</span></label>
+      <label class="choice"><input type="checkbox" name="av" value="Speakers"> <span>Speakers or sound system</span></label>
+      <label class="choice"><input type="checkbox" name="av" value="Please bring what we do not have"> <span>Please bring what we do not have</span></label>
+      <div class="field" style="margin-top:12px">
+        <label for="parking">Parking for the instructor <span class="hint">Visitor spaces, permits, or lots to avoid.</span></label>
+        <textarea id="parking" name="parking" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label for="arrival">Arrival and access <span class="hint">Which door, buzzer or door code, front-office check-in, ID, earliest setup time, how to find the room.</span></label>
+        <textarea id="arrival" name="arrival" rows="4"></textarea>
+      </div>
+      <div class="field">
+        <label for="participantInfo">Information for participants <span class="hint">Snacks, drinks, meals. Everyone signs our program waiver. If you register participants yourselves, you can paste that waiver into your system.</span></label>
+        <textarea id="participantInfo" name="participantInfo" rows="4"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Registration and payment</h2>
+      <label class="choice"><input type="radio" name="billing" value="org_full_external" required> <span>We cover the full cost, and our organization handles registration. Participants sign up through us at no charge. Mindful Beginnings invoices us after the course.</span></label>
+      <label class="choice"><input type="radio" name="billing" value="org_full_link"> <span>We cover the full cost, and Mindful Beginnings handles registration. Participants use a private Mindful Beginnings link at no charge. Mindful Beginnings invoices us after the course.</span></label>
+      <label class="choice"><input type="radio" name="billing" value="individual"> <span>Participants register and pay individually on a private Mindful Beginnings link.</span></label>
+      <label class="choice"><input type="radio" name="billing" value="split"> <span>We cover a portion. Participants pay a reduced rate at registration, and we are invoiced for the rest after the course.</span></label>
+      <div class="field" id="portion-wrap" hidden>
+        <label for="portionText">Amount or percentage you will cover per participant <span class="hint">For example, $25 or 50%.</span></label>
+        <input id="portionText" name="portionText" placeholder="$25">
+      </div>
+    </div>
+
+    <button class="btn-p" id="submit-btn" type="submit">Submit site information</button>
+    <p class="hint" style="text-align:center;margin-top:10px">Lindsay reviews a draft and sends the confirmation herself. This form does not email you automatically.</p>
+    <div class="hp" aria-hidden="true"><label>Company website<input name="companyWebsite" tabindex="-1" autocomplete="off"></label></div>
+  </form>
+
+  <div id="success" class="card ok" hidden>
+    <h2 id="success-hello">Thank you.</h2>
+    <p id="success-extra"></p>
+    <p class="hint">Questions in the meantime? Email <a href="mailto:lindsay@mindfulbeginnings.org">lindsay@mindfulbeginnings.org</a>.</p>
+  </div>
+</main>
+<footer>© 2026 Mindful Beginnings · <a href="/host.html">Hosting at home?</a> · <a href="/register.html">Register for a class</a> · <a href="https://mindfulbeginnings.org/gsnc">Girl Scout programs</a></footer>
+<script src="/js/class-request-form.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var note = document.getElementById('course-note');
+  var select = document.getElementById('courseKey');
+  function sync() {
+    var opt = select.options[select.selectedIndex];
+    var text = opt && opt.getAttribute('data-note');
+    note.hidden = !text;
+    note.textContent = text || '';
+  }
+  select.addEventListener('change', sync);
+});
+</script>
+</body>
+</html>
