@@ -18,6 +18,7 @@ const admin = fs.readFileSync(path.join(root, 'admin.html'), 'utf8');
 const register = fs.readFileSync(path.join(root, 'register.html'), 'utf8');
 const outlookSrc = fs.readFileSync(path.join(root, 'lib/outlook-draft.js'), 'utf8');
 const migration = fs.readFileSync(path.join(root, 'migrations/class_requests.sql'), 'utf8');
+const intakeCss = fs.readFileSync(path.join(root, 'css/intake.css'), 'utf8');
 
 function hostBody(over) {
   return Object.assign({
@@ -56,6 +57,20 @@ function orgBody(over) {
     arrival: 'Use the side door. Code 1234.'
   }, over || {});
 }
+
+test('host and organization headers use the large white logo without a duplicate title', () => {
+  assert.equal(fs.existsSync(path.join(root, 'email-logo-white.png')), true);
+  assert.match(hostPage, /<img src="\/email-logo-white\.png" alt="Mindful Beginnings">/);
+  assert.match(orgPage, /<img src="\/email-logo-white\.png" alt="Mindful Beginnings">/);
+  assert.match(hostPage, /<div class="tag">Host a private group course<\/div>/);
+  assert.match(orgPage, /<div class="tag">Organization site information<\/div>/);
+  assert.doesNotMatch(hostPage, /class="brand"/);
+  assert.doesNotMatch(orgPage, /class="brand"/);
+  assert.doesNotMatch(hostPage, /email-logo\.png/);
+  assert.doesNotMatch(orgPage, /email-logo\.png/);
+  assert.doesNotMatch(intakeCss, /border-radius:\s*50%/);
+  assert.match(intakeCss, /width:min\(320px,86vw\)/);
+});
 
 test('host course choices on the page match the catalog, and organizations are sent to the other form', () => {
   model.coursesFor('host').forEach(function (course) {
