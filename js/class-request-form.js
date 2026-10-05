@@ -168,7 +168,7 @@
       try { json = await res.json(); } catch (err) { json = {}; }
       if (!res.ok || !json.ok) {
         if (json.redirect) window.location.href = json.redirect;
-        showError(json.error || 'Something went wrong. Please email lindsay@mindfulbeginnings.org.');
+        showError(json.error || 'Something went wrong. Please try again.');
         if (json.field) fieldError(form, json.field);
         return;
       }
@@ -182,12 +182,12 @@
         var extra = $('success-extra');
         if (extra) {
           extra.textContent = json.sessionCreated
-            ? 'Lindsay has the details, including a private session on her calendar. She will email you a confirmation. Nothing is sent automatically from this form.'
-            : 'Lindsay has your request. A date, time, or billing detail still needs a look before a registration link is ready, and she will follow up. Nothing is sent automatically from this form.';
+            ? 'We have the details. We will confirm the date. Nothing is sent automatically from this form.'
+            : 'We have your request. A date, time, or billing detail still needs a look before a registration link is ready, and we will follow up. Nothing is sent automatically from this form.';
         }
       }
     } catch (err) {
-      showError('We could not reach the server. Please try again, or email lindsay@mindfulbeginnings.org.');
+      showError('We could not reach the server. Please try again.');
     } finally {
       if (btn && !form.hidden) { btn.disabled = false; btn.textContent = 'Submit request'; }
     }

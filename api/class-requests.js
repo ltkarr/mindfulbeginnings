@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
     const status = err && err.status ? err.status : 500;
     const message = status === 400
       ? (err.message || 'Please check the form and try again.')
-      : 'Something went wrong saving your request. Please email lindsay@mindfulbeginnings.org.';
+      : 'Something went wrong saving your request. Please try again.';
     sendJson(res, status >= 400 && status < 600 ? status : 500, { error: message });
   }
 };
