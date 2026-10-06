@@ -1134,7 +1134,8 @@ async function doLogin(){
     // partner record, their statement comes back here and the Partnerships tab
     // appears next to their jobs. Everyone else gets null and sees no change.
     await loadPartnerData(pin);
-    // Load sessions, job data, and registration counts. Sessions and job_data are readable by anon (used for the available-jobs board). Registration counts come from a function that does not expose PII.
+    // Load sessions, the public job-board columns, and registration counts.
+    // Pay, materials, and session notes come back only for this PIN.
     await loadData();
     // Anyone still on an old PIN is stopped here and made to set a six-digit one
     // before the portal opens. Nothing else in the app is reachable until they do.
@@ -1246,13 +1247,13 @@ async function loadData(){
   // with the anon key, so anything listed here is effectively public. Site details
   // are fetched per-job through the instructor_session_private RPC once a job is
   // accepted. admin_private_notes is not granted to anon and must never be selected.
-  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,is_cancelled,cancel_reason,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,extra_days,closures,instructor_info,requires_rn';
+  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,is_cancelled,cancel_reason,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,extra_days,closures,instructor_info,requires_rn';
   // Fallback tier: drops only the newest columns (extra_days / closures / instructor_info),
   // so a database that has not run the latest SQL still gets everything else.
-  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,notes,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,is_cancelled,cancel_reason,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,requires_rn';
+  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,is_cancelled,cancel_reason,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,requires_rn';
   let[s,j,r]=await Promise.all([
     sb.from('sessions').select(SESSION_COLS_FULL),
-    sb.from('job_data').select('*'),
+    sb.from('job_data').select('session_id,instructor_id,waitlist'),
     sb.rpc('get_all_registration_counts')
   ]);
   // FALLBACK: if the sessions query failed (a newer column missing from the
@@ -1269,7 +1270,7 @@ async function loadData(){
   if(s.error){
     console.error('sessions load failed again, retrying with core columns only:',s.error);
     rnColLost=true;
-    s=await sb.from('sessions').select('id,code,course,date,time,location,city,owner_taught,host_taken,instructor_id,notes,instr_pay_override,is_custom_job,is_virtual');
+    s=await sb.from('sessions').select('id,code,course,date,time,location,city,owner_taught,host_taken,instructor_id,instr_pay_override,is_custom_job,is_virtual');
   }
   // Surface load failures instead of letting them masquerade as an empty job board.
   if(s.error)console.error('sessions load failed (check RLS / column names):',s.error);
@@ -1334,6 +1335,37 @@ async function loadData(){
     loadErrors.flags=(flagErr&&flagErr.message)||'restriction/cancellation columns unavailable';
   }
   if(!j.error){jobDataCache={};(j.data||[]).forEach(row=>{jobDataCache[row.session_id]=jobFromDB(row);});}
+  if(me&&me.pin){
+    try{
+      const priv=await sb.rpc('instructor_job_details',{p_pin:me.pin});
+      if(priv&&!priv.error){
+        (priv.data||[]).forEach(row=>{
+          const cur=jobDataCache[row.session_id]||{waitlist:[],instructorId:null};
+          cur.materialsMethod=row.materials_method||'';
+          cur.materialsSent=!!row.materials_sent;
+          cur.evalReceived=!!row.eval_received;
+          cur.payStatus=row.pay_status||null;
+          cur.payDate=row.pay_date||null;
+          cur.notes=row.notes||'';
+          cur.referralBonus=row.referral_bonus||0;
+          cur.paidFee=row.paid_fee==null?null:Number(row.paid_fee);
+          jobDataCache[row.session_id]=cur;
+        });
+      }else if(priv&&priv.error){
+        console.warn('instructor job details failed:',priv.error);
+      }
+    }catch(e){console.warn('instructor job details failed:',e);}
+    try{
+      const noteRows=await sb.rpc('instructor_session_notes',{p_pin:me.pin});
+      if(noteRows&&!noteRows.error){
+        const map={};
+        (noteRows.data||[]).forEach(row=>{if(row&&row.session_id)map[row.session_id]=row.notes||'';});
+        allSessions.forEach(s=>{if(Object.prototype.hasOwnProperty.call(map,s.id))s.notes=map[s.id];});
+      }else if(noteRows&&noteRows.error){
+        console.warn('instructor session notes failed:',noteRows.error);
+      }
+    }catch(e){console.warn('instructor session notes failed:',e);}
+  }
   if(!r.error){regCountMap={};(r.data||[]).forEach(x=>{regCountMap[x.session_id]=Number(x.cnt)||0;});}
   lastFetch=Date.now();
 }

@@ -23,10 +23,14 @@
 const { sendJson } = require('../lib/http');
 
 const SUPABASE_URL = 'https://evninlytzhtacanrguhx.supabase.co';
-// Public anon key — the same one shipped in the site's page source. It can only
-// call the two definer RPCs used here, which expose no more than the reminder
-// data itself.
+// Reminder lookup returns instructor names and emails. After the lockdown
+// migration, anon cannot call those functions. Use the service role, which
+// PayPal capture already requires on this project. The anon key remains only
+// as a fallback for a deploy that lands before that migration runs.
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2bmlubHl0emh0YWNhbnJndWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTE1MzQsImV4cCI6MjA5MzIyNzUzNH0.7sr0P9BmcPW_cJgWZwndVtaHsZXsbVCcE0Pk1gm3VP8';
+function supabaseKey() {
+  return (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim() || SUPABASE_ANON_KEY;
+}
 const EMAILJS_SERVICE_ID = 'service_delt0r4';
 const EMAILJS_PUBLIC_KEY = 'FKuVu4SN8eXJ1cOYM';
 
@@ -34,8 +38,8 @@ async function rpc(name, args) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: 'POST',
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: supabaseKey(),
+      Authorization: `Bearer ${supabaseKey()}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(args || {}),
