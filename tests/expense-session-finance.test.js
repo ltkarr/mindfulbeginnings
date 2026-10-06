@@ -35,6 +35,7 @@ const names = [
   'calcFin', 'round2', 'financeYearFigures', 'partnerDirectCosts',
   'financeSessionFigures', 'financeRevenueSlot',
   'holdPaymentReceived', 'undatedHoldMoneyIn', 'holdTermYear', 'sessionClassDate', 'sessionRevenueSlot',
+  'orgOrJobFeeReceived', 'sessionCashSplit',
   'dashboardRevenueTotals', 'dashboardChartRevenue',
   'financeRevenueBuckets', 'emptyRevBucket', 'applyFinanceExpenses',
   'annualSessionBuckets', 'courseRevenueForYear', 'profitBySessionRows'

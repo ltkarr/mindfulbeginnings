@@ -43,7 +43,8 @@ function loadMappers() {
     CANCEL_COLS: false,
     EXTERNAL_URL_COL: false,
     ADMIN_PRIVATE_NOTES_COL: true,
-    ORG_PORTION_COL: true
+    ORG_PORTION_COL: true,
+    FEE_RECEIVED_COL: true
   };
   const sandbox = { ...flags };
   vm.runInNewContext(

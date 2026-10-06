@@ -33,6 +33,7 @@ const names = [
   'isLiveReg', 'regEffectivePrice', 'processingFee',
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
+  'holdPaymentReceived', 'orgOrJobFeeReceived',
   'splitBillCaption', 'sessionRevenueNotes',
   'calcFin', 'invoiceLineFor',
   'escapeHtml', 'fmt'

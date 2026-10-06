@@ -622,7 +622,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -685,6 +685,11 @@ const PRIVATE_NOTES_SQL_TOAST='⚠️ Saved, but WITHOUT private notes — run m
 // been run yet, so the rest of the session still saves.
 let ORG_PORTION_COL=true;
 const ORG_PORTION_SQL_TOAST='⚠️ Saved, but WITHOUT the organization-per-girl amount — run migrations/org_portion.sql in the Supabase SQL editor, then re-save this session.';
+// Whether the organization invoice or custom-job fee on this session has been
+// received. Null means not marked. Family registrations keep their own pay status.
+// See migrations/fee_received.sql. Anon is not granted the column.
+let FEE_RECEIVED_COL=true;
+const FEE_RECEIVED_SQL_TOAST='⚠️ Saved, but WITHOUT the received mark — run migrations/fee_received.sql in the Supabase SQL editor, then mark it received again.';
 function adminPrivateNotesFieldHtml(value){
   return `<div class="fg full" style="background:#f6f3ee;border:1px dashed #d9cfc0;border-radius:var(--r-sm);padding:10px 12px">
       <label>Private notes <span style="font-weight:400;color:var(--muted)">(admin only)</span></label>
@@ -723,6 +728,9 @@ function sessionToDB(s){
   // Only sent once migrations/org_portion.sql has added the column. A session
   // object that never loaded the field must not blank a value already stored.
   if(ORG_PORTION_COL&&s.orgPortion!==undefined)o.org_portion=s.orgPortion==null||s.orgPortion===''?null:Number(s.orgPortion);
+  // Null stays null. A session object that never loaded the field must not
+  // mark an unmarked bill received, or clear one Lindsay already marked.
+  if(FEE_RECEIVED_COL&&s.feeReceived!==undefined)o.fee_received=s.feeReceived===true?true:(s.feeReceived===false?false:null);
   // created_at drives ALL pricing, so write it explicitly rather than trusting a
   // database default to exist. A session that arrives without one is stamped with the
   // pre-cutover sentinel, never with "now" — guessing "now" is what caused every
@@ -758,6 +766,7 @@ function sessionUpsertRejectColumn(msg){
   if(EXTERNAL_URL_COL&&/external_registration_url/i.test(msg))return 'external';
   if(ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(msg))return 'private';
   if(ORG_PORTION_COL&&/org_portion/i.test(msg))return 'org_portion';
+  if(FEE_RECEIVED_COL&&/fee_received/i.test(msg))return 'fee_received';
   if(HOSTED_FOR_COL&&/hosted_for/i.test(msg))return 'hosted_for';
   if(ORIGINATED_COL&&/originated_by|origination_note/i.test(msg))return 'origin';
   if(EXTRA_DAYS_COL&&/extra_days/i.test(msg))return 'extra_days';
@@ -773,6 +782,7 @@ function applySessionUpsertReject(which,flags){
   else if(which==='external'){EXTERNAL_URL_COL=false;flags.missingExternalUrl=true;}
   else if(which==='private'){ADMIN_PRIVATE_NOTES_COL=false;flags.missingPrivateNotes=true;}
   else if(which==='org_portion'){ORG_PORTION_COL=false;flags.missingOrgPortion=true;}
+  else if(which==='fee_received'){FEE_RECEIVED_COL=false;flags.missingFeeReceived=true;}
   else if(which==='hosted_for'){HOSTED_FOR_COL=false;flags.missingHostedFor=true;}
   else if(which==='origin'){ORIGINATED_COL=false;flags.missingOrigin=true;}
   else if(which==='extra_days'){EXTRA_DAYS_COL=false;flags.missingDays=true;}
@@ -782,7 +792,7 @@ function applySessionUpsertReject(which,flags){
   return !!which;
 }
 function blankSessionUpsertFlags(){
-  return{missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false};
+  return{missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false};
 }
 // Every session write goes through here: course sessions, custom jobs, holds,
 // publish, cancel. One unknown column used to abort custom-job and hold saves
@@ -817,6 +827,7 @@ function sessionOptionalColToast(f){
   if(f.missingExternalUrl)return EXTERNAL_URL_SQL_TOAST;
   if(f.missingPrivateNotes)return PRIVATE_NOTES_SQL_TOAST;
   if(f.missingOrgPortion)return ORG_PORTION_SQL_TOAST;
+  if(f.missingFeeReceived)return FEE_RECEIVED_SQL_TOAST;
   if(f.missingSsCol)return SS_COL_SQL_TOAST;
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
@@ -1405,8 +1416,28 @@ function orgBillingFieldsHtml(s){
         <div id="m-orgportion-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Organization flat fee per girl</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;color:var(--muted)">$</span><input type="number" id="m-org-portion" value="${portion}" min="0" step="0.01" placeholder="25" oninput="updateOrgSplitPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"></div><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:240px">Billed on the organization invoice only. Families are not charged this at checkout.</div></div>
       </div>
       <div id="m-org-split-preview" style="font-size:15px;margin-top:12px;line-height:1.45"></div>
+      ${feeReceivedBoxHtml(s,'m-fee-received')}
       ${orgDatalistHtml()}
     </div>`;
+}
+// Checkbox for the organization invoice or custom-job fee. Family payments are
+// not this box. Checked when the fee is already known to be in (a saved mark,
+// a hold note that says paid, or a paid invoice).
+function feeReceivedBoxHtml(s, inputId){
+  const on=!!(s&&orgOrJobFeeReceived(s));
+  return `<label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
+      <input type="checkbox" id="${inputId}" ${on?'checked':''} style="width:16px;height:16px;margin-top:3px;cursor:pointer">
+      <span>Mark received <span style="font-weight:400;color:var(--muted)">Check this when the organization bill or custom-job fee has arrived (check, Zelle, or transfer). Paid family registrations are already counted on their own. Leave it off while that bill is still outstanding.</span></span>
+    </label>`;
+}
+// Checked saves true. Unchecking a fee that was marked received saves false.
+// An unmarked fee stays null, so a hold note that already says paid still counts.
+function readFeeReceived(inputId, previous){
+  const el=document.getElementById(inputId);
+  if(!el)return previous;
+  if(el.checked)return true;
+  if(previous===true)return false;
+  return previous===false?false:null;
 }
 function updateOrgSplitPreview(){
   const out=document.getElementById('m-org-split-preview');
@@ -1871,7 +1902,8 @@ function splitBillCaption(s,f){
   const orgAmt=girls*portion;
   const girlsWord=girls===1?'girl':'girls';
   const rosterSet=s.billedHeadcount!=null&&s.billedHeadcount!=='';
-  return 'Revenue is family payments after card fees, plus an organization invoice of '+fmt(orgAmt)+' ('+fmt(portion)+' flat fee × '+girls+' '+girlsWord+(rosterSet?' on the roster':' because the girl count is blank')+'). That invoice is not cash received yet. It is not the family price times the roster.';
+  const cash=orgOrJobFeeReceived(s)?'That invoice has been received.':'That invoice is not cash received yet.';
+  return 'Revenue is family payments after card fees, plus an organization invoice of '+fmt(orgAmt)+' ('+fmt(portion)+' flat fee × '+girls+' '+girlsWord+(rosterSet?' on the roster':' because the girl count is blank')+'). '+cash+' It is not the family price times the roster.';
 }
 // Sub-lines under the revenue figure. The figure itself stays the real total.
 function sessionRevenueNotes(s,f){
@@ -1886,7 +1918,8 @@ function sessionRevenueNotes(s,f){
     const familyNet=(f&&f.familyGross!=null&&f.procFee!=null)?f.familyGross-f.procFee:null;
     const title=splitBillCaption(s,f);
     const collected=familyNet==null?'':`<span class="pay-note" title="${escapeHtml(title)}">Families collected ${fmt(familyNet)} after fees</span>`;
-    return collected+`<span class="pay-note" style="color:#1d6b45;font-weight:650" title="${escapeHtml(title)}">Org invoice ${fmt(orgAmt)} — not cash yet</span><span class="pay-note" title="${escapeHtml(title)}">${fmt(portion)} flat fee × ${girls} ${girlsWord}${rosterSet?'':' · roster blank'}</span><span class="pay-note" title="${escapeHtml(title)}">Family ${fmt(family)}/girl at checkout</span>`;
+    const orgLabel=orgOrJobFeeReceived(s)?`Org fee ${fmt(orgAmt)} — received`:`Org invoice ${fmt(orgAmt)} — not cash yet`;
+    return collected+`<span class="pay-note" style="color:#1d6b45;font-weight:650" title="${escapeHtml(title)}">${orgLabel}</span><span class="pay-note" title="${escapeHtml(title)}">${fmt(portion)} flat fee × ${girls} ${girlsWord}${rosterSet?'':' · roster blank'}</span><span class="pay-note" title="${escapeHtml(title)}">Family ${fmt(family)}/girl at checkout</span>`;
   }
   if(s.priceOverride!=null)return `<span class="pay-note" style="color:var(--warn)" title="$${s.priceOverride} per student">$${s.priceOverride}/student</span>`;
   return '';
@@ -2070,18 +2103,81 @@ function sessionsForRevenueMonth(year, month, now){
     return String((a&&a.holdTerm)||'').localeCompare(String((b&&b.holdTerm)||''));
   });
 }
+// True when the organization bill or custom-job fee is money in hand.
+// An explicit mark wins. Otherwise a hold note that says paid, deposited,
+// received, or collected counts (Wyngate's check), and so does a paid invoice.
+// Null is not a guess that a past class was paid.
+function orgOrJobFeeReceived(s){
+  if(!s)return false;
+  if(s.feeReceived===true)return true;
+  if(s.feeReceived===false)return false;
+  if(holdPaymentReceived(s))return true;
+  const list=(typeof invoices!=='undefined'&&invoices)?invoices:[];
+  return list.some(v=>v&&v.status==='paid'&&(v.lineItems||[]).some(li=>li&&li.sessionId===s.id));
+}
+// Booked session revenue split into cash in hand and cash still outstanding.
+// Paid family registrations are collected, net of the same processing fee
+// calcFin already removes. The organization bill or custom-job fee is collected
+// only when orgOrJobFeeReceived says so. Cancelled classes, waitlist, cancelled
+// registrations, and host or comped seats stay at nothing because they are
+// already outside financeSessionFigures / the paid-registration filter.
+function sessionCashSplit(s){
+  const booked=(financeSessionFigures(s).rev)||0;
+  if(!s||!booked)return {collected:0,expected:0,booked:0};
+  const f=calcFin(s);
+  const org=Number(f&&f.orgRevenue)||0;
+  const expected=orgOrJobFeeReceived(s)?0:Math.min(Math.max(org,0),booked);
+  return {collected:booked-expected,expected:expected,booked:booked};
+}
+// Mark or clear the received flag and save just that change on the session row.
+async function setFeeReceived(id, received){
+  const s=(sessions||[]).find(x=>x.id===id);
+  if(!s)return;
+  const prev=s.feeReceived;
+  s.feeReceived=!!received;
+  if(typeof renderSessions==='function')renderSessions();
+  if(typeof renderDashboard==='function')renderDashboard();
+  const saved=await upsertSessionRow(s);
+  if(saved&&saved.error){
+    s.feeReceived=prev;
+    if(typeof renderSessions==='function')renderSessions();
+    if(typeof renderDashboard==='function')renderDashboard();
+    showToast('⚠️ Could not save. '+((saved.error.message||'Check your connection.').slice(0,90)));
+    return;
+  }
+  const note=sessionOptionalColToast(saved);
+  if(note){
+    s.feeReceived=prev;
+    if(typeof renderSessions==='function')renderSessions();
+    if(typeof renderDashboard==='function')renderDashboard();
+    showToast(note);
+    return;
+  }
+  showToast(received?'Marked received. It counts as Collected.':'Marked not received. It counts as Expected.');
+}
+function feeReceivedControl(s, amount){
+  if(!s||s.isCancelled||!(Number(amount)>0))return '';
+  const id=String(s.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  if(orgOrJobFeeReceived(s)){
+    return `<span class="pay-note" style="color:#1d6b45;font-weight:650">Fee received</span><button type="button" onclick="event.stopPropagation();setFeeReceived('${id}',false)" style="background:none;border:none;padding:0;margin-left:6px;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline">Undo</button>`;
+  }
+  return `<button type="button" class="btn sm" onclick="event.stopPropagation();setFeeReceived('${id}',true)">Mark received</button>`;
+}
 function dashboardRevenueTotals(now){
   const n=now instanceof Date?now:new Date();
   const m=n.getMonth(),y=n.getFullYear();
-  let mRev=0,mCost=0,yRev=0;
+  let mRev=0,mCost=0,yRev=0,yCollected=0,yExpected=0;
   sessions.forEach(s=>{
     const slot=financeRevenueSlot(s, n);
     if(!slot||slot.year!==y)return;
     const p=financeSessionFigures(s);
+    const cash=sessionCashSplit(s);
     yRev+=p.rev;
+    yCollected+=cash.collected;
+    yExpected+=cash.expected;
     if(slot.month===m){mRev+=p.rev;mCost+=p.instr+p.legacy;}
   });
-  return {mRev:mRev,mCost:mCost,yRev:yRev};
+  return {mRev:mRev,mCost:mCost,yRev:yRev,yCollected:yCollected,yExpected:yExpected};
 }
 // Six months anchored on the current month (3 back, 2 ahead). Undated paid
 // holds contribute only when sessionRevenueSlot gives them the current month.
@@ -4959,7 +5055,7 @@ function renderDashboard(){
   // Dated classes stay in their own month. Undated paid holds count toward
   // this year, and toward this month when the hold-term year is this year.
   const revTotals=dashboardRevenueTotals(now);
-  let mRev=revTotals.mRev,mCost=revTotals.mCost,mProfit=0,yRev=revTotals.yRev,mOH=0;
+  let mRev=revTotals.mRev,mCost=revTotals.mCost,mProfit=0,yRev=revTotals.yRev,yCollected=revTotals.yCollected,yExpected=revTotals.yExpected,mOH=0;
   expenses.forEach(e=>{
     const d=new Date(e.date+'T12:00:00');
     if(d.getFullYear()===y&&d.getMonth()===m){mOH+=e.amount;mCost+=e.amount;}
@@ -4981,7 +5077,7 @@ function renderDashboard(){
   },0);
   const pendingCount=registrations.filter(r=>r.payStatus==='pending'&&regOwesMoney(r)).length;
   document.getElementById('dash-metrics').innerHTML=`
-    <div class="metric"><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub">${fmt(yRev)} year to date</div></div>
+    <div class="metric" title="Collected is money already in for ${y}: paid family registrations after PayPal and Venmo fees, plus an organization bill or custom-job fee only once it has been received. Expected is booked organization bills and custom-job fees that have not been received. Booked is Collected plus Expected. Revenue this month stays the booked total for classes dated this month."><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub" style="line-height:1.45"><span style="color:#1d6b45;font-weight:650">Collected ${fmt(yCollected)}</span><br><span style="color:#b86a00;font-weight:650">Expected ${fmt(yExpected)}</span><br>Booked ${fmt(yRev)} for ${y}</div></div>
     <div class="metric"><div class="m-label">Expenses this month</div><div class="m-val red">${fmt(mCost)}</div></div>
     <div class="metric"><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${fmtSigned(mProfit)}</div></div>
     <div class="metric"><div class="m-label">Total registrations</div><div class="m-val">${totRegs}</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'all paid'}</div></div>
@@ -5245,7 +5341,7 @@ function renderSessions(){
     const cap=splitBillCaption(s,f);
     const title=cap?` title="${escapeHtml(cap)}"`:'';
     const costNote=f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:'';
-    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${extra}${costNote}${netLine(f.profit)}`;
+    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${feeReceivedControl(s,f.orgRevenue)}${extra}${costNote}${netLine(f.profit)}`;
   };
   const locCell=text=>{
     const name=String(text||'').trim();
@@ -5326,7 +5422,7 @@ function renderSessions(){
           <td><div class="cell-stack">${where}</div></td>
           <td><div class="cell-stack">${instrStatus}</div></td>
           <td><div class="cell-stack"><span class="sess-sub">—</span></div></td>
-          <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit)}</div></td>
+          <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.orgRevenue?`<span class="pay-note">Org fee ${fmt(f.orgRevenue)}</span>${feeReceivedControl(s,f.orgRevenue)}`:''}${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit)}</div></td>
           <td>${isPast?`<div class="cell-stack"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${jdi.instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span></span><span class="pay-note" style="color:${jdi.instrPaid?'var(--success)':'var(--muted)'}">${jdi.instrPaid?'Paid':'Unpaid'}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
           ${mgr('#fdf8f0')}</tr>`;
       }
@@ -6051,6 +6147,7 @@ function openAddCustomJob(){
         <span style="font-size:18px;color:var(--muted)">$</span>
         <input type="number" id="cj-orgfee" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
       </div>
+      ${feeReceivedBoxHtml(null,'cj-fee-received')}
     </div>
     <div class="fg full"><label>Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — name the partner here to invoice them at month end from Finances → Organization invoices; the amount above becomes the invoice line)</span></label>
       <input type="text" id="cj-billorg" list="org-datalist" placeholder="e.g. Girls on the Run">
@@ -6194,11 +6291,11 @@ async function saveCustomJob(){
   if(!confirmNotDuplicate({course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,isVirtual:false,isCancelled:false},null))return;
   if(_savingSession)return; _savingSession=true;
   try{
-  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
+  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
-  let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false;
-  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;}
+  let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false;
+  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;feeReceivedMissing=!!_r.missingFeeReceived;}
   if(saveFailed){
     console.error('Save custom job failed:',saveErr);
     sessions=sessions.filter(x=>x.id!==s.id);
@@ -6210,7 +6307,7 @@ async function saveCustomJob(){
   jobDataCache[s.id].instructorId=preInstrId;
   if(preInstrId)jobDataCache[s.id].waitlist=(jobDataCache[s.id].waitlist||[]).filter(id=>id!==preInstrId);
   upsertJobData(s.id);
-  showToast(externalUrlMissing?EXTERNAL_URL_SQL_TOAST:ssColMissing?SS_COL_SQL_TOAST:rnColMissing?RN_COL_SQL_TOAST:privateNotesMissing?PRIVATE_NOTES_SQL_TOAST:('Custom job added'+(preInstrId?` and assigned to ${instructors.find(x=>x.id===preInstrId)?.name||'instructor'}`:'  — posted as open job')+'.'));
+  showToast(externalUrlMissing?EXTERNAL_URL_SQL_TOAST:ssColMissing?SS_COL_SQL_TOAST:rnColMissing?RN_COL_SQL_TOAST:privateNotesMissing?PRIVATE_NOTES_SQL_TOAST:feeReceivedMissing?FEE_RECEIVED_SQL_TOAST:('Custom job added'+(preInstrId?` and assigned to ${instructors.find(x=>x.id===preInstrId)?.name||'instructor'}`:'  — posted as open job')+'.'));
   }finally{_savingSession=false;}
 }
 
@@ -6296,6 +6393,7 @@ function openEditCustomJob(id){
         <span style="font-size:18px;color:var(--muted)">$</span>
         <input type="number" id="cj-orgfee" value="${s.priceOverride!=null&&s.priceOverride!==0?s.priceOverride:''}" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
       </div>
+      ${feeReceivedBoxHtml(s,'cj-fee-received')}
     </div>
     <div class="fg full"><label>Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — name the partner here to invoice them at month end; the amount above becomes the invoice line)</span></label>
       <input type="text" id="cj-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. Girls on the Run">
@@ -6378,10 +6476,10 @@ async function saveEditCustomJob(id){
   const reservedSeats=holdSeatsRaw&&Number(holdSeatsRaw)>0?Number(holdSeatsRaw):null;
   const holdPayment=isHold?(document.getElementById('cj-hold-payment')?.value||''):'';
   const prevSnapshot={...s};
-  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
+  Object.assign(s,{code,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
   closeModal();renderSessions();renderDashboard();renderCodes();
-  let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false;
-  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;}
+  let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false;
+  {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;feeReceivedMissing=!!_r.missingFeeReceived;}
   if(saveFailed){
     Object.assign(s,prevSnapshot);renderSessions();renderDashboard();renderCodes();
     showToast('⚠️ Could not save. '+(saveErr&&saveErr.message?saveErr.message:'Check your connection.'));return;
@@ -6389,7 +6487,7 @@ async function saveEditCustomJob(id){
   if(!jobDataCache[s.id])jobDataCache[s.id]={waitlist:[]};
   jobDataCache[s.id].instructorId=preInstrId;
   upsertJobData(s.id);
-  showToast(externalUrlMissing?EXTERNAL_URL_SQL_TOAST:ssColMissing?SS_COL_SQL_TOAST:rnColMissing?RN_COL_SQL_TOAST:privateNotesMissing?PRIVATE_NOTES_SQL_TOAST:'Custom job updated.');
+  showToast(externalUrlMissing?EXTERNAL_URL_SQL_TOAST:ssColMissing?SS_COL_SQL_TOAST:rnColMissing?RN_COL_SQL_TOAST:privateNotesMissing?PRIVATE_NOTES_SQL_TOAST:feeReceivedMissing?FEE_RECEIVED_SQL_TOAST:'Custom job updated.');
 }
 
 function toggleVirtualFields(val){
@@ -6736,6 +6834,7 @@ async function saveSession(editId){
   // same job board. The edit form pre-fills Notes with both, so saving folds any legacy
   // text into notes and blanks the old column. Nothing is lost; it just moves.
   const instructorInfo='';
+  const feeReceived=readFeeReceived('m-fee-received', editId?(sessions.find(x=>x.id===editId)||{}).feeReceived:null);
   // Duplicate check runs while the modal is still open, so backing out leaves
   // everything she typed exactly where it was.
   if(!confirmNotDuplicate({course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,isVirtual,isCancelled:false},editId||null))return;
@@ -6745,9 +6844,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl};
     sessions.push(s);
   }
   const matChoice=sessionMaterialsFromForm(editId);
