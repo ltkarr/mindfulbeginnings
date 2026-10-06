@@ -36,6 +36,7 @@ const names = [
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'calcFin',
   'holdPaymentReceived', 'undatedHoldMoneyIn',
+  'orgOrJobFeeReceived', 'sessionCashSplit',
   'holdTermYear', 'sessionClassDate', 'sessionRevenueSlot', 'sessionReportDateLabel',
   'sessionsForRevenueMonth', 'dashboardRevenueTotals', 'dashboardChartRevenue',
   'financeRevenueBuckets', 'emptyRevBucket', 'annualSessionBuckets', 'courseRevenueForYear'
@@ -94,6 +95,8 @@ test('Wyngate’s deposited check counts in 2026 year-to-date and in the current
 
   const totals = sandbox.dashboardRevenueTotals(SEP_2026);
   assert.equal(totals.yRev, 780);
+  assert.equal(totals.yCollected, 780);
+  assert.equal(totals.yExpected, 0);
   assert.equal(totals.mRev, 780);
   assert.equal(hold.date, '');
 
