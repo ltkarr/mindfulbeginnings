@@ -544,6 +544,7 @@ function instrFeeForJob(s,jdi){
 }
 function fmt(n){const v=Math.abs(Number(n)||0);return'$'+(Number.isInteger(v)?v.toLocaleString('en-US'):v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));}
 function fmtDate(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});}
+function fmtYMD(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 // ── MULTI-DAY CLASSES ────────────────────────────────────────
 // Some courses meet on more than one day (extra days live in the session's extra_dates
 // column). This formats EVERY meeting day, e.g. "Sunday, September 14, 2026 &
@@ -867,7 +868,7 @@ function whatHappensHTML(s){
     s.isCustomJob
       ?`Payment of <strong>${fmt(instrFee(s))}</strong> is sent by Zelle after the event.`
       :'Payment is sent by Zelle once the host submits their evaluation after the final class.',
-    'Plans change — you can hand a job back from My jobs, and anyone on the waitlist gets first refusal.'
+    'Plans change — you can hand a job back from My jobs. Lindsay is emailed, and the job opens again for every eligible instructor.'
   ].filter(Boolean);
   return`<details class="wh"><summary>What happens after I accept?</summary>
     <ul>${items.map(i=>'<li>'+i+'</li>').join('')}</ul></details>`;
@@ -1801,8 +1802,7 @@ function waitlistAllowed(s){return s.allowWaitlist!==false;}
 //   waitlist off → hide as soon as it is taken
 //   waitlist on, nobody waiting → show Taken + Join waitlist
 //   waitlist on, someone waiting, and I am not one of them → hide
-//   I already hold it, or it is unclaimed (including a reopened 24-hour
-//   waitlist-priority window) → not hidden by this rule
+//   I already hold it, or it is unclaimed → not hidden by this rule
 function hideTakenJobFromOpenBoard(s,jdi,meId){
   if(!jdi||!jdi.instructorId||jdi.instructorId===meId)return false;
   if(!waitlistAllowed(s))return true;
@@ -1849,7 +1849,8 @@ function renderOnboardingGate(el){
 // jobs whose waitlist is still empty (Join waitlist), and taken jobs this
 // instructor is already waiting on. Excludes jobs they already hold (those live
 // in My jobs), taken jobs with someone else already waiting, and anything in
-// the past. A reopened job keeps its 24-hour waitlist-priority window.
+// the past. A handed-back job is open to every eligible instructor. There is
+// no hold for people already on the waitlist.
 function renderOpen(){
   const el=document.getElementById('open-list');
   if(renderOnboardingGate(el))return;
@@ -1876,14 +1877,6 @@ function renderOpen(){
     const waitCount=(jdi.waitlist||[]).length;
     const baseFee=instrFeeForJob(s,jdi);
     const fee=baseFee;
-    // Waitlist priority: when a job is canceled it reopens with a 24-hour window during
-    // which only people already on the waitlist may accept it. After that it opens to all.
-    const PRIORITY_MS=24*60*60*1000;
-    const reopenedTs=jdi.reopenedAt?new Date(jdi.reopenedAt).getTime():0;
-    const inPriorityWindow=reopenedTs>0&&(Date.now()-reopenedTs<PRIORITY_MS)&&waitCount>0;
-    const opensAt=reopenedTs?new Date(reopenedTs+PRIORITY_MS):null;
-    const opensAtStr=opensAt?opensAt.toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}):'';
-    const isOpen=!jdi.instructorId;
     let pill,actions='';
     if(isTakenByOther){
       if(isOnWaitlist){
@@ -1893,16 +1886,7 @@ function renderOpen(){
         pill=`<span class="pill pill-taken">Taken${waitCount?' · '+waitCount+' on waitlist':''}</span>`;
         actions=`<button class="btn warn" onclick="joinWaitlist('${s.id}')">Join waitlist</button>`;
       }
-    }else if(isOpen&&inPriorityWindow&&!isOnWaitlist){
-      // Reopened and still reserved for the waitlist, and this person is not on it.
-      pill='<span class="pill pill-taken">Reserved for waitlist</span>';
-      actions=`<span style="font-size:12px;color:var(--muted)">Opens to everyone ${opensAtStr}</span>`;
-    }else if(isOpen&&inPriorityWindow&&isOnWaitlist){
-      // Reopened: this waitlisted person gets first crack at it.
-      pill='<span class="pill pill-open">Open to you · waitlist priority</span>';
-      actions=`<button class="btn primary" onclick="acceptJob('${s.id}')">Accept this job</button> <button class="btn" onclick="leaveWaitlist('${s.id}')">Leave waitlist</button>`;
     }else{
-      // Open to everyone (brand-new posting, or the priority window has passed).
       pill='<span class="pill pill-open">Open</span>';
       actions=`<button class="btn primary" onclick="acceptJob('${s.id}')">Accept this job</button>`;
     }
@@ -1961,62 +1945,22 @@ async function cancelJob(sessId){
     const{data:ok,error}=await sb.rpc('instructor_cancel_job',{p_pin:me.pin,p_session_id:sessId});
     if(error||!ok){showToast('Could not cancel. Please try again.');return;}
   }catch(e){console.error(e);showToast('Connection error.');return;}
-  if(jobDataCache[sessId]){
-    jobDataCache[sessId].instructorId=null;
-    // Stamp the reopen time locally so the 24h waitlist-priority window shows immediately.
-    // (The instructor_cancel_job function should also set reopened_at server-side so it
-    // survives a page reload — see the SQL notes.)
-    jobDataCache[sessId].reopenedAt=new Date().toISOString();
-  }
+  if(jobDataCache[sessId])jobDataCache[sessId].instructorId=null;
   const s=allSessions.find(x=>x.id===sessId);if(s)s.instructorId=null;
-  // Notify Lindsay by email
-  if(sessSnapshot)sendJobCancelledNotification(sessSnapshot);
-  // Refresh every job board so the change shows wherever the instructor is looking.
+  const waiting=await waitlistNames(sessId);
+  if(sessSnapshot)sendJobCancelledNotification(sessSnapshot, waiting);
   refreshJobViews();
-  // Notify everyone on the waitlist that the job reopened and they have first priority.
-  // The toast reports what actually happened: this returns 0 when the EmailJS template
-  // has not been set up yet, or when nobody was on the waitlist. Do not promise an email
-  // that was never sent.
-  let notified=0;
-  if(sessSnapshot)notified=await notifyWaitlistReopened(sessId,sessSnapshot);
-  showToast(notified>0
-    ?'Cancellation noted. Lindsay and '+notified+' waitlisted instructor'+(notified===1?'':'s')+' have been emailed.'
-    :'Cancellation noted. Lindsay has been notified.');
+  showToast('Cancellation noted. Lindsay has been emailed. The job is open to every eligible instructor.');
 }
 
-// Emails every instructor currently on the waitlist for a reopened session. Their contact
-// details come from a SECURITY DEFINER function that returns ONLY the name/email of people
-// waitlisted on this one session (never the whole roster), so no extra PII is exposed.
-// Returns the number of instructors it emailed, so the caller can tell the truth in
-// its toast. Returns 0 — and logs why — when the template is not configured yet, when
-// the contact lookup is missing from the database, or when nobody is waitlisted.
-async function notifyWaitlistReopened(sessId,session){
-  if(!TPL_WAITLIST_REOPENED||TPL_WAITLIST_REOPENED.includes('REPLACE_WITH')){
-    console.warn('Waitlist reopen email skipped: TPL_WAITLIST_REOPENED is still a placeholder. Create the template in EmailJS and paste its ID into instructor.html.');
-    return 0;
-  }
-  let contacts=[];
+// Names of instructors waiting on this one job. Used only to tell Lindsay who
+// had asked to be contacted. A bad PIN or a missing function returns no names.
+async function waitlistNames(sessId){
   try{
     const{data,error}=await sb.rpc('get_waitlist_contacts',{p_pin:me.pin,p_session_id:sessId});
-    if(error){console.warn('Waitlist reopen email skipped: get_waitlist_contacts failed —',error.message||error);return 0;}
-    if(!Array.isArray(data))return 0;
-    contacts=data;
-  }catch(e){console.warn('Waitlist lookup failed:',e);return 0;}
-  let sent=0;
-  contacts.forEach(c=>{
-    if(!c||!c.email)return;
-    sent++;
-    emailjs.send('service_delt0r4',TPL_WAITLIST_REOPENED,{
-      instructor_name:c.name||'there',
-      instructor_email:c.email,
-      course:session.course,
-      date:fmtSessDates(session),
-      time:session.time||'',
-      location:(session.location||'TBD')+(session.city?', '+session.city:''),
-      message:`A ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''} just reopened. Because you are on the waitlist, you have first priority to accept it for the next 24 hours. Log in to your instructor portal to claim it before it opens to everyone.`
-    }).catch(err=>console.warn('Waitlist notification failed:',err));
-  });
-  return sent;
+    if(error||!Array.isArray(data))return [];
+    return data.map(c=>c&&c.name).filter(Boolean);
+  }catch(e){return [];}
 }
 
 async function joinWaitlist(sessId){
@@ -2237,7 +2181,7 @@ function safeSitterCardHTML(){
   const dateOnFile=me.safeSitterTrainingDate||'';
   const pretty=dateOnFile?new Date(dateOnFile+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';
   const declined=!dateOnFile&&me.safeSitterCertified===false;
-  const today=new Date().toISOString().slice(0,10);
+  const today=fmtYMD(new Date());
   const banner=dateOnFile
     ?`<div class="alert success" style="margin-bottom:12px">✓ &nbsp;Training completion date on file: <strong>${escapeHtml(pretty)}</strong>. Safe Sitter® course jobs are unlocked on your Open jobs board.</div>`
     :me.safeSitterCertified===true
@@ -2750,7 +2694,7 @@ function renderContract(){
         </div>
         <div class="fg">
           <label style="font-size:12px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px">Date *</label>
-          <input type="date" id="contract-date" value="${new Date().toISOString().slice(0,10)}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+          <input type="date" id="contract-date" value="${fmtYMD(new Date())}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
         </div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;padding:12px 14px;background:var(--cream);border-radius:var(--r-sm)">
@@ -3596,15 +3540,6 @@ function checkAndNotifyOnboardingComplete(){
 const TPL_LINDSAY_JOB_NOTIFY='template_iqkujzi';
 const TPL_INSTRUCTOR_JOB_CONFIRM='template_bd5icd7';
 const TPL_LINDSAY_JOB_CANCEL='template_c94yuzm';
-// TPL_WAITLIST_REOPENED → template emailed to each waitlisted instructor when a job
-// reopens, telling them they have 24 hours of first priority to claim it.
-//
-//   *** THIS IS THE ONLY LINE THAT STILL NEEDS EDITING. ***
-//   Create the template in EmailJS, set its "To" field to {{instructor_email}} (without
-//   that, every one of these emails goes to Lindsay instead of the instructor), then
-//   paste the template ID below in place of the placeholder. It looks like template_a1b2c3d.
-//   Until that is done, waitlist emails are skipped and the cancel toast says so honestly.
-const TPL_WAITLIST_REOPENED='REPLACE_WITH_WAITLIST_TEMPLATE_ID';
 
 function sendJobAcceptedNotification(session){
   const jd=jobDataCache[session.id]||{};
@@ -3648,8 +3583,12 @@ function sendJobAcceptedNotification(session){
   }
 }
 
-function sendJobCancelledNotification(session){
+function sendJobCancelledNotification(session, waiting){
   const fee=instrFee(session);
+  const names=Array.isArray(waiting)?waiting.filter(Boolean):[];
+  const waitNote=names.length
+    ?`\n\nThese instructors had asked to be told if it opened up: ${names.join(', ')}. There is no hold on the job. It is open to every eligible instructor now. Please email them if you want them to hear about it before someone else accepts it.`
+    :'\n\nNobody was on the waitlist. The job is open to every eligible instructor.';
   const params={
     instructor_name:me.name,
     instructor_email:me.email||'not on file',
@@ -3660,7 +3599,7 @@ function sendJobCancelledNotification(session){
     location:(session.location||'TBD')+(session.city?', '+session.city:''),
     fee:fmt(fee),
     students:filledSeats(session),
-    message:`🚨 JOB CANCELLED 🚨\n\n${me.name} has cancelled their acceptance of the ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''}.\n\nLocation: ${(session.location||'TBD')+(session.city?', '+session.city:'')}\n${isAdultCourse(session.course)?'Participants':'Students'} registered: ${filledSeats(session)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}\n\nCoverage is needed for this session.`
+    message:`🚨 JOB CANCELLED 🚨\n\n${me.name} has cancelled their acceptance of the ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''}.\n\nLocation: ${(session.location||'TBD')+(session.city?', '+session.city:'')}\n${isAdultCourse(session.course)?'Participants':'Students'} registered: ${filledSeats(session)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}\n\nCoverage is needed for this session.${waitNote}`
   };
   emailjs.send('service_delt0r4',TPL_LINDSAY_JOB_CANCEL,params)
     .catch(err=>console.warn('Cancellation notification failed:',err));
