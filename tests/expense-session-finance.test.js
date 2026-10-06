@@ -304,7 +304,7 @@ test('printed reports use the same cancelled and once-count rules', () => {
   assert.match(yearFn, /annualSessionBuckets\(/);
   assert.match(yearFn, /if\(e\.sessionId\)\{months\[mi\]\.linked\+=amt;months\[mi\]\.cost\+=amt;\}/);
   assert.match(yearFn, /months\[mi\]\.overhead\+=amt;months\[mi\]\.cost\+=amt/);
-  assert.match(yearFn, /Older session costs/);
+  assert.match(yearFn, /Costs entered on the session/);
   assert.match(yearFn, /A cancelled session adds no revenue and no estimated instructor pay/);
   assert.doesNotMatch(yearFn, /Extra session costs/);
 
