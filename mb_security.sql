@@ -9,6 +9,12 @@
 --    PART 3  (OPTIONAL, read the warning) Lock the private host columns down so
 --            the public anon key can no longer read them at all.
 --
+--  DO NOT RUN THIS FILE. The rate-limited login, the locked-down registration
+--  and job functions, and the anon lockdown live in:
+--    migrations/20261006_portal_security_additive.sql
+--    migrations/20261006_portal_security_lockdown.sql
+--  Running Part 1 from here would replace instructor_login with an older copy.
+--
 --  IMPORTANT: test on a Supabase branch or a preview first if you can, and read
 --  the comments on each part before running. Parts 1 and 2 are safe to run now.
 --  Part 3 must wait until admin.html no longer relies on reading those columns

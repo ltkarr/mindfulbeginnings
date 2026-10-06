@@ -35,6 +35,11 @@ Thank you so much! We really appreciate you.
 
 6. Save, then copy the **Template ID**.
 
+The reminder functions are not callable with the public anon key. The API route
+uses `SUPABASE_SERVICE_ROLE_KEY` (the same key PayPal capture uses). If that
+value is missing, the route falls back to the anon key and the lookup fails
+once the lockdown migration has been applied.
+
 ## Step 3 — Add two values in Vercel (3 minutes)
 
 Vercel dashboard → your project → **Settings → Environment Variables**:

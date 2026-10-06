@@ -1165,16 +1165,8 @@ async function checkCode(){
       const{data:cnt}=await sb.rpc('get_registration_count',{p_session_id:r.id});
       regCount=Number(cnt)||0;
     }catch(e){console.warn('Count RPC failed:',e);}
-    // Fetch instructor phone via a database function (anon cannot read the instructors table directly — protects instructor PINs and contact info)
-    let instrPhone='';
-    if(r.owner_taught){
-      instrPhone='703-987-5979'; // Lindsay teaches — use her number directly
-    } else if(r.instructor_id){
-      try{
-        const{data:phone}=await sb.rpc('get_instructor_phone',{p_instructor_id:r.instructor_id});
-        instrPhone=phone||'';
-      }catch(e){console.warn('Phone RPC failed:',e);}
-    }
+    // Phone of the instructor assigned to THIS session. The old any-id lookup is gone.
+    const instrPhone=await sessionInstructorPhone(r);
     currentSession={
       id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
       location:r.location||'',hostAddress:r.host_address||'',
@@ -2010,9 +2002,23 @@ async function saveChosenPaymentMethod(method){
     reservedReg.payment_ref=memo||null;
   }
   try{
-    const res=await sb.from('registrations').update(patch).eq('id',id);
+    const res=await sb.rpc('mark_payment_sent',{p_registration_id:id,p_method:key,p_ref:memo||null});
     if(res&&res.error)console.warn('Could not save payment method:',res.error);
+    else if(res&&res.data&&res.data.ok===false)console.warn('Could not save payment method:',res.data.reason);
   }catch(e){console.warn('Could not save payment method:',e);}
+}
+
+// Instructor phone for the session a family is registering for. Owner-taught
+// classes use Lindsay's number. Anyone else's phone is not available by id.
+async function sessionInstructorPhone(row){
+  if(!row)return '';
+  if(row.owner_taught)return '703-987-5979';
+  if(!row.instructor_id||typeof sb==='undefined'||!sb)return '';
+  try{
+    const{data:phone,error}=await sb.rpc('get_session_instructor_phone',{p_session_id:row.id});
+    if(error){console.warn('Phone RPC failed:',error);return '';}
+    return phone||'';
+  }catch(e){console.warn('Phone RPC failed:',e);return '';}
 }
 
 // A duplicate-primary-key error means this exact row id is ALREADY in the database —
@@ -2074,79 +2080,37 @@ async function retryOrphanPendingRegs(){
 }
 
 async function saveRegistration(row){
-  // ── STEP 1: atomic capacity-aware insert via the database function ──────────
-  // register_student() locks the session row, counts seats, and inserts in ONE
-  // transaction, so two parents cannot both grab the last seat at the same instant.
-  // It returns {ok:true} on success or {ok:false,reason:'full'} when the session
-  // filled up between page-load and submit. Host and waitlist rows bypass the cap
-  // inside the function. We treat 'full' as a clean signal to send the family to
-  // the waitlist (handled by the caller), NOT as a save error.
-  try{
-    // Comp re-registrations and auction winners have a guaranteed seat — never let the
-    // atomic capacity check bounce them to the waitlist.
-    // register_student counts registration rows against p_max. Couple courses
-    // pass a smaller max so one row consumes seatsPerRegistration people.
-    const peopleCap=(compMode||auctionMode)?999999:((typeof getMaxSpots==='function')?getMaxSpots():9999);
-    const cap=(typeof registrationRowCap==='function')?registrationRowCap(peopleCap, currentSession&&currentSession.course):peopleCap;
-    const res=await sb.rpc('register_student',{p_row:row,p_max:cap});
-    if(res&&!res.error&&res.data){
-      if(res.data.ok===true)return{ok:true,error:null};
-      if(res.data.ok===false&&res.data.reason==='full')return{ok:false,full:true,error:null};
-      // Any other shape: fall through to the legacy insert below (safety net).
-    }
-    // res.error or unexpected response: fall through to the legacy insert. If the
-    // database genuinely rejected the row, the legacy path hits the same error and
-    // surfaces it; if the function was simply unavailable, the row still saves.
-    if(res&&res.error){
-      if(isDuplicateStudentError(res.error))return{ok:false,duplicateStudent:true,error:null};
-      if(isDuplicateError(res.error))return{ok:true,error:null}; // row already saved
-      console.warn('Capacity RPC error, using direct insert:',res.error);
-    }
-  }catch(e){
-    console.warn('Capacity RPC unavailable, using direct insert:',e);
-  }
-  // ── STEP 2: legacy direct insert with retries + self-heal (unchanged) ───────
-  // This is the safety net. If the RPC is missing or errors for any reason, the
-  // registration still saves the old way, so nothing is ever lost.
+  // register_student() locks the session row, sets the pay status itself, looks
+  // up the seat cap, and inserts in one transaction. p_max is still sent so the
+  // call matches the function, but the database ignores it. There is no direct
+  // insert: the anon key cannot write the registrations table.
   let lastErr=null;
   for(let attempt=0;attempt<3;attempt++){
-    let error=null;
     try{
-      const res=await sb.from('registrations').insert(row);
-      error=res?res.error:null;
-    }catch(networkErr){
-      // True network/exception path (offline, DNS, etc.) — retry.
-      error=networkErr;
-    }
-    if(!error)return{ok:true,error:null};
-    if(isDuplicateStudentError(error))return{ok:false,duplicateStudent:true,error:null}; // child already has a seat
-    if(isDuplicateError(error))return{ok:true,error:null}; // this row id already saved
-    lastErr=error;
-    // Self-heal: if an optional column isn't in the table yet (e.g. photo_consent
-    // or referral_source), fold its value into notes and retry without that field.
-    if(isMissingColumnError(error)){
-      const blob=((error.message||'')+' '+(error.details||'')+' '+(error.hint||'')).toLowerCase();
-      const optional={photo_consent:'Photo consent',referral_source:'How they heard about us',payment_method:'Payment method',payment_ref:'Payment reference',payment_detail:'Payment detail'};
-      const namesAnyCol=Object.keys(optional).some(c=>blob.includes(c));
-      const next={...row};
-      let healed=false;
-      for(const col of Object.keys(optional)){
-        // Strip the column the error names; if it names none of ours (generic schema
-        // error), strip every optional column we still have so the row can save.
-        if((col in next)&&(blob.includes(col)||!namesAnyCol)){
-          if(next[col]!=null&&next[col]!==''){
-            next.notes=`[${optional[col]}: ${next[col]}]`+(next.notes?'\n\n'+next.notes:'');
-          }
-          delete next[col];
-          healed=true;
-        }
+      const peopleCap=(typeof getMaxSpots==='function')?getMaxSpots():9999;
+      const cap=(typeof registrationRowCap==='function')?registrationRowCap(peopleCap, currentSession&&currentSession.course):peopleCap;
+      const res=await sb.rpc('register_student',{p_row:row,p_max:cap});
+      const error=res?res.error:null;
+      if(error){
+        if(isDuplicateStudentError(error))return{ok:false,duplicateStudent:true,error:null};
+        if(isDuplicateError(error))return{ok:true,error:null};
+        lastErr=error;
+        await new Promise(r=>setTimeout(r,600*(attempt+1)));
+        continue;
       }
-      if(healed){row=next;continue;} // retry immediately with the cleaned row
+      const data=res&&res.data;
+      if(data&&data.ok===true)return{ok:true,error:null};
+      if(data&&data.reason==='duplicate_student')return{ok:false,duplicateStudent:true,error:null};
+      if(data&&data.reason==='exists')return{ok:true,error:null};
+      if(data&&data.reason==='full')return{ok:false,full:true,error:null};
+      lastErr=data||{message:'Registration was not saved.'};
+      break;
+    }catch(e){
+      lastErr=e;
+      await new Promise(r=>setTimeout(r,600*(attempt+1)));
     }
-    // Otherwise wait briefly and retry (covers transient blips).
-    await new Promise(r=>setTimeout(r,600*(attempt+1)));
   }
-  console.error('Registration save failed after retries:',lastErr,row);
+  console.error('Registration save failed:',lastErr);
   return{ok:false,error:lastErr};
 }
 
@@ -2204,6 +2168,7 @@ function buildRegistration(method,txId){
     payment_method:payMethod,
     payment_ref:payRef,
     payment_detail:null,
+    registration_token:method==='auction'?'AUCTION-2026':(method==='comp'?'REREG-2026':null),
     notes:partnerNote+sitterListNote+(method==='free'?'[FREE registration — $0, no payment required] ':'')+(method==='auction'?'[AUCTION — IN-KIND DONATION: $'+getEffectivePrice()+'] ':'')+(promoApplied?'[Promo '+PROMO_CODE+' applied: −$'+PROMO_DISCOUNT+' off '+getEffectivePrice()+' → '+getPayablePrice()+'] ':'')+(method==='comp'?'[Re-registration — already paid via PayPal] ':(method==='paypal'?'[Paid via PayPal] ':(method==='already-paid'?'[Family marked ALREADY PAID — confirm against PayPal] ':(method==='venmo'?'[Family marked VENMO sent — confirm in Venmo app] ':(method==='zelle'?'[Family marked ZELLE sent — confirm in Zelle app] ':(method==='paypal-link'?'[Family marked PAYPAL checkout paid — confirm against PayPal receipt] ':(method==='pending'?'[Registered — awaiting payment] ':'')))))))+(s.course==='Stay Ready: Choking Rescue and CPR'?'[Prereq confirmed: child has completed Safe Sitter® and/or CPR & First Aid course] ':'')+document.getElementById('p-notes').value.trim(),
     created_at:Date.now()
   };
@@ -2248,11 +2213,8 @@ async function completeReg(method,txId){
     goToWaitlist();
     return;
   }
-  if(ok&&isHost){
-    // Best-effort: anon role cannot UPDATE the sessions table directly, so use the RPC.
-    try{const r=await sb.rpc('mark_host_taken',{p_session_id:s.id});if(r&&r.error)console.warn('mark_host_taken failed:',r.error);}
-    catch(e){console.warn('mark_host_taken error:',e);}
-  }
+  // Host rows mark the session host spot taken inside register_student.
+  // mark_host_taken is not called from the browser anymore.
   if(!ok){
     // Without PayPal we no longer capture money on this page — Venmo, Zelle, and
     // already-paid all rely on the parent confirming they sent it. So a save
@@ -2404,10 +2366,7 @@ async function startPayNow(code,name,amt,regId){
       return;
     }
     const r=rows[0];
-    // Instructor phone (anon cannot read the instructors table directly).
-    let instrPhone='';
-    if(r.owner_taught){instrPhone='703-987-5979';}
-    else if(r.instructor_id){try{const{data:phone}=await sb.rpc('get_instructor_phone',{p_instructor_id:r.instructor_id});instrPhone=phone||'';}catch(e){}}
+    const instrPhone=await sessionInstructorPhone(r);
     currentSession={
       id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
       location:r.location||'',hostAddress:r.host_address||'',
