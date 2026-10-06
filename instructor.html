@@ -1216,7 +1216,8 @@ async function submitNewPin(){
   try{
     const{data:res,error}=await sb.rpc('instructor_change_pin',{p_pin:me.pin,p_new_pin:a});
     if(error){err.textContent='Could not save. Please try again or call Lindsay.';btn.disabled=false;btn.textContent='Save my new PIN';return;}
-    // The function returns 'ok', 'taken' (someone else already has that PIN) or 'invalid'.
+    // The function returns 'ok', 'same', 'taken', or 'invalid'.
+    if(res==='same'){err.textContent='Your new PIN must be different from your old one.';btn.disabled=false;btn.textContent='Save my new PIN';return;}
     if(res==='taken'){err.textContent='That PIN is already in use. Please choose a different one.';btn.disabled=false;btn.textContent='Save my new PIN';return;}
     if(res!=='ok'){err.textContent='That PIN was not accepted. Please choose 6 digits.';btn.disabled=false;btn.textContent='Save my new PIN';return;}
   }catch(e){console.error(e);err.textContent='Connection error. Please try again.';btn.disabled=false;btn.textContent='Save my new PIN';return;}
