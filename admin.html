@@ -404,7 +404,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <select id="rf-session" onchange="renderRegs()"><option value="">All sessions</option></select>
         <select id="rf-status" onchange="renderRegs()">
           <option value="">All statuses</option>
-          <option value="paid">Paid</option><option value="pending">Pending</option><option value="unpaid">Unpaid</option><option value="host">Host (free)</option><option value="in_kind">In-kind (auction)</option><option value="waitlist">Waitlist</option><option value="cancelled">Cancelled</option>
+          <option value="paid">Paid</option><option value="pending">Pending</option><option value="unpaid">Unpaid</option><option value="host">Comped/Host</option><option value="in_kind">In-kind (auction)</option><option value="waitlist">Waitlist</option><option value="cancelled">Cancelled</option>
         </select>
         <input type="text" id="rf-search" placeholder="Search name..." oninput="renderRegs()" style="width:160px">
       </div>
@@ -4538,6 +4538,71 @@ function suggestPaymentMethod(row){
   return '';
 }
 // PAYMENT_METHOD_HELPERS_END
+// SETTLEMENT_HELPERS_START
+// Host and other $0 comps are settled. They are not unpaid, and they are not revenue.
+// Keep in sync with registrationOwesMoney / rosterSettlementLabel in lib/payment-utils.js.
+function registrationStatus(row){
+  if(!row)return '';
+  const raw=row.payStatus!=null?row.payStatus:row.pay_status;
+  return String(raw==null?'':raw).toLowerCase().trim();
+}
+function registrationOwesMoney(row, listPrice){
+  const status=registrationStatus(row);
+  if(!row)return false;
+  if(status==='paid'||status==='host'||status==='in_kind'||status==='comp'||status==='free')return false;
+  if(status!==''&&status!=='pending'&&status!=='unpaid')return false;
+  const custom=row.pricePaid!=null?row.pricePaid:row.price_paid;
+  if(custom!=null&&custom!==''){
+    const n=typeof custom==='number'?custom:parseFloat(String(custom).replace(/[^0-9.-]/g,''));
+    return Number.isFinite(n)&&n>0;
+  }
+  if(listPrice==null||listPrice==='')return true;
+  const n=typeof listPrice==='number'?listPrice:parseFloat(String(listPrice).replace(/[^0-9.-]/g,''));
+  if(!Number.isFinite(n))return true;
+  return n>0;
+}
+function registrationIsSettled(row, listPrice){
+  const status=registrationStatus(row);
+  if(!row||status==='waitlist'||status==='cancelled')return false;
+  if(status==='paid'||status==='host'||status==='in_kind'||status==='comp'||status==='free')return true;
+  if(status===''||status==='pending'||status==='unpaid')return !registrationOwesMoney(row, listPrice);
+  return false;
+}
+function rosterSettlementLabel(row, listPrice){
+  const status=registrationStatus(row);
+  if(status==='host')return 'Comped/Host';
+  if(status==='in_kind')return 'in-kind';
+  if(status==='comp'||status==='free')return 'Comped';
+  if((status===''||status==='pending'||status==='unpaid')&&registrationIsSettled(row, listPrice))return 'Comped';
+  if(status==='paid')return 'paid';
+  return status||'unpaid';
+}
+function rosterSettlementTagClass(row, listPrice){
+  const status=registrationStatus(row);
+  if(status==='host'||status==='comp'||status==='free')return 'host';
+  if((status===''||status==='pending'||status==='unpaid')&&registrationIsSettled(row, listPrice))return 'host';
+  if(status==='in_kind')return 'in_kind';
+  if(status==='paid')return 'paid';
+  if(status==='cancelled')return 'cancelled';
+  if(status==='pending')return 'pending';
+  if(status==='waitlist')return 'waitlist';
+  return status||'unpaid';
+}
+// Class price used when the registration has no price of its own. Null when the
+// session is missing, so an unpaid row is not quietly treated as free.
+function regBalanceListPrice(r){
+  const s=sessions.find(x=>x.id===r.sessionId);
+  if(!s)return null;
+  return sessionListPrice(s);
+}
+function regOwesMoney(r){return registrationOwesMoney(r, regBalanceListPrice(r));}
+function regRosterStatusHtml(r){
+  const list=regBalanceListPrice(r);
+  const label=rosterSettlementLabel(r, list);
+  const cls=rosterSettlementTagClass(r, list);
+  return '<span class="tag '+cls+'">'+escapeHtml(label)+'</span>';
+}
+// SETTLEMENT_HELPERS_END
 function paymentMethodOptions(selected){
   const opts=[['','Choose…'],['paypal','PayPal / card'],['venmo','Venmo'],['zelle','Zelle'],['check','Check'],['other','Other']];
   return opts.map(function(pair){
@@ -4710,9 +4775,7 @@ function renderReports(){
         const who=r.parentName||r.studentName||'—';
         const amt=referralRegRevenue(r);
         const rc=referralRegCommission(r);
-        const status=r.payStatus==='paid'?'<span class="tag paid">Paid</span>'
-          :r.payStatus==='cancelled'?'<span class="tag" style="background:#eee;color:#777">Cancelled</span>'
-          :'<span class="tag unpaid">'+escapeHtml(r.payStatus||'unpaid')+'</span>';
+        const status=regRosterStatusHtml(r);
         const comm=!gp?'—'
           :rc.originated?'<span style="color:var(--muted);font-size:14px">in her booking</span>'
           :rc.commission>0?fmt(rc.commission)+(rc.earned?'':' <span style="color:var(--warn);font-size:14px">pending</span>')
@@ -4903,18 +4966,20 @@ function renderDashboard(){
   });
   mProfit=mRev-mCost;
   const totRegs=registrations.filter(r=>r.payStatus!=='cancelled').length;
-  const unpaid=registrations.filter(r=>r.payStatus==='unpaid').length;
+  // Host seats and any other $0 comp are settled. They are not unpaid and they
+  // add nothing to the balance still owed.
+  const unpaid=registrations.filter(r=>r.payStatus==='unpaid'&&regOwesMoney(r)).length;
   // Registrations that have taken a seat but whose money has not been confirmed.
   // "pending" is what a Venmo/Zelle/already-paid checkout leaves behind until you
   // mark it paid, and it used to be invisible here — which made registrations look
   // like they were climbing while revenue sat still. Both statuses are counted now,
-  // along with the dollars they represent.
-  const awaiting=registrations.filter(r=>r.payStatus==='pending'||r.payStatus==='unpaid');
+  // along with the dollars they represent. A host or $0 comp is left out.
+  const awaiting=registrations.filter(r=>(r.payStatus==='pending'||r.payStatus==='unpaid')&&regOwesMoney(r));
   const awaitingAmt=awaiting.reduce((sum,r)=>{
     const s=sessions.find(x=>x.id===r.sessionId);
     return sum+(s?regEffectivePrice(r,s):0);
   },0);
-  const pendingCount=registrations.filter(r=>r.payStatus==='pending').length;
+  const pendingCount=registrations.filter(r=>r.payStatus==='pending'&&regOwesMoney(r)).length;
   document.getElementById('dash-metrics').innerHTML=`
     <div class="metric"><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub">${fmt(yRev)} year to date</div></div>
     <div class="metric"><div class="m-label">Expenses this month</div><div class="m-val red">${fmt(mCost)}</div></div>
@@ -6938,6 +7003,9 @@ function renderRegs(){
   let list=registrations.filter(r=>{
     if(sf&&r.sessionId!==sf)return false;
     if(pf&&r.payStatus!==pf)return false;
+    // Unpaid / pending filters mean money is still owed. A host or $0 comp
+    // stored under one of those statuses is settled and stays out of them.
+    if((pf==='unpaid'||pf==='pending')&&!regOwesMoney(r))return false;
     // Cancelled rows sit out of the way until you pick the Cancelled filter.
     if(!pf&&r.payStatus==='cancelled')return false;
     if(q&&!r.studentName.toLowerCase().includes(q)&&!(r.parentName||'').toLowerCase().includes(q)&&!partnerNameOf(r).toLowerCase().includes(q))return false;
@@ -6948,10 +7016,16 @@ function renderRegs(){
     (list.length?list.map(r=>{
       const s=sessions.find(x=>x.id===r.sessionId);
       const c=s?COURSES[s.course]:null;
-      const amt=r.payStatus==='cancelled'?'<span style="color:var(--muted)">—</span>':r.payStatus==='paid'?(s?fmt(regEffectivePrice(r,s)):'—')+(isCustomStudentPrice(r,s)?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':''):r.payStatus==='host'?'Free':r.payStatus==='in_kind'?'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>':(r.pricePaid!=null?fmt(regEffectivePrice(r,s))+'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>':'—');
+      const listPrice=s?sessionListPrice(s):null;
+      const settledFree=registrationIsSettled(r, listPrice)&&r.payStatus!=='paid';
+      const amt=r.payStatus==='cancelled'?'<span style="color:var(--muted)">—</span>':r.payStatus==='paid'?(s?fmt(regEffectivePrice(r,s)):'—')+(isCustomStudentPrice(r,s)?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':''):settledFree?(r.payStatus==='in_kind'?'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>':'Free'):(r.pricePaid!=null?fmt(regEffectivePrice(r,s))+'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>':'—');
       const d=s?fmtSessDate(s,{month:'short',day:'numeric'}):'—';
       const partner=partnerNameOf(r);
       const howHtml=paymentHowHtml(r);
+      const payButtons=r.payStatus==='paid'
+        ?`<button class="btn sm" onclick="togglePaid('${r.id}')">Mark unpaid</button>`
+        :(regOwesMoney(r)?`<button class="btn sm success" onclick="togglePaid('${r.id}')">Mark paid</button>`:'');
+      const matchButton=regOwesMoney(r)?`<button class="btn sm" onclick="openMatchPayment('${r.id}')">Match</button>`:'';
       return`<tr>
         <td style="font-weight:500">${escapeHtml(r.studentName)}${partner?`<div style="font-weight:400;font-size:14px;color:var(--muted)">${escapeHtml(partner)}</div>`:''}</td>
         ${referralSourceCellHtml(r)}
@@ -6959,7 +7033,7 @@ function renderRegs(){
         <td style="color:var(--muted)">${escapeHtml(r.parentName)||'—'}</td>
         <td style="color:var(--muted);font-size:15px">${escapeHtml(r.contact)||'—'}</td>
         <td style="font-size:15px">${s?s.course+' '+d:'—'}</td>
-        <td><span class="tag ${r.payStatus}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span>${howHtml}</td>
+        <td>${regRosterStatusHtml(r)}${howHtml}</td>
         <td>${amt}</td>
         <td style="text-align:center">${r.photoConsent==='yes'?'<span style="color:var(--success)">✓ Yes</span>':r.photoConsent==='no'?'<span style="color:var(--muted)">✗ No</span>':'<span style="color:var(--muted)">—</span>'}</td>
         <td style="color:var(--muted);font-size:15px;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,notesWithoutPartner(r.notes)))||'—'}</td>
@@ -6967,8 +7041,8 @@ function renderRegs(){
           <button class="btn sm success" onclick="reEnrollReg('${r.id}')">↩️ Re-enroll</button>
           <button class="btn sm" onclick="openWaiverDoc('${r.id}')">📄 Waiver</button>
           <button class="btn sm danger" onclick="deleteReg('${r.id}')">Delete</button>`:`
-          ${r.payStatus==='in_kind'?'':`<button class="btn sm ${r.payStatus==='paid'?'':'success'}" onclick="togglePaid('${r.id}')">${r.payStatus==='paid'?'Mark unpaid':'Mark paid'}</button>`}
-          ${(r.payStatus==='pending'||r.payStatus==='unpaid')?`<button class="btn sm" onclick="openMatchPayment('${r.id}')">Match</button>`:''}
+          ${payButtons}
+          ${matchButton}
           <button class="btn sm" onclick="openWaiverDoc('${r.id}')">📄 Waiver</button>
           <button class="btn sm" onclick="openEditReg('${r.id}')">Edit</button>
           <button class="btn sm danger" onclick="cancelReg('${r.id}')">Cancel</button>`}
@@ -7003,7 +7077,7 @@ function renderRegAlerts(){
   if(!el)return;
   const now=Date.now(), DAY=86400000;
   const stale=registrations
-    .filter(r=>r.payStatus==='pending'&&(now-(r.createdAt||now))>2*DAY)
+    .filter(r=>r.payStatus==='pending'&&regOwesMoney(r)&&(now-(r.createdAt||now))>2*DAY)
     .sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   if(!stale.length){el.innerHTML='';return;}
   let html='';
@@ -7063,7 +7137,7 @@ function openAddReg(sessId){
     <div class="fg full" id="m-partner-wrap" style="display:none"><label>Partner's name * <span style="font-weight:400;color:var(--muted)">(second adult — one payment covers both)</span></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input type="text" id="m-p2fn" placeholder="First name"><input type="text" id="m-p2ln" placeholder="Last name"></div></div>
     <div class="fg full"><label>Session *</label><select id="m-sess" onchange="syncAddRegLabels()"><option value="">Select session...</option>${sesOpts}</select></div>
     <div class="fg" id="m-grade-wrap"><label>Grade</label><select id="m-grade"><option value="">—</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option></select></div>
-    <div class="fg"><label>Payment status</label><select id="m-pay"><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="host">Host (free)</option><option value="in_kind">In-kind donation (auction)</option></select></div>
+    <div class="fg"><label>Payment status</label><select id="m-pay"><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="host">Comped/Host</option><option value="in_kind">In-kind donation (auction)</option></select></div>
     <div class="fg"><label>Custom price <span style="font-weight:400;color:var(--muted)">(override, optional)</span></label><input type="number" id="m-price" placeholder="Leave blank for default" min="0" step="1"></div>
     ${paymentMethodFieldsHtml('m-add',{})}
     <div class="fg full"><label id="m-par-label">Parent / guardian name</label><input type="text" id="m-par"></div>
@@ -7103,7 +7177,11 @@ async function saveReg(){
 
 async function togglePaid(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
-  if(r.payStatus!=='paid'){openMarkPaid(id);return;}
+  if(r.payStatus!=='paid'){
+    if(!regOwesMoney(r))return;
+    openMarkPaid(id);
+    return;
+  }
   const prev=r.payStatus;
   r.payStatus='unpaid';
   renderRegs();renderDashboard();
@@ -7112,6 +7190,7 @@ async function togglePaid(id){
 }
 function openMarkPaid(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
+  if(!regOwesMoney(r))return;
   const s=sessions.find(x=>x.id===r.sessionId);
   const due=paymentAmountLabel(regEffectivePrice(r,s));
   const suggested=r.paymentMethod||suggestPaymentMethod(r);
@@ -7260,6 +7339,7 @@ function findPaymentMatches(opts){
     let due=null;
     if(typeof opts.priceOf==='function')due=matchMoney(opts.priceOf(r));
     else if(r.amountDue!=null)due=matchMoney(r.amountDue);
+    if(due!=null&&!(due>0))return;
     const amountHit=amt!=null&&due!=null&&Math.abs(amt-due)<=0.01;
     if(amountHit){score+=40;reasons.push('amount');}
     const contact=String(r.contact||'');
@@ -7408,7 +7488,7 @@ function openEditReg(id){
     <div class="fg"><label>Payment status</label><select id="m-epay">
       <option value="unpaid" ${r.payStatus==='unpaid'?'selected':''}>Unpaid</option>
       <option value="paid" ${r.payStatus==='paid'?'selected':''}>Paid</option>
-      <option value="host" ${r.payStatus==='host'?'selected':''}>Host (free)</option>
+      <option value="host" ${r.payStatus==='host'?'selected':''}>Comped/Host</option>
       <option value="in_kind" ${r.payStatus==='in_kind'?'selected':''}>In-kind donation (auction)</option>
     </select></div>
     ${paymentMethodFieldsHtml('m-e',{method:r.paymentMethod||(r.payStatus==='paid'?suggestPaymentMethod(r):''),detail:r.paymentDetail||'',ref:r.paymentRef||r.paypalTxId||''})}
@@ -7514,7 +7594,7 @@ function reEnrollReg(id){
         ${opt('paid','Paid')}
         ${opt('unpaid','Unpaid')}
         ${opt('pending','Pending payment')}
-        ${opt('host','Host (free)')}
+        ${opt('host','Comped/Host')}
         ${opt('in_kind','In-kind donation (auction)')}
         ${opt('waitlist','Waitlist (no seat)')}
       </select></div>
@@ -12587,7 +12667,7 @@ function openRoster(sessId){
       <td style="text-align:center">${r.emergencyAuth==='yes'?'✓':'✗'}</td>
       <td style="text-align:center">${r.waiverSigned?'✓':'✗'}</td>
       <td style="text-align:center">${r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—'}</td>
-      <td><span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500;background:${r.payStatus==='paid'?'#eaf5f0':r.payStatus==='host'?'#d6e9f5':r.payStatus==='in_kind'?'#f3e8fb':'#fff7e6'};color:${r.payStatus==='paid'?'#2d7a5e':r.payStatus==='host'?'#1a5c8a':r.payStatus==='in_kind'?'#6D1ED4':'#b86a00'}">${r.payStatus==='in_kind'?'in-kind':r.payStatus}</span>${paymentHowText(r)?`<div style="font-size:13px;font-weight:600;margin-top:4px;color:${paymentHowText(r)==='How paid unknown'?'#b86a00':'#1a2744'}">${escapeHtml(paymentHowText(r))}</div>`:''}</td>
+      <td>${(function(){const list=s?sessionListPrice(s):null;const label=rosterSettlementLabel(r,list);const cls=rosterSettlementTagClass(r,list);const bg=cls==='paid'?'#eaf5f0':cls==='host'?'#d6e9f5':cls==='in_kind'?'#f3e8fb':'#fff7e6';const fg=cls==='paid'?'#2d7a5e':cls==='host'?'#1a5c8a':cls==='in_kind'?'#6D1ED4':'#b86a00';return '<span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500;background:'+bg+';color:'+fg+'">'+escapeHtml(label)+'</span>';})()}${paymentHowText(r)?`<div style="font-size:13px;font-weight:600;margin-top:4px;color:${paymentHowText(r)==='How paid unknown'?'#b86a00':'#1a2744'}">${escapeHtml(paymentHowText(r))}</div>`:''}</td>
       <td style="font-size:14px;color:#888;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,notesWithoutPartner(r.notes)))||''}</td>
     </tr>`).join('')
     :'<tr><td colspan="'+emptyCols+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
