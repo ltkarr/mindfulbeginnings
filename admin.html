@@ -5099,7 +5099,7 @@ function renderDashboard(){
         const sd=new Date(s.date+'T12:00:00');
         const sd0=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate());
         const dayDiff=Math.round((sd0-today0)/86400000);
-        const d=sd.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+        const d=fmtSessDate(s,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
         const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
         const jd=jobDataCache[s.id]||{};
         const hasInstr=!s.ownerTaught&&((jd.instructorId)||s.instructorId);
@@ -9140,9 +9140,50 @@ function openJobPayText(s,instr){
   if(h.virtual)return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + '+hourLabel(h.add)+', virtual, no travel hour)';
   return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + 1.5 hours travel)';
 }
+// A two-day class stores day one on the session and the later day in extra_days
+// (older rows only have extra_dates). A blank extra-day time means "same as day one".
+function openJobMeetings(s){
+  if(!s||!s.date)return [];
+  const fallback=String(s.time||'').trim();
+  const extras=(Array.isArray(s.extraDays)&&s.extraDays.length)?s.extraDays:(Array.isArray(s.extraDates)?s.extraDates:[]);
+  const rows=[{date:s.date,time:fallback}];
+  extras.forEach(function(x){
+    if(typeof x==='string')rows.push({date:x,time:fallback});
+    else if(x&&x.date)rows.push({date:x.date,time:String(x.time||'').trim()||fallback});
+  });
+  const seen={};
+  return rows.filter(function(x){
+    if(!x.date||seen[x.date])return false;
+    seen[x.date]=true;
+    return true;
+  }).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+}
+function openJobDayLabel(date){
+  const d=new Date(date+'T12:00:00');
+  if(isNaN(d.getTime()))return String(date||'');
+  return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+// One day stays "Friday, October 30, 2026 · 1:00-4:00 PM". Two or more days list
+// every calendar day. A shared time is written once; different times stay with their day.
+function openJobWhenText(s, dateText){
+  const meetings=openJobMeetings(s);
+  if(meetings.length>1){
+    const times=meetings.map(function(m){return String(m.time||'').trim();});
+    const shared=times.every(function(t){return t===times[0];});
+    if(shared){
+      const dates=meetings.map(function(m){return openJobDayLabel(m.date);}).join(' & ');
+      return dates+(times[0]?' · '+times[0]:'');
+    }
+    return meetings.map(function(m){
+      const time=String(m.time||'').trim();
+      return openJobDayLabel(m.date)+(time?' · '+time:'');
+    }).join(' & ');
+  }
+  return (dateText||'')+(s&&s.time?' · '+s.time:'');
+}
 function openJobDigestLine(s,idx,dateText){
   const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed'));
-  const when=openJobCopyText((dateText||'')+(s&&s.time?' · '+s.time:''));
+  const when=openJobCopyText(openJobWhenText(s, dateText));
   const title=openJobCopyText((s&&s.course)||'Session');
   const pay=openJobCopyText(openJobPayText(s));
   const who=openJobCopyText(sessionWhoCanTeach(s));
@@ -9151,7 +9192,7 @@ function openJobDigestLine(s,idx,dateText){
 function openJobDigestHtml(s,idx,dateText){
   const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed'));
   const title=openJobCopyText((s&&s.course)||'Session');
-  const when=escapeHtml(openJobCopyText(dateText||''))+(s&&s.time?' · '+escapeHtml(openJobCopyText(s.time)):'');
+  const when=escapeHtml(openJobCopyText(openJobWhenText(s, dateText)));
   const pay=openJobCopyText(openJobPayText(s));
   const who=openJobCopyText(sessionWhoCanTeach(s));
   return '<div style="margin-bottom:10px"><strong>'+escapeHtml((idx+1)+'. '+title)+'</strong> - '+escapeHtml(pay)+' - '+escapeHtml(who)+'<br>'+when+'<br><span style="color:#6b7a99">'+escapeHtml(loc)+'</span></div>';
@@ -13327,13 +13368,15 @@ function openInstructorReminder(sessId,specificInstrId){
   const instr=instructors.find(x=>x.id===targetId);
   if(!instr){alert('No instructor assigned to this session yet.');return;}
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
+  const when=openJobMeetings(s).length>1?openJobWhenText(s,''):(d||'To be confirmed');
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const cityState=[s.city,s.state].filter(Boolean).join(', ');
   const cszZip=(cityState+(s.zip?' '+s.zip:'')).trim();
   const fullAddress=[s.hostAddress,cszZip].filter(Boolean).join(', ');
   const contactLabel=s.hasHost!==false?'Host contact':'Site contact';
   const contactBits=[s.contactName,s.hostPhone].filter(Boolean).join(', ');
-  const detailLines=['Course: '+s.course,'Date: '+(d||'To be confirmed'),'Time: '+(s.time||'To be confirmed')];
+  const detailLines=['Course: '+s.course,'Date: '+when];
+  if(openJobMeetings(s).length<2)detailLines.push('Time: '+(s.time||'To be confirmed'));
   if(s.isVirtual){
     detailLines.push('Format: Virtual (Zoom)');
     detailLines.push('Zoom link: '+(s.zoomLink||'Link to be provided'));
@@ -13351,12 +13394,12 @@ function openInstructorReminder(sessId,specificInstrId){
   openDocEmail({
     type:'instructorReminder',
     category:'Send reminder + roster to instructor',
-    sessionLine:s.course+' · '+(d||'Date to be confirmed')+' · '+(instr.name||''),
+    sessionLine:s.course+' · '+when+' · '+(instr.name||''),
     field:'to',
     emails:instr.email?[instr.email]:[],
-    subject:'Reminder: your upcoming '+s.course+' course'+(d?' on '+d:''),
+    subject:'Reminder: your upcoming '+s.course+' course'+(when&&when!=='To be confirmed'?' on '+when:''),
     note:'Paste the instructor reminder from the Google Doc. Print the roster and attach it before you send. Session facts for this class are below.',
-    extraHtml:emailFactsHtml('Session facts', detailLines.join('\n'))+classRosterSection(s, regs, {when:d, where:where, who:instr.name, privateCols:true}),
+    extraHtml:emailFactsHtml('Session facts', detailLines.join('\n'))+classRosterSection(s, regs, {when:when, where:where, who:instr.name, privateCols:true}),
     copyExtra:detailLines.join('\n'),
     copyExtraLabel:'Copy details',
     hasRoster:true

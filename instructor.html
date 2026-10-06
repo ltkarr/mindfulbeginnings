@@ -688,6 +688,7 @@ function sessTimeSummary(s){
 // Short one-line summary under the course name.
 function sessHeadline(s){
   const m=sessMeetings(s);
+  if(m.length===2)return twoDayWhen(s)||'Date TBD';
   const bits=[];
   if(m.length>1)bits.push(m.length+' classes');
   bits.push(sessRangeLabel(s)||'Date TBD');
@@ -869,6 +870,16 @@ function whatHappensHTML(s){
 
 // The schedule line that sits directly under the job title. For a series this is the
 // most important sentence on the card, so it is styled as content rather than metadata.
+// Two meeting days are listed in full. A longer series stays a range, with each
+// day still shown in the schedule underneath.
+function twoDayWhen(s){
+  const m=sessMeetings(s);
+  if(m.length!==2)return'';
+  const times=m.map(x=>String(x.time||'').trim());
+  const shared=times.every(t=>t===times[0]);
+  if(shared)return m.map(x=>fmtDate(x.date)).join(' & ')+(times[0]&&times[0]!=='TBD'?' · '+times[0]:'');
+  return m.map(x=>fmtDate(x.date)+(String(x.time||'').trim()?' · '+x.time:'')).join(' & ');
+}
 function whenLineHTML(s){
   const m=sessMeetings(s);
   if(!m.length)return'';
@@ -878,6 +889,8 @@ function whenLineHTML(s){
   let main;
   if(m.length===1){
     main=fmtDate(m[0].date)+(time&&time!=='TBD'?' · '+time:'');
+  }else if(m.length===2){
+    main=twoDayWhen(s);
   }else{
     main=m.length+' classes · '+sessRangeLabel(s)+(pat?' · '+pat:'')+(time&&time!=='TBD'?' · '+time:'');
   }

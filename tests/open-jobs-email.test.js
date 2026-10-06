@@ -64,6 +64,9 @@ function loadEmail() {
       extractFn(admin, 'hourLabel'),
       extractFn(admin, 'openJobHourlyHours'),
       extractFn(admin, 'openJobPayText'),
+      extractFn(admin, 'openJobMeetings'),
+      extractFn(admin, 'openJobDayLabel'),
+      extractFn(admin, 'openJobWhenText'),
       extractFn(admin, 'openJobDigestLine'),
       extractFn(admin, 'openJobDigestHtml'),
       extractFn(admin, 'openJobPortalText')
@@ -178,6 +181,37 @@ test('a course flat fee is not rewritten as hourly times 1.5 travel, and a virtu
   assert.equal(api.sessionWhoCanTeach(virtualHourly), 'RN instructors only');
   assert.equal(api.openJobPayText(virtualHourly, { hourlyRate: 60 }), 'Instructor pay: $120');
   assert.equal(api.instrBaseFee(virtualHourly, { hourlyRate: 60 }), 120);
+});
+
+test('a two-day open job lists both calendar days, with each time when they differ', () => {
+  const api = loadEmail();
+  const split = {
+    course: 'Safe Sitter®',
+    date: '2026-10-30',
+    time: '1:00-4:00 PM',
+    extraDates: ['2026-11-13'],
+    extraDays: [{ date: '2026-11-13', time: '3:00-5:00 PM' }],
+    location: 'Library',
+    city: 'Bethesda'
+  };
+  const line = api.openJobDigestLine(split, 0, 'Friday, October 30, 2026');
+  assert.match(line, /Friday, October 30, 2026 · 1:00-4:00 PM & Friday, November 13, 2026 · 3:00-5:00 PM/);
+  const html = api.openJobDigestHtml(split, 0, 'Friday, October 30, 2026');
+  assert.match(html, /Friday, October 30, 2026/);
+  assert.match(html, /Friday, November 13, 2026/);
+  assert.match(html, /3:00-5:00 PM/);
+  const same = {
+    course: 'Safe Sitter®',
+    date: '2026-11-02',
+    time: '1:30 to 4:00 PM',
+    extraDates: ['2026-11-03'],
+    extraDays: [{ date: '2026-11-03', time: '1:30 to 4:00 PM' }]
+  };
+  const sameLine = api.openJobDigestLine(same, 0, 'Monday, November 2, 2026');
+  assert.match(sameLine, /Monday, November 2, 2026 & Tuesday, November 3, 2026 · 1:30 to 4:00 PM/);
+  assert.equal((sameLine.match(/1:30 to 4:00 PM/g) || []).length, 1);
+  const reminder = admin.slice(admin.indexOf('function openInstructorReminder'), admin.indexOf('// ─── ERROR TRACKING'));
+  assert.match(reminder, /openJobWhenText/);
 });
 
 test('the admin open-jobs email is the Jobs open right now list, with a portal link and no babysitting subject', () => {
