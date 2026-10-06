@@ -24,10 +24,28 @@ function extractFunction(src, name) {
   throw new Error('unclosed ' + name);
 }
 
-const sandbox = { jobDataCache: {}, Date, String, Number, Math };
+const sandbox = {
+  jobDataCache: {},
+  instructors: [],
+  registrations: [],
+  orgPartners: [],
+  Date,
+  String,
+  Number,
+  Math
+};
 vm.createContext(sandbox);
 vm.runInContext(
-  ['preClassTaskList', 'preClassChecklistDone', 'dashChecklistSessions'].map((n) => extractFunction(admin, n)).join('\n'),
+  [
+    'sessionInstructorList',
+    'sessionInstructorNames',
+    'sessionHostDisplayName',
+    'checklistInstructorLabel',
+    'checklistHostLabel',
+    'preClassTaskList',
+    'preClassChecklistDone',
+    'dashChecklistSessions'
+  ].map((n) => extractFunction(admin, n)).join('\n'),
   sandbox
 );
 
@@ -94,4 +112,61 @@ test('a wall of finished green checklists is removed from the dashboard', () => 
   assert.deepEqual(shown, ['open']);
   rows.filter((s) => s.id !== 'open').forEach((s) => assert.equal(sandbox.preClassChecklistDone(s), true));
   assert.equal(sandbox.preClassChecklistDone(rows[4]), false);
+});
+
+test('checklist cards name the instructor and the host, or say when either is missing', () => {
+  sandbox.instructors = [
+    { id: 'i1', name: 'Jane Doe' },
+    { id: 'i2', name: 'Bob Smith' }
+  ];
+  sandbox.registrations = [];
+  sandbox.orgPartners = [];
+  sandbox.jobDataCache = { claimed: { instructorId: 'i1' } };
+
+  const assigned = sess('claimed', '2026-10-16', { contactName: 'Dana Rivera', instructorId: null });
+  assert.equal(sandbox.checklistInstructorLabel(assigned), 'Jane Doe');
+  assert.equal(sandbox.checklistHostLabel(assigned), 'Dana Rivera');
+
+  const owner = sess('owner', '2026-10-16', { ownerTaught: true, instructorId: null, secondInstructorId: 'i2', contactName: '' });
+  assert.equal(sandbox.checklistInstructorLabel(owner), 'Lindsay Karr (owner) + Bob Smith');
+
+  const open = sess('open-job', '2026-10-16', { instructorId: null, contactName: '   ', hasHost: true });
+  assert.equal(sandbox.checklistInstructorLabel(open), 'No instructor');
+  assert.equal(sandbox.checklistHostLabel(open), 'No host');
+
+  sandbox.registrations = [
+    { sessionId: 'reg-host', payStatus: 'paid', parentName: 'Not Host', studentName: 'A Student' },
+    { sessionId: 'reg-host', payStatus: 'host', parentName: 'Sam Parent', studentName: 'Kid Host' },
+    { sessionId: 'other', payStatus: 'host', parentName: 'Other Host', studentName: 'Nope' }
+  ];
+  const fromReg = sess('reg-host', '2026-10-16', { instructorId: 'i1', contactName: '' });
+  assert.equal(sandbox.checklistHostLabel(fromReg), 'Sam Parent');
+
+  sandbox.registrations = [
+    { sessionId: 'kid-host', payStatus: 'host', parentName: '', studentName: 'Kid Host' }
+  ];
+  assert.equal(sandbox.checklistHostLabel(sess('kid-host', '2026-10-16', { contactName: '' })), 'Kid Host');
+
+  sandbox.orgPartners = [{ id: 'org1', name: 'Temple Beth El', contactName: 'Alex Chen' }];
+  const fromOrg = sess('org', '2026-10-16', { instructorId: null, contactName: '', hasHost: false, hostedFor: 'org1' });
+  assert.equal(sandbox.checklistHostLabel(fromOrg), 'Alex Chen');
+  sandbox.orgPartners = [{ id: 'org1', name: 'Temple Beth El', contactName: '' }];
+  assert.equal(sandbox.checklistHostLabel(fromOrg), 'Temple Beth El');
+
+  const named = sess('both', '2026-10-16', { contactName: 'Dana Rivera', hostedFor: 'org1' });
+  sandbox.registrations = [{ sessionId: 'both', payStatus: 'host', parentName: 'Sam Parent', studentName: 'Kid' }];
+  assert.equal(sandbox.sessionHostDisplayName(named), 'Dana Rivera');
+
+  const block = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('renderOrgBilling();'));
+  assert.match(block, /checklistInstructorLabel\(s\)/);
+  assert.match(block, /checklistHostLabel\(s\)/);
+  assert.match(block, /roleLine\('Instructor',instrLabel,'No instructor'\)/);
+  assert.match(block, /roleLine\('Host',hostLabel,'No host'\)/);
+  assert.match(block, /escapeHtml\(value\)/);
+  assert.match(block, /Send reminder \+ roster to instructor/);
+  assert.match(block, /Host reminder — 1 week before/);
+  assert.match(block, /Family reminder — before class/);
+  assert.match(block, /openInstructorReminder\('\$\{s\.id\}'\)/);
+  assert.match(block, /openHostReminder\('\$\{s\.id\}'\)/);
+  assert.match(block, /openClassReminder\('\$\{s\.id\}'\)/);
 });
