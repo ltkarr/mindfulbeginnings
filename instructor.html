@@ -11,7 +11,7 @@
 <title>Instructor Portal — Mindful Beginnings</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/email-logo.png">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <!-- Course data for the job board. This page deliberately loads config-instructor.js
@@ -29,26 +29,27 @@
   --danger:#c0392b;--danger-bg:#fdf0ee;--r:12px;--r-sm:8px;
 }
 body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
-#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);padding:20px}
-.login-box{background:white;border-radius:16px;padding:40px 36px;width:360px;text-align:center;max-width:100%}
+#login-screen,#inactive-screen,#pinchange-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);padding:24px 16px}
+.login-box{background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:410px;text-align:center}
 .login-logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--navy);margin-bottom:4px}
-.login-logo-img{width:112px;height:auto;display:block;margin:0 auto 12px}
+.login-logo-img{height:72px;width:auto;display:block;margin:0 auto 14px}
+@media(max-width:480px){#login-screen,#inactive-screen,#pinchange-screen{padding:16px 12px}.login-box{padding:28px 18px}}
 .h-brandwrap{display:flex;align-items:center;gap:12px}
 .h-logo{background:#fff;border-radius:10px;padding:5px 10px;display:inline-flex;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .h-logo img{height:32px;width:auto;display:block}
-.login-sub{font-size:12px;color:var(--muted);margin-bottom:28px}
+.login-sub{font-size:14px;color:var(--muted);margin-bottom:28px}
 .pin-input{width:100%;padding:16px;font-size:28px;letter-spacing:8px;text-align:center;font-family:'DM Serif Display',serif;border:2px solid var(--border);border-radius:var(--r-sm);outline:none;background:var(--cream);transition:border-color .2s;margin-bottom:8px}
 .pin-input:focus{border-color:var(--gold);background:white}
 .pin-input.err{border-color:var(--danger)}
-.login-err{color:var(--danger);font-size:12px;margin-bottom:12px;min-height:16px}
+.login-err{color:var(--danger);font-size:14px;margin-bottom:12px;min-height:16px}
 .login-btn{width:100%;padding:13px;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s}
 .login-btn:hover{background:var(--navy2)}
 .login-btn:disabled{opacity:.6;cursor:not-allowed}
 #app{display:none;min-height:100vh}
 header{background:var(--navy);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
 .h-brand{font-family:'DM Serif Display',serif;font-size:18px;color:white}
-.h-name{font-size:12px;color:rgba(255,255,255,.6);margin-top:1px}
-.h-logout{background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:5px 12px;border-radius:100px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.h-name{font-size:14px;color:rgba(255,255,255,.6);margin-top:1px}
+.h-logout{background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:5px 12px;border-radius:100px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer}
 .h-logout:hover{color:white;border-color:rgba(255,255,255,.6)}
 .tabs{background:white;border-bottom:1px solid var(--border);display:flex;padding:0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
@@ -56,7 +57,7 @@ header{background:var(--navy);padding:16px 24px;display:flex;align-items:center;
 .tab:hover{color:var(--text)}
 .tab.active{color:var(--navy);border-bottom-color:var(--gold)}
 .acct-nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}
-.acct-nav .btn{font-size:12px;padding:6px 14px}
+.acct-nav .btn{font-size:14px;padding:6px 14px}
 .acct-section{margin-bottom:36px;scroll-margin-top:14px}
 .acct-section:last-child{margin-bottom:0}
 /* ── Home dashboard ─────────────────────────────────────────── */
@@ -66,9 +67,9 @@ header{background:var(--navy);padding:16px 24px;display:flex;align-items:center;
 .home-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;cursor:pointer;transition:box-shadow .15s}
 .home-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .home-card .hc-num{font-family:'DM Serif Display',serif;font-size:32px;color:var(--navy);line-height:1.1}
-.home-card .hc-label{font-size:12px;color:var(--muted);margin-top:2px}
+.home-card .hc-label{font-size:14px;color:var(--muted);margin-top:2px}
 .home-next{background:var(--navy);color:#fff;border-radius:var(--r);padding:18px 20px;margin-bottom:14px;cursor:pointer}
-.home-next .hn-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--gold);margin-bottom:6px;font-weight:500}
+.home-next .hn-label{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--gold);margin-bottom:6px;font-weight:500}
 .home-next .hn-course{font-family:'DM Serif Display',serif;font-size:21px;margin-bottom:4px}
 .home-next .hn-meta{font-size:13px;color:rgba(255,255,255,.78);line-height:1.6}
 .home-next .hn-go{margin-top:10px;font-size:13px;font-weight:500;color:var(--gold)}
@@ -83,15 +84,15 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .job-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .jc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .jc-course{font-weight:500;font-size:15px}
-.jc-meta{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.jc-meta{font-size:14px;color:var(--muted);margin-top:3px;line-height:1.5}
 .jc-when{font-size:13px;font-weight:500;color:var(--navy);margin-top:4px;line-height:1.45}
 .jc-when .jc-when-off{color:var(--warn);font-weight:500}
 .jc-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px}
 .jc-detail{background:var(--cream);border-radius:var(--r-sm);padding:10px 12px}
-.jc-detail-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:3px}
+.jc-detail-label{font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:3px}
 .jc-detail-val{font-size:13px;font-weight:500}
 .jc-actions{display:flex;gap:8px;flex-wrap:wrap}
-.pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:13px;font-weight:500;white-space:nowrap}
 .pill-open{background:#f0f4ff;color:#3355bb}
 .pill-accepted{background:var(--success-bg);color:var(--success)}
 .pill-waitlist{background:var(--warn-bg);color:var(--warn)}
@@ -127,23 +128,23 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .info-row:last-child{border-bottom:none}
 /* ── Expanded job-card detail sections (schedule, location, good-to-know) ── */
 .jc-section{border-top:1px solid var(--border);margin-top:14px;padding-top:12px}
-.jc-section-t{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px}
+.jc-section-t{font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px}
 .sched{border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
 .sched-row{display:flex;align-items:center;gap:10px;padding:7px 12px;font-size:13px;border-bottom:.5px solid var(--border);background:white}
 .sched-row:last-child{border-bottom:none}
 .sched-row.closed{background:var(--warn-bg);color:var(--warn)}
-.sched-n{width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--gold-l);color:#7c5f16;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.sched-n{width:22px;height:22px;flex:0 0 22px;border-radius:50%;background:var(--gold-l);color:#7c5f16;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center}
 .sched-row.closed .sched-n{background:#f4dcb0;color:var(--warn)}
 .sched-d{flex:1;min-width:0}
-.sched-t{font-size:12px;color:var(--muted);white-space:nowrap}
+.sched-t{font-size:14px;color:var(--muted);white-space:nowrap}
 .sched-row.closed .sched-t{color:var(--warn);font-style:italic}
-@media(max-width:420px){.sched-row{font-size:12px;padding:7px 9px;gap:8px}.sched-t{font-size:11px}}
+@media(max-width:420px){.sched-row{font-size:14px;padding:7px 9px;gap:8px}.sched-t{font-size:13px}}
 /* ── Headline numbers: pay, commitment, effective rate ── */
 .hero-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:14px}
 .hero-cell{background:white;padding:11px 13px}
 .hero-v{font-family:'DM Serif Display',serif;font-size:20px;line-height:1.15;color:var(--navy)}
-.hero-l{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-top:3px}
-.hero-s{font-size:11px;color:var(--muted);margin-top:2px}
+.hero-l{font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-top:3px}
+.hero-s{font-size:13px;color:var(--muted);margin-top:2px}
 .hero-cell.loc .hero-v{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;line-height:1.3;word-break:break-word}
 /* ── Fit checks: reasons to say yes, and any blockers ── */
 .fit{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:14px}
@@ -159,21 +160,21 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .fit-bar>span{display:block;height:100%;background:currentColor;opacity:.55;border-radius:100px}
 /* ── Compact date chips ── */
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 5px;border:1px solid var(--border);border-radius:100px;background:white;font-size:12px;white-space:nowrap}
-.chip-n{width:19px;height:19px;flex:0 0 19px;border-radius:50%;background:var(--gold-l);color:#7c5f16;font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 5px;border:1px solid var(--border);border-radius:100px;background:white;font-size:14px;white-space:nowrap}
+.chip-n{width:24px;height:24px;flex:0 0 24px;border-radius:50%;background:var(--gold-l);color:#7c5f16;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center}
 .chip-d{font-weight:500}
-.chip-t{color:var(--muted);font-size:11px}
+.chip-t{color:var(--muted);font-size:13px}
 .chip-off{background:var(--warn-bg);border-color:#f0d9b0;color:var(--warn)}
 .chip-off .chip-n{background:#f4dcb0;color:var(--warn)}
 .chip-off .chip-d{text-decoration:line-through;opacity:.8}
 .chip-off .chip-t{color:var(--warn);font-style:italic}
 /* ── "What happens after I accept" ── */
 .wh{border:1px solid var(--border);border-radius:var(--r-sm);background:var(--cream);margin-top:12px}
-.wh summary{cursor:pointer;padding:10px 13px;font-size:12px;font-weight:500;color:var(--navy);list-style:none}
+.wh summary{cursor:pointer;padding:10px 13px;font-size:14px;font-weight:500;color:var(--navy);list-style:none}
 .wh summary::-webkit-details-marker{display:none}
 .wh summary:before{content:'▸ ';color:var(--muted)}
 .wh[open] summary:before{content:'▾ '}
-.wh ul{margin:0;padding:0 16px 12px 32px;font-size:12px;color:var(--muted);line-height:1.65}
+.wh ul{margin:0;padding:0 16px 12px 32px;font-size:14px;color:var(--muted);line-height:1.65}
 .wh li{margin-bottom:4px}
 .notes-box{font-size:13px;line-height:1.65;background:var(--gold-l);border:1px solid #e6d5a8;border-radius:var(--r-sm);padding:11px 13px;color:#7c5f16;white-space:normal;overflow-wrap:anywhere}
 
@@ -239,7 +240,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
 
   /* Label above value, instead of two columns squeezed onto one line */
   .info-row{flex-direction:column;align-items:flex-start;gap:2px;padding:10px 0}
-  .info-label{font-size:12px}
+  .info-label{font-size:14px}
 
   /* 16px stops iOS zooming the whole page when a field is tapped */
   input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px!important;max-width:100%}
@@ -261,7 +262,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
 @media(max-width:390px){
   .jc-details{grid-template-columns:1fr}
   .jc-actions .btn{flex:1 1 100%}
-  .tab{padding:0 13px;font-size:12.5px}
+  .tab{padding:0 13px;font-size:14px}
   main{padding-left:12px;padding-right:12px}
   .job-card{padding:15px 13px}
 }
@@ -271,19 +272,20 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
 
 <div id="login-screen">
   <div class="login-box">
-    <img class="login-logo-img" src="/email-logo.png" alt="Mindful Beginnings logo"><div class="login-logo">Mindful Beginnings</div>
-    <div class="login-sub">Instructor portal — enter your PIN to sign in</div>
-    <input type="password" class="pin-input" id="pin-input" maxlength="6" inputmode="numeric" onkeydown="if(event.key==='Enter')doLogin()">
+    <img class="login-logo-img" src="/email-logo.png" alt="Mindful Beginnings">
+    <div class="login-sub">Instructor portal</div>
+    <label for="pin-input" style="display:block;text-align:left;font-size:14px;font-weight:600;margin-bottom:6px">PIN</label>
+    <input type="password" class="pin-input" id="pin-input" maxlength="6" inputmode="numeric" autocomplete="current-password" aria-label="PIN" onkeydown="if(event.key==='Enter')doLogin()">
     <div class="login-err" id="login-err"></div>
     <button class="login-btn" id="login-btn" onclick="doLogin()">Sign in</button>
-    <div style="margin-top:12px;font-size:12px;color:var(--muted)">Forgot your PIN? Text Lindsay at <a href="sms:+17039875979" style="color:var(--gold-d);font-weight:500">703-987-5979</a></div>
-    <div id="login-version" style="margin-top:14px;font-size:11px;color:rgba(255,255,255,.45);text-align:center"></div>
+    <div style="margin-top:12px;font-size:14px;color:var(--muted)">Forgot your PIN? Text Lindsay at <a href="sms:+17039875979" style="color:var(--gold-d);font-weight:500">703-987-5979</a></div>
+    <div id="login-version" style="margin-top:14px;font-size:13px;color:rgba(255,255,255,.45);text-align:center"></div>
   </div>
 </div>
 
-<div id="inactive-screen" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--navy);padding:20px">
-  <div class="login-box" style="width:400px;text-align:left">
-    <img class="login-logo-img" src="/email-logo.png" alt="Mindful Beginnings logo"><div class="login-logo" style="text-align:center">Mindful Beginnings</div>
+<div id="inactive-screen" style="display:none">
+  <div class="login-box" style="text-align:left">
+    <img class="login-logo-img" src="/email-logo.png" alt="Mindful Beginnings">
     <div style="font-size:15px;line-height:1.65;color:var(--text);background:var(--cream);border-radius:var(--r-sm);padding:14px 16px;margin:16px 0 18px">
       Your instructor account is not currently active, so the portal is closed to this PIN. This usually means onboarding was never finished, or that you are not teaching with us at the moment. Nothing has been deleted.
       <br><br>If you think this is a mistake, or you would like to start teaching again, please call or text Lindsay at <strong>703-987-5979</strong> or email <strong>lindsay@mindfulbeginnings.org</strong>.
@@ -292,20 +294,20 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
   </div>
 </div>
 
-<div id="pinchange-screen" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--navy);padding:20px">
-  <div class="login-box" style="width:400px;text-align:left">
-    <img class="login-logo-img" src="/email-logo.png" alt="Mindful Beginnings logo"><div class="login-logo" style="text-align:center">Mindful Beginnings</div>
+<div id="pinchange-screen" style="display:none">
+  <div class="login-box" style="text-align:left">
+    <img class="login-logo-img" src="/email-logo.png" alt="Mindful Beginnings">
     <div class="login-sub" style="text-align:center;margin-bottom:18px">Choose a new PIN</div>
     <div style="font-size:13px;line-height:1.6;color:var(--text);background:var(--cream);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:18px">
       On the advice of our legal counsel, every instructor PIN is moving from four digits to six. Your old PIN will stop working as soon as you set the new one, so please write the new PIN somewhere safe before you continue.
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">New PIN (6 digits)</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:6px">New PIN (6 digits)</div>
     <input type="password" class="pin-input" id="newpin-1" placeholder="••••••" maxlength="6" inputmode="numeric" autocomplete="new-password">
-    <div style="font-size:12px;color:var(--muted);margin:10px 0 6px">Confirm new PIN</div>
+    <div style="font-size:14px;color:var(--muted);margin:10px 0 6px">Confirm new PIN</div>
     <input type="password" class="pin-input" id="newpin-2" placeholder="••••••" maxlength="6" inputmode="numeric" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitNewPin()">
     <div class="login-err" id="newpin-err"></div>
     <button class="login-btn" id="newpin-btn" onclick="submitNewPin()">Save my new PIN</button>
-    <div style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.5">Avoid anything guessable such as a birthday, six of the same digit, or 123456. If you get stuck, call or text Lindsay at 703-987-5979.</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:14px;line-height:1.5">Avoid anything guessable such as a birthday, six of the same digit, or 123456. If you get stuck, call or text Lindsay at 703-987-5979.</div>
   </div>
 </div>
 
@@ -326,8 +328,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     <div class="tab" onclick="showTab('open',this)">Open jobs</div>
     <div class="tab" onclick="showTab('myjobs',this)">My jobs</div>
     <div class="tab" id="tab-btn-partner" style="display:none" onclick="showTab('partner',this)">Partnerships</div>
-    <div class="tab" onclick="showTab('guide',this)">Instructor FAQs</div>
-    <div class="tab" onclick="showTab('materials',this)">Instructor Resources</div>
+    <div class="tab" onclick="showTab('guide',this)">FAQs &amp; resources</div>
     <div class="tab" onclick="showTab('account',this)">My account</div>
   </div>
   <main>
@@ -336,10 +337,10 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="screen" id="tab-open">
       <div class="section-title">Open jobs</div>
-      <div class="section-sub">Accept an open job to claim it. If it's already taken and nobody is waiting yet, you can join the waitlist. Once someone is on the waitlist, the job leaves this board — if you are the one waiting, you'll still see it here so you can leave. You only see jobs for the courses you're eligible to teach based on the credentials on your profile.</div>
+      <div class="section-sub">Jobs you can claim. <span title="Accept an open job to claim it. If it's already taken and nobody is waiting yet, you can join the waitlist. Once someone is on the waitlist, the job leaves this board — if you are the one waiting, you'll still see it here so you can leave. You only see jobs for the courses you're eligible to teach.">?</span></div>
       <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px">
-        <button class="btn" style="font-size:12px;padding:6px 14px" onclick="refreshData(true)">🔄 Refresh</button>
-        <span id="refresh-status" style="font-size:12px;color:var(--muted)"></span>
+        <button class="btn" style="font-size:14px;padding:6px 14px" onclick="refreshData(true)">Refresh</button>
+        <span id="refresh-status" style="font-size:14px;color:var(--muted)"></span>
       </div>
       <div id="open-list"></div>
     </div>
@@ -347,10 +348,10 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
       <div class="section-title">My jobs</div>
       <div class="section-sub">Sessions you have accepted, plus materials and payment status.</div>
       <div style="display:flex;align-items:center;gap:10px;margin:0 0 6px;flex-wrap:wrap">
-        <button class="btn" style="font-size:12px;padding:6px 14px" onclick="printJobsCalendar()">🖨️ Print calendar (PDF)</button>
-        <button class="btn" style="font-size:12px;padding:6px 14px" onclick="downloadJobsICS()">📅 Add to Apple/Google Calendar</button>
+        <button class="btn" style="font-size:14px;padding:6px 14px" onclick="printJobsCalendar()">Print calendar</button>
+        <button class="btn" style="font-size:14px;padding:6px 14px" onclick="downloadJobsICS()">Add to calendar</button>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5">Print calendar opens a printable page — use your browser's "Save as PDF" option. Add to calendar downloads a file: it opens directly in Apple Calendar, or import it into Google Calendar from Settings → Import &amp; export.</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">Print calendar opens a printable page — use your browser's "Save as PDF" option. Add to calendar downloads a file: it opens directly in Apple Calendar, or import it into Google Calendar from Settings → Import &amp; export.</div>
       <div id="myjobs-list"></div>
     </div>
     <div class="screen" id="tab-account">
@@ -360,12 +361,12 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
         <button class="btn" onclick="goToAccount('acct-myprofile')">Profile</button>
         <button class="btn" onclick="goToAccount('acct-contract')">Contract</button>
         <button class="btn" onclick="goToAccount('acct-w9')">W-9</button>
-        <button class="btn" onclick="goToAccount('acct-myinfo')">My info</button>
       </div>
       <div class="acct-section" id="acct-myprofile">
         <div class="section-title" style="font-size:19px;margin-bottom:2px">My profile</div>
-        <div class="section-sub" style="margin-bottom:14px">Add your Safe Sitter® training completion date and upload your documents.</div>
+        <div class="section-sub" style="margin-bottom:14px">Documents, contact details, and sweatshirt size.</div>
         <div id="myprofile-content"></div>
+        <div id="myinfo-content" style="margin-top:18px"></div>
       </div>
       <div class="acct-section" id="acct-contract">
         <div class="section-title" style="font-size:19px;margin-bottom:2px">Independent Contractor Agreement</div>
@@ -377,21 +378,12 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
         <div class="section-sub" style="margin-bottom:14px">Download, complete, sign, and email your W-9 to Lindsay. This is required before you can access job posts.</div>
         <div id="w9-content"></div>
       </div>
-      <div class="acct-section" id="acct-myinfo">
-        <div class="section-title" style="font-size:19px;margin-bottom:2px">My info</div>
-        <div class="section-sub" style="margin-bottom:14px">Your account details on file with Mindful Beginnings.</div>
-        <div id="myinfo-content"></div>
-      </div>
     </div>
     <div class="screen" id="tab-guide">
-      <div class="section-title">Instructor FAQs</div>
-      <div class="section-sub">Your reference for preparing and teaching a Mindful Beginnings course. Open the folder to read or download any of the materials.</div>
+      <div class="section-title">FAQs &amp; resources</div>
+      <div class="section-sub">Teaching notes and course folders. <span title="FAQs cover preparing, materials, pacing, equipment, virtual classes, and badges. The resource center holds presentations, manuals, and printables.">?</span></div>
       <div id="guide-content"></div>
-    </div>
-    <div class="screen" id="tab-materials">
-      <div class="section-title">Instructor Resources</div>
-      <div class="section-sub">Presentations, facilitator guides, handbooks, and certificates for every course you teach.</div>
-      <div id="materials-content"></div>
+      <div id="materials-content" style="margin-top:18px"></div>
     </div>
     <div class="screen" id="tab-partner">
       <div class="section-title">Partnerships</div>
@@ -918,7 +910,7 @@ function scheduleHTML(s){
   return`<div class="jc-section">
     <div class="jc-section-t">Class schedule — ${meetings.length} class${meetings.length!==1?'es':''}${pat?', '+pat.toLowerCase():''}${offNote}</div>
     <div class="chips">${chips}</div>
-    ${usual?`<div style="font-size:11px;color:var(--muted);margin-top:7px">Usual time ${escapeHtml(usual)}${times.length&&[...new Set(times)].length>1?' · a chip with its own time meets at a different hour':''}</div>`:''}
+    ${usual?`<div style="font-size:13px;color:var(--muted);margin-top:7px">Usual time ${escapeHtml(usual)}${times.length&&[...new Set(times)].length>1?' · a chip with its own time meets at a different hour':''}</div>`:''}
   </div>`;
 }
 // Where the class happens. Street address, host cell and WiFi are private: they are
@@ -928,19 +920,19 @@ function locationHTML(s,showPrivate,priv,mapLink){
   const lines=[];
   if(s.isVirtual){
     lines.push(`<div style="font-weight:500">Virtual class (Zoom)</div>`);
-    lines.push(`<div style="font-size:12px;color:var(--muted)">You can teach this one from home. ${showPrivate?'The Zoom link is emailed to you and to registered families before the first class.':'The Zoom link is sent to you once you accept.'}</div>`);
+    lines.push(`<div style="font-size:14px;color:var(--muted)">You can teach this one from home. ${showPrivate?'The Zoom link is emailed to you and to registered families before the first class.':'The Zoom link is sent to you once you accept.'}</div>`);
   }else{
     lines.push(`<div style="font-weight:500">${escapeHtml(s.location||'Location TBD')}</div>`);
     if(showPrivate&&priv&&priv.hostAddress)lines.push(`<div>${escapeHtml(priv.hostAddress)}${mapLink||''}</div>`);
     if(cityLine.trim())lines.push(`<div>${escapeHtml(cityLine.trim())}</div>`);
     if(showPrivate){
-      if(priv&&priv.hostPhone)lines.push(`<div style="margin-top:6px;font-size:12px"><span style="color:var(--muted)">Host cell:</span> ${escapeHtml(priv.hostPhone)}</div>`);
-      if(priv&&priv.contactDay)lines.push(`<div style="font-size:12px"><span style="color:var(--muted)">Day-of contact:</span> ${escapeHtml(priv.contactDay)}</div>`);
-      if(priv&&priv.wifiInfo)lines.push(`<div style="font-size:12px"><span style="color:var(--muted)">WiFi:</span> ${escapeHtml(priv.wifiInfo)}</div>`);
-      if(priv===undefined)lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">Loading site details…</div>`);
-      else if(!priv||(!priv.hostAddress&&!priv.hostPhone))lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">No street address or host contact on file yet — text Lindsay at 703-987-5979 if you need it.</div>`);
+      if(priv&&priv.hostPhone)lines.push(`<div style="margin-top:6px;font-size:14px"><span style="color:var(--muted)">Host cell:</span> ${escapeHtml(priv.hostPhone)}</div>`);
+      if(priv&&priv.contactDay)lines.push(`<div style="font-size:14px"><span style="color:var(--muted)">Day-of contact:</span> ${escapeHtml(priv.contactDay)}</div>`);
+      if(priv&&priv.wifiInfo)lines.push(`<div style="font-size:14px"><span style="color:var(--muted)">WiFi:</span> ${escapeHtml(priv.wifiInfo)}</div>`);
+      if(priv===undefined)lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">Loading site details…</div>`);
+      else if(!priv||(!priv.hostAddress&&!priv.hostPhone))lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">No street address or host contact on file yet — text Lindsay at 703-987-5979 if you need it.</div>`);
     }else{
-      lines.push(`<div style="font-size:12px;color:var(--muted);margin-top:6px">📍 The exact street address, host cell and WiFi are shared as soon as you accept this job.${mapLink||''}</div>`);
+      lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">📍 The exact street address, host cell and WiFi are shared as soon as you accept this job.${mapLink||''}</div>`);
     }
   }
   return`<div class="jc-section"><div class="jc-section-t">${s.isVirtual?'Format':'Where'}</div><div style="font-size:13px;line-height:1.7">${lines.join('')}</div></div>`;
@@ -973,7 +965,7 @@ function goodToKnowHTML(s){
   if(!bits.length&&!facts.length)return'';
   return`<div class="jc-section"><div class="jc-section-t">Good to know</div>
     ${bits.length?`<div style="font-size:13px;line-height:1.6;margin-bottom:${facts.length?'8px':'0'}">${bits.join('<br>')}</div>`:''}
-    ${facts.length?`<ul style="margin:0;padding-left:18px;font-size:12px;color:var(--muted);line-height:1.7">${facts.map(f=>'<li>'+f+'</li>').join('')}</ul>`:''}
+    ${facts.length?`<ul style="margin:0;padding-left:18px;font-size:14px;color:var(--muted);line-height:1.7">${facts.map(f=>'<li>'+f+'</li>').join('')}</ul>`:''}
   </div>`;
 }
 
@@ -1373,7 +1365,7 @@ async function loadData(){
 // A visible error card for the job boards. Instructors are asked to screenshot it,
 // which turns "everything disappeared!!" into an exact error message for debugging.
 function loadErrorCard(detail){
-  return`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-msg">We could not load the job board</div><div class="empty-sub">This is a connection or account issue on our side — your jobs are NOT gone. Please tap Refresh above to try again, and if this message stays, take a screenshot of this screen and text it to Lindsay.<br><br><span style="font-family:monospace;font-size:11px;color:var(--muted)">${escapeHtml(detail||'unknown error')} · ${PORTAL_VERSION}</span></div></div>`;
+  return`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-msg">We could not load the job board</div><div class="empty-sub">This is a connection or account issue on our side — your jobs are NOT gone. Please tap Refresh above to try again, and if this message stays, take a screenshot of this screen and text it to Lindsay.<br><br><span style="font-family:monospace;font-size:13px;color:var(--muted)">${escapeHtml(detail||'unknown error')} · ${PORTAL_VERSION}</span></div></div>`;
 }
 
 // Shown at the top of both boards when the portal could not read the columns that
@@ -1386,7 +1378,7 @@ function flagWarningCard(){
   const bits=[];
   if(!CANCEL_STATE_KNOWN)bits.push('a class that has been cancelled may still appear here as though it is going ahead');
   if(!RN_RESTRICTION_KNOWN)bits.push('some restricted jobs are being held back until this is fixed');
-  return`<div class="alert warn" style="margin-bottom:14px">⚠️ &nbsp;<span><strong>This board is not fully up to date.</strong> We cannot read some job settings right now, so ${bits.join(', and ')}. Please check with Lindsay before acting on anything here, and text her a screenshot of this message.<br><span style="font-family:monospace;font-size:11px;color:var(--muted)">${PORTAL_VERSION} · sessions flag columns unreadable</span></span></div>`;
+  return`<div class="alert warn" style="margin-bottom:14px">⚠️ &nbsp;<span><strong>This board is not fully up to date.</strong> We cannot read some job settings right now, so ${bits.join(', and ')}. Please check with Lindsay before acting on anything here, and text her a screenshot of this message.<br><span style="font-family:monospace;font-size:13px;color:var(--muted)">${PORTAL_VERSION} · sessions flag columns unreadable</span></span></div>`;
 }
 
 // Re-fetch job data from the server, then re-render both boards.
@@ -1473,7 +1465,7 @@ function renderPartner(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px">
         <div>
           <div style="font-weight:500;font-size:15px">Statement</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:3px">${escapeHtml(paidNote)}</div>
+          <div style="font-size:14px;color:var(--muted);margin-top:3px">${escapeHtml(paidNote)}</div>
         </div>
         ${months.length>1?`<select onchange="selectPartnerMonth(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:13px;background:white;color:var(--text);outline:none">
           ${months.map(m=>`<option value="${m.period}" ${m.period===partnerMonth?'selected':''}>${pMonthLabel(m.period)}${m.payout?' — paid':''}</option>`).join('')}
@@ -1486,7 +1478,7 @@ function renderPartner(){
     ${partnerProjectedHtml(d)}
     ${partnerRulesHtml(d)}
 
-    <div style="font-size:11px;color:var(--muted);text-align:center;margin:18px 0 6px;line-height:1.6">
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin:18px 0 6px;line-height:1.6">
       Figures published ${d.publishedAt?new Date(d.publishedAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}):'—'}.
       Questions about any line on this page go to Lindsay at 703-987-5979.
     </div>`;
@@ -1520,19 +1512,19 @@ function partnerStatementBodyHtml(cur){
       ${cur.rows.map(r=>`<div class="sched-row" style="align-items:flex-start;flex-wrap:wrap">
         <div class="sched-d">
           <div style="font-weight:500;font-size:13px">${escapeHtml(r.course||'Course')}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(r.client||'—')} · ${pShortDate(r.date)}${r.familyCount?' · '+r.familyCount+' registration'+(r.familyCount===1?'':'s'):''}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">${escapeHtml(r.reason||'')}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${escapeHtml(r.client||'—')} · ${pShortDate(r.date)}${r.familyCount?' · '+r.familyCount+' registration'+(r.familyCount===1?'':'s'):''}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px">${escapeHtml(r.reason||'')}</div>
         </div>
         <div style="text-align:right;min-width:118px">
           <div style="font-weight:500;font-size:13px">${fmt(r.commission)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${pRate(r.rate)} of ${fmt(r.net!=null?r.net:r.collected)} profit</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${fmt(r.collected)} in, ${fmt(r.costs||0)} costs</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${pRate(r.rate)} of ${fmt(r.net!=null?r.net:r.collected)} profit</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${fmt(r.collected)} in, ${fmt(r.costs||0)} costs</div>
         </div>
       </div>`).join('')}
       ${(cur.bonuses||[]).map(b=>`<div class="sched-row" style="align-items:flex-start">
         <div class="sched-d">
           <div style="font-weight:500;font-size:13px">New organization bonus</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(b.org||'')} · first payment ${pShortDate(b.date)}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${escapeHtml(b.org||'')} · first payment ${pShortDate(b.date)}</div>
         </div>
         <div style="text-align:right;min-width:104px"><div style="font-weight:500;font-size:13px">${fmt(b.amount)}</div></div>
       </div>`).join('')}
@@ -1548,18 +1540,18 @@ function partnerPendingHtml(d){
   if(!list.length)return '';
   return `<div class="info-card">
     <div style="font-weight:500;font-size:15px;margin-bottom:4px">Not payable yet</div>
-    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">Bookings you originated that have not met both conditions yet. The amounts below are estimates and can change — they are not owed to you until the month they clear.</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:14px">Bookings you originated that have not met both conditions yet. The amounts below are estimates and can change — they are not owed to you until the month they clear.</div>
     <div class="sched">
       ${list.map(x=>`<div class="sched-row" style="align-items:flex-start;background:var(--warn-bg)">
         <div class="sched-d">
           <div style="font-weight:500;font-size:13px">${escapeHtml(x.course||'Course')}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(x.client||'—')} · ${pShortDate(x.date)}</div>
-          <div style="font-size:11px;color:var(--warn);margin-top:3px">${escapeHtml(x.reason||'')}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${escapeHtml(x.client||'—')} · ${pShortDate(x.date)}</div>
+          <div style="font-size:13px;color:var(--warn);margin-top:3px">${escapeHtml(x.reason||'')}</div>
         </div>
         <div style="text-align:right;min-width:104px">
           <div style="font-weight:500;font-size:13px;color:var(--warn)">${fmt(x.estCommission||0)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">est. ${pRate(x.estRate)} of ${fmt(x.net!=null?x.net:x.amount)} profit</div>
-          ${x.projectedMonth?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${pMonthLabel(x.projectedMonth)}</div>`:''}
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">est. ${pRate(x.estRate)} of ${fmt(x.net!=null?x.net:x.amount)} profit</div>
+          ${x.projectedMonth?`<div style="font-size:13px;color:var(--muted);margin-top:2px">${pMonthLabel(x.projectedMonth)}</div>`:''}
         </div>
       </div>`).join('')}
     </div>
@@ -1571,12 +1563,12 @@ function partnerProjectedHtml(d){
   if(!list.length)return '';
   return `<div class="info-card">
     <div style="font-weight:500;font-size:15px;margin-bottom:4px">Expected payouts ahead</div>
-    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">Where the pending bookings above are expected to land, month by month. Estimates only.</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:14px">Where the pending bookings above are expected to land, month by month. Estimates only.</div>
     <div class="sched">
       ${list.map(r=>`<div class="sched-row">
         <div class="sched-d">
           <div style="font-weight:500;font-size:13px">${pMonthLabel(r.period)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${r.count} booking${r.count===1?'':'s'} · ${fmt(r.revenue)} revenue</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${r.count} booking${r.count===1?'':'s'} · ${fmt(r.revenue)} revenue</div>
         </div>
         <div style="text-align:right;min-width:90px;font-weight:500;font-size:13px">${fmt(r.potential)}</div>
       </div>`).join('')}
@@ -1588,7 +1580,7 @@ function partnerRulesHtml(d){
   const rate=Math.round((d.flatRate!=null?d.flatRate:0.40)*100);
   return `<div class="info-card">
     <div style="font-weight:500;font-size:15px;margin-bottom:10px">How this is calculated</div>
-    <ul style="margin:0;padding-left:18px;font-size:12px;color:var(--muted);line-height:1.9">
+    <ul style="margin:0;padding-left:18px;font-size:14px;color:var(--muted);line-height:1.9">
       <li>You earn ${rate}% of the profit on every booking you originate, new or repeat, with no tiers, no monthly minimum and no cap. Mindful Beginnings keeps the other ${100-rate}%. The commission is the whole of the compensation.</li>
       <li>Profit means what was collected for the booking, less the direct cost of delivering it. It is not a share of the gross fee. Collected revenue is already net of refunds, discounts and payment-processing fees.</li>
       <li>Direct costs are instructor pay, participant materials, and costs entered on that job. Company overhead is not deducted.</li>
@@ -1618,15 +1610,19 @@ function doLogout(){
 
 // ─── TABS ────────────────────────────────────────────────────
 function showTab(name,el){
+  if(name==='materials')name='guide';
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
+  else{
+    const tab=document.querySelector('.tab[onclick*="\''+name+'\'"]');
+    if(tab)tab.classList.add('active');
+  }
   if(name==='open'){renderOpen();refreshData(false);}
   if(name==='myjobs'){renderMyJobs();refreshData(false);}
   if(name==='home')renderHome();
-  if(name==='guide')renderGuide();
-  if(name==='materials')renderMaterials();
+  if(name==='guide'){renderGuide();renderMaterials();}
   if(name==='account')renderAccount();
   if(name==='partner')renderPartner();
 }
@@ -1674,15 +1670,14 @@ function renderHome(){
     obHtml=`
     <div class="info-card" style="margin-bottom:14px">
       <div style="font-size:13px;font-weight:500;margin-bottom:2px">Onboarding: ${obDone} of ${obSteps.length} complete</div>
-      <div style="font-size:12px;color:var(--muted)">Finish these steps to unlock the job board.</div>
+      <div style="font-size:14px;color:var(--muted)">Finish these steps to unlock the job board.</div>
       <div class="progress"><div style="width:${Math.round(obDone/obSteps.length*100)}%"></div></div>
-      <button class="btn" style="font-size:12px;padding:6px 14px" onclick="goToAccount('acct-myprofile')">Continue onboarding →</button>
+      <button class="btn" style="font-size:14px;padding:6px 14px" onclick="goToAccount('acct-myprofile')">Continue onboarding →</button>
     </div>`;
   }
 
   el.innerHTML=`
     <div class="home-hello">Hi ${escapeHtml(first)}.</div>
-    <div style="margin:-4px 0 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${instructorLevelBadge(me.level)}<span style="font-size:12px;color:var(--muted)">Your instructor level</span></div>
     <div class="home-sub">Here's what's happening with your classes.</div>
     <div class="home-grid">
       <div class="home-card" onclick="showTab('myjobs',document.querySelector('.tab[onclick*=\\'myjobs\\']'))">
@@ -1830,16 +1825,16 @@ function renderOnboardingGate(el){
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--border)">
       <span style="font-size:16px">${s.done?'✅':'⬜'}</span>
       <span style="flex:1;font-size:13px;${s.done?'text-decoration:line-through;color:var(--muted)':''}">${s.label}</span>
-      ${!s.done?`<button class="btn" style="font-size:12px;padding:5px 12px" onclick="goToAccount('${s.sec}')">Go →</button>`:''}
+      ${!s.done?`<button class="btn" style="font-size:14px;padding:5px 12px" onclick="goToAccount('${s.sec}')">Go →</button>`:''}
     </div>`).join('');
   el.innerHTML=`
     <div class="alert warn" style="margin-bottom:20px">
       🔒 &nbsp;<strong>Complete your onboarding to access job posts.</strong>
     </div>
     <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">Onboarding checklist</div>
+      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">Onboarding checklist</div>
       ${list}
-      <div style="font-size:12px;color:var(--muted);margin-top:14px">Once all steps are complete, job posts will appear here automatically.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:14px">Once all steps are complete, job posts will appear here automatically.</div>
     </div>`;
   return true;
 }
@@ -1864,7 +1859,7 @@ function renderOpen(){
       el.innerHTML=loadErrorCard(loadErrors.sessions||loadErrors.jobs);
       return;
     }
-    el.innerHTML=`<div class="empty"><div class="empty-icon">📅</div><div class="empty-msg">No open jobs right now</div><div class="empty-sub">New posts appear here automatically — or tap Refresh above to check again.${allSessions.length===0?`<br><br><span style="font-family:monospace;font-size:11px;color:var(--muted)">Diagnostic: the database returned 0 sessions (${PORTAL_VERSION}). If you know classes exist, screenshot this and text it to Lindsay.</span>`:''}</div></div>`;
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📅</div><div class="empty-msg">No open jobs right now</div><div class="empty-sub">New posts appear here automatically — or tap Refresh above to check again.${allSessions.length===0?`<br><br><span style="font-family:monospace;font-size:13px;color:var(--muted)">Diagnostic: the database returned 0 sessions (${PORTAL_VERSION}). If you know classes exist, screenshot this and text it to Lindsay.</span>`:''}</div></div>`;
     return;
   }
   // Built once per render: every meeting of every job this instructor already holds,
@@ -1892,7 +1887,7 @@ function renderOpen(){
     }
     const meetings=sessMeetings(s);
     const mapQ=encodeURIComponent([s.location,s.city,s.state,s.zip].filter(Boolean).join(', '));
-    const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:12px;color:var(--gold-d)">View on map ↗</a>`:'';
+    const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">View on map ↗</a>`:'';
     return`<div class="job-card">
       <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>${pill}</div>
       ${heroStripHTML(s,fee)}
@@ -2046,7 +2041,7 @@ function renderMyJobs(){
       ?`<div class="alert warn">⏳ &nbsp;Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''} will be sent to your Zelle after the event.</div>`
       :`<div class="alert warn">⏳ &nbsp;Waiting for host evaluation to be submitted. Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''} will process once received.</div>`;}
     const earningsHtml=bonus>0
-      ?`<div class="jc-detail-val">${fmt(fee)}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Base ${fmt(baseFee)} + Bonus ${fmt(bonus)}</div>`
+      ?`<div class="jc-detail-val">${fmt(fee)}</div><div style="font-size:13px;color:var(--muted);margin-top:2px">Base ${fmt(baseFee)} + Bonus ${fmt(bonus)}</div>`
       :`<div class="jc-detail-val">${fmt(fee)}</div>`;
     // Pull the private site details for jobs still to come (address, host cell, WiFi).
     if(upcoming&&!s.isVirtual)ensurePrivate(s.id);
@@ -2058,7 +2053,7 @@ function renderMyJobs(){
     const dblBooked=clashes.length?`<div class="alert warn" style="margin-bottom:14px">⚠️ &nbsp;<span><strong>You are double-booked.</strong> ${clashes.slice(0,2).map(c=>escapeHtml(c.course)+' on '+new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' and ')} clashes with this job. Please hand one back or call Lindsay.</span></div>`:'';
     const priv0=privCache[s.id];
     const mapQ=encodeURIComponent([(priv0&&priv0.hostAddress)||'',s.location,s.city,s.state,s.zip].filter(Boolean).join(', '));
-    const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:12px;color:var(--gold-d)">Directions ↗</a>`:'';
+    const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">Directions ↗</a>`:'';
     return`<div class="job-card">
       <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>
       <span class="pill ${cx?'pill-taken':(upcoming?'pill-accepted':'pill-taken')}">${cx?'Cancelled':(upcoming?'Upcoming':'Completed')}</span></div>
@@ -2070,9 +2065,9 @@ function renderMyJobs(){
       </div>`}
       ${s.isCustomJob?'':`<div class="jc-details">
         <div class="jc-detail"><div class="jc-detail-label">${isAdultCourse(s.course)?'Participants registered':'Students registered'}</div><div class="jc-detail-val">${filledSeats(s)}</div></div>
-        <div class="jc-detail"><div class="jc-detail-label">Materials</div><div class="jc-detail-val" style="font-size:12px">${matHtml}</div></div>
+        <div class="jc-detail"><div class="jc-detail-label">Materials</div><div class="jc-detail-val" style="font-size:14px">${matHtml}</div></div>
       </div>`}
-      ${bonus>0?`<div style="font-size:11px;color:var(--muted);margin:-6px 0 12px">Earnings include a referral bonus of ${fmt(bonus)} on top of the ${fmt(baseFee)} base fee.</div>`:''}
+      ${bonus>0?`<div style="font-size:13px;color:var(--muted);margin:-6px 0 12px">Earnings include a referral bonus of ${fmt(bonus)} on top of the ${fmt(baseFee)} base fee.</div>`:''}
       ${dblBooked}
       ${notesHTML(s)}
       ${scheduleHTML(s)}
@@ -2080,9 +2075,9 @@ function renderMyJobs(){
       ${goodToKnowHTML(s)}
       <div style="height:14px"></div>
       ${payHtml}
-      ${jdi.notes?`<div style="font-size:12px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:var(--r-sm)">📝 ${escapeHtml(jdi.notes)}</div>`:''}
+      ${jdi.notes?`<div style="font-size:14px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:var(--r-sm)">📝 ${escapeHtml(jdi.notes)}</div>`:''}
       <div class="jc-actions" style="margin-top:12px">
-        ${(s.isCustomJob||cx)?'':`<button class="btn" onclick="printRoster('${s.id}')">🖨️ Print roster</button>`}
+        ${(s.isCustomJob||cx)?'':`<button class="btn" onclick="printRoster('${s.id}')">Print roster</button>`}
         ${(upcoming&&!cx)?`<button class="btn" onclick="cancelJob('${s.id}')">Cancel my acceptance</button>`:''}
       </div>
     </div>`;
@@ -2101,18 +2096,11 @@ async function renderMyProfile(){
   ]);
 
   el.innerHTML=`
-    <div class="info-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <div>
-        <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Instructor level</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.5">Lindsay sets this. You can see it here, and it cannot be changed from this portal.</div>
-      </div>
-      ${instructorLevelBadge(me.level)}
-    </div>
     ${safeSitterCardHTML()}
 
     <!-- Documents section -->
     <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Documents</div>
+      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Documents</div>
 
       <div style="margin-bottom:18px">
         <div style="font-size:13px;font-weight:500;margin-bottom:6px">🩺 CPR certification</div>
@@ -2132,7 +2120,7 @@ async function renderMyProfile(){
 
       <div>
         <div style="font-size:13px;font-weight:500;margin-bottom:6px">📸 Headshot photo for the website</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">
+        <div style="font-size:14px;color:var(--muted);margin-bottom:10px;line-height:1.5">
           Upload a professional headshot here — it's used on your instructor profile on the Mindful Beginnings website.
           Please use a clear, well-lit photo of your face and shoulders against a simple background.
           Don't have one? We recommend <a href="https://www.dreamwave.ai/" target="_blank" rel="noopener noreferrer" style="color:var(--gold-d);font-weight:500">dreamwave.ai</a>,
@@ -2151,7 +2139,7 @@ async function renderMyProfile(){
             ?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                 <span class="pill pill-accepted">✓ Marked complete</span>
                 <button class="btn sm" onclick="triggerUpload('headshot')">Upload your photo</button>
-                <span style="font-size:12px;color:var(--muted)">We don't have the file yet — please upload it when you can.</span>
+                <span style="font-size:14px;color:var(--muted)">We don't have the file yet — please upload it when you can.</span>
               </div>`
             :`<button class="btn primary" onclick="triggerUpload('headshot')">Upload headshot</button>`}
         <input type="file" id="upload-headshot" style="display:none" accept=".jpg,.jpeg,.png,.webp" onchange="handleUpload(this,'headshot')">
@@ -2160,7 +2148,7 @@ async function renderMyProfile(){
 
     <!-- Income / 1099 section -->
     <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Income summary — 1099 helper</div>
+      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Income summary — 1099 helper</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Download a summary of all your sessions and income for the year to help with tax reporting.</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <select id="income-year" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none">
@@ -2191,15 +2179,15 @@ function safeSitterCardHTML(){
       :`<div class="alert warn" style="margin-bottom:12px">⚠️ &nbsp;<strong>We need your Safe Sitter® training completion date.</strong> Add it below to get full access to the job board.</div>`;
   return`
     <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">🧒 Safe Sitter® instructor training</div>
+      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">🧒 Safe Sitter® instructor training</div>
       ${banner}
       <div style="font-size:13px;color:var(--text);margin-bottom:12px;line-height:1.6">Enter the date you completed your Safe Sitter® instructor training. As soon as it is saved, Safe Sitter® and Grandparents job posts appear on your Open jobs board.</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <input type="date" id="ss-training-date" max="${today}" value="${escapeHtml(dateOnFile)}" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
         <button class="btn primary" onclick="submitSafeSitterDate()">${dateOnFile?'Update date':'Save date'}</button>
       </div>
-      ${dateOnFile?'':`<div style="margin-top:12px"><button class="btn" style="font-size:12px;padding:6px 12px" onclick="declineSafeSitterTraining()">I have not taken this training yet</button></div>`}
-      <div style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6">Not sure of the exact day? Use the date printed on your Safe Sitter® instructor certificate. If anything looks wrong, contact Lindsay.</div>
+      ${dateOnFile?'':`<div style="margin-top:12px"><button class="btn" style="font-size:14px;padding:6px 12px" onclick="declineSafeSitterTraining()">I have not taken this training yet</button></div>`}
+      <div style="font-size:14px;color:var(--muted);margin-top:12px;line-height:1.6">Not sure of the exact day? Use the date printed on your Safe Sitter® instructor certificate. If anything looks wrong, contact Lindsay.</div>
     </div>`;
 }
 
@@ -2348,13 +2336,13 @@ function downloadIncomeSummary(){
     .sub{color:#6b7a99;font-size:13px;margin-bottom:24px}
     .kpi{display:flex;gap:16px;margin-bottom:24px}
     .kpi-box{background:#f0f6fc;border-radius:8px;padding:14px 18px;flex:1}
-    .kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#6b7a99;margin-bottom:4px}
+    .kpi-label{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:#6b7a99;margin-bottom:4px}
     .kpi-val{font-size:22px;font-weight:bold}
     table{width:100%;border-collapse:collapse;font-size:13px}
-    th{text-align:left;padding:8px;border-bottom:2px solid #1E3161;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99}
+    th{text-align:left;padding:8px;border-bottom:2px solid #1E3161;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6b7a99}
     td{padding:8px;border-bottom:.5px solid #eee}
     .total{font-weight:bold;border-top:2px solid #1E3161}
-    .footer{margin-top:24px;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:12px}
+    .footer{margin-top:24px;font-size:13px;color:#aaa;border-top:1px solid #eee;padding-top:12px}
     .no-print{background:#1E3161;padding:12px 24px;margin:-32px -24px 32px;display:flex;gap:10px}
     @media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style>
@@ -2423,10 +2411,10 @@ async function printRoster(sessId){
   const countPhrase=people+' '+(adult?(people===1?'participant':'participants'):(people===1?'student':'students'));
   const rows=regs.length?regs.map((r,i)=>`
     <tr>
-      <td style="width:28px;color:#aaa;font-size:11px">${i+1}</td>
+      <td style="width:28px;color:#aaa;font-size:13px">${i+1}</td>
       <td style="font-weight:500">${rosterNameCell(r)||'—'}</td>
       ${adult?'':`<td>${escapeHtml(r.grade)||'—'}</td><td>${escapeHtml(r.parent_name)||'—'}</td>`}
-      <td style="font-size:12px">${escapeHtml(r.contact)||'—'}</td>
+      <td style="font-size:14px">${escapeHtml(r.contact)||'—'}</td>
     </tr>`)
   .join(''):'<tr><td colspan="'+(adult?3:5)+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
 
@@ -2445,13 +2433,13 @@ async function printRoster(sessId){
     .sub{font-size:13px;color:#6b7a99;margin-bottom:12px}
     .session-grid{border-top:2px solid #1E3161;border-bottom:1px solid #dde4ee;padding:10px 0;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px}
     .info-box{background:#f0f6fc;border:1px solid #e6d5a8;border-radius:8px;padding:14px 18px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px}
-    .info-box-label{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#6b7a99;font-weight:600;grid-column:1/-1;margin-bottom:2px}
+    .info-box-label{font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:#6b7a99;font-weight:600;grid-column:1/-1;margin-bottom:2px}
     .lindsay-row{grid-column:1/-1;border-top:1px solid #b8d8ee;padding-top:10px;margin-top:4px}
-    table{width:100%;border-collapse:collapse;font-size:12px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
     th{background:#1E3161;color:white;padding:8px 6px;text-align:left}
     td{padding:8px 6px;border-bottom:.5px solid #eee;vertical-align:middle}
     tr:nth-child(even) td{background:#f9fafb}
-    .footer{margin-top:20px;padding-top:12px;border-top:1px solid #dde4ee;font-size:11px;color:#aaa;display:flex;justify-content:space-between}
+    .footer{margin-top:20px;padding-top:12px;border-top:1px solid #dde4ee;font-size:13px;color:#aaa;display:flex;justify-content:space-between}
     .no-print{background:#1E3161;padding:12px 24px;display:flex;align-items:center;gap:12px}
     @media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style>
@@ -2459,7 +2447,7 @@ async function printRoster(sessId){
   <div class="no-print">
     <button onclick="window.print()" style="background:#1E3161;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:14px;cursor:pointer;font-weight:500">🖨️ Print roster</button>
     <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer">Close</button>
-    <span style="color:rgba(255,255,255,.5);font-size:12px">${countPhrase} · ${escapeHtml(s.course)}</span>
+    <span style="color:rgba(255,255,255,.5);font-size:14px">${countPhrase} · ${escapeHtml(s.course)}</span>
   </div>
   <div class="wrap">
     <h1>${escapeHtml(s.course)}</h1>
@@ -2470,11 +2458,11 @@ async function printRoster(sessId){
       <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(s.location||'TBD')}${s.city?', '+escapeHtml(s.city):''}</strong></div>
       <div><span style="color:#6b7a99">Session code:</span> <strong>${escapeHtml(s.code)}</strong></div>
       <div><span style="color:#6b7a99">${adult?'Participants:':'Students:'}</span> <strong>${people}</strong></div>
-      ${_mtgs.length>1?`<div style="grid-column:1/-1;border-top:1px solid #dde4ee;padding-top:8px;margin-top:4px"><span style="color:#6b7a99">Class days:</span> <strong>${_mtgs.map(m=>new Date(m.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' · ')}</strong>${sessClosures(s).length?`<div style="color:#b86a00;font-size:12px;margin-top:4px">No class: ${sessClosures(s).map(c=>new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+escapeHtml(c.reason)+')':'')).join(' · ')}</div>`:''}</div>`:''}
+      ${_mtgs.length>1?`<div style="grid-column:1/-1;border-top:1px solid #dde4ee;padding-top:8px;margin-top:4px"><span style="color:#6b7a99">Class days:</span> <strong>${_mtgs.map(m=>new Date(m.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' · ')}</strong>${sessClosures(s).length?`<div style="color:#b86a00;font-size:14px;margin-top:4px">No class: ${sessClosures(s).map(c=>new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+escapeHtml(c.reason)+')':'')).join(' · ')}</div>`:''}</div>`:''}
     </div>
     <div class="info-box">
       <div class="info-box-label">Session Info</div>
-      ${infoRows||'<div style="color:#aaa;font-size:12px;grid-column:1/-1">No host or site details on file — contact Lindsay if needed.</div>'}
+      ${infoRows||'<div style="color:#aaa;font-size:14px;grid-column:1/-1">No host or site details on file — contact Lindsay if needed.</div>'}
       <div class="lindsay-row">
         <span style="color:#6b7a99">Questions? Contact Lindsay Karr:</span> <strong>703-987-5979</strong>
       </div>
@@ -2539,10 +2527,10 @@ function printJobsCalendar(){
     h1{font-size:22px;margin-bottom:2px}
     .sub{color:#6b7a99;font-size:13px;margin-bottom:20px}
     table{width:100%;border-collapse:collapse;font-size:13px}
-    th{background:#1E3161;color:white;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+    th{background:#1E3161;color:white;text-align:left;padding:8px 10px;font-size:13px;text-transform:uppercase;letter-spacing:.6px}
     td{padding:8px 10px;border-bottom:.5px solid #eee;vertical-align:top}
     tr:nth-child(even) td{background:#f9fafb}
-    .footer{margin-top:20px;padding-top:12px;border-top:1px solid #dde4ee;font-size:11px;color:#aaa}
+    .footer{margin-top:20px;padding-top:12px;border-top:1px solid #dde4ee;font-size:13px;color:#aaa}
     .no-print{background:#1E3161;padding:12px 24px;margin:-24px -24px 24px;display:flex;align-items:center;gap:12px}
     @media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style>
@@ -2689,11 +2677,11 @@ function renderContract(){
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">By typing your full legal name and clicking Sign, you confirm that you have read and agree to all terms of this Independent Contractor Agreement.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
         <div class="fg">
-          <label style="font-size:12px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px">Full legal name *</label>
+          <label style="font-size:14px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px">Full legal name *</label>
           <input type="text" id="contract-name" placeholder="Type your full name" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
         </div>
         <div class="fg">
-          <label style="font-size:12px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px">Date *</label>
+          <label style="font-size:14px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px">Date *</label>
           <input type="date" id="contract-date" value="${fmtYMD(new Date())}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
         </div>
       </div>
@@ -2775,7 +2763,7 @@ function proprietaryRev2026ContractHTML(sigName, sigDate){
   const rate=spellDollars(me?me.hourlyRate:50);
   return `
     <p style="margin-bottom:4px"><strong>INDEPENDENT CONTRACTOR AGREEMENT</strong><br><span style="font-weight:400">Mindful Beginnings LLC — Instructor, Proprietary Curricula</span></p>
-    <p style="margin-bottom:12px;color:var(--muted);font-size:11px">Version: August 2026</p>
+    <p style="margin-bottom:12px;color:var(--muted);font-size:13px">Version: August 2026</p>
     <p style="margin-bottom:10px">This Independent Contractor Agreement (the "Agreement") is entered into as of ${sigDate} (the "Effective Date"), by and between Mindful Beginnings LLC (the "Company") and ${sigName} (the "Contractor").</p>
 
     <p style="margin-bottom:6px"><strong>1. SERVICES PROVIDED</strong></p>
@@ -2836,12 +2824,12 @@ function proprietaryRev2026ContractHTML(sigName, sigDate){
 
     <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
         <div>By: Lindsay Karr</div>
         <div>Title: Owner &amp; Founder</div>
       </div>
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
         <div>Signature: <strong>${sigName}</strong></div>
         <div>Date: <strong>${sigDate}</strong></div>
         <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
@@ -2854,7 +2842,7 @@ function mbCoursesRev2026ContractHTML(sigName, sigDate){
   const rate=spellDollars(me?me.hourlyRate:50);
   return `
     <p style="margin-bottom:4px"><strong>INDEPENDENT CONTRACTOR AGREEMENT</strong><br><span style="font-weight:400">Mindful Beginnings LLC — Instructor, Mindful Beginnings Courses</span></p>
-    <p style="margin-bottom:12px;color:var(--muted);font-size:11px">Version: August 2026</p>
+    <p style="margin-bottom:12px;color:var(--muted);font-size:13px">Version: August 2026</p>
     <p style="margin-bottom:10px">This Independent Contractor Agreement (the "Agreement") is entered into as of ${sigDate} (the "Effective Date"), by and between Mindful Beginnings LLC (the "Company") and ${sigName} (the "Contractor").</p>
 
     <p style="margin-bottom:6px"><strong>1. SERVICES PROVIDED</strong></p>
@@ -2917,12 +2905,12 @@ function mbCoursesRev2026ContractHTML(sigName, sigDate){
 
     <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
         <div>By: Lindsay Karr</div>
         <div>Title: Owner &amp; Founder</div>
       </div>
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
         <div>Signature: <strong>${sigName}</strong></div>
         <div>Date: <strong>${sigDate}</strong></div>
         <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
@@ -2935,7 +2923,7 @@ function standardRev2026ContractHTML(sigName, sigDate){
   const rate=spellDollars(me?me.hourlyRate:50);
   return `
     <p style="margin-bottom:4px"><strong>INDEPENDENT CONTRACTOR AGREEMENT</strong><br><span style="font-weight:400">Mindful Beginnings LLC — Safe Sitter® Instructor</span></p>
-    <p style="margin-bottom:12px;color:var(--muted);font-size:11px">Version: August 2026</p>
+    <p style="margin-bottom:12px;color:var(--muted);font-size:13px">Version: August 2026</p>
     <p style="margin-bottom:10px">This Independent Contractor Agreement (the "Agreement") is entered into as of ${sigDate} (the "Effective Date"), by and between Mindful Beginnings LLC (the "Company") and ${sigName} (the "Contractor").</p>
 
     <p style="margin-bottom:6px"><strong>1. SERVICES PROVIDED</strong></p>
@@ -2999,12 +2987,12 @@ function standardRev2026ContractHTML(sigName, sigDate){
 
     <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
         <div>By: Lindsay Karr</div>
         <div>Title: Owner &amp; Founder</div>
       </div>
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
         <div>Signature: <strong>${sigName}</strong></div>
         <div>Date: <strong>${sigDate}</strong></div>
         <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
@@ -3061,12 +3049,12 @@ function mbCoursesContractHTML(sigName, sigDate){
 
     <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
         <div>By: Lindsay Karr</div>
         <div>Title: Owner / Founder</div>
       </div>
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
         <div>Signature: <strong>${sigName}</strong></div>
         <div>Date: <strong>${sigDate}</strong></div>
         <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
@@ -3126,12 +3114,12 @@ function mbCourses2026ContractHTML(sigName, sigDate){
 
     <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
         <div>By: Lindsay Karr</div>
         <div>Title: Owner &amp; Founder</div>
       </div>
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
         <div>Signature: <strong>${sigName}</strong></div>
         <div>Date: <strong>${sigDate}</strong></div>
         <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
@@ -3182,12 +3170,12 @@ function curriculumContractHTML(sigName, sigDate){
 
     <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
         <div>By: Lindsay Karr</div>
         <div>Title: Owner / Founder</div>
       </div>
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
         <div>Signature: <strong>${sigName}</strong></div>
         <div>Date: <strong>${sigDate}</strong></div>
         <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
@@ -3239,12 +3227,12 @@ function proprietaryContractHTML(sigName, sigDate){
 
     <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
         <div>By: Lindsay Karr</div>
         <div>Title: Owner / Founder</div>
       </div>
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
         <div>Signature: <strong>${sigName}</strong></div>
         <div>Date: <strong>${sigDate}</strong></div>
         <div style="margin-top:4px">Zelle Mobile/Email: ${sigName==='[Your name]'?'_______________':escapeHtml(me&&me.zelle?me.zelle:'')}</div>
@@ -3298,12 +3286,12 @@ function standardContractHTML(sigName, sigDate){
 
     <div style="border-top:1px solid var(--border);padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px">
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For Mindful Beginnings LLC</div>
         <div>By: Lindsay Karr</div>
         <div>Title: Owner / Founder</div>
       </div>
       <div>
-        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
+        <div style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">For the Contractor</div>
         <div>Signature: <strong>${sigName}</strong></div>
         <div>Date: <strong>${sigDate}</strong></div>
         <div style="margin-top:4px">Zelle: ${sigName==='[Your name]'?'_______________':''}</div>
@@ -3350,12 +3338,12 @@ function renderGuide(){
   const el=document.getElementById('guide-content');
   el.innerHTML=`
     <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Mindful Beginnings instructor FAQs</div>
+      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Mindful Beginnings instructor FAQs</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:18px">Covers preparing before you teach, picking up materials, course delivery and pacing, CPR manikins, AV equipment and WiFi, teaching a virtual class, and ID badges. Please review before your first session.</div>
       <div style="display:flex;flex-wrap:wrap;gap:10px">
-        <a href="${GUIDE_VIEW_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">📖 Open instructor FAQs</a>
+        <a href="${GUIDE_VIEW_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">Open instructor FAQs</a>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px">Opens in a new tab. The folder always shows the latest materials — open any file to read it online or download a copy.</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:10px">Opens in a new tab. The folder always shows the latest materials — open any file to read it online or download a copy.</div>
     </div>`;
 }
 
@@ -3370,13 +3358,13 @@ function renderMaterials(){
   const el=document.getElementById('materials-content');
   el.innerHTML=`
     <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Instructor resources</div>
+      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Instructor resources</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:18px">Everything you need to teach lives in the Instructor Resource Center: course folders, presentations, manuals, printables, and who to contact for what. Start here.</div>
-      <a href="${RESOURCE_CENTER_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">📚 Open Instructor Resources</a>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px">Opens in a new tab. Safe Sitter® digital instructor manuals require a separate YUDU login — contact Lindsay if you need access.</div>
+      <a href="${RESOURCE_CENTER_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">Open instructor resources</a>
+      <div style="font-size:13px;color:var(--muted);margin-top:10px">Opens in a new tab. Safe Sitter® digital instructor manuals require a separate YUDU login — contact Lindsay if you need access.</div>
     </div>
 
-    <div class="info-card" style="font-size:12px;color:var(--muted);line-height:1.7">
+    <div class="info-card" style="font-size:14px;color:var(--muted);line-height:1.7">
       <strong style="color:var(--text)">Before you teach:</strong> speaker notes inside the digital presentations are a general guide only. They leave out Instructor Notes, game instructions, and the bracketed information in the manual. Your Instructor Manual or Facilitator Guide is always your primary teaching resource.<br><br>
       <strong style="color:var(--text)">Using the PowerPoint files:</strong> download the file and open it in the PowerPoint desktop app. The web version does not support full navigation. Presenter Mode in Zoho Show is a reliable alternative.
     </div>`;
@@ -3397,45 +3385,45 @@ function renderW9(){
   }
   el.innerHTML=`
     <div class="info-card">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">How to submit your W-9</div>
+      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">How to submit your W-9</div>
       <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px">
         <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="min-width:26px;height:26px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">1</div>
+          <div style="min-width:26px;height:26px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">1</div>
           <div>
             <div style="font-weight:500;font-size:13px;margin-bottom:4px">Download the W-9</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Click below to download the official IRS Form W-9.</div>
+            <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Click below to download the official IRS Form W-9.</div>
             <a href="${W9_URL}" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">⬇️ Open W-9 from IRS.gov (PDF)</a>
-            <div style="font-size:11px;color:var(--muted);margin-top:6px">Opens the official form on IRS.gov. Save it to your device, then complete and sign.</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:6px">Opens the official form on IRS.gov. Save it to your device, then complete and sign.</div>
           </div>
         </div>
         <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="min-width:26px;height:26px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">2</div>
+          <div style="min-width:26px;height:26px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">2</div>
           <div>
             <div style="font-weight:500;font-size:13px;margin-bottom:4px">Fill it out &amp; sign it</div>
-            <div style="font-size:12px;color:var(--muted)">Complete your legal name, address, Social Security Number (or EIN), and sign Part II. Most instructors select <em>Individual/sole proprietor</em> for line 3a.</div>
+            <div style="font-size:14px;color:var(--muted)">Complete your legal name, address, Social Security Number (or EIN), and sign Part II. Most instructors select <em>Individual/sole proprietor</em> for line 3a.</div>
           </div>
         </div>
         <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="min-width:26px;height:26px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">3</div>
+          <div style="min-width:26px;height:26px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">3</div>
           <div>
             <div style="font-weight:500;font-size:13px;margin-bottom:4px">Scan or photograph it</div>
-            <div style="font-size:12px;color:var(--muted)">A clear photo from your phone is fine. Make sure all fields and your signature are legible.</div>
+            <div style="font-size:14px;color:var(--muted)">A clear photo from your phone is fine. Make sure all fields and your signature are legible.</div>
           </div>
         </div>
         <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="min-width:26px;height:26px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">4</div>
+          <div style="min-width:26px;height:26px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">4</div>
           <div>
             <div style="font-weight:500;font-size:13px;margin-bottom:4px">Email it to Lindsay</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Send your completed W-9 to:</div>
+            <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Send your completed W-9 to:</div>
             <a href="mailto:lindsay@mindfulbeginnings.org?subject=W-9 — ${encodeURIComponent(me.name)}&body=Hi Lindsay,%0D%0A%0D%0APlease find my completed W-9 attached.%0D%0A%0D%0AThanks,%0D%0A${encodeURIComponent(me.name)}" class="btn" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">✉️ Open email to Lindsay</a>
-            <div style="font-size:11px;color:var(--muted);margin-top:6px">lindsay@mindfulbeginnings.org — attach your completed W-9 file before sending.</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:6px">lindsay@mindfulbeginnings.org — attach your completed W-9 file before sending.</div>
           </div>
         </div>
         <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="min-width:26px;height:26px;background:var(--success);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">5</div>
+          <div style="min-width:26px;height:26px;background:var(--success);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">5</div>
           <div>
             <div style="font-weight:500;font-size:13px;margin-bottom:4px">Confirm submission</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Once you've sent the email, click below to mark this step complete.</div>
+            <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Once you've sent the email, click below to mark this step complete.</div>
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:12px">
               <input type="checkbox" id="w9-confirm-check" style="width:16px;height:16px;cursor:pointer">
               I have emailed my completed and signed W-9 to lindsay@mindfulbeginnings.org
@@ -3445,7 +3433,7 @@ function renderW9(){
         </div>
       </div>
     </div>
-    <div style="font-size:12px;color:var(--muted);padding:4px 0">Your W-9 information is kept confidential and used solely for tax reporting purposes (IRS Form 1099-NEC).</div>`;
+    <div style="font-size:14px;color:var(--muted);padding:4px 0">Your W-9 information is kept confidential and used solely for tax reporting purposes (IRS Form 1099-NEC).</div>`;
 }
 
 async function confirmW9(){
@@ -3473,7 +3461,6 @@ function renderMyInfo(){
   const sizes=['XS','S','M','L','XL','XXL','XXXL'];
   document.getElementById('myinfo-content').innerHTML=`
     <div class="info-card">
-      <div class="info-row"><span class="info-label">Level</span><span>${instructorLevelBadge(me.level)}</span></div>
       <div class="info-row"><span class="info-label">Name</span><span>${escapeHtml(me.name)}</span></div>
       <div class="info-row"><span class="info-label">Email</span><span>${escapeHtml(me.email)||'Not on file'}</span></div>
       <div class="info-row"><span class="info-label">Phone</span><span>${escapeHtml(me.phone)||'Not on file'}</span></div>
@@ -3481,16 +3468,16 @@ function renderMyInfo(){
       <div class="info-row"><span class="info-label">Hourly rate</span><span style="font-weight:500;color:var(--success)">$${me.hourlyRate||50}/hour</span></div>
       <div class="info-row"><span class="info-label">Credentials on file</span><span>${[isSafeSitterCertified()?'🧒 Safe Sitter® certified':null,me.isRN?'🩺 Registered Nurse (RN)':null].filter(Boolean).join(' · ')||'General instructor'}</span></div>
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6">Your credentials determine which courses appear on your Open jobs board. If a credential is missing or looks wrong, contact Lindsay.</div>
+    <div style="font-size:14px;color:var(--muted);margin-top:8px;line-height:1.6">Your credentials determine which courses appear on your Open jobs board. If a credential is missing or looks wrong, contact Lindsay.</div>
     <div class="info-card" style="margin-top:14px">
-      <div style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">🎽 Sweatshirt Size</div>
+      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">🎽 Sweatshirt Size</div>
       <div style="font-size:13px;color:var(--text);margin-bottom:12px">Please select your sweatshirt size.</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
         ${sizes.map(sz=>`<button onclick="selectSweatshirt('${sz}')" id="sz-${sz}" style="padding:8px 16px;border-radius:var(--r-sm);border:1.5px solid ${me.sweatshirtSize===sz?'var(--navy)':'var(--border)'};background:${me.sweatshirtSize===sz?'var(--navy)':'white'};color:${me.sweatshirtSize===sz?'white':'var(--text)'};font-size:13px;font-family:inherit;cursor:pointer;font-weight:${me.sweatshirtSize===sz?'600':'400'};transition:all .15s">${sz}</button>`).join('')}
       </div>
-      ${me.sweatshirtSize?`<div style="font-size:13px;color:var(--success);font-weight:500">✓ Size on file: ${me.sweatshirtSize}</div>`:`<div style="font-size:12px;color:var(--muted)">No size selected yet.</div>`}
+      ${me.sweatshirtSize?`<div style="font-size:13px;color:var(--success);font-weight:500">✓ Size on file: ${me.sweatshirtSize}</div>`:`<div style="font-size:14px;color:var(--muted)">No size selected yet.</div>`}
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-top:8px">To update your contact information or your instructor level, reach Lindsay at <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--gold-d)">lindsay@mindfulbeginnings.org</a>.</div>`;
+    <div style="font-size:14px;color:var(--muted);margin-top:8px">To update your contact information or your instructor level, reach Lindsay at <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--gold-d)">lindsay@mindfulbeginnings.org</a>.</div>`;
 }
 
 async function selectSweatshirt(size){

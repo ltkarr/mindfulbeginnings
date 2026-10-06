@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Mindful Beginnings</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/course-booking.js"></script>
 <script src="/js/admin-ops-emails.js"></script>
@@ -22,8 +22,12 @@
   --sidebar-w:255px;
 }
 body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);font-size:17px;line-height:1.6;min-height:100vh}
-#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy);z-index:999}
-.login-box{background:white;border-radius:16px;padding:40px 36px;width:410px;text-align:center}
+#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy);z-index:999;padding:24px 16px}
+.login-box{background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:410px;text-align:center}
+.login-mark{height:72px;width:auto;display:block;margin:0 auto 14px}
+@media(max-width:480px){
+  .login-box{padding:28px 18px}
+}
 .login-logo{font-family:'DM Serif Display',serif;font-size:25px;color:var(--navy);margin-bottom:4px}
 .login-sub{font-size:15px;color:var(--muted);margin-bottom:28px}
 .login-box input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:17px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:12px;transition:border-color .2s}
@@ -288,9 +292,11 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">Mindful Beginnings</div>
-    <div class="login-sub">Admin dashboard</div>
+    <img class="login-mark" src="/email-logo.png" alt="Mindful Beginnings">
+    <div class="login-sub">Admin</div>
+    <label for="email-input" style="display:block;text-align:left;font-size:14px;font-weight:600;margin-bottom:4px">Email</label>
     <input type="email" id="email-input" placeholder="Email" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
+    <label for="pw-input" style="display:block;text-align:left;font-size:14px;font-weight:600;margin-bottom:4px">Password</label>
     <input type="password" id="pw-input" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     <div class="login-err" id="login-err"></div>
     <button class="login-btn" id="login-btn" onclick="doLogin()">Sign in</button>
@@ -309,10 +315,9 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="nav-item" id="nav-requests" title="Class requests" onclick="showScreen('requests',this)"><span class="nav-icon">✉</span> <span class="nav-label">Class requests</span></div>
       <div class="nav-item" title="Registrations" onclick="showScreen('registrations',this)"><span class="nav-icon">◻</span> <span class="nav-label">Registrations</span></div>
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
-      <div class="nav-item" title="Session codes" onclick="showScreen('codes',this)"><span class="nav-icon">⬡</span> <span class="nav-label">Session codes</span></div>
       <div class="nav-item" title="Instructors" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> <span class="nav-label">Instructors</span></div>
       <div class="nav-item" title="Liaisons" onclick="showScreen('partners',this)"><span class="nav-icon">◎</span> <span class="nav-label">Liaisons</span></div>
-      <div class="nav-item" title="Community partnerships" onclick="showScreen('orgpartners',this)"><span class="nav-icon">⬢</span> <span class="nav-label">Partnerships</span></div>
+      <div class="nav-item" id="nav-orgpartners" title="Community partnerships" onclick="showScreen('orgpartners',this)"><span class="nav-icon">⬢</span> <span class="nav-label">Partnerships</span></div>
       <div class="nav-item" id="nav-materials" title="Equipment" onclick="showScreen('materials',this)"><span class="nav-icon">▣</span> <span class="nav-label">Equipment</span></div>
       <div class="nav-item" title="Reports" onclick="showScreen('reports',this)"><span class="nav-icon">▦</span> <span class="nav-label">Reports</span></div>
     </div>
@@ -327,7 +332,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
     <div class="screen active" id="screen-dashboard">
       <div class="page-header">
         <div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-date"></div></div>
-        <button class="btn primary" onclick="openAddSession()">+ New session</button>
       </div>
       <div id="class-request-banner"></div>
       <div class="metrics" id="dash-metrics"></div>
@@ -373,7 +377,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
               <option value="cancelled">Cancelled sessions</option>
               <option value="all">All sessions</option>
             </select>
-            <button class="btn" onclick="printSessionReport()">📋 Print report</button>
+            <button class="btn" onclick="printSessionReport()">Print report</button>
           </div>
           <button class="btn primary" onclick="openAddSession()">+ New session</button>
           <button class="btn" onclick="openAddCustomJob()" style="background:#f5f0e8;border-color:#c8a96e;color:#7a5c1e">+ Custom job</button>
@@ -395,7 +399,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="page-header">
         <div><div class="page-title">Registrations</div><div class="page-sub" id="reg-page-sub">All students across all sessions</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" onclick="downloadAllWaivers()">📄 Download signed waivers</button>
+          <button class="btn" onclick="downloadAllWaivers()">Download signed waivers</button>
           <button class="btn" onclick="openMatchPayment()">Match payment</button>
           <button class="btn primary" onclick="openAddReg(null)">+ Add registration</button>
         </div>
@@ -417,7 +421,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
     <div class="screen" id="screen-finances">
       <div class="page-header">
         <div><div class="page-title">Finances</div><div class="page-sub" id="fin-page-sub">Revenue (net of payment processing fees), expenses, and profit</div></div>
-        <button class="btn primary" onclick="openAddExpense()">+ Add expense</button>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
         <div class="toggle-group" style="margin-bottom:0">
@@ -428,7 +431,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <div style="display:flex;gap:8px;align-items:center">
           <select id="report-month" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
           <select id="report-year" onchange="renderFinances()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
-          <button class="btn" id="print-report-btn" onclick="printReport()">🖨️ Print monthly report</button>
+          <button class="btn" id="print-report-btn" onclick="printReport()">Print monthly report</button>
         </div>
       </div>
       <div id="legacy-cost-banner"></div>
@@ -465,25 +468,16 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="expenses-table"></table></div></div>
     </div>
 
-    <div class="screen" id="screen-codes">
-      <div class="page-header">
-        <div><div class="page-title">Session codes</div><div class="page-sub">Share these codes with parents to register</div></div>
-        <button class="btn primary" onclick="openAddSession()">+ New session</button>
-      </div>
-      <div class="alert info">📋 &nbsp;Copy a code or link and text/email it to parents. They enter the code at your registration page and it pre-fills their session automatically.</div>
-      <div id="codes-list"></div>
-    </div>
-
     <div class="screen" id="screen-instructors">
       <div class="page-header">
         <div><div class="page-title">Instructors</div><div class="page-sub">Manage instructor accounts and PINs</div></div>
         <div class="btn-row">
-          <button class="btn" onclick="emailOpenJobs()">📧 Email open jobs</button>
-          <button class="btn" onclick="exportInstructorsCSV()">⬇ Download roster (CSV)</button>
+          <button class="btn" onclick="emailOpenJobs()">Email open jobs</button>
+          <button class="btn" onclick="exportInstructorsCSV()">Download roster (CSV)</button>
           <button class="btn primary" onclick="openAddInstructor()">+ Add instructor</button>
         </div>
       </div>
-      <div class="alert info">🔑 &nbsp;Each instructor logs into <strong>instructor.html</strong> using their PIN. Share their PIN privately — they can see available jobs and accept them from their portal.</div>
+      <div class="alert info">Each instructor signs in at <strong>instructorportal.mindfulbeginnings.org</strong> with their PIN. Share the PIN privately.</div>
       <div class="instr-tabs">
         <button class="itg active" id="itg-active" onclick="setInstrTab('active',this)">Active</button>
         <button class="itg" id="itg-inactive" onclick="setInstrTab('inactive',this)">Inactive</button>
@@ -494,11 +488,12 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 
     <div class="screen" id="screen-partners">
       <div class="page-header">
-        <div><div class="page-title">Liaisons</div><div class="page-sub">Individual Community Partnerships Liaisons on commission. Organizations on a revenue share live under Partnerships.</div></div>
+        <div><div class="page-title">Liaisons</div><div class="page-sub">Liaisons paid on commission. <span title="Organizations on a revenue share live under Partnerships. That tab stays hidden until an organization is added. Use Add organization to create the first one.">?</span></div></div>
         <div class="btn-row">
-          <button class="btn" onclick="publishPartnerPortalsNow()" title="Partners see these numbers when they sign in to the portal">⇪ Update partner portals</button>
-          <button class="btn" onclick="exportPartnersCSV()">⬇ Download statement (CSV)</button>
-          <button class="btn primary" onclick="openAddPartner()">+ Add partner</button>
+          <button class="btn" onclick="revealOrgPartners()">Add organization</button>
+          <button class="btn" onclick="publishPartnerPortalsNow()" title="Liaisons see these numbers when they sign in to the portal">Update liaison portals</button>
+          <button class="btn" onclick="exportPartnersCSV()">Download statement (CSV)</button>
+          <button class="btn primary" onclick="openAddPartner()">+ Add liaison</button>
         </div>
       </div>
       <div id="partners-setup"></div>
@@ -510,7 +505,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="page-header">
         <div><div class="page-title">Community partnerships</div><div class="page-sub">Organizations on a 50/50 revenue share. Paid at the end of each month for every class completed by then.</div></div>
         <div class="btn-row">
-          <button class="btn" onclick="exportOrgPartnersCSV()">⬇ Download statement (CSV)</button>
+          <button class="btn" onclick="exportOrgPartnersCSV()">Download statement (CSV)</button>
           <button class="btn primary" onclick="openAddOrgPartner()">+ Add organization</button>
         </div>
       </div>
@@ -524,10 +519,10 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
          renderJobs()/job-action functions below are kept but no-op without the screen. -->
     <div class="screen" id="screen-materials">
       <div class="page-header">
-        <div><div class="page-title">Equipment</div><div class="page-sub">Manikins and AV kits check out and come back. Handbook and notebook counts live only here — change them when you buy more. Each class takes one per registered student automatically, and those copies do not come back.</div></div>
+        <div><div class="page-title">Equipment</div><div class="page-sub">Manikins and AV kits. <span title="Handbook and notebook counts live only here. Change them when you buy more. Each class takes one per registered student, and those copies do not come back.">?</span></div></div>
         <div class="btn-row">
           <button class="btn" onclick="openAddEquipment()">+ Add equipment type</button>
-          <button class="btn primary" onclick="openCheckout()">📦 Check out equipment</button>
+          <button class="btn primary" onclick="openCheckout()">Check out equipment</button>
         </div>
       </div>
       <div id="mat-alerts"></div>
@@ -545,25 +540,23 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 
     <div class="screen" id="screen-reports">
       <div class="page-header">
-        <div><div class="page-title">Reports</div><div class="page-sub">How families find you, partner referrals, in-kind donations, and discount code usage</div></div>
+        <div><div class="page-title">Reports</div><div class="page-sub">How families find you, liaison referrals, in-kind donations, and discount code usage</div></div>
         <select id="rep-year" onchange="renderReports()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
       </div>
 
       <div class="page-header" style="margin-bottom:14px">
         <div><div class="page-title" style="font-size:23px">How did you hear about us?</div><div class="page-sub">Based on what families select on the registration form</div></div>
-        <button class="btn" onclick="exportReferralCSV()">⬇ Download CSV</button>
+        <button class="btn" onclick="exportReferralCSV()">Download CSV</button>
       </div>
       <div class="metrics" id="rep-referral-metrics"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="referral-table"></table></div></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:14px">
-        <div><div class="page-title" style="font-size:23px">Partner referrals</div><div class="page-sub">Families who named one of your community partners on the registration form. Commission is the same flat rate as an originated booking, on that child&rsquo;s revenue after processing fees, their materials and their share of instructor pay.</div></div>
-        <button class="btn" onclick="exportPartnerReferralCSV()">⬇ Download CSV</button>
+        <div><div class="page-title" style="font-size:23px">Liaison referrals</div><div class="page-sub">How many families named a liaison. <span title="Commission is calculated on the Liaisons tab, not here.">?</span></div></div>
+        <button class="btn" onclick="exportPartnerReferralCSV()">Download CSV</button>
       </div>
       <div class="metrics" id="rep-partner-ref-metrics"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="partner-ref-table"></table></div></div>
-      <div class="card" style="padding:0;margin-top:12px"><div class="tbl-wrap"><table id="partner-ref-detail"></table></div></div>
-      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-top:10px;max-width:760px">Net is what the family paid, less the PayPal or Venmo fee, less that child&rsquo;s handbook and materials, less their share of the instructor fee and any job costs on that session. The instructor share is split across the families who have <em>paid</em>, so mark a roster up to date before you run a statement &mdash; with half the class still showing unpaid, the one child you are looking at carries more of the instructor than they should. Nothing is payable until the money has landed and the class has been taught, and commission never goes below zero.</div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:14px">
         <div><div class="page-title" style="font-size:23px">In-kind donations (auction prizes)</div><div class="page-sub">Free classes given as auction prizes, recorded at their retail value as in-kind donations</div></div>
@@ -1537,6 +1530,7 @@ async function loadData(){
     if(op.error)console.warn('Community partnerships table not loaded (run community_partners_setup.sql):',op.error);
     if(opp.error)console.warn('Community partnership payouts table not loaded:',opp.error);
     orgPartners=(op.data||[]).map(orgPartnerFromDB);
+    syncOrgPartnersNav();
     orgPartnerPayouts=(opp.data||[]).map(orgPayoutFromDB);
     partnersTableReady=!pt.error;
     if(pt.error)console.warn('Partners table not loaded (run partners_setup.sql if you haven\'t):',pt.error);
@@ -3095,7 +3089,7 @@ function partnerOriginFieldHtml(s){
   const cur=s?(s.originatedBy||''):'';
   const note=s?(s.originationNote||''):'';
   return `<div class="fg full" style="background:#f5f1fa;border:1px solid #ddd0ee;border-radius:var(--r-sm);padding:12px 14px">
-    <label style="margin-bottom:2px">Originated by <span style="font-weight:400;color:var(--muted)">(optional — community partner commission)</span></label>
+    <label style="margin-bottom:2px">Originated by <span style="font-weight:400;color:var(--muted)">(optional — liaison commission)</span></label>
     <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Credit this booking to the liaison who made the first introduction. Commission is earned only once the money is in <em>and</em> the class has been taught — never before the course runs, and never on a cancelled course. Leave this blank for anything you sourced yourself.</div>
     <select id="m-originby" style="width:100%">
       <option value="">— Not applicable (I sourced this myself) —</option>
@@ -3326,6 +3320,17 @@ function orgPartnerPeriods(partnerId){
 function defaultOrgPeriod(){return currentCalendarMonth();}
 
 // ─── SCREEN ─────────────────────────────────────────────────
+function syncOrgPartnersNav(){
+  const nav=document.getElementById('nav-orgpartners');
+  if(!nav)return;
+  nav.style.display=(orgPartnersTableReady&&!(orgPartners&&orgPartners.length))?'none':'';
+}
+function revealOrgPartners(){
+  const nav=document.getElementById('nav-orgpartners');
+  if(nav)nav.style.display='';
+  showScreen('orgpartners',nav);
+  openAddOrgPartner();
+}
 function renderOrgPartners(){
   const setupEl=document.getElementById('orgp-setup');
   const ctrlEl=document.getElementById('orgp-controls');
@@ -3418,7 +3423,7 @@ function orgPartnerCardHtml(p,st){
         <div style="font-size:14px;color:var(--muted)">${escapeHtml([p.contactName,p.email,p.phone].filter(Boolean).join(' · '))||'No contact on file'}</div>
       </div>
       <div class="btn-row">
-        <button class="btn" onclick="openOrgPartnerStatement('${p.id}')">🧾 Statement</button>
+        <button class="btn" onclick="openOrgPartnerStatement('${p.id}')">Statement</button>
         <button class="btn" onclick="openEditOrgPartner('${p.id}')">✎ Edit</button>
         ${paid
           ? `<button class="btn" onclick="undoOrgPayout('${p.id}')">↺ Undo payout</button>`
@@ -3495,6 +3500,7 @@ async function saveOrgPartner(editId){
   if(data.contractSigned&&!p.contractSignedDate)p.contractSignedDate=fmtYMD(new Date());
   if(!data.contractSigned)p.contractSignedDate='';
   orgPartners.sort((a,b)=>a.name.localeCompare(b.name));
+  syncOrgPartnersNav();
   closeModal();renderOrgPartners();
   const ok=await dbWrite(sb.from('community_partners').upsert(orgPartnerToDB(p)),'Partner organization');
   if(ok)showToast(editId?'Organization updated.':'Organization added. Pick it under "Hosted in partnership with" on any class it hosts.');
@@ -3512,6 +3518,7 @@ async function deleteOrgPartner(id){
   orgPartners=orgPartners.filter(x=>x.id!==id);
   orgPartnerPayouts=orgPartnerPayouts.filter(x=>x.partnerId!==id);
   (sessions||[]).forEach(s=>{if(s.hostedFor===id)s.hostedFor=null;});
+  syncOrgPartnersNav();
   closeModal();renderOrgPartners();
   const ok=await dbWrite(sb.from('community_partners').delete().eq('id',id),'Remove partner organization');
   if(!ok){await loadData();renderOrgPartners();}
@@ -3704,14 +3711,14 @@ function renderPartners(){
     </div>
     ${kind==='past'?`<div class="alert warn" style="display:block">Viewing a <strong>past</strong> statement (${periodLabel(partnerPeriod)}). <a href="#" onclick="selectPartnerPeriod('${lastMonth}');return false" style="color:var(--warn);font-weight:500">Return to ${periodLabel(lastMonth)} (payable now)</a></div>`:''}
     <div class="metrics">
-      <div class="metric"><div class="m-label">Collected via partners</div><div class="m-val">${fmt(monthRevenue)}</div><div class="m-sub">${periodLabel(partnerPeriod)}</div></div>
+      <div class="metric"><div class="m-label">Collected via liaisons</div><div class="m-val">${fmt(monthRevenue)}</div><div class="m-sub">${periodLabel(partnerPeriod)}</div></div>
       <div class="metric"><div class="m-label">${kind==='projected'?'Earned this month':'Commission owed'}</div><div class="m-val ${monthOwed>0&&kind!=='projected'?'red':''}">${fmt(monthOwed)}</div><div class="m-sub">${payableLabel}</div></div>
       <div class="metric"><div class="m-label">Already paid</div><div class="m-val green">${fmt(monthPaid)}</div><div class="m-sub">${kind==='payable'?"Last month's payouts":periodLabel(partnerPeriod)}</div></div>
       <div class="metric"><div class="m-label">${kind==='payable'||kind==='past'?'Projected upcoming':'Projected this month'}</div><div class="m-val" style="color:var(--warn)">${fmt(kind==='payable'||kind==='past'?upcomingPotential:periodPending)}</div><div class="m-sub">${(kind==='payable'||kind==='past'?(upcomingPotential>0||monthPending>0):(periodPending>0))?'Not payable yet — money in + class taught':'No pending bookings'}</div></div>
     </div>
     ${upcomingMonths.length?`<div class="card">
       <div class="card-title" style="margin-bottom:8px">Projected payouts — not payable yet</div>
-      <div style="font-size:15px;color:var(--muted);margin-bottom:12px;line-height:1.5">What partners are estimated to be owed as pending bookings clear, in the month each one is expected to land. The next three calendar months always appear, even at $0. These figures are not owed until the money is in and the class has been taught.</div>
+      <div style="font-size:15px;color:var(--muted);margin-bottom:12px;line-height:1.5">What liaisons are estimated to be owed as pending bookings clear, in the month each one is expected to land. The next three calendar months always appear, even at $0. These figures are not owed until the money is in and the class has been taught.</div>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Month</th><th>Bookings</th><th>Pending revenue</th><th>Projected commission</th><th></th></tr></thead>
         <tbody>${upcomingMonths.map(row=>`<tr style="${row.period===partnerPeriod?'background:var(--warn-bg)':''}">
@@ -3733,9 +3740,9 @@ function renderPartners(){
 
   if(!partners.length){
     bodyEl.innerHTML=`<div class="card" style="text-align:center;padding:44px 22px">
-      <div style="font-size:18px;font-weight:500;margin-bottom:6px">No community partners yet</div>
-      <div style="color:var(--muted);font-size:16px;max-width:460px;margin:0 auto 18px">Add your first Community Partnerships Liaison, then pick them under "Originated by" on any session they brought you. Families who name them on the registration form are picked up automatically. Everything on this page fills in from there.</div>
-      <button class="btn primary" onclick="openAddPartner()">+ Add partner</button>
+      <div style="font-size:18px;font-weight:500;margin-bottom:6px">No liaisons yet</div>
+      <div style="color:var(--muted);font-size:16px;max-width:460px;margin:0 auto 18px">Add your first liaison, then pick them under "Originated by" on any session they brought you. Families who name them on the registration form are picked up automatically.</div>
+      <button class="btn primary" onclick="openAddPartner()">+ Add liaison</button>
     </div>`;
     return;
   }
@@ -3789,7 +3796,7 @@ function partnerCardHtml(p,st){
         ${paid
           ?`<button class="btn sm" onclick="undoPartnerPayout('${p.id}')">Undo paid</button>`
           :`<button class="btn sm success" onclick="markPartnerPaid('${p.id}')" ${st.total>0&&kind!=='projected'?'':'disabled title="'+(kind==='projected'?'Projected amounts are not payable yet':'Nothing owed for this month')+'"'}>Mark ${fmt(st.total)} paid</button>`}
-        <button class="btn sm primary" onclick="openPartnerStatement('${p.id}')">🧾 Statement</button>
+        <button class="btn sm primary" onclick="openPartnerStatement('${p.id}')">Statement</button>
         <button class="btn sm" onclick="openEditPartner('${p.id}')">Edit</button>
         <button class="btn sm danger" onclick="deletePartner('${p.id}')">Remove</button>
       </div>
@@ -3798,7 +3805,7 @@ function partnerCardHtml(p,st){
     <div class="metrics" style="margin-bottom:16px">
       <div class="metric"><div class="m-label">Collected revenue</div><div class="m-val">${fmt(st.monthTotal)}</div><div class="m-sub">Originated in ${periodLabel(st.period)}</div></div>
       <div class="metric"><div class="m-label">Commission rate</div><div class="m-val" style="font-size:23px">${Math.round(st.tier.rate*100)}%</div><div class="m-sub">${Math.round(PARTNER_FLAT_RATE*100)}% of profit — you keep ${Math.round((1-PARTNER_FLAT_RATE)*100)}%. Originated or referred.</div></div>
-      <div class="metric"><div class="m-label">Commission</div><div class="m-val">${fmt(st.commission)}</div><div class="m-sub">${st.bonusTotal?'+ '+fmt(st.bonusTotal)+' in bonuses':'No bonuses this month'}</div></div>
+      <div class="metric"><div class="m-label">Commission</div><div class="m-val">${fmt(st.commission)}</div><div class="m-sub">40% of profit, floor $0</div></div>
       <div class="metric"><div class="m-label">${paid?'Paid':'Total due'}</div><div class="m-val ${paid?'green':''}">${fmt(paid?st.payout.amount:st.total)}</div><div class="m-sub">${dueSub}</div></div>
     </div>
 
@@ -3807,49 +3814,39 @@ function partnerCardHtml(p,st){
     ${pendingRows.length?`<div class="alert warn" style="display:block">Not payable yet: <strong>${fmt(pendingPot)}</strong> projected commission on <strong>${fmt(pendingRev)}</strong> originated revenue${kind==='payable'||kind==='past'?' across upcoming months':(' expected in '+periodLabel(st.period))}. Estimate uses the same Section 3 rates for the month each booking is expected to land. It is <em>not</em> owed until the money is in <em>and</em> the class has been taught.</div>`:''}
 
     ${st.rows.length?`<div class="tbl-wrap"><table>
-      <thead><tr><th>Collected</th><th>Course</th><th>Client</th><th>Collected revenue</th><th>Rate</th><th>Commission</th><th>Why this rate</th></tr></thead>
+      <thead><tr><th>Collected</th><th>Course</th><th>Client</th><th>Collected revenue</th><th>Commission</th></tr></thead>
       <tbody>${st.rows.map(r=>`<tr>
         <td style="font-size:15px;white-space:nowrap">${fmtShortDate(r.firstCollectedOn)}</td>
         <td style="font-size:15px">${escapeHtml(r.session.course)}${r.session.date?`<br><span style="color:var(--muted);font-size:14px">held ${fmtShortDate(r.session.date)}</span>`:''}</td>
-        <td style="font-size:15px">${r.isOrg?'🏛 '+escapeHtml(r.org):'🏠 '+escapeHtml(r.session.contactName||'Private home class')}
+        <td style="font-size:15px">${r.isOrg?escapeHtml(r.org):escapeHtml(r.session.contactName||'Private home class')}
           ${r.isRepeat?'<br><span class="tag pending" style="margin-top:3px">Repeat</span>':'<br><span class="tag host" style="margin-top:3px">First booking</span>'}</td>
         <td style="font-weight:500">${fmt(r.collected)}${r.fees?`<br><span style="color:var(--muted);font-size:14px">${fmt(r.gross)} less ${fmt(r.fees)} fees</span>`:''}${r.familyCount?`<br><span style="color:var(--muted);font-size:14px">${r.familyCount} famil${r.familyCount===1?'y':'ies'}</span>`:''}</td>
-        <td style="font-weight:500;${r.accelerated?'color:#6D1ED4':''}">${Math.round(r.rate*100)}%${r.accelerated?'<br><span style="font-size:13px">accelerator</span>':''}</td>
         <td style="font-weight:500;color:var(--success)">${fmt(r.commission)}</td>
-        <td style="font-size:14px;color:var(--muted);max-width:230px">${escapeHtml(r.reason)}</td>
-      </tr>`).join('')}
-      ${st.bonuses.map(b=>`<tr style="background:#faf8fd">
-        <td style="font-size:15px;white-space:nowrap">${fmtShortDate(b.date)}</td>
-        <td style="font-size:15px" colspan="2">🎉 New organizational partner bonus — ${escapeHtml(b.org)}</td>
-        <td style="color:var(--muted);font-size:15px">—</td><td style="color:var(--muted);font-size:15px">flat</td>
-        <td style="font-weight:500;color:var(--success)">${fmt(b.amount)}</td>
-        <td style="font-size:14px;color:var(--muted)">First paid program from a brand-new organization (§3.C)</td>
       </tr>`).join('')}
       <tr style="background:var(--cream);font-weight:500">
         <td colspan="3">${periodLabel(st.period)} total (payable)</td>
-        <td>${fmt(st.monthTotal)}</td><td></td>
-        <td style="color:var(--success)">${fmt(st.total)}</td><td></td>
+        <td>${fmt(st.monthTotal)}</td>
+        <td style="color:var(--success)">${fmt(st.total)}</td>
       </tr>
       </tbody></table></div>`
-    :`<div style="color:var(--muted);font-size:16px;padding:14px 0;font-style:italic">${kind==='projected'||kind==='current'?'Nothing collected yet in '+periodLabel(st.period)+' — projected bookings are below.':'No revenue collected from this partner\'s introductions in '+periodLabel(st.period)+'.'}</div>`}
+    :`<div style="color:var(--muted);font-size:16px;padding:14px 0;font-style:italic">${kind==='projected'||kind==='current'?'Nothing collected yet in '+periodLabel(st.period)+' — projected bookings are below.':'No revenue collected from this liaison\'s introductions in '+periodLabel(st.period)+'.'}</div>`}
 
     ${pendingRows.length?`<div style="margin-top:18px">
       <div class="card-title" style="margin-bottom:8px">${kind==='payable'||kind==='past'?'Projected payouts — not payable yet':'Projected for '+periodLabel(st.period)+' — not payable yet'}</div>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Expected</th><th>Session</th><th>Date</th><th>Client</th><th>Pending revenue</th><th>Est. rate</th><th>Potential commission</th><th>What's holding it up</th></tr></thead>
+        <thead><tr><th>Expected</th><th>Session</th><th>Date</th><th>Client</th><th>Pending revenue</th><th>Potential commission</th><th>What's holding it up</th></tr></thead>
         <tbody>${pendingRows.map(x=>`<tr>
           <td style="font-size:15px;white-space:nowrap">${x.projectedMonth?periodLabel(x.projectedMonth):'—'}</td>
           <td style="font-size:15px">${escapeHtml(x.session.course)}${x.isRepeat?'<br><span class="tag pending" style="margin-top:3px">Repeat</span>':''}</td>
           <td style="font-size:15px">${fmtShortDate(x.session.date)}</td>
           <td style="font-size:15px">${escapeHtml(x.org||x.session.contactName||'—')}</td>
           <td style="font-weight:500">${fmt(x.amount)}${x.fees?`<br><span style="color:var(--muted);font-size:14px">${fmt(x.gross)} less ${fmt(x.fees)} fees</span>`:''}</td>
-          <td style="font-weight:500;color:var(--warn)">${x.estRate!=null?Math.round(x.estRate*100)+'%':'—'}${x.accelerated?'<br><span style="font-size:13px">accelerator</span>':''}</td>
-          <td style="font-weight:500;color:var(--warn)">${fmt(x.estCommission||0)}${x.estBonus?`<br><span style="font-size:13px">+ ${fmt(x.estBonus)} new-org bonus (est.)</span>`:''}</td>
+          <td style="font-weight:500;color:var(--warn)">${fmt(x.estCommission||0)}</td>
           <td style="font-size:14px;color:var(--muted)">${escapeHtml(x.reason)}</td>
         </tr>`).join('')}
         <tr style="background:var(--warn-bg);font-weight:500">
           <td colspan="4">Not payable yet — estimate only</td>
-          <td>${fmt(pendingRev)}</td><td></td>
+          <td>${fmt(pendingRev)}</td>
           <td style="color:var(--warn)">${fmt(pendingPot)}</td><td></td>
         </tr>
         </tbody></table></div>
@@ -3991,7 +3988,7 @@ async function publishPartnerPortalsNow(){
     showToast('Could not reach the partner portal table. Run partner_portal_setup.sql in Supabase, then try again.');
     return;
   }
-  showToast(n===1?'1 partner portal updated.':n+' partner portals updated.');
+  showToast(n===1?'1 liaison portal updated.':n+' liaison portals updated.');
   renderPartners();
 }
 
@@ -4006,21 +4003,21 @@ function partnerPortalFieldsHtml(p){
   const pin=p?(p.pin||''):'';
   const list=instrPickList(linked);
   return `<div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
-    <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Partner portal access</div>
+    <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Portal access</div>
     <label style="font-weight:400;font-size:15px">Also one of my instructors</label>
     <select id="m-plinked" style="width:100%">
-      <option value="">No — this partner does not teach</option>
+      <option value="">No — this liaison does not teach</option>
       ${list.map(i=>`<option value="${i.id}" ${i.id===linked?'selected':''}>${escapeHtml(instrSortName(i.name))}${instrInactiveMark(i)}</option>`).join('')}
     </select>
     <div style="font-size:14px;color:var(--muted);margin:4px 0 10px">Link them and they sign in with their existing instructor PIN. The Partnerships tab appears alongside their jobs.</div>
     <label style="font-weight:400;font-size:15px">Portal PIN (6 digits)</label>
     <input type="text" id="m-ppin" inputmode="numeric" maxlength="6" value="${escapeHtml(pin)}" placeholder="Leave blank if they sign in as an instructor">
-    <div style="font-size:14px;color:var(--muted);margin-top:4px">Only needed for a partner who does not teach. Same portal address as the instructors use.</div>
+    <div style="font-size:14px;color:var(--muted);margin-top:4px">Only needed for a liaison who does not teach. Same portal address as the instructors use.</div>
   </div>`;
 }
 
 function openAddPartner(){
-  showModal(`<div class="modal-head"><h3>Add community partner</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  showModal(`<div class="modal-head"><h3>Add liaison</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Full name *</label><input type="text" id="m-pname" placeholder="Full name"></div>
     <div class="fg"><label>Email</label><input type="email" id="m-pemail" placeholder="email@example.com"></div>
@@ -4036,7 +4033,7 @@ function openAddPartner(){
     </div>
     <div class="fg full"><label>Notes</label><input type="text" id="m-pnotes" placeholder="Optional"></div>
   </div></div>
-  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="savePartner(null)">Add partner</button></div>`);
+  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="savePartner(null)">Add liaison</button></div>`);
 }
 
 function openEditPartner(id){
@@ -4187,14 +4184,7 @@ function openPartnerStatement(partnerId){
         ?'<span style="color:#6b7a99;font-size:14px">Referral —</span> '+escapeHtml(r.refLabel||'referred family')
         :escapeHtml(r.isOrg?r.org:(r.session.contactName?'Private home class — '+r.session.contactName:'Private home class'))}${r.isRepeat&&!r.isReferral?' <span style="color:#6b7a99;font-size:14px">(repeat)</span>':''}</td>
       <td style="text-align:right">${fmt(r.collected)}</td>
-      <td style="text-align:right">${Math.round(r.rate*100)}%</td>
       <td style="text-align:right">${fmt(r.commission)}</td>
-    </tr>`).join('')+
-    st.bonuses.map(b=>`<tr>
-      <td>${fmtShortDate(b.date)}</td>
-      <td colspan="2">New organizational partner bonus — ${escapeHtml(b.org)}</td>
-      <td style="text-align:right">—</td><td style="text-align:right">flat</td>
-      <td style="text-align:right">${fmt(b.amount)}</td>
     </tr>`).join('');
 
   showModal(`<div class="modal-head"><h3>Commission statement</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -4205,7 +4195,7 @@ function openPartnerStatement(partnerId){
         <div style="color:var(--muted);font-size:15px">Community Partnerships Liaison — commission statement</div>
       </div>
       <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-        <div><div style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px">Partner</div>
+        <div><div style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px">Liaison</div>
           <div style="font-weight:500">${escapeHtml(p.name)}</div>
           ${p.zelle?`<div style="color:var(--muted);font-size:15px">Zelle: ${escapeHtml(p.zelle)}</div>`:''}</div>
         <div style="text-align:right"><div style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px">Period</div>
@@ -4215,12 +4205,12 @@ function openPartnerStatement(partnerId){
       ${st.rows.length||st.bonuses.length?`<table style="width:100%;border-collapse:collapse;font-size:15px">
         <thead><tr style="border-bottom:1px solid var(--border);text-align:left">
           <th style="padding:6px 4px">Collected</th><th style="padding:6px 4px">Program</th><th style="padding:6px 4px">Client</th>
-          <th style="padding:6px 4px;text-align:right">Collected revenue</th><th style="padding:6px 4px;text-align:right">Rate</th><th style="padding:6px 4px;text-align:right">Commission</th>
+          <th style="padding:6px 4px;text-align:right">Collected revenue</th><th style="padding:6px 4px;text-align:right">Commission</th>
         </tr></thead>
         <tbody>${lines}</tbody>
         <tfoot><tr style="border-top:1px solid var(--border);font-weight:500">
-          <td colspan="3" style="padding:8px 4px">Total collected revenue originated — ${st.tier.name} (${st.tier.label}), ${Math.round(st.tier.rate*100)}%</td>
-          <td style="padding:8px 4px;text-align:right">${fmt(st.monthTotal)}</td><td></td>
+          <td colspan="3" style="padding:8px 4px">Total — ${Math.round(PARTNER_FLAT_RATE*100)}% of profit</td>
+          <td style="padding:8px 4px;text-align:right">${fmt(st.monthTotal)}</td>
           <td style="padding:8px 4px;text-align:right;font-size:18px">${fmt(st.total)}</td>
         </tr></tfoot>
       </table>`:'<div style="color:var(--muted);font-style:italic;padding:20px 0;text-align:center">No collected revenue originated in this period.</div>'}
@@ -4230,7 +4220,7 @@ function openPartnerStatement(partnerId){
         ${st.pending.length?`<table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:10px;color:var(--text)">
           <thead><tr style="border-bottom:1px solid #f0d8a8;text-align:left">
             <th style="padding:4px 4px">Expected</th><th style="padding:4px 4px">Program</th><th style="padding:4px 4px">Client</th>
-            <th style="padding:4px 4px;text-align:right">Pending revenue</th><th style="padding:4px 4px;text-align:right">Est. rate</th>
+            <th style="padding:4px 4px;text-align:right">Pending revenue</th>
             <th style="padding:4px 4px;text-align:right">Potential commission</th>
           </tr></thead>
           <tbody>${st.pending.map(x=>`<tr>
@@ -4238,10 +4228,9 @@ function openPartnerStatement(partnerId){
             <td style="padding:4px">${escapeHtml(x.session.course)}</td>
             <td style="padding:4px">${x.isReferral?'<span style="color:#6b7a99">Referral —</span> '+escapeHtml(x.refLabel||'referred family'):escapeHtml(x.org||x.session.contactName||'—')}</td>
             <td style="padding:4px;text-align:right">${fmt(x.amount)}</td>
-            <td style="padding:4px;text-align:right">${x.estRate!=null?Math.round(x.estRate*100)+'%':'—'}</td>
-            <td style="padding:4px;text-align:right">${fmt(x.estCommission||0)}${x.estBonus?' + '+fmt(x.estBonus)+' bonus':''}</td>
+            <td style="padding:4px;text-align:right">${fmt(x.estCommission||0)}</td>
           </tr>`).join('')}
-          <tr style="font-weight:500"><td colspan="5" style="padding:6px 4px 2px">Projected if these clear — not payable</td>
+          <tr style="font-weight:500"><td colspan="4" style="padding:6px 4px 2px">Projected if these clear — not payable</td>
             <td style="padding:6px 4px 2px;text-align:right">${fmt(st.pendingPotential)}</td></tr>
           </tbody></table>`:''}
       </div>`:''}
@@ -4268,34 +4257,26 @@ function printPartnerStatement(){
 
 // ─── EXPORT ──────────────────────────────────────────────────
 function exportPartnersCSV(){
-  const rows=[['Partner','Period','Collected revenue','Tier','Tier rate','Commission','Bonuses','Total due','Payout status','Paid date',
-    '--- Booking detail ---','Collected on','Course','Session date','Client','Org?','Repeat?','Booking revenue','Rate applied','Booking commission','Why this rate']];
+  const rows=[['Liaison','Period','Collected revenue','Commission','Total due','Payout status','Paid date',
+    '--- Booking detail ---','Collected on','Course','Session date','Client','Booking revenue','Commission']];
   partners.forEach(p=>{
     const st=partnerStatement(p.id,partnerPeriod);
     const paid=!!(st.payout&&st.payout.paidDate);
-    rows.push([p.name,partnerPeriod,st.monthTotal.toFixed(2),st.tier.name+' '+st.tier.label,Math.round(st.tier.rate*100)+'%',
-      st.commission.toFixed(2),st.bonusTotal.toFixed(2),st.total.toFixed(2),
-      paid?'Paid '+fmt(st.payout.amount):'Outstanding',paid?st.payout.paidDate:'','','','','','','','','','','','']);
+    rows.push([p.name,partnerPeriod,st.monthTotal.toFixed(2),
+      st.commission.toFixed(2),st.total.toFixed(2),
+      paid?'Paid '+fmt(st.payout.amount):'Outstanding',paid?st.payout.paidDate:'','','','','','','','']);
     st.rows.forEach(r=>{
-      rows.push(['','','','','','','','','','','',r.firstCollectedOn,r.session.course,r.session.date||'',
-        r.isReferral?('Referral — '+(r.refLabel||'referred family')):(r.isOrg?r.org:(r.session.contactName||'Private home class')),r.isOrg?'Yes':'No',r.isRepeat?'Yes':'No',
-        r.collected.toFixed(2),Math.round(r.rate*100)+'%',r.commission.toFixed(2),r.reason]);
-    });
-    st.bonuses.forEach(b=>{
-      rows.push(['','','','','','','','','','','',b.date,'New organizational partner bonus','',b.org,'Yes','No','0.00','flat',b.amount.toFixed(2),'First paid program from a new organization (3.C)']);
+      rows.push(['','','','','','','','',r.firstCollectedOn,r.session.course,r.session.date||'',
+        r.isReferral?('Referral — '+(r.refLabel||'referred family')):(r.isOrg?r.org:(r.session.contactName||'Private home class')),
+        r.collected.toFixed(2),r.commission.toFixed(2)]);
     });
     st.pending.forEach(x=>{
-      rows.push(['','','','','','','','','','','','NOT YET PAYABLE'+(x.projectedMonth?' → '+x.projectedMonth:''),x.session.course,x.session.date||'',
-        x.isReferral?('Referral — '+(x.refLabel||'referred family')):(x.org||x.session.contactName||''),x.isOrg?'Yes':'No',x.isRepeat?'Yes':'No',
-        x.amount.toFixed(2),x.estRate!=null?Math.round(x.estRate*100)+'%':'—',
-        (x.estCommission||0).toFixed(2),'NOT PAYABLE YET (estimate, expected '+periodLabel(x.projectedMonth||'')+'): '+(x.estReason||x.reason)]);
-      if(x.estBonus){
-        rows.push(['','','','','','','','','','','','NOT YET PAYABLE','New organizational partner bonus (estimate)','',
-          x.org||'','Yes','No','0.00','flat',x.estBonus.toFixed(2),'NOT PAYABLE YET — first paid program from a new organization (3.C), contingent on money in + class taught']);
-      }
+      rows.push(['','','','','','','','','NOT YET PAYABLE'+(x.projectedMonth?' → '+x.projectedMonth:''),x.session.course,x.session.date||'',
+        x.isReferral?('Referral — '+(x.refLabel||'referred family')):(x.org||x.session.contactName||''),
+        x.amount.toFixed(2),(x.estCommission||0).toFixed(2)]);
     });
   });
-  reportDownloadCSV(rows,'partner-commission-'+partnerPeriod);
+  reportDownloadCSV(rows,'liaison-commission-'+partnerPeriod);
 }
 
 // ─── SCREENS ─────────────────────────────────────────────────
@@ -4781,77 +4762,33 @@ function renderReports(){
       :'<tr><td colspan="3" style="color:var(--muted);padding:18px;text-align:center">No registrations in this period</td></tr>')+
     '</tbody>';
 
-  // ── Partner referrals ──
-  // Every registration that named a person, grouped by the partner it belongs to.
-  // Names that match nobody on the partner list keep their own group, so a referral
-  // from a friend of a friend is not silently dropped. Commission here is the same
-  // §3.A flat rate the statement pays, on the same net figure, so the two agree.
+  // ── Liaison referrals ──
+  // Counts only. Commission is calculated on the Liaisons tab.
   const named=regs.filter(r=>referrerName(r));
   const refGroupMap={};
   named.forEach(r=>{
     const gp=referralPartner(r);
     const key=gp?('p:'+gp.id):('x:'+normRefName(referrerName(r)));
-    if(!refGroupMap[key])refGroupMap[key]={partner:gp,label:gp?gp.name:referrerName(r),regs:[],revenue:0,paid:0,net:0,comm:0,earnedComm:0};
-    const g=refGroupMap[key];
-    g.regs.push(r);
-    g.revenue+=referralRegRevenue(r);
-    if(r.payStatus==='paid')g.paid++;
-    const rc=referralRegCommission(r);
-    g.net+=rc.net;g.comm+=rc.commission;
-    if(rc.earned)g.earnedComm+=rc.commission;
+    if(!refGroupMap[key])refGroupMap[key]={partner:gp,label:gp?gp.name:referrerName(r),regs:[]};
+    refGroupMap[key].regs.push(r);
   });
   const refGroups=Object.values(refGroupMap).sort((a,b)=>(b.partner?1:0)-(a.partner?1:0)||b.regs.length-a.regs.length);
-  const partnerGroups=refGroups.filter(g=>g.partner);
-  const partnerFams=partnerGroups.reduce((n,g)=>n+g.regs.length,0);
-  const partnerRev=partnerGroups.reduce((n,g)=>n+g.revenue,0);
-  const partnerComm=partnerGroups.reduce((n,g)=>n+g.comm,0);
+  const liaisonGroups=refGroups.filter(g=>g.partner);
+  const liaisonFams=liaisonGroups.reduce((n,g)=>n+g.regs.length,0);
   document.getElementById('rep-partner-ref-metrics').innerHTML=`
-    <div class="metric"><div class="m-label">Families sent by a partner</div><div class="m-val">${partnerFams}</div><div class="m-sub">${partnerGroups.length} partner${partnerGroups.length===1?'':'s'} named</div></div>
-    <div class="metric"><div class="m-label">Revenue from those families</div><div class="m-val">${fmt(partnerRev)}</div><div class="m-sub">paid registrations only</div></div>
-    <div class="metric"><div class="m-label">Commission on referrals</div><div class="m-val">${fmt(partnerComm)}</div><div class="m-sub">${Math.round(PARTNER_FLAT_RATE*100)}% of profit, incl. not-yet-payable</div></div>
+    <div class="metric"><div class="m-label">Families who named someone</div><div class="m-val">${named.length}</div></div>
+    <div class="metric"><div class="m-label">Named a liaison</div><div class="m-val">${liaisonFams}</div><div class="m-sub">${liaisonGroups.length} liaison${liaisonGroups.length===1?'':'s'}</div></div>
+    <div class="metric"><div class="m-label">Named someone else</div><div class="m-val">${named.length-liaisonFams}</div></div>
   `;
   document.getElementById('partner-ref-table').innerHTML=
-    '<thead><tr><th>Named on the form</th><th style="text-align:center">Partner?</th><th style="text-align:right">Families</th><th style="text-align:right">Paid</th><th style="text-align:right">Collected</th><th style="text-align:right">Net after costs</th><th style="text-align:right">Commission</th><th style="text-align:right">Payable now</th></tr></thead><tbody>'+
+    '<thead><tr><th>Named on the form</th><th style="text-align:center">Liaison?</th><th style="text-align:right">Families</th></tr></thead><tbody>'+
     (refGroups.length
       ?refGroups.map(g=>`<tr>
           <td style="font-weight:500">${escapeHtml(g.label)}</td>
-          <td style="text-align:center">${g.partner?'<span class="tag paid">Community partner</span>':'<span class="tag" style="background:#eee;color:#777">Not a partner</span>'}</td>
+          <td style="text-align:center">${g.partner?'<span class="tag paid">Liaison</span>':'<span class="tag" style="background:#eee;color:#777">Not a liaison</span>'}</td>
           <td style="text-align:right">${g.regs.length}</td>
-          <td style="text-align:right">${g.paid}</td>
-          <td style="text-align:right">${fmt(g.revenue)}</td>
-          <td style="text-align:right">${g.partner?fmt(g.net):'—'}</td>
-          <td style="text-align:right">${g.partner?fmt(g.comm):'—'}</td>
-          <td style="text-align:right">${g.partner?fmt(g.earnedComm):'—'}</td>
         </tr>`).join('')
-      :'<tr><td colspan="8" style="color:var(--muted);padding:18px;text-align:center">Nobody was named as a referrer in this period</td></tr>')+
-    '</tbody>';
-  document.getElementById('partner-ref-detail').innerHTML=
-    '<thead><tr><th>Referred by</th><th>Family</th><th>Course / date</th><th style="text-align:center">Payment</th><th style="text-align:right">Collected</th><th style="text-align:right">Net</th><th style="text-align:right">Commission</th></tr></thead><tbody>'+
-    (named.length
-      ?named.slice().sort((a,b)=>regCreatedTime(b)-regCreatedTime(a)).map(r=>{
-        const s=sessions.find(x=>x.id===r.sessionId);
-        const d=s?fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'}):'—';
-        const gp=referralPartner(r);
-        const who=r.parentName||r.studentName||'—';
-        const amt=referralRegRevenue(r);
-        const rc=referralRegCommission(r);
-        const status=regRosterStatusHtml(r);
-        const comm=!gp?'—'
-          :rc.originated?'<span style="color:var(--muted);font-size:14px">in her booking</span>'
-          :rc.commission>0?fmt(rc.commission)+(rc.earned?'':' <span style="color:var(--warn);font-size:14px">pending</span>')
-          :r.payStatus==='paid'?'<span title="This session\'s costs use up everything this registration collected. Check that the rest of the roster is marked paid.">'+fmt(0)+'</span>'
-          :'—';
-        return`<tr>
-          <td style="font-weight:500">${escapeHtml(referrerName(r))}${gp?' <span style="color:#6b7a99;font-size:14px">(partner)</span>':''}</td>
-          <td style="color:var(--muted)">${escapeHtml(who)}</td>
-          <td style="font-size:15px">${s?escapeHtml(s.course)+' '+d:'—'}</td>
-          <td style="text-align:center">${status}</td>
-          <td style="text-align:right">${amt>0?fmt(amt):'—'}</td>
-          <td style="text-align:right">${gp&&rc.net>0?fmt(rc.net):'—'}</td>
-          <td style="text-align:right">${comm}</td>
-        </tr>`;
-      }).join('')
-      :'<tr><td colspan="7" style="color:var(--muted);padding:18px;text-align:center">No named referrals in this period</td></tr>')+
+      :'<tr><td colspan="3" style="color:var(--muted);padding:18px;text-align:center">Nobody was named as a referrer in this period</td></tr>')+
     '</tbody>';
   const promo={};
   regs.forEach(r=>{
@@ -4915,19 +4852,18 @@ function exportPromoCSV(){
 
 // One row per family who named a referrer, with the partner it credits.
 function exportPartnerReferralCSV(){
-  const rows=[['Referred by','Community partner?','Family','Course','Class date','Registered','Payment status',
-    'Collected','Net after costs','Rate','Commission','Payable now']];
-  reportRegsInScope().filter(r=>referrerName(r)).forEach(r=>{
-    const s=sessions.find(x=>x.id===r.sessionId);
+  const named=reportRegsInScope().filter(r=>referrerName(r));
+  const groups={};
+  named.forEach(r=>{
     const gp=referralPartner(r);
-    const t=regCreatedTime(r);
-    const rc=referralRegCommission(r);
-    rows.push([referrerName(r),gp?'Yes':'No',r.parentName||r.studentName||'',s?s.course:'',s?(s.date||''):'',
-      t?fmtYMD(new Date(t)):'',r.payStatus||'unpaid',referralRegRevenue(r).toFixed(2),
-      gp?rc.net.toFixed(2):'',gp&&!rc.originated?Math.round(PARTNER_FLAT_RATE*100)+'%':'',
-      gp?rc.commission.toFixed(2):'',rc.originated?'Counted in her originated booking':(rc.earned?'Yes':'Not yet')]);
+    const key=gp?('p:'+gp.id):('x:'+normRefName(referrerName(r)));
+    if(!groups[key])groups[key]={label:gp?gp.name:referrerName(r),liaison:!!gp,count:0};
+    groups[key].count++;
   });
-  reportDownloadCSV(rows,'partner-referrals');
+  const rows=[['Named on the form','Liaison?','Families']];
+  Object.values(groups).sort((a,b)=>(b.liaison?1:0)-(a.liaison?1:0)||b.count-a.count)
+    .forEach(g=>rows.push([g.label,g.liaison?'Yes':'No',g.count]));
+  reportDownloadCSV(rows,'liaison-referrals');
 }
 function exportInKindCSV(){
   const rows=[['Participant','Course','Class date','Registered','In-kind value']];
@@ -5031,7 +4967,14 @@ function renderDashboard(){
   const mComm=monthLiaisonCommission(y+'-'+String(m+1).padStart(2,'0'));
   mCost+=mLinked+mComm;
   const mProfit=mRev-mCost;
-  const totRegs=registrations.filter(r=>r.payStatus!=='cancelled').length;
+  const totRegs=registrations.filter(r=>{
+    const st=String(r.payStatus||'').toLowerCase();
+    if(st==='host'||st==='waitlist'||st==='cancelled'||st==='canceled')return false;
+    const s=sessions.find(x=>x.id===r.sessionId);
+    if(s&&s.date)return String(s.date).slice(0,4)===String(y);
+    const created=r.createdAt?new Date(r.createdAt):null;
+    return !!(created&&!isNaN(created.getTime())&&created.getFullYear()===y);
+  }).length;
   // Host seats and any other $0 comp are settled. They are not unpaid and they
   // add nothing to the balance still owed.
   const unpaid=registrations.filter(r=>r.payStatus==='unpaid'&&regOwesMoney(r)).length;
@@ -5050,8 +4993,8 @@ function renderDashboard(){
     <div class="metric" title="Collected is money already in for ${y}: paid family registrations after PayPal and Venmo fees, plus an organization bill or custom-job fee only once it has been received. Expected is booked organization bills and custom-job fees that have not been received. Booked is Collected plus Expected. Revenue this month stays the booked total for classes dated this month."><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub" style="line-height:1.45"><span style="color:#1d6b45;font-weight:650">Collected ${fmt(yCollected)}</span><br><span style="color:#b86a00;font-weight:650">Expected ${fmt(yExpected)}</span><br>Booked ${fmt(yRev)} for ${y}</div></div>
     <div class="metric" title="Instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Class costs this month</div><div class="m-val red">${fmt(mCost)}</div>${mOverhead?`<div class="m-sub">${fmt(mOverhead)} overhead is on the yearly view</div>`:''}</div>
     <div class="metric" title="Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${fmtSigned(mProfit)}</div><div class="m-sub">Revenue minus class costs and liaison commission</div></div>
-    <div class="metric"><div class="m-label">Total registrations</div><div class="m-val">${totRegs}</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'all paid'}</div></div>
-    <div class="metric"><div class="m-label">Sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled).length}</div>${(()=>{const h=sessions.filter(s=>s.isHold).length;const cx=sessions.filter(s=>s.isCancelled).length;const bits=[];if(h)bits.push(h+' on hold');if(cx)bits.push(cx+' cancelled');return bits.length?`<div class="m-sub">${bits.join(' · ')}</div>`:'';})()}</div>
+    <div class="metric" title="Paid, pending, and unpaid registrations for classes dated this year. Host seats and the waitlist are not included."><div class="m-label">Registrations this year</div><div class="m-val">${totRegs}</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'all paid'}</div></div>
+    <div class="metric" title="Classes still ahead. Holds and cancelled classes are not included."><div class="m-label">Upcoming sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled&&sessionEndDate(s)>=fmtYMD(now)).length}</div></div>
   `;
   // Build a continuous 6-month window anchored on the current month: 3 months
   // back through 2 months ahead. This keeps the current month and next month
@@ -5456,7 +5399,12 @@ function openSessionMenu(ev,sessId){
   items.push({label:'📋 Roster',act:`openRoster('${sessId}')`});
   items.push({label:'✉️ Email class',act:`emailClass('${sessId}')`});
   items.push({label:'➕ Add student',act:`openAddReg('${sessId}')`});
-  if(!isPast&&s.hasHost!==false)items.push({label:'📬 Host reminder — 1 week before',act:`openHostReminder('${sessId}')`});
+  if(!s.isCustomJob&&!s.isCancelled){
+    items.push({label:'Copy registration link',act:`copySessionLink('${sessId}')`});
+    items.push({label:'Copy text message',act:`copySessionTextById('${sessId}')`});
+    if(s.hasHost!==false)items.push({label:'Host letter',act:`openHostLetter('${sessId}')`});
+  }
+  if(!isPast&&s.hasHost!==false)items.push({label:'Host reminder — 1 week before',act:`openHostReminder('${sessId}')`});
   // Email an assigned instructor their session info + roster. Available for upcoming
   // sessions (this is the main way to send the instructor the course details ahead of
   // time) as well as past ones.
@@ -5750,7 +5698,7 @@ async function linkLegacyDuplicate(sessionId, index){
 }
 function openLegacyCostReview(){
   const items=unresolvedLegacyReviewItems();
-  if(!items.length){showToast('No older session costs need review.');return;}
+  if(!items.length){showToast('No session costs need review.');return;}
   const rows=items.map(item=>{
     const s=item.session;
     const c=item.line;
@@ -5764,7 +5712,7 @@ function openLegacyCostReview(){
       <div style="margin-top:6px"><button type="button" class="btn sm" onclick="openLinkedSession('${s.id}')">Open session</button></div>
     </div>`;
   }).join('');
-  showModal(`<div class="modal-head"><h3>Older session costs</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  showModal(`<div class="modal-head"><h3>Costs entered on the session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div style="font-size:15px;color:var(--muted);margin-bottom:8px">${items.length} still need a decision. Nothing is deleted. Move to Finances creates the expense. Already in Finances links one you already entered.</div>${rows}</div>
   <div class="modal-foot"><button class="btn primary" onclick="closeModal()">Close</button></div>`);
 }
@@ -7711,7 +7659,7 @@ function setFinView(v,btn){
   const moSel=document.getElementById('report-month');
   const prBtn=document.getElementById('print-report-btn');
   if(moSel)moSel.style.display=(v==='monthly')?'':'none';
-  if(prBtn)prBtn.textContent=(v==='monthly')?'🖨️ Print monthly report':'🖨️ Print annual report';
+  if(prBtn)prBtn.textContent=(v==='monthly')?'Print monthly report':'Print annual report';
   renderFinances();
 }
 let profitBySessionDir=-1;
@@ -7871,24 +7819,26 @@ function renderFinances(){
     :'PayPal processing fees skimmed off online payments, already deducted from net revenue, not part of expenses';
   const feeCell=yearly?'Included once in total expenses':'Already deducted from net revenue';
   const t=document.getElementById('fin-table');
-  const linkedHead='<th title="Finances expenses linked to a session, placed on the expense date. Counted once.">Session-linked expenses</th>';
-  const otherHead=yearly?'<th title="Finances expenses that are not linked to a session.">Other expenses</th>':'';
-  const olderHead='<th title="Older costs still typed on a session. Resolved lines are not included. On a cancelled session, only a line with a date paid is included.">Older session costs (review)</th>';
-  t.innerHTML=`<thead><tr><th>${yearly?'Year':'Month'}</th><th>Sessions</th><th>Students paid</th><th>${yearly?'Revenue (gross)':'Revenue (net)'}</th><th title="${feeTitle}">Proc. fees</th><th>Instructor fees</th>${linkedHead}${otherHead}${olderHead}<th title="Community partner commission, booked in the month it was earned, money received and class taught. Do not also log these payouts on the Expenses tab or you will count them twice.">Partner commission</th><th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
+  const sumKey=key=>keys.reduce((a,k)=>a+(Number(buckets[k]&&buckets[k][key])||0),0);
+  const optCols=[
+    {show:sumKey('fee')!==0,head:`<th title="${feeTitle}">Processing fees</th>`,cell:b=>`<td style="color:${yearly?'var(--danger)':'var(--muted)'}" title="${feeCell}">${fmt(b.fee||0)}</td>`},
+    {show:sumKey('instr')!==0,head:'<th>Instructor fees</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.instr||0)}</td>`},
+    {show:sumKey('linked')!==0,head:'<th title="Finances expenses linked to a session, placed on the expense date. Counted once.">Session-linked expenses</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.linked||0)}</td>`},
+    {show:yearly&&sumKey('overhead')!==0,head:'<th title="Finances expenses that are not linked to a session.">Other expenses</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`},
+    {show:sumKey('legacy')!==0,head:'<th title="Costs still typed on a session. Lines already moved to Finances are not included. On a cancelled session, only a line with a date paid is included.">Costs entered on the session</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.legacy||0)}</td>`},
+    {show:sumKey('comm')!==0,head:'<th title="Liaison commission, booked in the month it was earned, once the money is received and the class is taught. Do not also log these payouts as expenses or you will count them twice.">Liaison commission</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.comm||0)}</td>`}
+  ].filter(c=>c.show);
+  const finColspan=6+optCols.length;
+  t.innerHTML=`<thead><tr><th>${yearly?'Year':'Month'}</th><th>Sessions</th><th>Students paid</th><th>${yearly?'Revenue (gross)':'Revenue (net)'}</th>${optCols.map(c=>c.head).join('')}<th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
     (keys.length?keys.map(k=>{
       const b=buckets[k];
       const label=yearly?k:new Date(k+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'});
       return`<tr><td style="font-weight:500">${label}</td><td>${b.sess}</td><td>${b.students}</td>
         <td style="font-weight:500">${fmt(b.gross)}</td>
-        <td style="color:${yearly?'var(--danger)':'var(--muted)'}" title="${feeCell}">${fmt(b.fee||0)}</td>
-        <td style="color:var(--danger)">${fmt(b.instr||0)}</td>
-        <td style="color:var(--danger)">${fmt(b.linked||0)}</td>
-        ${yearly?`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`:''}
-        <td style="color:var(--danger)">${fmt(b.legacy||0)}</td>
-        <td style="color:var(--danger)">${fmt(b.comm||0)}</td>
+        ${optCols.map(c=>c.cell(b)).join('')}
         <td style="color:var(--danger)">${fmt(b.expenses)}</td>
         <td style="font-weight:500;color:${b.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(b.profit)}</td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="${yearly?12:11}">No financial data yet.</td></tr>`)+'</tbody>';
+    }).join(''):`<tr class="empty-row"><td colspan="${finColspan}">No financial data yet.</td></tr>`)+'</tbody>';
   const feeHost=document.getElementById('fin-fee-section');
   if(feeHost){
     if(!yearly)feeHost.innerHTML='';
@@ -7918,6 +7868,7 @@ const REG_PAGE='https://register.mindfulbeginnings.org/register.html';
 
 function renderCodes(){
   const el=document.getElementById('codes-list');
+  if(!el)return;
   const today=fmtYMD(new Date());
   const list=sessions.filter(s=>{
     if(!s||s.isHold||s.isCancelled||s.isCustomJob)return false;
@@ -7952,6 +7903,15 @@ function renderCodes(){
       </div>
     </div>`;
   }).join('');
+}
+function copySessionLink(sessId){
+  const s=sessions.find(x=>x.id===sessId);if(!s)return;
+  copyLink(REG_PAGE+'?code='+encodeURIComponent(s.code||''));
+}
+function copySessionTextById(sessId){
+  const s=sessions.find(x=>x.id===sessId);if(!s)return;
+  const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  copyText(s.code,s.course,d,s.time||'',s.location||'',sessionListPrice(s));
 }
 function copySessionText(btn){
   const s=sessions.find(x=>x.id===(btn&&btn.getAttribute('data-sid')));
@@ -8188,14 +8148,14 @@ function renderInstructors(){
         <td style="color:var(--muted);font-size:15px">${i.phone||'—'}</td>
         <td style="color:var(--muted);font-size:15px">${i.zelle||'—'}</td>
         <td style="font-weight:500;color:var(--success)">$${i.hourlyRate||50}/hr</td>
-        <td><span class="pin-badge">${i.pin}</span>${i.pinChangeRequired?'<div style="font-size:13px;color:var(--warn);margin-top:3px">⏳ PIN change pending</div>':''}</td>
+        <td><span class="pin-badge" data-pin="${escapeHtml(i.pin||'')}">••••</span> <button type="button" class="btn sm" onclick="event.stopPropagation();toggleInstructorPin(this)">${i.pin?'Show':'—'}</button>${i.pinChangeRequired?'<div style="font-size:13px;color:var(--warn);margin-top:3px">PIN change pending</div>':''}</td>
         <td style="font-size:15px">${i.safeSitterTrainingDate?trainDate:(i.safeSitterCertified===false?'<span style="color:var(--muted)">Not trained</span>':'<span style="color:var(--warn);font-weight:500" title="This instructor has not entered a Safe Sitter® training date in their portal yet">⚠ Needed</span>')}</td>
         <td style="font-size:15px;color:${i.sweatshirtSize?'var(--text)':'var(--muted)'}">${i.sweatshirtSize||'—'}</td>
         ${(()=>{const tc=classesTaughtBy(i.id),pc=classesPendingBy(i.id);return`<td style="font-weight:600;font-size:18px;color:${tc?'var(--success)':'var(--muted)'}">${tc||'—'}</td><td style="font-weight:600;font-size:18px;color:${pc?'var(--sky)':'var(--muted)'}">${pc||'—'}</td>`;})()}
         <td style="color:${totalPendingAmt>0?'var(--warn)':'var(--muted)'}">${totalPendingAmt?fmt(totalPendingAmt):'—'}</td>
         <td style="color:var(--success);font-weight:500">${totalPaidAmt?fmt(totalPaidAmt):'—'}</td>
         <td><div class="btn-row">
-          <button class="btn sm primary" onclick="event.stopPropagation();openInstructorProfile('${i.id}')">👤 Profile</button>
+          <button class="btn sm primary" onclick="event.stopPropagation();openInstructorProfile('${i.id}')">Profile</button>
           <button class="btn sm" onclick="event.stopPropagation();openEditInstructor('${i.id}')">Edit</button>
           ${instrActive(i)
             ?`<button class="btn sm" onclick="event.stopPropagation();setInstructorActive('${i.id}',false)" title="Move off the roster. Keeps their record and pay history.">📁 Make inactive</button>`
@@ -8206,6 +8166,16 @@ function renderInstructors(){
           <table style="width:100%;border-collapse:collapse">${jobRows||`<tr><td colspan="12" style="padding:10px 32px;font-size:15px;color:var(--muted);font-style:italic">No jobs assigned yet.</td></tr>`}</table>
         </td></tr>`;
     }).join(''):`<tr class="empty-row"><td colspan="14">${instrTab==='inactive'?'Nobody is inactive. Use <strong>Make inactive</strong> on the Active tab to move someone off the roster.':'No active instructors yet.'}</td></tr>`)+'</tbody>';
+}
+function toggleInstructorPin(btn){
+  const badge=btn.previousElementSibling;
+  if(!badge)return;
+  const pin=badge.getAttribute('data-pin')||'';
+  if(!pin)return;
+  const open=badge.getAttribute('data-open')==='1';
+  badge.textContent=open?'••••':pin;
+  badge.setAttribute('data-open',open?'0':'1');
+  btn.textContent=open?'Show':'Hide';
 }
 function toggleInstructorJobs(row){
   const next=row.nextElementSibling;
@@ -8565,100 +8535,8 @@ function jobStatus(s,jd){
 }
 
 function renderJobs(){
-  // The Jobs & materials screen was removed — bail out quietly when other code
-  // paths (wrap-up, dashboard toggles) still call this for a refresh.
-  const el=document.getElementById('jobs-list');
-  if(!el)return;
-  const jd=jobDataCache;
-  const sf=document.getElementById('jf-status').value;
-  const mf=document.getElementById('jf-month').value;
-  let list=sessions.filter(s=>{
-    if(s.isHold||s.isCancelled)return false;
-    if(mf&&!s.date.startsWith(mf))return false;
-    const jdi=jd[s.id]||{};
-    if(sf){const st=jobStatus(s,jdi);if(st.key!==sf)return false;}
-    return true;
-  }).sort((a,b)=>b.date.localeCompare(a.date));
-  if(!list.length){el.innerHTML='<div style="color:var(--muted);font-size:16px;padding:20px 0">No sessions found.</div>';return;}
-  el.innerHTML=list.map(s=>{
-    const jdi=jd[s.id]||{};
-    const st=jobStatus(s,jdi);
-    const instr=jdi.instructorId?instructors.find(x=>x.id===jdi.instructorId):null;
-    const waitlist=(jdi.waitlist||[]).map(id=>instructors.find(x=>x.id===id)?.name||'?').join(', ');
-    const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-    const c=COURSES[s.course]||{};
-    const instrRate=instr?(instr.hourlyRate||INSTR_RATE):INSTR_RATE;
-    const instrFee=instrDisplayFee(s,instr,jdi);
-    const instrOpts=instrPickList(jdi.instructorId).map(i=>`<option value="${i.id}" ${jdi.instructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMarkSession(i,s)}${instrInactiveMark(i)}</option>`).join('');
-    // Co-instructor display block (shown whether you teach or a primary instructor is hired).
-    const secondInstrBlock=s.secondInstructorId?(()=>{const i2=instructors.find(x=>x.id===s.secondInstructorId);if(!i2)return'';const i2Fee=secondInstrDisplayFee(s,i2,jdi);const i2Paid=jdi.secondInstrPaid;const i2PayCtrl=i2Paid?`<div class="tag paid" style="margin-top:6px">✓ Paid via Zelle${jdi.secondInstrPayDate?' · '+jdi.secondInstrPayDate:''}</div> <button class="btn sm" style="margin-top:6px" onclick="toggleSecondInstrPaid('${s.id}')">Undo</button>`:`<button class="btn sm success" style="margin-top:6px" onclick="toggleSecondInstrPaid('${s.id}')">Mark second instructor paid</button>`;return`<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)"><div style="font-size:14px;font-weight:500;color:var(--sky);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">+ ${s.ownerTaught?'Co-instructor':'Second instructor'}</div><div style="font-weight:500;font-size:16px">${i2.name}</div><div style="font-size:14px;color:var(--muted);margin-top:2px">Zelle: ${i2.zelle||'not set'} · Fee: ${fmt(i2Fee)}</div>${i2PayCtrl}</div>`;})():'';
-    return`<div class="job-card">
-      <div class="job-card-head">
-        <div><div class="job-course">${s.course} ${s.isRecurring?recurBadge(s):''}</div><div class="job-meta">${s.isRecurring?'First meeting ':''}${d} · ${s.time||''} · ${s.location||''}${s.city?', '+s.city:''}${s.state?' '+s.state:''}${s.isRecurring?` · runs ${RECUR_NAMES[s.recurPattern]?RECUR_NAMES[s.recurPattern].toLowerCase():'recurring'} through ${new Date(s.recurEndDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`:''}</div></div>
-        <span class="status-pill ${st.cls}">${st.label}</span>
-      </div>
-      <div class="job-sections">
-        <div class="job-section">
-          <div class="job-section-title">Instructor</div>
-          ${s.ownerTaught
-            ? `<div style="font-weight:500;font-size:16px">You (owner)</div><div style="font-size:14px;color:var(--muted);margin-top:2px">No instructor fee</div>${secondInstrBlock}`
-            : `<select style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif" onchange="assignInstructor('${s.id}',this.value)">
-            <option value="">— Unassigned —</option>${instrOpts}
-          </select>
-          ${instr?`<div style="font-size:14px;color:var(--muted);margin-top:4px">Zelle: ${instr.zelle||'not set'} · Fee: ${fmt(instrFee)}</div>`:''}
-          ${secondInstrBlock}
-          ${s.allowWaitlist===false?`<div class="waitlist-names">🚫 Waitlist off for this class</div>`:(waitlist?`<div class="waitlist-names">Waitlist: ${waitlist}</div>`:'')}`
-          }
-        </div>
-        ${s.isCustomJob?`<div class="job-section">
-          <div class="job-section-title">Job details</div>
-          <div style="font-size:15px;color:var(--muted);line-height:1.6">Flat-rate job — no materials or host evaluation required.${sessionRequiresRN(s)?'<br><span style="color:#2d7a5e;font-weight:500">🩺 RN instructors only — hidden from everyone else\'s job board</span>':''}${sessionRequiresSafeSitter(s)?'<br><span style="color:#1a5c8a;font-weight:500">🧒 Safe Sitter® instructors only — hidden from everyone else\'s job board</span>':''}${s.isRecurring?'<br><span style="color:#1a5c8a;font-weight:500">↻ Recurring: '+recurLabel(s)+(s.time?', '+s.time:'')+'</span>':''}${s.contactName||s.hostPhone?'<br>📞 On-site: <strong style="color:var(--text)">'+escapeHtml([s.contactName,s.hostPhone].filter(Boolean).join(' · '))+'</strong>':''}${(()=>{const cs=(s.additionalCosts||[]).filter(c=>Number(c.amount||0)>0&&!isPerStudentMaterialLine(c));if(!cs.length)return'';const tot=cs.reduce((a,c)=>a+Number(c.amount||0),0);return'<br>💵 Job costs: <strong style="color:#c0392b">'+fmt(tot)+'</strong> <span style="font-size:14px">('+escapeHtml(cs.map(c=>(c.label||'unlabeled')).join(', '))+')</span>';})()}${s.notes?'<br>📝 '+s.notes:''}</div>
-        </div>`:`<div class="job-section">
-          <div class="job-section-title">Handbooks &amp; supplies delivery</div>
-          <select style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif" onchange="setMaterialsMethod('${s.id}',this.value)">
-            <option value="">— Not set —</option>
-            <option value="ship-host" ${jdi.materialsMethod==='ship-host'?'selected':''}>Ship to host</option>
-            <option value="pickup" ${jdi.materialsMethod==='pickup'?'selected':''}>Instructor picks up</option>
-          </select>
-          <div style="margin-top:8px">
-            <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer">
-              <input type="checkbox" ${jdi.materialsSent?'checked':''} onchange="toggleMaterials('${s.id}',this.checked)" style="accent-color:var(--sky)">
-              <span>${jdi.materialsMethod==='ship-host'?'Materials shipped to host':'Materials picked up / sent'}</span>
-            </label>
-          </div>
-        </div>
-        <div class="job-section">
-          <div class="job-section-title">Evaluation</div>
-          <label style="display:flex;align-items:center;gap:6px;font-size:15px;cursor:pointer">
-            <input type="checkbox" ${jdi.evalReceived?'checked':''} onchange="toggleEval('${s.id}',this.checked)" style="accent-color:var(--sky)">
-            <span>Host evaluation received</span>
-          </label>
-          ${jdi.evalReceived&&!isInstructorPaymentDone(s,jdi)?`<div style="margin-top:8px"><span class="tag paid" style="font-size:14px">✓ Ready to pay ${instr?instr.name:''}</span></div>`:''}
-        </div>`}
-        <div class="job-section">
-          <div class="job-section-title">Payment${s.ownerTaught?'':' — '+fmt(instrFee+(jdi.referralBonus||0))}</div>
-          ${s.ownerTaught
-            ?`<div class="tag paid" style="font-size:14px">✓ You taught this session</div>
-              <div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">No primary instructor payment.${s.secondInstructorId?' See co-instructor row above for second-instructor pay.':''}</div>`
-            :`${(jdi.referralBonus||0)>0?`<div style="font-size:14px;color:var(--muted);margin-bottom:6px">Base: ${fmt(instrFee)} · Referral bonus: ${fmt(jdi.referralBonus)}</div>`:''}
-          <div style="margin-bottom:8px">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:2px">Referral bonus ($)</label>
-            <input type="number" min="0" step="1" value="${jdi.referralBonus||''}" placeholder="0" ${jdi.payStatus==='paid'?'disabled':''} style="width:80px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif" onblur="setReferralBonus('${s.id}',this.value)">
-          </div>
-          ${jdi.payStatus==='paid'
-            ?`<div class="tag paid">✓ Paid via Zelle</div><div style="font-size:14px;color:var(--muted);margin-top:4px">${jdi.payDate||''}</div>`
-            :`<div style="margin-bottom:8px;font-size:15px;color:var(--muted)">${instr?'Zelle: '+(instr.zelle||'not set'):'No instructor assigned'}</div>
-             <button class="btn sm ${(s.isCustomJob?jdi.instructorId:(jdi.evalReceived&&jdi.instructorId))?'success':''}" ${(s.isCustomJob?!jdi.instructorId:(!jdi.evalReceived||!jdi.instructorId))?'disabled style="opacity:.4;cursor:not-allowed"':''} onclick="markPaid('${s.id}')">Mark paid via Zelle</button>`}`}
-        </div>
-      </div>
-      <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:center">
-        <span style="font-size:14px;color:var(--muted)">Notes:</span>
-        <input type="text" value="${jdi.notes||''}" placeholder="Add notes..." style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif" onblur="saveJobNote('${s.id}',this.value)">
-      </div>
-    </div>`;
-  }).join('');
+  // The Jobs & materials screen was removed. Callers still refresh through this.
 }
-
 function assignInstructor(sessId,instrId){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   jobDataCache[sessId].instructorId=instrId||null;
@@ -9079,7 +8957,7 @@ function openDocEmail(opts){
   const first=panes[0];
   const html=[
     '<!DOCTYPE html><html><head><title>',esc(first.category),'</title>',
-    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">',
+    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">',
     '<style>',
     '*{box-sizing:border-box;margin:0;padding:0}',
     'body{font-family:\'DM Sans\',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.6}',
@@ -13067,7 +12945,7 @@ function printYearReport(){
       const allCats={};
       if(tot.instr>0)allCats['Instructor fees']=tot.instr;
       if(tot.comm>0)allCats['Partner commission']=tot.comm;
-      if(tot.legacy>0)allCats['Older session costs']=tot.legacy;
+      if(tot.legacy>0)allCats['Costs entered on the session']=tot.legacy;
       if(tot.fee>0)allCats['Payment processing fees']=tot.fee;
       Object.entries(catBuckets).forEach(([k,v])=>{if(v>0)allCats[k]=(allCats[k]||0)+v;});
       const grandTotal=Object.values(allCats).reduce((s,v)=>s+v,0);
@@ -13118,7 +12996,7 @@ function printYearReport(){
             <strong style="color:#1a2744">How these are counted:</strong><br>
             <em>Instructor fees</em>: hourly rate times course hours, plus one paid hour of travel at the same rate (virtual courses have no travel), or a flat fee where the course has one. A cancelled session counts only instructor pay that was marked paid, with the amount frozen at that time. Handbook and student-supply purchases are other expenses, entered when you order them.<br>
             <em>Session-linked expenses</em>: Finances expenses tied to a session, counted once on the expense date, including when that session was cancelled.<br>
-            <em>Older session costs</em>: facility rental, parking, printing, and other costs still typed on that class or job. A line already moved to Finances is not counted again. On a cancelled session, only a line with a date paid is counted.<br>
+            <em>Costs entered on the session</em>: facility rental, parking, printing, and other costs still typed on that class or job. A line already moved to Finances is not counted again. On a cancelled session, only a line with a date paid is counted.<br>
             <em>Payment processing fees</em>: PayPal, Venmo, and card fees on paid family registrations (2.99% + $0.49). A cost, subtracted once. Organization invoices are not included. Cancelled sessions do not add these fees.
           </div>
         </div>
@@ -13334,7 +13212,7 @@ function printMonthReport(){
         <tr><td>Revenue</td><td style="text-align:right;font-weight:500">${fmtN(tot.rev)}</td></tr>
         <tr><td>Instructor fees</td><td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td></tr>
         <tr><td>Session-linked expenses</td><td style="text-align:right;color:#c0392b">${fmtN(tot.linked)}</td></tr>
-        <tr><td>Older session costs</td><td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td></tr>
+        <tr><td>Costs entered on the session</td><td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td></tr>
         ${tot.comm?`<tr><td>Community partner commission</td><td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td></tr>`:''}
         <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td></tr>
       </tbody>
