@@ -78,6 +78,52 @@ test('PayPal capture path writes paypal method through paypalCapturePatch', () =
   assert.match(markPaid, /patch\.price_paid = amt/);
 });
 
+test('admin settlement helpers match the library, and the roster does not treat a host as unpaid', () => {
+  const helpers = extractBetween(admin, '// SETTLEMENT_HELPERS_START', '// SETTLEMENT_HELPERS_END');
+  const sandbox = {};
+  vm.createContext(sandbox);
+  vm.runInContext(helpers, sandbox);
+
+  const rows = [
+    [{ payStatus: 'host', pricePaid: null }, 150],
+    [{ payStatus: 'unpaid', pricePaid: 0 }, 185],
+    [{ payStatus: 'unpaid', pricePaid: null }, 150],
+    [{ payStatus: 'pending' }, 25],
+    [{ payStatus: 'paid', pricePaid: 0 }, 185],
+    [{ payStatus: 'paid', pricePaid: 150 }, 150],
+    [{ payStatus: 'in_kind' }, 185],
+    [{ payStatus: 'waitlist' }, 40],
+    [{ payStatus: 'cancelled' }, 40],
+    [{ pay_status: 'free', price_paid: null }, 40],
+    [{ payStatus: 'unpaid' }, null]
+  ];
+  rows.forEach(function (pair) {
+    const row = pair[0];
+    const price = pair[1];
+    assert.equal(sandbox.registrationOwesMoney(row, price), lib.registrationOwesMoney(row, price));
+    assert.equal(sandbox.registrationIsSettled(row, price), lib.registrationIsSettled(row, price));
+    assert.equal(sandbox.rosterSettlementLabel(row, price), lib.rosterSettlementLabel(row, price));
+    assert.equal(sandbox.rosterSettlementTagClass(row, price), lib.rosterSettlementTagClass(row, price));
+  });
+
+  assert.equal(sandbox.rosterSettlementLabel({ payStatus: 'host' }, 150), 'Comped/Host');
+  const regs = admin.slice(admin.indexOf('function renderRegs'), admin.indexOf('function renderRegAlerts'));
+  assert.match(regs, /regRosterStatusHtml\(r\)/);
+  assert.match(regs, /regOwesMoney\(r\)/);
+  assert.match(regs, /Mark unpaid/);
+  assert.ok(regs.includes("regOwesMoney(r)?`<button class=\"btn sm success\" onclick=\"togglePaid('${r.id}')\">Mark paid</button>`"));
+  assert.match(helpers, /Comped\/Host/);
+  const dashStart = admin.indexOf('const totRegs=registrations.filter');
+  const dash = admin.slice(dashStart, dashStart + 900);
+  assert.match(dash, /payStatus==='unpaid'&&regOwesMoney\(r\)/);
+  assert.match(dash, /regOwesMoney\(r\)/);
+  const fin = admin.slice(admin.indexOf('function calcFin'), admin.indexOf('function financeSessionFigures'));
+  assert.match(fin, /regs\.filter\(r=>r\.payStatus==='paid'\)/);
+  const alerts = admin.slice(admin.indexOf('function renderRegAlerts'), admin.indexOf('function regModalCourse'));
+  assert.match(alerts, /payStatus==='pending'&&regOwesMoney\(r\)/);
+  assert.match(admin, /rosterSettlementLabel\(r,list\)/);
+});
+
 test('payment method migration adds columns and does not backfill old rows', () => {
   assert.match(migration, /add column if not exists payment_method text/);
   assert.match(migration, /add column if not exists payment_ref text/);

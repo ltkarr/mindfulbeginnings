@@ -20,7 +20,13 @@ const {
   formatPaymentMethodDisplay,
   paymentHowText,
   suggestPaymentMethod,
-  adminTogglePaidPatch
+  adminTogglePaidPatch,
+  registrationStatus,
+  registrationOwesMoney,
+  registrationIsSettled,
+  rosterSettlementLabel,
+  rosterSettlementTagClass,
+  findPaymentMatches
 } = require('../lib/payment-utils');
 
 test('parseMoney and formatMoney round to cents', () => {
@@ -38,6 +44,72 @@ test('isChargeableAmount rejects zero, negative, and huge totals', () => {
   assert.equal(isChargeableAmount(-5), false);
   assert.equal(isChargeableAmount(5000), false);
   assert.equal(isChargeableAmount('215.00'), true);
+});
+
+test('host and $0 comps are settled and owe nothing; real unpaid rows still owe the class price', () => {
+  const host = { payStatus: 'host', pricePaid: null, studentName: 'Ella Chandler' };
+  assert.equal(registrationStatus(host), 'host');
+  assert.equal(registrationOwesMoney(host, 150), false);
+  assert.equal(registrationIsSettled(host, 150), true);
+  assert.equal(rosterSettlementLabel(host, 150), 'Comped/Host');
+  assert.equal(rosterSettlementTagClass(host, 150), 'host');
+
+  const zero = { pay_status: 'unpaid', price_paid: 0 };
+  assert.equal(registrationOwesMoney(zero, 185), false);
+  assert.equal(registrationIsSettled(zero, 185), true);
+  assert.equal(rosterSettlementLabel(zero, 185), 'Comped');
+
+  const freeClass = { payStatus: 'pending', pricePaid: null };
+  assert.equal(registrationOwesMoney(freeClass, 0), false);
+  assert.equal(registrationIsSettled(freeClass, 0), true);
+
+  const unpaid = { payStatus: 'unpaid', pricePaid: null };
+  assert.equal(registrationOwesMoney(unpaid, 150), true);
+  assert.equal(registrationIsSettled(unpaid, 150), false);
+  assert.equal(rosterSettlementLabel(unpaid, 150), 'unpaid');
+  assert.equal(rosterSettlementTagClass(unpaid, 150), 'unpaid');
+
+  const pending = { payStatus: 'pending' };
+  assert.equal(registrationOwesMoney(pending, 25), true);
+  assert.equal(rosterSettlementLabel(pending, 25), 'pending');
+
+  const paid = { payStatus: 'paid', pricePaid: 150 };
+  assert.equal(registrationOwesMoney(paid, 150), false);
+  assert.equal(registrationIsSettled(paid, 150), true);
+  assert.equal(rosterSettlementLabel(paid, 150), 'paid');
+  assert.equal(rosterSettlementTagClass(paid, 150), 'paid');
+
+  const paidZero = { payStatus: 'paid', pricePaid: 0 };
+  assert.equal(rosterSettlementLabel(paidZero, 185), 'paid');
+  assert.equal(registrationOwesMoney(paidZero, 185), false);
+
+  const inKind = { payStatus: 'in_kind' };
+  assert.equal(registrationOwesMoney(inKind, 185), false);
+  assert.equal(rosterSettlementLabel(inKind, 185), 'in-kind');
+  assert.equal(rosterSettlementTagClass(inKind, 185), 'in_kind');
+
+  assert.equal(registrationIsSettled({ payStatus: 'waitlist' }, 0), false);
+  assert.equal(registrationIsSettled({ payStatus: 'cancelled' }, 0), false);
+  assert.equal(registrationOwesMoney({ payStatus: 'unpaid' }, null), true);
+});
+
+test('payment matching skips a $0 seat and still matches a real unpaid registration', () => {
+  const rows = [
+    { id: 'host-row-1', payStatus: 'host', studentName: 'Ella Chandler', parentName: 'Lynne Chandler', contact: 'letyahoo@yahoo.com' },
+    { id: 'zero-row-1', payStatus: 'unpaid', pricePaid: 0, studentName: 'Comp Kid', parentName: 'Comp Parent', contact: 'comp@example.com' },
+    { id: 'due-row-01', payStatus: 'unpaid', studentName: 'Due Kid', parentName: 'Due Parent', contact: 'due@example.com' }
+  ];
+  const hits = findPaymentMatches({
+    amount: 150,
+    payer: 'Due Parent due@example.com',
+    memo: 'host-row-1 zero-row-1',
+    registrations: rows,
+    priceOf: function (r) {
+      if (r.pricePaid === 0) return 0;
+      return 150;
+    }
+  });
+  assert.deepEqual(hits.map(function (h) { return h.id; }), ['due-row-01']);
 });
 
 test('paid-status guards never overwrite host / in_kind / paid', () => {
