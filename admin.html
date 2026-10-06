@@ -336,7 +336,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div id="instructor-milestones" style="margin-bottom:16px"></div>
       <div id="reminder-alerts" style="margin-bottom:16px"></div>
       <div class="card">
-        <div class="card-title" title="Session operating figures only — partner commission and overhead are on the Finances tab">Revenue by month</div>
+        <div class="card-title" title="Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view.">Revenue by month</div>
         <div id="monthly-chart"></div>
         <div class="chart-legend">
           <span><span class="legend-dot" style="background:#2d7a5e"></span>Kept (profit)</span>
@@ -2208,6 +2208,12 @@ function dashboardChartRevenue(now){
     if(!buckets[k])return;
     buckets[k].cost+=Number(e.amount)||0;
   });
+  // Same class-profit definition as the dashboard and the Finances monthly table.
+  // Liaison commission is earned by month, not stored as an expense row.
+  if(typeof partnerCommissionByMonth==='function'){
+    const commBy=partnerCommissionByMonth();
+    keys.forEach(k=>{buckets[k].cost+=Number(commBy&&commBy[k])||0;});
+  }
   keys.forEach(k=>{buckets[k].profit=buckets[k].rev-buckets[k].cost;});
   return {keys:keys,buckets:buckets};
 }
@@ -2478,7 +2484,7 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 //  §3.D  "Collected Revenue" = fees ACTUALLY RECEIVED, net of refunds, discounts,
 //        taxes and payment-processing fees. Money not yet collected earns nothing,
 //        so uninvoiced and unpaid work sits in "Awaiting collection" until it lands.
-//  §3.F  Repeat and renewal bookings — see PARTNER_SETTINGS.repeatPolicy.
+//  §3.F  Retired. Repeat bookings earn the same 40% of profit. There is no 10% path.
 
 // Amended Section 3, effective with the revised liaison agreement: one flat rate
 // on profit, not on gross revenue. The monthly volume ladder, and the
@@ -2498,20 +2504,9 @@ const PARTNER_ACCEL_MIN=Infinity;  // §3.B retired — no volume accelerator
 const PARTNER_ACCEL_RATE=PARTNER_FLAT_RATE;
 const PARTNER_NEW_ORG_BONUS=0;     // §3.C retired — no new-organization bonus
 
-// Two judgment calls the contract leaves open. Both are switchable from the
-// Partners screen, and both are saved in this browser so they stick.
-//
-//   accelGrouping — §3.B says "a single organizational contract ... for a single
-//     program or multi-session booking". 'booking' treats each session row as one
-//     contract (a recurring or multi-day booking is a single row, so it already
-//     counts as one). 'org-month' treats everything one organization collects in a
-//     month as one contract, which is the more generous reading.
-//
-//   repeatPolicy — §3.F says repeat and renewal bookings earn the 10% baseline,
-//     "unless part of a new monthly volume push that qualifies for higher tiers".
-//     'tier' honours that carve-out: repeats count toward volume and earn the
-//     month's tier rate. 'flat10' is the conservative reading: repeats still count
-//     toward volume for tier purposes but are themselves paid at 10%.
+// Older builds saved a 10% repeat setting and an accelerator grouping in this
+// browser. Those choices no longer change the rate. Commission is always 40%
+// of profit, and the floor is $0.
 const PARTNER_SETTINGS_DEFAULTS={accelGrouping:'booking',repeatPolicy:'tier'};
 let _partnerSettings=null;
 function partnerSettings(){
@@ -2601,7 +2596,7 @@ function sessionOrgCollectedDate(s){
 function regCollectedDate(r){
   const t=regCreatedTime(r);
   if(!t)return '';
-  return new Date(t).toISOString().slice(0,10);
+  return fmtYMD(new Date(t));
 }
 
 // ─── WHEN IS THE COMMISSION ACTUALLY EARNED? ─────────────────
@@ -2784,34 +2779,16 @@ function nextTierFor(monthTotal){
   return i<PARTNER_TIERS.length-1?PARTNER_TIERS[i+1]:null;
 }
 
-// Assigns §3.A / §3.B / §3.F rates onto statement rows. monthTotal is the
-// volume that sets the tier — collected revenue for earned rows, or collected
-// plus pending for a not-yet-payable estimate. Mutates each row with rate,
-// reason, commission and accelerated.
+// Always 40% of profit. monthTotal and cfg are ignored. A saved "Flat 10%"
+// choice or an accelerator grouping cannot change the rate. Profit below $0
+// pays nothing. Lindsay keeps the other 60%.
 function applyPartnerRowRates(rows,monthTotal,cfg){
-  cfg=cfg||partnerSettings();
-  const tier=tierFor(monthTotal);
-  const groupKey=r=>cfg.accelGrouping==='org-month'&&r.isOrg?('org:'+(r.org||'').toLowerCase()):('sess:'+r.sessionId);
-  const groupTotals={};
-  rows.forEach(r=>{const k=groupKey(r);groupTotals[k]=round2((groupTotals[k]||0)+(Number(r.collected)||0));});
   rows.forEach(r=>{
-    let rate=tier.rate;
-    let reason=`${tier.name} (${tier.label}) — ${Math.round(tier.rate*100)}% on the month's total`;
-    r.accelerated=false;
-    if(cfg.repeatPolicy==='flat10'&&r.isRepeat&&rate>0.10){
-      rate=0.10;reason='Repeat / renewal booking — 10% baseline (§3.F)';
-    }
-    const gt=groupTotals[groupKey(r)]||0;
-    if(r.isOrg&&gt>=PARTNER_ACCEL_MIN&&rate<PARTNER_ACCEL_RATE){
-      rate=PARTNER_ACCEL_RATE;r.accelerated=true;
-      reason=`Large-scale organizational accelerator — ${fmtPlain(gt)} contract earns ${Math.round(PARTNER_ACCEL_RATE*100)}% (§3.B)`;
-    }
-    // §3.A — 40% of profit, not of gross or collected revenue. Profit is what is
-    // left after direct costs. A booking that cost more to deliver than it brought
-    // in pays no commission rather than a negative one; she is never charged for
-    // a job that lost money. Lindsay keeps the other 60%.
+    const rate=PARTNER_FLAT_RATE;
     const base=Math.max(0,Number(r.net!=null?r.net:r.collected)||0);
-    r.rate=rate;r.commission=round2(base*rate);
+    r.rate=rate;
+    r.accelerated=false;
+    r.commission=round2(base*rate);
     r.reason=`${Math.round(rate*100)}% of ${fmtPlain(base)} profit (${fmtPlain(Number(r.collected)||0)} collected less ${fmtPlain(Number(r.costs)||0)} direct costs; not a share of gross)`
       +(r.isReferral?' — referred family, this registration only':'');
   });
@@ -2842,6 +2819,10 @@ function partnerCommissionByMonth(){
   });
   _commCache=out;
   return out;
+}
+function monthLiaisonCommission(key){
+  const by=partnerCommissionByMonth();
+  return round2(Number(by&&by[key])||0);
 }
 // Commission earned in one calendar year, month by month (index 0-11).
 function partnerCommissionMonths(year){
@@ -3511,7 +3492,7 @@ async function saveOrgPartner(editId){
   let p;
   if(editId){p=orgPartnerById(editId);if(!p)return;Object.assign(p,data);}
   else{p={id:sid(),contractSignedDate:'',createdAt:Date.now(),...data};orgPartners.push(p);}
-  if(data.contractSigned&&!p.contractSignedDate)p.contractSignedDate=new Date().toISOString().slice(0,10);
+  if(data.contractSigned&&!p.contractSignedDate)p.contractSignedDate=fmtYMD(new Date());
   if(!data.contractSigned)p.contractSignedDate='';
   orgPartners.sort((a,b)=>a.name.localeCompare(b.name));
   closeModal();renderOrgPartners();
@@ -3544,7 +3525,7 @@ async function markOrgPaid(partnerId){
   const p=orgPartnerById(partnerId);
   if(!p||st.share<=0)return;
   if(!p.contractSigned&&!confirm('There is no signed Community Partnership Agreement on file for '+p.name+'. Record this payment anyway?'))return;
-  const today=new Date().toISOString().slice(0,10);
+  const today=fmtYMD(new Date());
   const breakdown={sharePct:p.sharePct,overheadPct:p.overheadPct,
     collected:st.collected,costs:st.costs,overhead:st.overhead,net:st.net,share:st.share,
     lines:st.rows.map(r=>({sessionId:r.sessionId,course:r.session.course,date:r.session.date||'',
@@ -3660,7 +3641,6 @@ function renderPartners(){
   if(partnerPeriodKind(partnerPeriod)==='past'&&!pastPeriods.includes(partnerPeriod))partnerPeriod=lastMonth;
   const kind=partnerPeriodKind(partnerPeriod);
 
-  const cfg=partnerSettings();
   const statements=partners.map(p=>partnerStatement(p.id,partnerPeriod));
 
   const lookahead=partnerLookaheadMonths(3);
@@ -3720,22 +3700,6 @@ function renderPartners(){
             ${pastPeriods.map(p=>`<option value="${p}" ${p===partnerPeriod?'selected':''}>${periodLabel(p)}</option>`).join('')}
           </select>
         </div>`:''}
-      </div>
-      <div style="flex:1;min-width:280px;display:flex;gap:16px;flex-wrap:wrap;justify-content:flex-end">
-        <div>
-          <label style="font-size:14px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px" title="Section 3.B of the agreement">$3,000 accelerator counts</label>
-          <select onchange="setPartnerSetting('accelGrouping',this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);outline:none">
-            <option value="booking" ${cfg.accelGrouping==='booking'?'selected':''}>Each booking on its own</option>
-            <option value="org-month" ${cfg.accelGrouping==='org-month'?'selected':''}>All of one org's bookings that month</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:14px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px" title="Section 3.F of the agreement">Repeat bookings earn</label>
-          <select onchange="setPartnerSetting('repeatPolicy',this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);outline:none">
-            <option value="tier" ${cfg.repeatPolicy==='tier'?'selected':''}>The month's tier rate</option>
-            <option value="flat10" ${cfg.repeatPolicy==='flat10'?'selected':''}>Flat 10% baseline</option>
-          </select>
-        </div>
       </div>
     </div>
     ${kind==='past'?`<div class="alert warn" style="display:block">Viewing a <strong>past</strong> statement (${periodLabel(partnerPeriod)}). <a href="#" onclick="selectPartnerPeriod('${lastMonth}');return false" style="color:var(--warn);font-weight:500">Return to ${periodLabel(lastMonth)} (payable now)</a></div>`:''}
@@ -4132,7 +4096,7 @@ async function savePartner(editId){
     partners.push(p);
   }
   // Stamp the date the agreement was first marked signed, so the record shows when.
-  if(contractSigned&&!wasSigned&&!p.contractSignedDate)p.contractSignedDate=new Date().toISOString().slice(0,10);
+  if(contractSigned&&!wasSigned&&!p.contractSignedDate)p.contractSignedDate=fmtYMD(new Date());
   if(!contractSigned)p.contractSignedDate='';
   partners.sort((a,b)=>a.name.localeCompare(b.name));
   closeModal();renderPartners();
@@ -4179,7 +4143,7 @@ async function markPartnerPaid(partnerId){
   const p=partnerById(partnerId);
   if(!p||st.total<=0)return;
   if(!p.zelle&&!confirm('There is no Zelle handle on file for '+p.name+'. Record this payout anyway?'))return;
-  const today=new Date().toISOString().slice(0,10);
+  const today=fmtYMD(new Date());
   const breakdown={
     tier:st.tier.name,rate:st.tier.rate,collectedRevenue:st.monthTotal,
     commission:st.commission,bonuses:st.bonuses,bonusTotal:st.bonusTotal,
@@ -4494,15 +4458,15 @@ function regInKindValue(r){
   const m=INKIND_NOTE_RE.exec(r.notes||'');
   if(m)return parseFloat(m[1])||0;
   const s=sessions.find(x=>x.id===r.sessionId);
-  return s?(getCoursePrice(s.course,s.date,s.createdAt)||0):0;
+  return s?sessionListPrice(s):0;
 }
 // When a registration is set to in-kind from the admin (rather than the auction link),
-// stamp the course's standard price into notes so the donation report has a value.
+// stamp the session's advertised price into notes so the donation report has a value.
 function ensureInKindTag(r){
   if(!r||r.payStatus!=='in_kind')return;
   if(INKIND_NOTE_RE.test(r.notes||''))return;
   const s=sessions.find(x=>x.id===r.sessionId);
-  const val=s?(getCoursePrice(s.course,s.date,s.createdAt)||0):0;
+  const val=s?sessionListPrice(s):0;
   r.notes='[AUCTION — IN-KIND DONATION: $'+val+'] '+(r.notes||'');
 }
 // Once a family is marked paid, the "awaiting payment" / "confirm payment" reservation
@@ -4938,7 +4902,7 @@ function renderReports(){
 function reportDownloadCSV(rows,name){
   const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=name+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+  const a=document.createElement('a');a.href=url;a.download=name+'-'+fmtYMD(new Date())+'.csv';a.click();URL.revokeObjectURL(url);
 }
 function exportReferralCSV(){
   const rows=sessionReferralBreakdown(reportRegsInScope());
@@ -4959,7 +4923,7 @@ function exportPartnerReferralCSV(){
     const t=regCreatedTime(r);
     const rc=referralRegCommission(r);
     rows.push([referrerName(r),gp?'Yes':'No',r.parentName||r.studentName||'',s?s.course:'',s?(s.date||''):'',
-      t?new Date(t).toISOString().slice(0,10):'',r.payStatus||'unpaid',referralRegRevenue(r).toFixed(2),
+      t?fmtYMD(new Date(t)):'',r.payStatus||'unpaid',referralRegRevenue(r).toFixed(2),
       gp?rc.net.toFixed(2):'',gp&&!rc.originated?Math.round(PARTNER_FLAT_RATE*100)+'%':'',
       gp?rc.commission.toFixed(2):'',rc.originated?'Counted in her originated booking':(rc.earned?'Yes':'Not yet')]);
   });
@@ -4969,7 +4933,7 @@ function exportInKindCSV(){
   const rows=[['Participant','Course','Class date','Registered','In-kind value']];
   reportRegsInScope().filter(r=>r.payStatus==='in_kind').forEach(r=>{
     const s=sessions.find(x=>x.id===r.sessionId);
-    rows.push([r.studentName||'',s?s.course:'',s?(s.date||''):'',r.createdAt?new Date(r.createdAt).toISOString().slice(0,10):'',regInKindValue(r).toFixed(2)]);
+    rows.push([r.studentName||'',s?s.course:'',s?(s.date||''):'',r.createdAt?fmtYMD(new Date(r.createdAt)):'',regInKindValue(r).toFixed(2)]);
   });
   reportDownloadCSV(rows,'in-kind-donations');
 }
@@ -5055,12 +5019,18 @@ function renderDashboard(){
   // Dated classes stay in their own month. Undated paid holds count toward
   // this year, and toward this month when the hold-term year is this year.
   const revTotals=dashboardRevenueTotals(now);
-  let mRev=revTotals.mRev,mCost=revTotals.mCost,mProfit=0,yRev=revTotals.yRev,yCollected=revTotals.yCollected,yExpected=revTotals.yExpected,mOH=0;
+  let mRev=revTotals.mRev,mCost=revTotals.mCost,yRev=revTotals.yRev,yCollected=revTotals.yCollected,yExpected=revTotals.yExpected;
+  let mLinked=0,mOverhead=0;
   expenses.forEach(e=>{
-    const d=new Date(e.date+'T12:00:00');
-    if(d.getFullYear()===y&&d.getMonth()===m){mOH+=e.amount;mCost+=e.amount;}
+    const d=new Date((e.date||'')+'T12:00:00');
+    if(isNaN(d.getTime())||d.getFullYear()!==y||d.getMonth()!==m)return;
+    const amt=Number(e.amount)||0;
+    if(e.sessionId)mLinked+=amt;else mOverhead+=amt;
   });
-  mProfit=mRev-mCost;
+  invalidateCommissionCache();
+  const mComm=monthLiaisonCommission(y+'-'+String(m+1).padStart(2,'0'));
+  mCost+=mLinked+mComm;
+  const mProfit=mRev-mCost;
   const totRegs=registrations.filter(r=>r.payStatus!=='cancelled').length;
   // Host seats and any other $0 comp are settled. They are not unpaid and they
   // add nothing to the balance still owed.
@@ -5078,8 +5048,8 @@ function renderDashboard(){
   const pendingCount=registrations.filter(r=>r.payStatus==='pending'&&regOwesMoney(r)).length;
   document.getElementById('dash-metrics').innerHTML=`
     <div class="metric" title="Collected is money already in for ${y}: paid family registrations after PayPal and Venmo fees, plus an organization bill or custom-job fee only once it has been received. Expected is booked organization bills and custom-job fees that have not been received. Booked is Collected plus Expected. Revenue this month stays the booked total for classes dated this month."><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub" style="line-height:1.45"><span style="color:#1d6b45;font-weight:650">Collected ${fmt(yCollected)}</span><br><span style="color:#b86a00;font-weight:650">Expected ${fmt(yExpected)}</span><br>Booked ${fmt(yRev)} for ${y}</div></div>
-    <div class="metric"><div class="m-label">Expenses this month</div><div class="m-val red">${fmt(mCost)}</div></div>
-    <div class="metric"><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${fmtSigned(mProfit)}</div></div>
+    <div class="metric" title="Instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Class costs this month</div><div class="m-val red">${fmt(mCost)}</div>${mOverhead?`<div class="m-sub">${fmt(mOverhead)} overhead is on the yearly view</div>`:''}</div>
+    <div class="metric" title="Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${fmtSigned(mProfit)}</div><div class="m-sub">Revenue minus class costs and liaison commission</div></div>
     <div class="metric"><div class="m-label">Total registrations</div><div class="m-val">${totRegs}</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'all paid'}</div></div>
     <div class="metric"><div class="m-label">Sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled).length}</div>${(()=>{const h=sessions.filter(s=>s.isHold).length;const cx=sessions.filter(s=>s.isCancelled).length;const bits=[];if(h)bits.push(h+' on hold');if(cx)bits.push(cx+' cancelled');return bits.length?`<div class="m-sub">${bits.join(' · ')}</div>`:'';})()}</div>
   `;
@@ -5250,10 +5220,14 @@ function unignoreAllDupes(){
   try{localStorage.removeItem('mb_dupes_ignored');}catch(e){}
   renderDupeBanner();
 }
+function countsTowardSeats(r){
+  const st=String(r&&r.payStatus||'').toLowerCase();
+  return st!=='waitlist'&&st!=='cancelled'&&st!=='canceled'&&st!=='refunded';
+}
 function seatsOnSession(id){
   const s=sessions.find(x=>x.id===id);
   const per=seatsPerRegistration(s&&s.course);
-  return registrations.filter(r=>r.sessionId===id&&r.payStatus!=='cancelled'&&r.payStatus!=='waitlist').length*per;
+  return registrations.filter(r=>r.sessionId===id&&countsTowardSeats(r)).length*per;
 }
 function openSessionForReview(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
@@ -5750,7 +5724,7 @@ async function moveLegacyCost(sessionId, index){
   const s=(sessions||[]).find(x=>x.id===sessionId);if(!s)return;
   const line=(s.additionalCosts||[])[index];
   if(!line||isLegacyCostResolved(line))return;
-  const date=String(line.datePaid||s.date||new Date().toISOString().slice(0,10)).slice(0,10);
+  const date=String(line.datePaid||s.date||fmtYMD(new Date())).slice(0,10);
   const e={id:sid(),description:String(line.label||'Session cost').trim()||'Session cost',amount:Number(line.amount)||0,date,category:legacyCostCategory(line),paymentMethod:legacyPayToExpense(line.paymentMethod),sessionId:s.id,createdAt:Date.now()};
   expenses.unshift(e);
   line.resolved='moved';
@@ -7891,7 +7865,7 @@ function renderFinances(){
   const sub=document.getElementById('fin-page-sub');
   if(sub)sub.textContent=yearly
     ?'Gross payments, with PayPal, Venmo, and card fees as their own cost. Profit subtracts those fees once. Each expense is counted once. Cancelled sessions leave out unpaid estimates.'
-    :'Monthly revenue is net of payment processing fees. Session-linked expenses are in the month of the expense date. Switch to Yearly to see other expenses and card fees as a cost.';
+    :'Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view.';
   const feeTitle=yearly
     ?'PayPal, Venmo, and card processing fees. A cost, included once in Total expenses. Revenue on this view is gross payments before these fees.'
     :'PayPal processing fees skimmed off online payments, already deducted from net revenue, not part of expenses';
@@ -7944,19 +7918,24 @@ const REG_PAGE='https://register.mindfulbeginnings.org/register.html';
 
 function renderCodes(){
   const el=document.getElementById('codes-list');
-  const list=sessions.filter(s=>!s.isHold).sort((a,b)=>a.date.localeCompare(b.date));
-  if(!list.length){el.innerHTML='<div style="color:var(--muted);font-size:16px">No sessions yet.</div>';return;}
+  const today=fmtYMD(new Date());
+  const list=sessions.filter(s=>{
+    if(!s||s.isHold||s.isCancelled||s.isCustomJob)return false;
+    const end=sessionEndDate(s);
+    return !!end&&end>=today;
+  }).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.time||'').localeCompare(String(b.time||'')));
+  if(!list.length){el.innerHTML='<div style="color:var(--muted);font-size:16px">No upcoming sessions.</div>';return;}
   el.innerHTML=list.map(s=>{
     const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
     const link=REG_PAGE+'?code='+s.code;
-    const cnt=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='cancelled').length;
-    const c=COURSES[s.course]||{};
+    const cnt=registrations.filter(r=>r.sessionId===s.id&&countsTowardSeats(r)).length;
+    const price=sessionListPrice(s);
     return`<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
         <div>
           <div style="font-weight:500;font-size:18px">${s.course}</div>
           <div style="color:var(--muted);font-size:16px;margin-top:3px">${d} · ${s.time||''} · ${s.location||''}${s.city?', '+s.city:''}${s.state?' '+s.state:''}${s.isRecurring?' · <span style="color:#1a5c8a;font-weight:500">↻ '+recurLabel(s)+'</span>':''}</div>
-          <div style="color:var(--muted);font-size:15px;margin-top:2px">${cnt} registered · $${getCoursePrice(s.course,s.date,s.createdAt)} per student</div>
+          <div style="color:var(--muted);font-size:15px;margin-top:2px">${cnt} registered · $${price} per student</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
           <span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy code">📋 ${s.code}</span>
@@ -7967,12 +7946,18 @@ function renderCodes(){
         <div style="background:var(--cream);border-radius:var(--r-sm);padding:10px 14px;font-size:15px;font-family:monospace;word-break:break-all;color:var(--navy)">${link}</div>
         <div class="btn-row" style="margin-top:10px">
           <button class="btn sm" onclick="copyLink('${link}')">Copy link</button>
-          <button class="btn sm" onclick="copyText('${s.code}','${s.course}','${d}','${s.time||''}','${s.location||''}','${getCoursePrice(s.course,s.date,s.createdAt)}')">Copy text message</button>
+          <button class="btn sm" data-sid="${escapeHtml(s.id)}" onclick="copySessionText(this)">Copy text message</button>
           <button class="btn sm primary" onclick="openHostLetter('${s.id}')">✉️ Host letter — initial confirm</button>
         </div>
       </div>
     </div>`;
   }).join('');
+}
+function copySessionText(btn){
+  const s=sessions.find(x=>x.id===(btn&&btn.getAttribute('data-sid')));
+  if(!s)return;
+  const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  copyText(s.code,s.course,d,s.time||'',s.location||'',sessionListPrice(s));
 }
 function copyCode(code){navigator.clipboard.writeText(code).then(()=>showToast('Code copied: '+code)).catch(()=>showToast(code));}
 function copyLink(link){navigator.clipboard.writeText(link).then(()=>showToast('Link copied!')).catch(()=>showToast('Link: '+link));}
@@ -8259,7 +8244,7 @@ function exportInstructorsCSV(){
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download='mindful_beginnings_instructors_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.href=url;a.download='mindful_beginnings_instructors_'+fmtYMD(new Date())+'.csv';
   a.click();URL.revokeObjectURL(url);
   showToast('✅ CSV downloaded — open in Google Sheets to view your live roster.');
 }
@@ -8722,7 +8707,7 @@ function markPaid(sessId){
   // Custom jobs (5Ks, fairs, volunteer events) have no host evaluation requirement.
   if(!(s&&s.isCustomJob)&&!jdi.evalReceived){alert('Evaluation must be received before marking as paid.');return;}
   jdi.payStatus='paid';
-  jdi.payDate=new Date().toISOString().slice(0,10);
+  jdi.payDate=fmtYMD(new Date());
   // Freeze the fee actually paid so a future hourly-rate change never rewrites this record.
   jdi.paidFee=instrBaseFee(s,instructors.find(x=>x.id===jdi.instructorId));
   renderJobs();showToast('Marked as paid!');upsertJobData(sessId);
@@ -8732,7 +8717,7 @@ function toggleSecondInstrPaid(sessId){
   const jdi=jobDataCache[sessId];
   const s=sessions.find(x=>x.id===sessId);
   jdi.secondInstrPaid=!jdi.secondInstrPaid;
-  jdi.secondInstrPayDate=jdi.secondInstrPaid?new Date().toISOString().slice(0,10):null;
+  jdi.secondInstrPayDate=jdi.secondInstrPaid?fmtYMD(new Date()):null;
   // Freeze on pay, release on undo.
   jdi.secondInstrPaidFee=jdi.secondInstrPaid?instrBaseFee(s,instructors.find(x=>x.id===s.secondInstructorId)):null;
   renderJobs();renderInstructors();showToast(jdi.secondInstrPaid?'Second instructor marked paid!':'Marked unpaid');upsertJobData(sessId);
@@ -8849,7 +8834,7 @@ function toggleInstrPaidFromWrap(sessId,checked){
   const s=sessions.find(x=>x.id===sessId);
   if(checked){
     jdi.payStatus='paid';
-    jdi.payDate=new Date().toISOString().slice(0,10);
+    jdi.payDate=fmtYMD(new Date());
     jdi.paidFee=instrBaseFee(s,instructors.find(x=>x.id===jdi.instructorId));
     showToast('Instructor marked paid!');
   }else{
@@ -8873,7 +8858,7 @@ function toggleSecondInstrPaidFromWrap(sessId,checked){
   const jdi=jobDataCache[sessId];
   const s=sessions.find(x=>x.id===sessId);
   jdi.secondInstrPaid=!!checked;
-  jdi.secondInstrPayDate=checked?new Date().toISOString().slice(0,10):null;
+  jdi.secondInstrPayDate=checked?fmtYMD(new Date()):null;
   jdi.secondInstrPaidFee=checked?instrBaseFee(s,instructors.find(x=>x.id===s.secondInstructorId)):null;
   showToast(checked?'Second instructor marked paid!':'Marked unpaid');
   renderSessions();
@@ -10129,7 +10114,7 @@ function expenseFormHtml(e, presetSessionId){
   const catOpts=expenseCategoryOptions(e?e.category:'');
   const sessionId=(e&&e.sessionId)||presetSessionId||'';
   const preset=(sessions||[]).find(s=>s.id===sessionId);
-  const dateVal=(e&&e.date)||(preset&&preset.date)||new Date().toISOString().slice(0,10);
+  const dateVal=(e&&e.date)||(preset&&preset.date)||fmtYMD(new Date());
   return `<div class="form-grid">
     <div class="fg full"><label>Description *</label><input type="text" id="m-edesc" value="${e?escapeHtml(e.description):''}" placeholder="e.g. Liability insurance renewal"></div>
     <div class="fg"><label>Amount *</label><input type="number" id="m-eamt" value="${e?e.amount:''}" placeholder="0.00" min="0" step="0.01"></div>
@@ -12308,7 +12293,7 @@ function invoiceLineFor(s){
 }
 function sessionIsComplete(s){
   const end=sessionEndDate(s);if(!end)return false;
-  return end<=new Date().toISOString().slice(0,10);
+  return end<=fmtYMD(new Date());
 }
 // All org-billed sessions for an org in a YYYY-MM month (holds excluded).
 function orgSessionsForMonth(org,ym){
@@ -12358,7 +12343,7 @@ function renderInvoices(){
       </div>`).join('');
   }
   const rows=[...invoices].sort((a,b)=>String(b.invoiceMonth).localeCompare(String(a.invoiceMonth))||String(b.createdAt).localeCompare(String(a.createdAt)));
-  const today=new Date().toISOString().slice(0,10);
+  const today=fmtYMD(new Date());
   t.innerHTML='<thead><tr><th>Invoice #</th><th>Organization</th><th>Month</th><th>Sessions</th><th>Total</th><th>Issued</th><th>Due</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody>'+
     (rows.length?rows.map(v=>{
       const overdue=v.status==='sent'&&v.dueDate&&v.dueDate<today;
@@ -12440,7 +12425,7 @@ function orgBillingGaps(){
 function obDate(d){return d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';}
 function renderOrgBilling(){
   const el=document.getElementById('org-billing');if(!el)return;
-  const today=new Date().toISOString().slice(0,10);
+  const today=fmtYMD(new Date());
   // A session whose line would come to $0 is not ready to bill — it is missing a
   // fee or a headcount, and the "check before billing" list below owns it. Dropping
   // it here keeps every job in exactly one place on this card.
@@ -12546,7 +12531,7 @@ let _invLines=[];
 function openCreateInvoice(presetOrg,presetYm){
   const orgs=knownOrgs();
   if(!orgs.length){alert('No organization-billed sessions yet. Open a session and fill in "Bill to organization" first, then come back to create the invoice.');return;}
-  const ym=presetYm||new Date().toISOString().slice(0,7);
+  const ym=presetYm||fmtYMD(new Date()).slice(0,7);
   const org=presetOrg||orgs[0];
   showModal(`<div class="modal-head"><h3>Create organization invoice</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
@@ -12558,7 +12543,7 @@ function openCreateInvoice(presetOrg,presetYm){
       <div id="inv-lines"></div>
     </div>
     <div class="fg"><label>Invoice number</label><input type="text" id="inv-number" value=""></div>
-    <div class="fg"><label>Issue date</label><input type="date" id="inv-issue" value="${new Date().toISOString().slice(0,10)}" onchange="syncInvoiceDue()"></div>
+    <div class="fg"><label>Issue date</label><input type="date" id="inv-issue" value="${fmtYMD(new Date())}" onchange="syncInvoiceDue()"></div>
     <div class="fg"><label>Due date <span style="font-weight:400;color:var(--muted)">(defaults to Net 30)</span></label><input type="date" id="inv-due"></div>
     <div class="fg"><label>Bill-to email <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="inv-email" placeholder="e.g. contact@org.org"></div>
     <div class="fg"><label>Bill-to name</label><input type="text" id="inv-billname"></div>
@@ -12589,13 +12574,13 @@ function prefillInvoiceOrg(){
 function syncInvoiceDue(){
   const issue=document.getElementById('inv-issue')?.value;
   const dueEl=document.getElementById('inv-due');
-  if(issue&&dueEl){const d=new Date(issue+'T12:00:00');d.setDate(d.getDate()+30);dueEl.value=d.toISOString().slice(0,10);}
+  if(issue&&dueEl){const d=new Date(issue+'T12:00:00');d.setDate(d.getDate()+30);dueEl.value=fmtYMD(d);}
 }
 function rebuildInvoiceLines(){
   const org=document.getElementById('inv-org')?.value||'';
   const ym=document.getElementById('inv-month')?.value||'';
   const numEl=document.getElementById('inv-number');
-  if(numEl)numEl.value=nextInvoiceNumber(ym||new Date().toISOString().slice(0,7));
+  if(numEl)numEl.value=nextInvoiceNumber(ym||fmtYMD(new Date()).slice(0,7));
   const done=invoicedSessionIds();
   const sess=orgSessionsForMonth(org,ym);
   _invLines=sess.map(s=>{
@@ -12656,7 +12641,7 @@ async function setInvoiceStatus(id,status){
   const v=invoices.find(x=>x.id===id);if(!v)return;
   const prev={status:v.status,sentDate:v.sentDate,paidDate:v.paidDate};
   v.status=status;
-  const today=new Date().toISOString().slice(0,10);
+  const today=fmtYMD(new Date());
   if(status==='sent'){v.sentDate=v.sentDate||today;v.paidDate='';}
   if(status==='paid'){v.paidDate=today;}
   renderInvoices();
@@ -13366,7 +13351,7 @@ function printMonthReport(){
 
     <div class="footer">
       <span>Mindful Beginnings · ${monthName}</span>
-      <span>Operating figures: revenue, instructor fees, session-linked expenses, older session costs, and partner commission. Handbook orders and other expenses appear in the annual report.</span>
+      <span>Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view.</span>
     </div>
   </div>
   </body></html>`;

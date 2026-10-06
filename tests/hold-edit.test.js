@@ -76,7 +76,9 @@ test('a hold opens the same edit form and still stays off public registration', 
   assert.match(regs, /fmtSessDate/);
 
   const codes = admin.slice(admin.indexOf('function renderCodes'), admin.indexOf('function copyCode'));
-  assert.match(codes, /sessions\.filter\(s=>!s\.isHold\)/);
+  assert.match(codes, /s\.isHold/);
+  assert.match(codes, /s\.isCancelled/);
+  assert.match(codes, /s\.isCustomJob/);
 
   const edit = admin.slice(admin.indexOf('function openEditSession'), admin.indexOf('async function saveSession'));
   assert.match(edit, /assignedInstrId=\(jobDataCache\[s\.id\]\|\|\{\}\)\.instructorId\|\|s\.instructorId/);

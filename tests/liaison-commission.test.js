@@ -78,6 +78,24 @@ test('commission is 40% of profit, not 40% or 20% of collected revenue', () => {
   assert.match(row.reason, /not a share of gross/);
 });
 
+test('a saved 10% repeat setting cannot change the rate', () => {
+  const row = {
+    sessionId: 's3',
+    isOrg: true,
+    isRepeat: true,
+    collected: 200,
+    costs: 80,
+    net: 120
+  };
+  sandbox.applyPartnerRowRates([row], 3000, { accelGrouping: 'org-month', repeatPolicy: 'flat10' });
+  assert.equal(row.rate, 0.40);
+  assert.equal(row.commission, 48);
+  assert.equal(row.accelerated, false);
+  assert.doesNotMatch(row.reason, /10%/);
+  assert.doesNotMatch(admin, /Flat 10% baseline/);
+  assert.doesNotMatch(admin, /\$3,000 accelerator counts/);
+});
+
 test('a booking that lost money pays the liaison nothing', () => {
   const row = {
     sessionId: 's2',
