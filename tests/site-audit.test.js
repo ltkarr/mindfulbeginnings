@@ -141,6 +141,98 @@ test('admin expense categories include Curriculum Development', () => {
   assert.ok(list.includes('Charitable Donation'));
 });
 
+test('Rentals is an expense category, and edit keeps a category that is not in the list', () => {
+  const vm = require('vm');
+  assert.match(admin, /<option>Rentals<\/option>/);
+  assert.match(admin, /const EXP_CATS=\[[^\]]*'Rentals'[^\]]*\]/);
+  assert.match(admin, /'Rentals':'#c46b2d'/);
+  const cats = admin.match(/const EXP_CATS=\[(.*)\];/);
+  assert.ok(cats);
+  const list = cats[1].split(',').map((c) => c.trim().replace(/^'|'$/g, ''));
+  assert.equal(list.at(-1), 'Other');
+  assert.ok(list.includes('Rentals'));
+  assert.ok(list.indexOf('Rentals') < list.indexOf('Other'));
+
+  const start = admin.indexOf('function expenseCategoryOptions');
+  const end = admin.indexOf('function renderExpenses');
+  const sandbox = {
+    EXP_CATS: list,
+    escapeHtml: (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]))
+  };
+  vm.runInNewContext(
+    admin.slice(start, end) + '\nthis.expenseCategoryOptions=expenseCategoryOptions; this.expenseCategoryFilterOptions=expenseCategoryFilterOptions; this.expenseCategoryTotals=expenseCategoryTotals;',
+    sandbox
+  );
+
+  const rentals = sandbox.expenseCategoryOptions('Rentals');
+  assert.match(rentals, /<option selected>Rentals<\/option>/);
+  assert.equal((rentals.match(/ selected/g) || []).length, 1);
+  assert.match(rentals, /<option>Business Development<\/option>/);
+
+  const unknown = sandbox.expenseCategoryOptions('Facility');
+  assert.match(unknown, /^<option selected>Facility<\/option>/);
+  assert.match(unknown, /<option>Rentals<\/option>/);
+  assert.doesNotMatch(unknown, /<option selected>Business Development/);
+  assert.equal((unknown.match(/ selected/g) || []).length, 1);
+
+  const blank = sandbox.expenseCategoryOptions('');
+  assert.doesNotMatch(blank, /selected/);
+
+  const weird = sandbox.expenseCategoryOptions('A & B');
+  assert.match(weird, /<option selected>A &amp; B<\/option>/);
+
+  const filter = sandbox.expenseCategoryFilterOptions('Rentals', [
+    { category: 'Facility' },
+    { category: 'Rentals' },
+    { category: 'Facility' }
+  ]);
+  assert.match(filter, /<option value="">All categories<\/option>/);
+  assert.match(filter, /<option selected>Rentals<\/option>/);
+  assert.match(filter, /<option>Facility<\/option>/);
+  assert.equal((filter.match(/>Facility</g) || []).length, 1);
+  assert.equal((filter.match(/ selected/g) || []).length, 1);
+
+  const totals = sandbox.expenseCategoryTotals([
+    { category: 'Rentals', amount: 40 },
+    { category: 'Rentals', amount: 15 },
+    { category: 'Insurance', amount: 10 },
+    { category: 'Facility', amount: 7 }
+  ]);
+  assert.equal(totals.Rentals, 55);
+  assert.equal(totals.Insurance, 10);
+  assert.equal(totals.Facility, 7);
+
+  const moveBox = {};
+  const moveStart = admin.indexOf('function legacyCostCategory');
+  const moveEnd = admin.indexOf('function sessionCostsFieldHtml');
+  vm.runInNewContext(admin.slice(moveStart, moveEnd) + '\nthis.legacyCostCategory=legacyCostCategory;', moveBox);
+  assert.equal(moveBox.legacyCostCategory({ label: 'Facility rental' }), 'Rentals');
+  assert.equal(moveBox.legacyCostCategory({ label: 'ROOM RENTAL deposit' }), 'Rentals');
+  assert.equal(moveBox.legacyCostCategory({ label: 'Weekend Rentals' }), 'Rentals');
+  assert.equal(moveBox.legacyCostCategory({ label: 'Parking' }), 'Other');
+  assert.equal(moveBox.legacyCostCategory({ label: '' }), 'Other');
+  assert.equal(moveBox.legacyCostCategory(null), 'Other');
+  assert.equal(moveBox.legacyCostCategory({}), 'Other');
+
+  const move = admin.slice(admin.indexOf('async function moveLegacyCost'), admin.indexOf('async function linkLegacyDuplicate'));
+  assert.match(move, /category:legacyCostCategory\(line\)/);
+  assert.doesNotMatch(move, /category:'Other'/);
+
+  const form = admin.slice(admin.indexOf('function expenseFormHtml'), admin.indexOf('function openAddExpense'));
+  assert.match(form, /expenseCategoryOptions\(e\?e\.category:''\)/);
+
+  const yearFn = admin.slice(admin.indexOf('function printYearReport'), admin.indexOf('function printMonthReport'));
+  assert.match(yearFn, /expenseCategoryTotals\(/);
+  assert.match(yearFn, /EXP_CAT_COLORS/);
+  const monthFn = admin.slice(admin.indexOf('function printMonthReport'), admin.indexOf('function openHostLetter'));
+  assert.match(monthFn, /expenseCategoryTotals\(monthExpenses\)/);
+  assert.match(monthFn, /Expenses by category/);
+  assert.match(monthFn, /Each stored category is its own row\./);
+  assert.doesNotMatch(monthFn.slice(monthFn.indexOf('Expenses by category'), monthFn.indexOf('Expenses by category') + 500), /—/);
+});
+
 test('create-session form reserves materials and the dashboard lists materials cues', () => {
   assert.match(admin, /function sessionMaterialsPanelHtml/);
   assert.match(admin, /id="m-mat-panel"/);
