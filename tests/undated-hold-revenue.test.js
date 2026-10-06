@@ -30,6 +30,7 @@ const names = [
   'expenseLedger', 'linkedExpenses', 'linkedExpenseTotal',
   'paidOutInstructorFee', 'legacyLineHasDatePaid', 'financeLegacyCosts',
   'financeSessionFigures', 'financeRevenueSlot',
+  'studentMaterialUnitCost', 'sessionMaterialHeadcount', 'companySessionMaterialCost',
   'participantMaterialAllowance',
   'processingFee', 'isLiveReg', 'regEffectivePrice',
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',

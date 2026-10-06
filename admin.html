@@ -444,7 +444,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="invoices-table"></table></div></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:16px">
-        <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Insurance, software, equipment, and handbook or supply orders. These reduce net profit, and they are not also taken off each class.</div></div>
+        <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Insurance, software, equipment, and handbook or supply orders. These reduce net profit. Safe Sitter classes also deduct $23.35 per student ($20.35 handbook + $3 shipping). A Safe Sitter handbook or shipping bill entered here is counted again. Other courses are not also taken off each class.</div></div>
         <button class="btn primary" onclick="openAddExpense()">+ Add expense</button>
       </div>
       <div class="metrics" id="exp-metrics"></div>
@@ -557,13 +557,13 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="referral-table"></table></div></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:14px">
-        <div><div class="page-title" style="font-size:23px">Partner referrals</div><div class="page-sub">Families who named one of your community partners on the registration form. Commission is the same flat rate as an originated booking, on that child&rsquo;s revenue after processing fees, their materials and their share of instructor pay.</div></div>
+        <div><div class="page-title" style="font-size:23px">Partner referrals</div><div class="page-sub">Families who named one of your community partners on the registration form. Commission is the same flat rate as an originated booking, on that child&rsquo;s revenue after processing fees, their materials and their share of instructor pay. Safe Sitter materials in that math are $23.35 per student ($20.35 handbook + $3 shipping).</div></div>
         <button class="btn" onclick="exportPartnerReferralCSV()">⬇ Download CSV</button>
       </div>
       <div class="metrics" id="rep-partner-ref-metrics"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="partner-ref-table"></table></div></div>
       <div class="card" style="padding:0;margin-top:12px"><div class="tbl-wrap"><table id="partner-ref-detail"></table></div></div>
-      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-top:10px;max-width:760px">Net is what the family paid, less the PayPal or Venmo fee, less that child&rsquo;s handbook and materials, less their share of the instructor fee and any job costs on that session. The instructor share is split across the families who have <em>paid</em>, so mark a roster up to date before you run a statement &mdash; with half the class still showing unpaid, the one child you are looking at carries more of the instructor than they should. Nothing is payable until the money has landed and the class has been taught, and commission never goes below zero.</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-top:10px;max-width:760px">Net is what the family paid, less the PayPal or Venmo fee, less that child&rsquo;s handbook and materials ($23.35 for each Safe Sitter: $20.35 handbook + $3 shipping), less their share of the instructor fee and any job costs on that session. The instructor share is split across the families who have <em>paid</em>, so mark a roster up to date before you run a statement &mdash; with half the class still showing unpaid, the one child you are looking at carries more of the instructor than they should. Nothing is payable until the money has landed and the class has been taught, and commission never goes below zero.</div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:14px">
         <div><div class="page-title" style="font-size:23px">In-kind donations (auction prizes)</div><div class="page-sub">Free classes given as auction prizes, recorded at their retail value as in-kind donations</div></div>
@@ -1055,7 +1055,10 @@ window.addEventListener('focus',refreshData);
 //                             NEW_PRICING_EFFECTIVE below. This is what keeps the guide update
 //                             from re-pricing anything already on the calendar.
 const COURSES={
-  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true},
+  // Handbook $20.35 (materialsCost) + shipping $3 (materialsShipping) = $23.35.
+  // matCost is that total. Family prices on this line are unchanged.
+  // studentMaterialUnitCost() uses the two fields when they are present.
+  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,materialsCost:20.35,materialsShipping:3,matCost:23.35,hours:5,maxStudents:16,requiresSafeSitter:true},
   'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20},
   'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16},
   // Program guide (Aug 2026): Safe@Home is $65 as a 90-minute single session, $125 as a
@@ -1108,12 +1111,14 @@ const COURSES={
   'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true}
 };
 // ─── STUDENT MATERIAL RATES ──────────────────────────────────
-// COURSES[...].matCost is the per-participant handbook and supply allowance.
-// Company class, session, and job profit does NOT deduct it. Those purchases
-// are entered once, as overhead expenses (Safe Sitter, Safe@Home, Grandparents,
-// Intro to Babysitting, and the rest). Liaison commission and community-partnership
-// shares still treat the rate as a direct program cost under those agreements
-// (participantMaterialAllowance). That is separate from the overhead ledger.
+// Safe Sitter company profit, session margin, dashboard, and reports deduct
+// materialsCost + materialsShipping ($20.35 + $3 = $23.35) per live non-host
+// student, plus an organization roster count when one is entered.
+// Other courses still keep handbook orders on overhead only. Their matCost is
+// the partner-share allowance (participantMaterialAllowance), not a second
+// deduction on the class. A Safe Sitter handbook or shipping invoice entered
+// as overhead is in addition to the $23.35, so do not also log that order
+// there if the per-student amount should be the only materials cost.
 // ─── PROGRAM-GUIDE PRICING CUTOVER (August 2026) ─────────────
 // Sessions created on/after this moment use the new program-guide prices (priceNew columns).
 // Sessions that already existed keep the prices they were advertised at, so publishing the
@@ -1746,8 +1751,9 @@ function financeYearFigures(rev, fee, cost){
 }
 
 // The old custom-job materials picker wrote lines like
-// "Safe Sitter® materials — 8 × $20.35". Those are per-student handbook costs.
-// Handbook orders already live on Overhead, so these lines do not reduce profit.
+// "Safe Sitter® materials — 8 × $20.35". Those stored lines stay as written.
+// The live Safe Sitter rate is $23.35 ($20.35 handbook + $3 shipping). These
+// generated lines do not reduce company profit a second time.
 function isPerStudentMaterialLine(c){
   return / materials — \d+ × \$/.test(String((c&&c.label)||''));
 }
@@ -1797,16 +1803,43 @@ function financeLegacyCosts(s){
     return sum+Number(x.amount||0);
   },0);
 }
+// Per-student handbook and supply cost. Safe Sitter is materialsCost plus
+// materialsShipping. Every other course is matCost.
+function studentMaterialUnitCost(course){
+  const c=(typeof COURSES!=='undefined'&&COURSES&&COURSES[course])||{};
+  if(c.materialsCost!=null||c.materialsShipping!=null){
+    return Number(c.materialsCost||0)+Number(c.materialsShipping||0);
+  }
+  return Number(c.matCost||0);
+}
+// Live registrations except a free host seat, plus an organization roster
+// count when the session bills an organization. A hold still counts.
+function sessionMaterialHeadcount(s){
+  if(!s)return 0;
+  const regs=(typeof registrations!=='undefined'&&Array.isArray(registrations))?registrations:[];
+  const head=regs.filter(r=>r.sessionId===s.id&&isLiveReg(r)&&r.payStatus!=='host').length;
+  const orgHeadcount=(s.billToOrg&&s.billedHeadcount)?Number(s.billedHeadcount):0;
+  return head+orgHeadcount;
+}
+// Company class profit deducts the per-student rate only when the course
+// splits handbook and shipping (Safe Sitter, $23.35). Other courses stay on
+// the overhead-only rule. Cancelled classes and custom jobs do not estimate it.
+function companySessionMaterialCost(s){
+  if(!s||s.isCustomJob||s.isCancelled)return 0;
+  const c=(typeof COURSES!=='undefined'&&COURSES&&COURSES[s.course])||{};
+  if(c.materialsCost==null&&c.materialsShipping==null)return 0;
+  const rate=studentMaterialUnitCost(s.course);
+  if(!rate)return 0;
+  return sessionMaterialHeadcount(s)*rate;
+}
 // Contractual per-participant handbook allowance for liaison commission and
-// community-partnership shares. Not used by company session profit.
+// community-partnership shares. Safe Sitter uses the same $23.35 as company profit.
 function participantMaterialAllowance(s){
   // A hold still has its roster. The allowance stays so partner net matches an open class.
   if(!s||s.isCustomJob)return 0;
-  const rate=Number((COURSES[s.course]||{}).matCost||0);
+  const rate=studentMaterialUnitCost(s.course);
   if(!rate)return 0;
-  const head=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)&&r.payStatus!=='host').length;
-  const orgHeadcount=(s.billToOrg&&s.billedHeadcount)?Number(s.billedHeadcount):0;
-  return (head+orgHeadcount)*rate;
+  return sessionMaterialHeadcount(s)*rate;
 }
 
 // ─── ORGANIZATION SPLIT VS FULL BILLING ─────────────────────
@@ -1927,9 +1960,9 @@ function calcFin(s){
   const grossRevenue=familyGross+orgRevenue;
   const procFee=paying.reduce((sum,r)=>sum+processingFee(regEffectivePrice(r,s)),0);
   const revenue=grossRevenue-procFee;   // reported revenue is NET of payment processing fees
-  // Handbook and student-supply cost is an overhead expense, not a per-student
-  // deduction. matCost stays on the result so older readers keep working.
-  const matCost=0;
+  // Safe Sitter: $20.35 handbook + $3 shipping per student. Other courses: $0
+  // here, because those handbook orders stay on overhead.
+  const matCost=companySessionMaterialCost(s);
   // Build list of instructor IDs for this session (primary from jobs, second from session)
   const primaryInstrId=(jobDataCache[s.id]||{}).instructorId||s.instructorId||null;
   const instrIds=[];
@@ -1978,13 +2011,14 @@ function financeSessionFigures(s){
   if(s&&s.isCancelled){
     const instr=paidOutInstructorFee(s);
     const legacy=financeLegacyCosts(s);
-    return {rev:0,fee:0,instr:instr,legacy:legacy,students:0,sess:0};
+    return {rev:0,fee:0,instr:instr,legacy:legacy,mat:0,students:0,sess:0};
   }
   return {
     rev:f.revenue,
     fee:f.procFee||0,
     instr:(f.instrFee||0)+(f.referralBonus||0),
     legacy:f.legacyCosts||0,
+    mat:f.matCost||0,
     students:f.paidCount,
     sess:1
   };
@@ -2079,7 +2113,7 @@ function dashboardRevenueTotals(now){
     if(!slot||slot.year!==y)return;
     const p=financeSessionFigures(s);
     yRev+=p.rev;
-    if(slot.month===m){mRev+=p.rev;mCost+=p.instr+p.legacy;}
+    if(slot.month===m){mRev+=p.rev;mCost+=p.instr+p.legacy+(p.mat||0);}
   });
   return {mRev:mRev,mCost:mCost,yRev:yRev};
 }
@@ -2100,7 +2134,7 @@ function dashboardChartRevenue(now){
     const k=slot.year+'-'+(slot.month+1).toString().padStart(2,'0');
     if(!buckets[k])return;
     const p=financeSessionFigures(s);
-    buckets[k].rev+=p.rev;buckets[k].cost+=p.instr+p.legacy;
+    buckets[k].rev+=p.rev;buckets[k].cost+=p.instr+p.legacy+(p.mat||0);
   });
   // Session-linked expenses land in the month of the expense date. Unlinked
   // overhead stays on the Finances yearly view, same as before.
@@ -2127,7 +2161,8 @@ function financeRevenueBuckets(now, view){
     const k=view==='monthly'?slot.year+'-'+(slot.month+1).toString().padStart(2,'0'):String(slot.year);
     if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,extra:0,linked:0,legacy:0,cost:0,profit:0,sess:0,students:0};
     buckets[k].rev+=p.rev;buckets[k].fee+=p.fee;buckets[k].instr+=p.instr;
-    buckets[k].legacy+=p.legacy;buckets[k].cost+=p.instr+p.legacy;
+    buckets[k].mat+=p.mat||0;
+    buckets[k].legacy+=p.legacy;buckets[k].cost+=p.instr+p.legacy+(p.mat||0);
     if(p.sess){buckets[k].sess++;buckets[k].students+=p.students;}
   });
   return buckets;
@@ -2162,7 +2197,8 @@ function annualSessionBuckets(year, now){
     if(s&&s.isCancelled&&!p.rev&&!p.fee&&!p.instr&&!p.legacy)return;
     const b=slot.month==null?undated:months[slot.month];
     b.rev+=p.rev;b.fee+=p.fee;b.instr+=p.instr;
-    b.legacy+=p.legacy;b.ship+=p.legacy;b.cost+=p.instr+p.legacy;
+    b.mat+=p.mat||0;
+    b.legacy+=p.legacy;b.ship+=p.legacy;b.cost+=p.instr+p.legacy+(p.mat||0);
     if(p.sess){b.sess++;b.students+=p.students;}
   });
   months.forEach(b=>{b.profit=b.rev-b.cost;});
@@ -2176,11 +2212,11 @@ function courseRevenueForYear(year, now){
     const slot=financeRevenueSlot(s, n);
     if(!slot||slot.year!==year)return;
     const p=financeSessionFigures(s);
-    if(s&&s.isCancelled&&!p.rev&&!p.instr&&!p.legacy)return;
+    if(s&&s.isCancelled&&!p.rev&&!p.instr&&!p.legacy&&!(p.mat))return;
     if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,fee:0,sess:0,students:0,profit:0};
     courseBuckets[s.course].rev+=p.rev;courseBuckets[s.course].fee+=p.fee;
     if(p.sess){courseBuckets[s.course].sess++;courseBuckets[s.course].students+=p.students;}
-    courseBuckets[s.course].profit+=p.rev-(p.instr+p.legacy);
+    courseBuckets[s.course].profit+=p.rev-(p.instr+p.legacy+(p.mat||0));
   });
   return courseBuckets;
 }
@@ -2545,11 +2581,11 @@ function partnerEventDates(s,ev,paidOn){
 // NOT included here, because revenue is already reported net of them and counting
 // them twice would understate her commission.
 //
-// Company overhead (insurance, software, the website, and the handbook order
-// itself) is deliberately excluded. Those are costs of being in business, not
-// costs of her booking. The allowance above is the agreement's stand-in for
-// participant materials; it is not the overhead expense, and company session
-// profit does not deduct it a second time.
+// Company overhead (insurance, software, the website, and handbook orders for
+// courses other than Safe Sitter) is deliberately excluded. Safe Sitter company
+// profit deducts the same per-student handbook plus shipping
+// (studentMaterialUnitCost, $23.35). This allowance is that rate again for her
+// statement. It is not the overhead invoice.
 function partnerDirectCosts(s){
   if(!s)return 0;
   const f=calcFin(s);
@@ -5245,7 +5281,8 @@ function renderSessions(){
     const cap=splitBillCaption(s,f);
     const title=cap?` title="${escapeHtml(cap)}"`:'';
     const costNote=f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:'';
-    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${extra}${costNote}${netLine(f.profit)}`;
+    const matNote=f.matCost?`<span class="pay-note" style="color:#c0392b" title="Safe Sitter handbook $20.35 + shipping $3 per student">${fmt(f.matCost)} handbooks &amp; shipping</span>`:'';
+    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${extra}${matNote}${costNote}${netLine(f.profit)}`;
   };
   const locCell=text=>{
     const name=String(text||'').trim();
@@ -5625,7 +5662,7 @@ function sessionProfitSummaryHtml(s){
     </div>`;
   }).join(''):'';
   const legacyBlock=legacy.length?`<div style="margin-top:10px"><div style="font-size:13px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)">Older costs entered on this session</div>${legacyRows}</div>`:'';
-  return `<div style="font-size:15px;margin-bottom:8px"><strong>Session profit ${fmtSigned(f.profit)}</strong> <span style="color:var(--muted)">= revenue ${fmt(f.revenue)} minus instructor pay ${fmt(f.instrFee||0)}${f.referralBonus?` minus referral bonus ${fmt(f.referralBonus)}`:''} minus linked expenses ${fmt(f.linkedCosts||0)} minus older costs ${fmt(f.legacyCosts||0)}</span></div>
+  return `<div style="font-size:15px;margin-bottom:8px"><strong>Session profit ${fmtSigned(f.profit)}</strong> <span style="color:var(--muted)">= revenue ${fmt(f.revenue)} minus instructor pay ${fmt(f.instrFee||0)}${f.referralBonus?` minus referral bonus ${fmt(f.referralBonus)}`:''}${f.matCost?` minus handbooks & shipping ${fmt(f.matCost)}`:''} minus linked expenses ${fmt(f.linkedCosts||0)} minus older costs ${fmt(f.legacyCosts||0)}</span></div>
     <div style="font-size:13px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Linked expenses</div>
     ${linkedRows}${legacyBlock}`;
 }
@@ -7706,20 +7743,21 @@ function profitBySessionRows(year){
     const instr=cancelled?paidOutInstructorFee(s):((f.instrFee||0)+(f.referralBonus||0));
     const linked=linkedExpenseTotal(s.id);
     const legacy=cancelled?financeLegacyCosts(s):(f.legacyCosts||0);
-    const profit=rev-instr-linked-legacy;
+    const mat=cancelled?0:(f.matCost||0);
+    const profit=rev-instr-linked-legacy-mat;
     const margin=rev?profit/rev:null;
-    return {s,rev,instr,linked,legacy,profit,margin,cancelled};
+    return {s,rev,instr,linked,legacy,mat,profit,margin,cancelled};
   });
 }
 function renderProfitBySession(){
   const yrSel=document.getElementById('report-year');
   const year=yrSel?parseInt(yrSel.value,10):new Date().getFullYear();
   const sub=document.getElementById('fin-page-sub');
-  if(sub)sub.textContent='Profit by session for '+year+'. Revenue minus instructor pay, linked expenses, and older session costs. Cancelled sessions stay hidden until you show them. A cancelled row counts paid instructor pay, linked expenses, and older costs that have a date paid.';
+  if(sub)sub.textContent='Profit by session for '+year+'. Revenue minus instructor pay, Safe Sitter handbooks and shipping ($23.35 per student), linked expenses, and older session costs. Cancelled sessions stay hidden until you show them. A cancelled row counts paid instructor pay, linked expenses, and older costs that have a date paid.';
   const tools=document.getElementById('profit-session-tools');
   if(tools)tools.innerHTML=`<label style="display:inline-flex;align-items:center;gap:8px;margin:0 0 10px;font-size:15px;cursor:pointer"><input type="checkbox" ${profitShowCancelled?'checked':''} onchange="toggleProfitCancelled(this.checked)"> Show cancelled sessions</label>`;
   const rows=profitBySessionRows(year).sort((a,b)=>profitBySessionDir*(a.profit-b.profit)||String(a.s.date||'').localeCompare(String(b.s.date||'')));
-  const tot=rows.reduce((a,r)=>({rev:a.rev+r.rev,instr:a.instr+r.instr,linked:a.linked+r.linked,legacy:a.legacy+r.legacy,profit:a.profit+r.profit}),{rev:0,instr:0,linked:0,legacy:0,profit:0});
+  const tot=rows.reduce((a,r)=>({rev:a.rev+r.rev,instr:a.instr+r.instr,linked:a.linked+r.linked,legacy:a.legacy+r.legacy,mat:a.mat+(r.mat||0),profit:a.profit+r.profit}),{rev:0,instr:0,linked:0,legacy:0,mat:0,profit:0});
   const marginText=m=>m==null?'n/a':(Math.round(m*1000)/10).toFixed(1)+'%';
   const arrow=profitBySessionDir<0?'↓':'↑';
   const t=document.getElementById('fin-table');
@@ -7733,15 +7771,16 @@ function renderProfitBySession(){
       <td>${course}</td>
       <td>${fmt(r.rev)}</td>
       <td style="color:var(--danger)">${fmt(r.instr)}</td>
+      <td style="color:var(--danger)" title="Safe Sitter is $20.35 handbook + $3 shipping per student">${fmt(r.mat||0)}</td>
       <td style="color:var(--danger)">${fmt(r.linked)}</td>
       <td style="color:var(--danger)">${fmt(r.legacy)}</td>
       <td style="font-weight:600;color:${r.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(r.profit)}</td>
       <td>${marginText(r.margin)}</td>
     </tr>`;
-  }).join(''):'<tr class="empty-row"><td colspan="9">No sessions in this year.</td></tr>';
+  }).join(''):'<tr class="empty-row"><td colspan="10">No sessions in this year.</td></tr>';
   const totMargin=tot.rev?tot.profit/tot.rev:null;
-  t.innerHTML=`<thead><tr><th>Code</th><th>Date</th><th>Course</th><th>Revenue</th><th>Instructor pay</th><th>Linked expenses</th><th>Older costs</th><th><button type="button" class="btn sm" onclick="toggleProfitSort()">Profit ${arrow}</button></th><th>Margin</th></tr></thead><tbody>${body}</tbody>
-    <tfoot><tr style="font-weight:650"><td colspan="3">Total</td><td>${fmt(tot.rev)}</td><td style="color:var(--danger)">${fmt(tot.instr)}</td><td style="color:var(--danger)">${fmt(tot.linked)}</td><td style="color:var(--danger)">${fmt(tot.legacy)}</td><td style="color:${tot.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(tot.profit)}</td><td>${marginText(totMargin)}</td></tr></tfoot>`;
+  t.innerHTML=`<thead><tr><th>Code</th><th>Date</th><th>Course</th><th>Revenue</th><th>Instructor pay</th><th title="Safe Sitter handbook $20.35 plus $3 shipping per student. Other courses are $0 in this column.">Handbooks &amp; shipping</th><th>Linked expenses</th><th>Older costs</th><th><button type="button" class="btn sm" onclick="toggleProfitSort()">Profit ${arrow}</button></th><th>Margin</th></tr></thead><tbody>${body}</tbody>
+    <tfoot><tr style="font-weight:650"><td colspan="3">Total</td><td>${fmt(tot.rev)}</td><td style="color:var(--danger)">${fmt(tot.instr)}</td><td style="color:var(--danger)">${fmt(tot.mat||0)}</td><td style="color:var(--danger)">${fmt(tot.linked)}</td><td style="color:var(--danger)">${fmt(tot.legacy)}</td><td style="color:${tot.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(tot.profit)}</td><td>${marginText(totMargin)}</td></tr></tfoot>`;
 }
 function renderFinances(){
   invalidateCommissionCache();
@@ -7799,9 +7838,10 @@ function renderFinances(){
   const feeCell=yearly?'Included once in total expenses':'Already deducted from net revenue';
   const t=document.getElementById('fin-table');
   const linkedHead='<th title="Finances expenses linked to a session, placed on the expense date. Counted once.">Session-linked expenses</th>';
+  const bookHead='<th title="Safe Sitter handbook $20.35 plus $3 shipping per student. Other courses are $0 here. A Safe Sitter handbook invoice in Other expenses is in addition to this.">Handbooks &amp; shipping</th>';
   const otherHead=yearly?'<th title="Finances expenses that are not linked to a session.">Other expenses</th>':'';
   const olderHead='<th title="Older costs still typed on a session. Resolved lines are not included. On a cancelled session, only a line with a date paid is included.">Older session costs (review)</th>';
-  t.innerHTML=`<thead><tr><th>${yearly?'Year':'Month'}</th><th>Sessions</th><th>Students paid</th><th>${yearly?'Revenue (gross)':'Revenue (net)'}</th><th title="${feeTitle}">Proc. fees</th><th>Instructor fees</th>${linkedHead}${otherHead}${olderHead}<th title="Community partner commission, booked in the month it was earned, money received and class taught. Do not also log these payouts on the Expenses tab or you will count them twice.">Partner commission</th><th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
+  t.innerHTML=`<thead><tr><th>${yearly?'Year':'Month'}</th><th>Sessions</th><th>Students paid</th><th>${yearly?'Revenue (gross)':'Revenue (net)'}</th><th title="${feeTitle}">Proc. fees</th><th>Instructor fees</th>${bookHead}${linkedHead}${otherHead}${olderHead}<th title="Community partner commission, booked in the month it was earned, money received and class taught. Do not also log these payouts on the Expenses tab or you will count them twice.">Partner commission</th><th>Total expenses</th><th>Net profit</th></tr></thead><tbody>`+
     (keys.length?keys.map(k=>{
       const b=buckets[k];
       const label=yearly?k:new Date(k+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'});
@@ -7809,13 +7849,14 @@ function renderFinances(){
         <td style="font-weight:500">${fmt(b.gross)}</td>
         <td style="color:${yearly?'var(--danger)':'var(--muted)'}" title="${feeCell}">${fmt(b.fee||0)}</td>
         <td style="color:var(--danger)">${fmt(b.instr||0)}</td>
+        <td style="color:var(--danger)">${fmt(b.mat||0)}</td>
         <td style="color:var(--danger)">${fmt(b.linked||0)}</td>
         ${yearly?`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`:''}
         <td style="color:var(--danger)">${fmt(b.legacy||0)}</td>
         <td style="color:var(--danger)">${fmt(b.comm||0)}</td>
         <td style="color:var(--danger)">${fmt(b.expenses)}</td>
         <td style="font-weight:500;color:${b.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(b.profit)}</td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="${yearly?12:11}">No financial data yet.</td></tr>`)+'</tbody>';
+    }).join(''):`<tr class="empty-row"><td colspan="${yearly?13:12}">No financial data yet.</td></tr>`)+'</tbody>';
   const feeHost=document.getElementById('fin-fee-section');
   if(feeHost){
     if(!yearly)feeHost.innerHTML='';
@@ -12820,7 +12861,7 @@ function printYearReport(){
   const fmtS=n=>(n<0?'-':'')+fmtN(n);
   const profitColor=n=>n>=0?'#2d7a5e':'#c0392b';
 
-  const monthActive=m=>!!(m.sess||m.rev||m.fee||m.instr||m.legacy||m.linked||m.overhead||m.comm||m.cost);
+  const monthActive=m=>!!(m.sess||m.rev||m.fee||m.instr||m.mat||m.legacy||m.linked||m.overhead||m.comm||m.cost);
   const cell=n=>n?fmtN(n):'-';
   let monthRows=months.map(m=>`
     <tr style="${monthActive(m)?'':'color:#aaa'}">
@@ -12829,6 +12870,7 @@ function printYearReport(){
       <td style="text-align:center">${m.students||'-'}</td>
       <td style="text-align:right;font-weight:500">${m.gross?fmtN(m.gross):'-'}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.instr)}</td>
+      <td style="text-align:right;color:#c0392b">${cell(m.mat)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.linked)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.legacy)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.comm)}</td>
@@ -12844,6 +12886,7 @@ function printYearReport(){
       <td style="text-align:center">${undatedHold.students||'-'}</td>
       <td style="text-align:right;font-weight:500">${undatedHold.gross?fmtN(undatedHold.gross):'-'}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.instr)}</td>
+      <td style="text-align:right;color:#c0392b">${cell(undatedHold.mat)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.linked)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.legacy)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.comm)}</td>
@@ -12932,7 +12975,7 @@ function printYearReport(){
       <thead><tr>
         <th>Month</th><th style="text-align:center">Sessions</th><th style="text-align:center">Students</th>
         <th style="text-align:right">Gross payments</th>
-        <th style="text-align:right">Instructor</th><th style="text-align:right">Session-linked</th>
+        <th style="text-align:right">Instructor</th><th style="text-align:right">Handbooks &amp; shipping</th><th style="text-align:right">Session-linked</th>
         <th style="text-align:right">Older costs</th>
         <th style="text-align:right">Partner comm.</th>
         <th style="text-align:right">Other expenses</th><th style="text-align:right">Card fees</th>
@@ -12946,6 +12989,7 @@ function printYearReport(){
         <td style="text-align:center">${tot.students}</td>
         <td style="text-align:right">${fmtN(tot.gross)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td>
+        <td style="text-align:right;color:#c0392b">${fmtN(tot.mat||0)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.linked)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td>
@@ -12977,11 +13021,12 @@ function printYearReport(){
     </table>`:''}
 
     <h2>All expenses by category</h2>
-    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes instructor fees, older session costs still typed on a class, community partner commission, payment processing fees, and every Finances expense. Handbook and supply orders are other expenses, not a per-student charge on each class. Processing fees are counted here once and are not also removed from gross payments. A cancelled session adds no revenue and no estimated instructor pay.</p>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes instructor fees, Safe Sitter handbooks and shipping at $23.35 per student ($20.35 + $3), older session costs still typed on a class, community partner commission, payment processing fees, and every Finances expense. Other courses leave handbook orders in other expenses and do not also take them off each class. Processing fees are counted here once and are not also removed from gross payments. A cancelled session adds no revenue and no estimated instructor pay.</p>
     ${(()=>{
       // Build unified expense map: session costs + overhead
       const allCats={};
       if(tot.instr>0)allCats['Instructor fees']=tot.instr;
+      if(tot.mat>0)allCats['Safe Sitter handbooks & shipping']=tot.mat;
       if(tot.comm>0)allCats['Partner commission']=tot.comm;
       if(tot.legacy>0)allCats['Older session costs']=tot.legacy;
       if(tot.fee>0)allCats['Payment processing fees']=tot.fee;
@@ -13032,7 +13077,7 @@ function printYearReport(){
           </table>
           <div style="margin-top:12px;padding:10px 12px;background:#f8f9fc;border-radius:6px;font-size:14px;color:#6b7a99;line-height:1.7">
             <strong style="color:#1a2744">How these are counted:</strong><br>
-            <em>Instructor fees</em>: hourly rate times course hours, plus one paid hour of travel at the same rate (virtual courses have no travel), or a flat fee where the course has one. A cancelled session counts only instructor pay that was marked paid, with the amount frozen at that time. Handbook and student-supply purchases are other expenses, entered when you order them.<br>
+            <em>Instructor fees</em>: hourly rate times course hours, plus one paid hour of travel at the same rate (virtual courses have no travel), or a flat fee where the course has one. A cancelled session counts only instructor pay that was marked paid, with the amount frozen at that time. Safe Sitter handbooks and shipping are $23.35 per student ($20.35 handbook + $3 shipping) on each class that ran. Other courses keep handbook orders in other expenses.<br>
             <em>Session-linked expenses</em>: Finances expenses tied to a session, counted once on the expense date, including when that session was cancelled.<br>
             <em>Older session costs</em>: facility rental, parking, printing, and other costs still typed on that class or job. A line already moved to Finances is not counted again. On a cancelled session, only a line with a date paid is counted.<br>
             <em>Payment processing fees</em>: PayPal, Venmo, and card fees on paid family registrations (2.99% + $0.49). A cost, subtracted once. Organization invoices are not included. Cancelled sessions do not add these fees.
@@ -13098,10 +13143,11 @@ function printMonthReport(){
     const f=calcFin(s);
     const p=financeSessionFigures(s);
     const linkedHere=linkedExpenses(s.id).filter(inThisMonth).reduce((sum,e)=>sum+(Number(e.amount)||0),0);
-    tot.rev+=p.rev;tot.fee+=p.fee;tot.instr+=p.instr;tot.legacy+=p.legacy;
+    const mats=p.mat||0;
+    tot.rev+=p.rev;tot.fee+=p.fee;tot.instr+=p.instr;tot.legacy+=p.legacy;tot.mat+=mats;
     linkedOnRows+=linkedHere;
     if(p.sess){tot.sess++;tot.students+=p.students;tot.regs+=f.totalCount;}
-    const rowProfit=p.rev-p.instr-p.legacy-linkedHere;
+    const rowProfit=p.rev-p.instr-p.legacy-linkedHere-mats;
     if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,sess:0,regs:0,students:0,profit:0};
     courseBuckets[s.course].rev+=p.rev;
     courseBuckets[s.course].profit+=rowProfit;
@@ -13120,6 +13166,7 @@ function printMonthReport(){
       <td style="text-align:center">${p.sess?p.students:'-'}</td>
       <td style="text-align:right;font-weight:500">${fmtN(p.rev)}</td>
       <td style="text-align:right;color:#c0392b">${dash(p.instr)}</td>
+      <td style="text-align:right;color:#c0392b">${dash(p.mat||0)}</td>
       <td style="text-align:right;color:#c0392b">${dash(linkedHere)}</td>
       <td style="text-align:right;color:#c0392b">${dash(p.legacy)}</td>
       <td style="text-align:right;font-weight:600;color:${profitColor(rowProfit)}">${fmtS(rowProfit)}</td>
@@ -13140,9 +13187,10 @@ function printMonthReport(){
   // Community partner commission earned this month: money received and class taught.
   invalidateCommissionCache();
   tot.comm=round2(partnerCommissionMonths(year)[mi]||0);
-  tot.cost=round2(tot.instr+tot.legacy+tot.linked+tot.comm);
+  tot.mat=round2(tot.mat);
+  tot.cost=round2(tot.instr+tot.mat+tot.legacy+tot.linked+tot.comm);
   tot.profit=round2(tot.rev-tot.cost);
-  const rowProfitTot=round2(tot.rev-tot.instr-tot.legacy-linkedOnRows);
+  const rowProfitTot=round2(tot.rev-tot.instr-tot.mat-tot.legacy-linkedOnRows);
 
   const monthCatBuckets=expenseCategoryTotals(monthExpenses);
   const monthCatRows=Object.entries(monthCatBuckets).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>`
@@ -13214,23 +13262,24 @@ function printMonthReport(){
         <th>Date</th><th>Course</th>
         <th style="text-align:center">Registrations</th><th style="text-align:center">Paid</th>
         <th style="text-align:right">Revenue</th>
-        <th style="text-align:right">Instructor</th><th style="text-align:right">Linked expenses</th>
+        <th style="text-align:right">Instructor</th><th style="text-align:right">Handbooks &amp; shipping</th><th style="text-align:right">Linked expenses</th>
         <th style="text-align:right">Older costs</th>
         <th style="text-align:right">Net profit</th>
       </tr></thead>
-      <tbody>${sessRows||'<tr><td colspan="9" style="color:#aaa;text-align:center;padding:16px">No sessions this month</td></tr>'}</tbody>
+      <tbody>${sessRows||'<tr><td colspan="10" style="color:#aaa;text-align:center;padding:16px">No sessions this month</td></tr>'}</tbody>
       ${monthSessions.length?`<tfoot><tr class="total-row">
         <td colspan="2">TOTAL</td>
         <td style="text-align:center">${tot.regs}</td>
         <td style="text-align:center">${tot.students}</td>
         <td style="text-align:right">${fmtN(tot.rev)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td>
+        <td style="text-align:right;color:#c0392b">${fmtN(tot.mat)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(linkedOnRows)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td>
         <td style="text-align:right;color:${profitColor(rowProfitTot)}">${fmtS(rowProfitTot)}</td>
       </tr></tfoot>`:''}
     </table>
-    ${monthSessions.length||tot.linked||tot.cost?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Operating net profit is revenue minus instructor fees, session-linked expenses dated this month, older session costs, and partner commission. Revenue is net of payment processing fees (PayPal 2.99% + $0.49/transaction). Handbook orders and other expenses are reported annually. A cancelled session adds no revenue. It still adds instructor pay that was marked paid, linked expenses, and older costs that have a date paid.</p>':''}
+    ${monthSessions.length||tot.linked||tot.cost?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Operating net profit is revenue minus instructor fees, Safe Sitter handbooks and shipping ($23.35 per student: $20.35 + $3), session-linked expenses dated this month, older session costs, and partner commission. Revenue is net of payment processing fees (PayPal 2.99% + $0.49/transaction). Handbook orders for other courses, and any Safe Sitter handbook invoice entered as overhead, are reported annually. A cancelled session adds no revenue and no estimated handbook cost. It still adds instructor pay that was marked paid, linked expenses, and older costs that have a date paid.</p>':''}
     ${orphanLinked?`<p style="font-size:14px;color:#6b7a99;margin-top:6px">Session-linked expenses dated this month for classes outside this month: ${fmtN(orphanLinked)}. They are in the profit summary and are not on the session rows.</p>`:''}
     ${undatedListed?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Sessions marked (on hold) have no class date. Revenue already collected — paid registrations, or a payment note such as a deposited check — is included in this month because the hold term falls in the current year (or names no year). An organization roster that has not been paid yet is not included. Saving a date moves that revenue to the class month.</p>':''}
 
@@ -13249,6 +13298,7 @@ function printMonthReport(){
       <tbody>
         <tr><td>Revenue</td><td style="text-align:right;font-weight:500">${fmtN(tot.rev)}</td></tr>
         <tr><td>Instructor fees</td><td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td></tr>
+        <tr><td>Safe Sitter handbooks &amp; shipping</td><td style="text-align:right;color:#c0392b">${fmtN(tot.mat)}</td></tr>
         <tr><td>Session-linked expenses</td><td style="text-align:right;color:#c0392b">${fmtN(tot.linked)}</td></tr>
         <tr><td>Older session costs</td><td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td></tr>
         ${tot.comm?`<tr><td>Community partner commission</td><td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td></tr>`:''}

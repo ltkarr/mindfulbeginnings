@@ -5,6 +5,7 @@
    Sep  6 2026 · Added My First Babysitters Club — Single Session, Ready. Period.,
                  and Season Ready; corrected My First Babysitters Club matCost to $30
    Oct  5 2026 · Added Social Ready ($35, 1 hour, cap 20, $100 flat fee, virtual)
+   Oct  6 2026 · Safe Sitter materials are $20.35 plus $3 shipping ($23.35/student)
    ════════════════════════════════════════════════════════════════════════
 
    Loaded by register.html and instructor.html. This file is the single
@@ -46,7 +47,12 @@ const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
      requiresSafeSitter → only Safe Sitter® certified instructors see these jobs
      requiresRN         → only Registered Nurse instructors see these jobs   */
 const COURSES={
-  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
+  // Safe Sitter student cost is the handbook plus shipping, per student.
+  // materialsCost $20.35 + materialsShipping $3.00 = $23.35. matCost is that
+  // total so anything still reading matCost gets the full cost. Family prices
+  // on this line are unchanged. Change shipping by editing materialsShipping
+  // and setting matCost to materialsCost + materialsShipping.
+  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,materialsCost:20.35,materialsShipping:3,matCost:23.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
   'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Grades 4–8'},
   'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16,audience:'Kids home alone'},
   // Program guide (Aug 2026): Safe@Home is $65 as a 90-minute single session,

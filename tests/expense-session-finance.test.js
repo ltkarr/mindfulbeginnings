@@ -28,6 +28,7 @@ const names = [
   'isPerStudentMaterialLine', 'isLegacyCostResolved', 'sessionExtraCosts',
   'expenseLedger', 'linkedExpenses', 'linkedExpenseTotal',
   'paidOutInstructorFee', 'legacyLineHasDatePaid', 'financeLegacyCosts',
+  'studentMaterialUnitCost', 'sessionMaterialHeadcount', 'companySessionMaterialCost',
   'participantMaterialAllowance',
   'processingFee', 'isLiveReg', 'regEffectivePrice',
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
@@ -310,7 +311,7 @@ test('printed reports use the same cancelled and once-count rules', () => {
   const monthFn = extractFunction(admin, 'printMonthReport');
   assert.match(monthFn, /sessionsForRevenueMonth\(/);
   assert.match(monthFn, /financeSessionFigures\(s\)/);
-  assert.match(monthFn, /tot\.cost=round2\(tot\.instr\+tot\.legacy\+tot\.linked\+tot\.comm\)/);
+  assert.match(monthFn, /tot\.cost=round2\(tot\.instr\+tot\.mat\+tot\.legacy\+tot\.linked\+tot\.comm\)/);
   assert.match(monthFn, /instructor pay that was marked paid/);
   assert.doesNotMatch(monthFn, /tot\.cost\+=f\.totalCost/);
   assert.doesNotMatch(monthFn, /Extra costs/);

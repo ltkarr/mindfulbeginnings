@@ -34,6 +34,7 @@ const names = [
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'splitBillCaption', 'sessionRevenueNotes',
+  'studentMaterialUnitCost', 'sessionMaterialHeadcount', 'companySessionMaterialCost',
   'calcFin', 'invoiceLineFor',
   'escapeHtml', 'fmt'
 ];
