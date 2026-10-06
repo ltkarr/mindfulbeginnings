@@ -49,9 +49,11 @@ const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
 const COURSES={
   // Safe Sitter student cost is the handbook plus shipping, per student.
   // materialsCost $20.35 + materialsShipping $3.00 = $23.35. matCost is that
-  // total so anything still reading matCost gets the full cost. Family prices
-  // on this line are unchanged. Change shipping by editing materialsShipping
-  // and setting matCost to materialsCost + materialsShipping.
+  // total so anything still reading matCost gets the full cost. Per-class
+  // profit uses it. Yearly and dashboard totals do not; they use the handbook
+  // bill entered as overhead. Family prices on this line are unchanged.
+  // Change shipping by editing materialsShipping and setting matCost to
+  // materialsCost + materialsShipping.
   'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,materialsCost:20.35,materialsShipping:3,matCost:23.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
   'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Grades 4–8'},
   'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16,audience:'Kids home alone'},

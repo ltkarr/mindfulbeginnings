@@ -299,6 +299,59 @@ test('a cancelled session with only an estimate adds nothing, and its linked exp
   assert.equal(sandbox.courseRevenueForYear(2026, now)['Safe Sitter®'], undefined);
 });
 
+test('class profit deducts $23.35 and yearly totals do not', () => {
+  const prev = sandbox.COURSES['Safe Sitter®'];
+  sandbox.COURSES['Safe Sitter®'] = {
+    price: 225, materialsCost: 20.35, materialsShipping: 3, matCost: 23.35, hours: 5, maxStudents: 16
+  };
+  const session = {
+    id: 'ss-roll',
+    course: 'Safe Sitter®',
+    date: '2026-10-04',
+    priceOverride: 225,
+    additionalCosts: []
+  };
+  sandbox.sessions = [session];
+  sandbox.registrations = [{ id: 'paid', sessionId: 'ss-roll', payStatus: 'paid' }];
+  sandbox.jobDataCache = {};
+  sandbox.expenses = [{ id: 'hb', amount: 982, date: '2026-10-01', category: 'Supplies' }];
+  sandbox.profitShowCancelled = false;
+
+  const fin = sandbox.calcFin(session);
+  assert.equal(fin.matCost, 23.35);
+  assert.equal(money(fin.profit), money(fin.revenue - fin.instrFee - 23.35));
+  assert.equal(sandbox.participantMaterialAllowance(session), 23.35);
+
+  const buckets = sandbox.financeRevenueBuckets(OCT, 'yearly');
+  assert.equal(buckets['2026'].mat || 0, 0);
+  assert.equal(money(buckets['2026'].rev), money(fin.revenue));
+  assert.equal(money(buckets['2026'].cost), money(fin.instrFee));
+  sandbox.applyFinanceExpenses(buckets, 'yearly');
+  assert.equal(money(buckets['2026'].overhead), 982);
+  assert.equal(money(buckets['2026'].cost), money(fin.instrFee + 982));
+
+  const dash = sandbox.dashboardRevenueTotals(OCT);
+  assert.equal(money(dash.mRev), money(fin.revenue));
+  assert.equal(money(dash.mCost), money(fin.instrFee));
+  const chart = sandbox.dashboardChartRevenue(OCT);
+  assert.equal(money(chart.buckets['2026-10'].rev), money(fin.revenue));
+  assert.equal(money(chart.buckets['2026-10'].cost), money(fin.instrFee));
+  const annual = sandbox.annualSessionBuckets(2026, OCT);
+  assert.equal(money(annual.months[9].cost), money(fin.instrFee));
+  assert.equal(annual.months[9].mat || 0, 0);
+  const byCourse = sandbox.courseRevenueForYear(2026, OCT);
+  assert.equal(money(byCourse['Safe Sitter®'].profit), money(fin.revenue - fin.instrFee));
+
+  const row = sandbox.profitBySessionRows(2026).find((r) => r.s.id === 'ss-roll');
+  assert.equal(row.mat, 23.35);
+  assert.equal(money(row.profit), money(fin.profit));
+
+  sandbox.COURSES['Safe Sitter®'] = prev;
+  sandbox.sessions = [];
+  sandbox.registrations = [];
+  sandbox.expenses = [];
+});
+
 test('printed reports use the same cancelled and once-count rules', () => {
   const yearFn = extractFunction(admin, 'printYearReport');
   assert.match(yearFn, /annualSessionBuckets\(/);
@@ -311,7 +364,9 @@ test('printed reports use the same cancelled and once-count rules', () => {
   const monthFn = extractFunction(admin, 'printMonthReport');
   assert.match(monthFn, /sessionsForRevenueMonth\(/);
   assert.match(monthFn, /financeSessionFigures\(s\)/);
-  assert.match(monthFn, /tot\.cost=round2\(tot\.instr\+tot\.mat\+tot\.legacy\+tot\.linked\+tot\.comm\)/);
+  assert.match(monthFn, /tot\.cost=round2\(tot\.instr\+tot\.legacy\+tot\.linked\+tot\.comm\)/);
+  assert.match(monthFn, /Class profit subtracts Safe Sitter handbooks and shipping/);
+  assert.doesNotMatch(monthFn, /tot\.cost=round2\(tot\.instr\+tot\.mat/);
   assert.match(monthFn, /instructor pay that was marked paid/);
   assert.doesNotMatch(monthFn, /tot\.cost\+=f\.totalCost/);
   assert.doesNotMatch(monthFn, /Extra costs/);
