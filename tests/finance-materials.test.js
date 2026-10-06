@@ -25,7 +25,9 @@ function extractFunction(src, name) {
 }
 
 const names = [
-  'isPerStudentMaterialLine', 'sessionExtraCosts', 'participantMaterialAllowance',
+  'isPerStudentMaterialLine', 'isLegacyCostResolved', 'sessionExtraCosts',
+  'expenseLedger', 'linkedExpenses', 'linkedExpenseTotal',
+  'participantMaterialAllowance',
   'processingFee', 'isLiveReg', 'regEffectivePrice',
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
@@ -236,6 +238,7 @@ test('finances screens no longer show a per-student material cost column', () =>
   const finStart = admin.indexOf('function renderFinances(');
   const finEnd = admin.indexOf('// ─── CODES', finStart);
   const fin = admin.slice(finStart, finEnd);
-  assert.match(fin, /buckets\[k\]\.overhead\+=e\.amount;buckets\[k\]\.cost\+=e\.amount/);
+  assert.match(fin, /applyFinanceExpenses\(buckets, finView\)/);
+  assert.match(admin, /buckets\[k\]\.overhead\+=e\.amount;buckets\[k\]\.cost\+=e\.amount/);
   assert.doesNotMatch(fin, /b\.mat/);
 });

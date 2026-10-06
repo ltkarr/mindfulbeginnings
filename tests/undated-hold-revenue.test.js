@@ -26,7 +26,11 @@ function extractFunction(src, name) {
 }
 
 const names = [
-  'isPerStudentMaterialLine', 'sessionExtraCosts', 'participantMaterialAllowance',
+  'isPerStudentMaterialLine', 'isLegacyCostResolved', 'sessionExtraCosts',
+  'expenseLedger', 'linkedExpenses', 'linkedExpenseTotal',
+  'paidOutInstructorFee', 'legacyLineHasDatePaid', 'financeLegacyCosts',
+  'financeSessionFigures', 'financeRevenueSlot',
+  'participantMaterialAllowance',
   'processingFee', 'isLiveReg', 'regEffectivePrice',
   'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
