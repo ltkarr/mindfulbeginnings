@@ -96,11 +96,13 @@ test('admin expenses can record how they were paid', () => {
     assert.match(sql, new RegExp("'" + key + "'"));
   }
   assert.doesNotMatch(sql, /update public\.expenses set/i);
+  const form = admin.slice(admin.indexOf('function expenseFormHtml'), admin.indexOf('function openAddExpense'));
   const add = admin.slice(admin.indexOf('function openAddExpense'), admin.indexOf('async function saveExpense'));
   const edit = admin.slice(admin.indexOf('function openEditExpense'), admin.indexOf('async function updateExpense'));
-  assert.match(add, /id="m-epay"/);
-  assert.match(edit, /id="m-epay"/);
-  assert.match(add, /Payment method/);
+  assert.match(form, /id="m-epay"/);
+  assert.match(form, /Payment method/);
+  assert.match(add, /expenseFormHtml\(/);
+  assert.match(edit, /expenseFormHtml\(/);
   assert.match(admin, /<th>Paid with<\/th>/);
   assert.match(admin, /payment_method:method\|\|null/);
   assert.match(admin, /migrations\/expense_payment_method\.sql/);
