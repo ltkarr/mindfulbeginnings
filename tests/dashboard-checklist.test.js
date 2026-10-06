@@ -169,4 +169,5 @@ test('checklist cards name the instructor and the host, or say when either is mi
   assert.match(block, /openInstructorReminder\('\$\{s\.id\}'\)/);
   assert.match(block, /openHostReminder\('\$\{s\.id\}'\)/);
   assert.match(block, /openClassReminder\('\$\{s\.id\}'\)/);
+  assert.match(block, /fmtSessDate\(s,/);
 });
