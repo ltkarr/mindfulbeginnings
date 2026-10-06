@@ -298,9 +298,10 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
   <div class="login-box" style="text-align:left">
     <img class="login-logo-img" src="/email-logo.png" alt="Mindful Beginnings">
     <div class="login-sub" style="text-align:center;margin-bottom:18px">Choose a new PIN</div>
-    <div style="font-size:13px;line-height:1.6;color:var(--text);background:var(--cream);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:18px">
-      On the advice of our legal counsel, every instructor PIN is moving from four digits to six. Your old PIN will stop working as soon as you set the new one, so please write the new PIN somewhere safe before you continue.
+    <div id="pinchange-note" style="font-size:13px;line-height:1.6;color:var(--text);background:var(--cream);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:18px">
+      For security, every instructor needs to choose a new PIN once. Your old PIN stops working as soon as the new one is saved, so write the new PIN down before you continue.
     </div>
+    <div id="pinchange-length-note" style="display:none;font-size:13px;line-height:1.5;color:var(--text);margin:-6px 0 18px">Your current PIN is not 6 digits yet. The new PIN must be 6 digits.</div>
     <div style="font-size:14px;color:var(--muted);margin-bottom:6px">New PIN (6 digits)</div>
     <input type="password" class="pin-input" id="newpin-1" placeholder="••••••" maxlength="6" inputmode="numeric" autocomplete="new-password">
     <div style="font-size:14px;color:var(--muted);margin:10px 0 6px">Confirm new PIN</div>
@@ -1130,12 +1131,10 @@ async function doLogin(){
     // Load sessions, the public job-board columns, and registration counts.
     // Pay, materials, and session notes come back only for this PIN.
     await loadData();
-    // Anyone still on an old PIN is stopped here and made to set a six-digit one
-    // before the portal opens. Nothing else in the app is reachable until they do.
+    // A flagged instructor must choose a new PIN before the portal opens.
+    // Nothing else in the app is reachable until they do.
     if(me.pinChangeRequired){
-      document.getElementById('login-screen').style.display='none';
-      document.getElementById('pinchange-screen').style.display='flex';
-      setTimeout(()=>document.getElementById('newpin-1').focus(),50);
+      showPinChangeScreen();
       return;
     }
     enterApp();
@@ -1143,6 +1142,15 @@ async function doLogin(){
     console.error(e);err.textContent='Connection error. Please try again.';
     btn.disabled=false;btn.textContent='Sign in';
   }
+}
+
+// The extra sentence is only for someone whose current PIN is not already 6 digits.
+function showPinChangeScreen(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('pinchange-screen').style.display='flex';
+  const lengthNote=document.getElementById('pinchange-length-note');
+  if(lengthNote) lengthNote.style.display=/^[0-9]{6}$/.test(String(me&&me.pin||''))?'none':'block';
+  setTimeout(()=>document.getElementById('newpin-1').focus(),50);
 }
 
 // Reveal the portal itself. Split out of doLogin so the forced PIN change can run

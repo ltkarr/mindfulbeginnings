@@ -35,3 +35,18 @@ test('the database function rejects the current PIN and the same weak patterns',
   assert.match(sql, /pin_change_required = false/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.instructor_change_pin/);
 });
+
+test('the forced change screen explains a one-time security reset', () => {
+  const screen = instructor.slice(instructor.indexOf('id="pinchange-screen"'), instructor.indexOf('id="app"'));
+  assert.match(screen, /For security, every instructor needs to choose a new PIN once/);
+  assert.match(screen, /Your old PIN stops working as soon as the new one is saved/);
+  assert.match(screen, /write the new PIN down before you continue/);
+  assert.match(screen, /id="pinchange-length-note"/);
+  assert.match(screen, /Your current PIN is not 6 digits yet\. The new PIN must be 6 digits\./);
+  assert.doesNotMatch(screen, /legal counsel/i);
+  assert.doesNotMatch(screen, /four digits/i);
+  assert.doesNotMatch(screen, /moving from/i);
+  const show = instructor.slice(instructor.indexOf('function showPinChangeScreen'), instructor.indexOf('function enterApp'));
+  assert.match(show, /pinchange-length-note/);
+  assert.match(show, /\^\[0-9\]\{6\}\$/);
+});
