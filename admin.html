@@ -2458,6 +2458,36 @@ function sessionInstructorNames(s,fallback){
   if(!list.length)return fallback||'TBD';
   return list.map(x=>x.name).join(' + ');
 }
+// The person hosting this class, using the same records already on the session:
+// the contact name (host or org contact), then a registration marked host, then
+// the community-partner contact. Empty when none of those is set.
+function sessionHostDisplayName(s){
+  if(!s)return '';
+  const contact=String(s.contactName||'').trim();
+  if(contact)return contact;
+  const regs=(typeof registrations!=='undefined'&&registrations)||[];
+  for(let i=0;i<regs.length;i++){
+    const r=regs[i];
+    if(!r||r.sessionId!==s.id||String(r.payStatus||'').toLowerCase()!=='host')continue;
+    const name=String(r.parentName||'').trim()||String(r.studentName||'').trim();
+    if(name)return name;
+  }
+  if(s.hostedFor&&typeof orgPartners!=='undefined'&&orgPartners){
+    const p=orgPartners.find(x=>x&&x.id===s.hostedFor);
+    if(p){
+      const who=String(p.contactName||'').trim()||String(p.name||'').trim();
+      if(who)return who;
+    }
+  }
+  return '';
+}
+function checklistInstructorLabel(s){
+  if(!s)return 'No instructor';
+  return sessionInstructorNames(s,'No instructor');
+}
+function checklistHostLabel(s){
+  return sessionHostDisplayName(s)||'No host';
+}
 function fmt(n){const v=Math.abs(n);return'$'+(Number.isInteger(v)?v.toLocaleString('en-US'):v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));}
 function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 
@@ -5091,13 +5121,20 @@ function renderDashboard(){
         if(hasInstr)items.push(item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,'Send reminder + roster to instructor',sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee')));
         if(hasHost)items.push(item(!!jd.hostReminderSent,`toggleReminderFlag('${s.id}','hostReminderSent',this.checked)`,'Host reminder — 1 week before',sendBtn(`openHostReminder('${s.id}')`,'📬','#b86a00','#fff7e6','#f0d090')));
         items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Family reminder — before class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
+        const instrLabel=checklistInstructorLabel(s);
+        const hostLabel=checklistHostLabel(s);
+        const roleLine=(label,value,empty)=>`<span style="min-width:0"><span style="color:var(--muted)">${label}:</span> <span style="${value===empty?'color:var(--muted);font-style:italic':'font-weight:600'}">${escapeHtml(value)}</span></span>`;
         return`<div style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid ${accent}">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">
             <div style="font-size:15px;min-width:0">
               <span style="font-weight:600">${s.course}</span>
               <span style="color:var(--muted);margin-left:6px">${d} · ${cnt} student${cnt!==1?'s':''}</span>
             </div>
             <div style="flex-shrink:0">${badge}</div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin:0 0 6px;font-size:15px;line-height:1.45">
+            ${roleLine('Instructor',instrLabel,'No instructor')}
+            ${roleLine('Host',hostLabel,'No host')}
           </div>
           ${items.join('')}
         </div>`;
