@@ -453,7 +453,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <option value="">All categories</option>
           <option>Business Development</option>
           <option>Equipment</option><option>Instructor Training</option><option>Insurance</option><option>Supplies</option>
-          <option>Marketing</option><option>Software</option><option>Travel</option><option>Charitable Donation</option><option>Curriculum Development</option><option>Other</option>
+          <option>Marketing</option><option>Software</option><option>Travel</option><option>Charitable Donation</option><option>Curriculum Development</option><option>Rentals</option><option>Other</option>
         </select>
         <select id="ef-link" onchange="renderExpenses()">
           <option value="">All expenses</option>
@@ -5513,6 +5513,13 @@ function legacyPayToExpense(v){
   if(raw==='venmo')return 'venmo';
   return '';
 }
+// Move to Finances has no category field. A room or facility rental line is
+// Rentals. Every other label stays Other, which is what this button always used.
+function legacyCostCategory(line){
+  const label=String(line&&line.label!=null?line.label:'');
+  if(label.toLowerCase().indexOf('rental')>=0)return 'Rentals';
+  return 'Other';
+}
 function sessionCostsFieldHtml(){
   return `<div class="fg full" style="background:#f6f2ea;border:1px solid #e0d5c2;border-radius:var(--r-sm);padding:10px 12px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
@@ -5583,7 +5590,7 @@ async function moveLegacyCost(sessionId, index){
   const line=(s.additionalCosts||[])[index];
   if(!line||isLegacyCostResolved(line))return;
   const date=String(line.datePaid||s.date||new Date().toISOString().slice(0,10)).slice(0,10);
-  const e={id:sid(),description:String(line.label||'Session cost').trim()||'Session cost',amount:Number(line.amount)||0,date,category:'Other',paymentMethod:legacyPayToExpense(line.paymentMethod),sessionId:s.id,createdAt:Date.now()};
+  const e={id:sid(),description:String(line.label||'Session cost').trim()||'Session cost',amount:Number(line.amount)||0,date,category:legacyCostCategory(line),paymentMethod:legacyPayToExpense(line.paymentMethod),sessionId:s.id,createdAt:Date.now()};
   expenses.unshift(e);
   line.resolved='moved';
   line.expenseId=e.id;
@@ -9765,7 +9772,24 @@ function downloadAllWaivers(){
 }
 
 // ─── EXPENSES ────────────────────────────────────────────────
-const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Curriculum Development','Other'];
+const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Curriculum Development','Rentals','Other'];
+// Stable swatch for each known category on the annual expense chart.
+// Labels that are not expense categories (instructor fees, card fees, and so on)
+// fall through to the chart palette.
+const EXP_CAT_COLORS={
+  'Business Development':'#4a8fc4',
+  'Equipment':'#e07c5a',
+  'Instructor Training':'#2d7a5e',
+  'Insurance':'#b86a00',
+  'Supplies':'#6b3fa0',
+  'Marketing':'#c0392b',
+  'Software':'#1a5c8a',
+  'Travel':'#3a7a5a',
+  'Charitable Donation':'#a04060',
+  'Curriculum Development':'#0f6f8a',
+  'Rentals':'#c46b2d',
+  'Other':'#888'
+};
 // How an overhead expense was paid. Stored lowercase; the label is what shows
 // in the form and the list. Empty means not recorded, so older rows still load.
 const EXP_PAY_METHODS=[['amex','Amex'],['visa','Visa'],['paypal','PayPal'],['check','Check'],['zelle','Zelle'],['venmo','Venmo']];
@@ -9845,7 +9869,41 @@ function readExpensePay(){
   return normalizeExpensePay(el?el.value:'');
 }
 
+function expenseCategoryOptions(selected){
+  const cur=selected==null?'':String(selected);
+  const extra=(cur&&EXP_CATS.indexOf(cur)<0)?`<option selected>${escapeHtml(cur)}</option>`:'';
+  return extra+EXP_CATS.map(c=>`<option${c===cur?' selected':''}>${escapeHtml(c)}</option>`).join('');
+}
+function expenseCategoryFilterOptions(selected, rows){
+  const keep=selected==null?'':String(selected);
+  const extras=[];
+  const seen={};
+  (rows||[]).forEach(e=>{
+    const c=e&&e.category!=null?String(e.category):'';
+    if(!c||EXP_CATS.indexOf(c)>=0||seen[c])return;
+    seen[c]=true;
+    extras.push(c);
+  });
+  extras.sort((a,b)=>a.localeCompare(b));
+  const opt=c=>`<option${c===keep?' selected':''}>${escapeHtml(c)}</option>`;
+  return '<option value=""'+(keep===''?' selected':'')+'>All categories</option>'+EXP_CATS.map(opt).join('')+extras.map(opt).join('');
+}
+function syncExpenseCategoryFilter(){
+  const sel=document.getElementById('ef-cat');
+  if(!sel)return;
+  sel.innerHTML=expenseCategoryFilterOptions(sel.value, expenses);
+}
+function expenseCategoryTotals(list){
+  const buckets={};
+  (list||[]).forEach(e=>{
+    const cat=e?e.category:undefined;
+    if(!buckets[cat])buckets[cat]=0;
+    buckets[cat]+=e.amount;
+  });
+  return buckets;
+}
 function renderExpenses(){
+  syncExpenseCategoryFilter();
   const catF=document.getElementById('ef-cat').value;
   const yearF=(document.getElementById('ef-year').value||'').trim();
   const linkSel=document.getElementById('ef-link');
@@ -9889,7 +9947,7 @@ function renderExpenses(){
 }
 
 function expenseFormHtml(e, presetSessionId){
-  const catOpts=EXP_CATS.map(c=>`<option ${e&&c===e.category?'selected':''}>${c}</option>`).join('');
+  const catOpts=expenseCategoryOptions(e?e.category:'');
   const sessionId=(e&&e.sessionId)||presetSessionId||'';
   const preset=(sessions||[]).find(s=>s.id===sessionId);
   const dateVal=(e&&e.date)||(preset&&preset.date)||new Date().toISOString().slice(0,10);
@@ -12671,12 +12729,12 @@ function printYearReport(){
   // Course breakdown, including undated paid holds that belong to this year.
   const courseBuckets=courseRevenueForYear(year, nowRep);
 
-  // Expense breakdown by category
-  const catBuckets={};
-  expenses.filter(e=>new Date(e.date+'T12:00:00').getFullYear()===year).forEach(e=>{
-    if(!catBuckets[e.category])catBuckets[e.category]=0;
-    catBuckets[e.category]+=e.amount;
-  });
+  // Expense breakdown by category. Every stored category is its own row,
+  // including Rentals and any value that is not in the dropdown list.
+  const catBuckets=expenseCategoryTotals(expenses.filter(e=>{
+    const d=new Date((e&&e.date?e.date:'')+'T12:00:00');
+    return !isNaN(d.getTime())&&d.getFullYear()===year;
+  }));
 
   const fmtN=n=>{const v=Math.abs(n);return'$'+(Number.isInteger(v)?v.toLocaleString('en-US'):v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));};
   const fmtS=n=>(n<0?'-':'')+fmtN(n);
@@ -12727,7 +12785,7 @@ function printYearReport(){
 
   const catRows=Object.entries(catBuckets).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>`
     <tr>
-      <td>${cat}</td>
+      <td>${escapeHtml(cat)}</td>
       <td style="text-align:right;color:#c0392b">${fmtN(amt)}</td>
     </tr>`).join('');
 
@@ -12850,9 +12908,11 @@ function printYearReport(){
       Object.entries(catBuckets).forEach(([k,v])=>{if(v>0)allCats[k]=(allCats[k]||0)+v;});
       const grandTotal=Object.values(allCats).reduce((s,v)=>s+v,0);
       if(!grandTotal)return '<p style="color:#aaa;font-style:italic">No expense data for this year.</p>';
-      const palette=['#4a8fc4','#e07c5a','#2d7a5e','#b86a00','#6b3fa0','#c0392b','#1a5c8a','#888','#3a7a5a','#a04060'];
+      const palette=['#4a8fc4','#e07c5a','#2d7a5e','#b86a00','#6b3fa0','#c0392b','#1a5c8a','#888','#3a7a5a','#a04060','#0f6f8a','#c46b2d'];
       const entries=Object.entries(allCats).sort((a,b)=>b[1]-a[1]);
-      // SVG pie chart
+      const catColor=(label,i)=>(EXP_CAT_COLORS&&EXP_CAT_COLORS[label])||palette[i%palette.length];
+      // SVG pie chart. Known expense categories use EXP_CAT_COLORS so Rentals
+      // stays the same color when the sort order changes.
       const cx=160,cy=160,r=130;
       let startAngle=-Math.PI/2;
       let slices='';
@@ -12862,13 +12922,13 @@ function printYearReport(){
         const x1=cx+r*Math.cos(startAngle),y1=cy+r*Math.sin(startAngle);
         const x2=cx+r*Math.cos(endAngle),y2=cy+r*Math.sin(endAngle);
         const largeArc=angle>Math.PI?1:0;
-        const color=palette[i%palette.length];
+        const color=catColor(label,i);
         slices+=`<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${largeArc},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${color}" stroke="white" stroke-width="1.5"/>`;
         startAngle=endAngle;
       });
       const legendItems=entries.map(([label,val],i)=>`
         <tr>
-          <td style="padding:5px 8px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${palette[i%palette.length]};margin-right:6px"></span>${label}</td>
+          <td style="padding:5px 8px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${catColor(label,i)};margin-right:6px"></span>${escapeHtml(label)}</td>
           <td style="text-align:right;padding:5px 8px;color:#c0392b">${fmtN(val)}</td>
           <td style="text-align:right;padding:5px 8px;color:#6b7a99">${((val/grandTotal)*100).toFixed(1)}%</td>
         </tr>`).join('');
@@ -13004,6 +13064,11 @@ function printMonthReport(){
   tot.profit=round2(tot.rev-tot.cost);
   const rowProfitTot=round2(tot.rev-tot.instr-tot.legacy-linkedOnRows);
 
+  const monthCatBuckets=expenseCategoryTotals(monthExpenses);
+  const monthCatRows=Object.entries(monthCatBuckets).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>`
+    <tr><td>${escapeHtml(cat)}</td><td style="text-align:right;color:#c0392b">${fmtN(amt)}</td></tr>`).join('');
+  const monthCatTotal=Object.values(monthCatBuckets).reduce((s,v)=>s+(Number(v)||0),0);
+
   const courseRows=Object.entries(courseBuckets).sort((a,b)=>b[1].rev-a[1].rev).map(([name,b])=>`
     <tr>
       <td style="font-weight:500">${name}</td>
@@ -13110,6 +13175,15 @@ function printMonthReport(){
         <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td></tr>
       </tbody>
     </table>
+
+    ${Object.keys(monthCatBuckets).length?`
+    <h2>Expenses by category</h2>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:10px">Finances expenses dated this month. Each stored category is its own row. Session-linked amounts are already in the profit summary. Expenses with no session are listed here and in the annual report.</p>
+    <table>
+      <thead><tr><th>Category</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>${monthCatRows}</tbody>
+      <tfoot><tr class="total-row"><td>TOTAL</td><td style="text-align:right;color:#c0392b">${fmtN(monthCatTotal)}</td></tr></tfoot>
+    </table>`:''}
 
     <div class="footer">
       <span>Mindful Beginnings · ${monthName}</span>
