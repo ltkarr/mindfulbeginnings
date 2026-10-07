@@ -109,7 +109,11 @@ const COURSES={
   // sets the session family price to $15 and the organization flat fee to $30,
   // so families check out at $15 and the troop is invoiced $30 × the roster.
   // RN instructors only, same as the other hands-on first-aid and CPR workshops.
-  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true,audience:'Girl Scout troops'}
+  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true,audience:'Girl Scout troops'},
+  // Girl Scout Badge Class: the job type for a troop badge workshop that is
+  // not a Safe Sitter® class. Same guide price and cap as the First Aid
+  // workshop. RN instructors only. A session can still override the price.
+  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true,audience:'Girl Scout troops'}
 };
 
 
@@ -215,7 +219,8 @@ const MAX_STUDENTS={
   'Ready. Period.':18,
   'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,
   'Social Ready':20,
-  'Girl Scouts — First Aid Badge Workshop':15
+  'Girl Scouts — First Aid Badge Workshop':15,
+  'Girl Scout Badge Class':15
 };
 
 

@@ -406,7 +406,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="filter-row">
         <select id="sf-course" onchange="renderSessions()">
           <option value="">All courses</option>
-          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option>
+          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option>
         </select>
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
@@ -441,6 +441,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
     <div class="screen" id="screen-finances">
       <div class="page-header">
         <div><div class="page-title">Finances</div><div class="page-sub" id="fin-page-sub">Revenue (net of payment processing fees), expenses, and profit</div></div>
+        <button class="btn primary" id="add-expense-btn" onclick="openAddExpense()">+ Add expense</button>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
         <div class="toggle-group" style="margin-bottom:0">
@@ -467,8 +468,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="invoices-table"></table></div></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:16px">
-        <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Insurance, software, equipment, and handbook or supply orders. These reduce net profit, and they are not also taken off each class.</div></div>
-        <button class="btn primary" onclick="openAddExpense()">+ Add expense</button>
+        <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Insurance, software, equipment, and handbook or supply orders. These reduce net profit, and they are not also taken off each class. Add an expense with the button at the top of this page.</div></div>
       </div>
       <div class="metrics" id="exp-metrics"></div>
       <div class="filter-row">
@@ -1135,7 +1135,10 @@ const COURSES={
   // split does not change this default: Family price at registration is what
   // each family pays (GS-H4782 is $15) and Organization flat fee per girl is
   // what the troop is invoiced ($30 × the roster).
-  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true}
+  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true},
+  // Girl Scout Badge Class is its own job type. It is not a Safe Sitter® class.
+  // RN instructors only, same guide price and cap as the First Aid workshop.
+  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true}
 };
 // ─── STUDENT MATERIAL RATES ──────────────────────────────────
 // COURSES[...].matCost is the per-participant handbook and supply allowance.
@@ -1303,7 +1306,8 @@ const COURSE_ABBR={
   // SOC, not SR — SR already belongs to Stay Ready.
   'Social Ready':'SOC',
   // GSFA, not FA — keep the Girl Scout program in the registration code.
-  'Girl Scouts — First Aid Badge Workshop':'GSFA'
+  'Girl Scouts — First Aid Badge Workshop':'GSFA',
+  'Girl Scout Badge Class':'GSB'
 };
 // Custom-job titles are free text ("My First Babysitter's Club — Greenwood
 // Elementary — 10 week series"), so match the program out of the words.
@@ -1312,7 +1316,7 @@ const TITLE_ABBR=[
   [/safe\s*@?\s*home/i,'SAH'],[/intro to babysit/i,'IB'],
   [/grandparent/i,'GP'],[/baby\s*ready/i,'BR'],[/care\s*ready/i,'CRE'],[/all kids welcome/i,'AKW'],
   [/choking|cpr|stay ready/i,'SR'],[/campus ready/i,'CR'],
-  [/steady and ready/i,'STR'],[/social ready/i,'SOC'],[/first aid badge/i,'GSFA'],[/girls on the run|gotr/i,'GOTR'],
+  [/steady and ready/i,'STR'],[/social ready/i,'SOC'],[/first aid badge/i,'GSFA'],[/girl scout badge/i,'GSB'],[/girls on the run|gotr/i,'GOTR'],
   [/caregiv/i,'CARE'],[/babysitting course/i,'BC']
 ];
 function courseAbbr(course){
@@ -1826,7 +1830,13 @@ function expenseLedger(){
 }
 function linkedExpenses(sessionId){
   if(!sessionId)return [];
-  return expenseLedger().filter(e=>e&&e.sessionId===sessionId);
+  // A repeating expense is counted once per period in the finance reports.
+  // It is not also piled onto one session for every future charge.
+  return expenseLedger().filter(e=>{
+    if(!e||e.sessionId!==sessionId)return false;
+    const freq=String(e.recurrence||'').toLowerCase();
+    return freq!=='weekly'&&freq!=='monthly'&&freq!=='yearly';
+  });
 }
 function linkedExpenseTotal(sessionId){
   return linkedExpenses(sessionId).reduce((sum,e)=>sum+Number(e.amount||0),0);
@@ -2228,7 +2238,10 @@ function dashboardChartRevenue(now){
   });
   // Session-linked expenses land in the month of the expense date. Unlinked
   // overhead stays on the Finances yearly view, same as before.
-  expenseLedger().forEach(e=>{
+  const chartExpenses=(typeof expenseOccurrences==='function')
+    ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
+    :expenseLedger();
+  chartExpenses.forEach(e=>{
     if(!e||!e.sessionId)return;
     const d=new Date((e.date||'')+'T12:00:00');
     if(isNaN(d.getTime()))return;
@@ -2269,7 +2282,10 @@ function emptyRevBucket(){
 // only, in the month of the expense date. Yearly view also takes every other
 // expense. Linked expenses are not also inside the session cost above.
 function applyFinanceExpenses(buckets, view){
-  expenseLedger().forEach(e=>{
+  const financeExpenses=(typeof expenseOccurrences==='function')
+    ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
+    :expenseLedger();
+  financeExpenses.forEach(e=>{
     const d=new Date((e.date||'')+'T12:00:00');
     if(isNaN(d.getTime()))return;
     const linked=!!(e&&e.sessionId);
@@ -2418,15 +2434,24 @@ function instrEligMark(i,course){return instrEligible(i,course)?'':' ⚠ not eli
 // RN restriction for one specific job. Two ways a job can be RN-only: the course
 // itself is RN-only (Stay Ready, Campus Ready), or the job was individually marked
 // "RN instructors only" — which is how custom jobs, having no course, get restricted.
+function isGirlScoutBadgeCourseName(course){
+  const name=String(course||'');
+  return /girl scouts?/i.test(name)&&/badge/i.test(name);
+}
 function sessionRequiresRN(s){
   if(!s)return false;
-  return !!(s.requiresRN||(COURSES[s.course]||{}).requiresRN);
+  if(s.requiresRN)return true;
+  if(/girl scouts?/i.test(s&&s.course||'')&&/badge/i.test(s&&s.course||''))return true;
+  return !!(COURSES[s.course]||{}).requiresRN;
 }
 // Safe Sitter® restriction for one specific job. Same two ways in: the course itself is
 // Safe Sitter®-only (Safe Sitter®, Grandparents), or the job was individually marked
 // "Safe Sitter® instructors only" — which is how custom jobs, having no course, get restricted.
 function sessionRequiresSafeSitter(s){
   if(!s)return false;
+  // A Girl Scout badge workshop is never a Safe Sitter® class, even if a
+  // course alias or an old flag would have said otherwise.
+  if(/girl scouts?/i.test(s.course||'')&&/badge/i.test(s.course||''))return false;
   return !!(s.requiresSS||(COURSES[s.course]||{}).requiresSafeSitter);
 }
 // Who may teach this job. Same rules as the instructor board: an RN flag on
@@ -2459,12 +2484,21 @@ function instrEligMarkSession(i,s){
 function updateRnNotice(){
   const sel=document.getElementById('m-course');
   const note=document.getElementById('m-rn-notice');
+  const rnBox=document.getElementById('m-rnonly');
+  if(sel&&rnBox){
+    const courseRn=!!((COURSES[sel.value]||{}).requiresRN);
+    if(courseRn)rnBox.checked=true;
+    rnBox.disabled=courseRn;
+  }
   if(!sel||!note)return;
   const c=COURSES[sel.value]||{};
-  if(c.requiresRN){
+  const marked=!!(rnBox&&rnBox.checked);
+  if(c.requiresRN||marked){
     note.style.display='block';
-    note.innerHTML='⚠️ This course must be taught by a certified registered nurse (RN). Only instructors marked as <strong>Registered Nurse (RN)</strong> in their profile will see this job post on their board.';
-  }else if(c.requiresSafeSitter){
+    note.innerHTML=c.requiresRN
+      ?'⚠️ This course must be taught by a certified registered nurse (RN). Only instructors marked as <strong>Registered Nurse (RN)</strong> in their profile will see this job post on their board.'
+      :'⚠️ This job is marked RN instructors only. Instructors who are not registered nurses will not see it on Open Jobs and cannot claim it.';
+  }else if(c.requiresSafeSitter&&!isGirlScoutBadgeCourseName(sel.value)){
     note.style.display='block';
     note.innerHTML='⚠️ This course must be taught by a Safe Sitter® trained instructor. Only instructors marked as <strong>Safe Sitter® certified</strong> in their profile will see this job post on their board.';
   }else{
@@ -5021,7 +5055,10 @@ function renderDashboard(){
   const revTotals=dashboardRevenueTotals(now);
   let mRev=revTotals.mRev,mCost=revTotals.mCost,yRev=revTotals.yRev,yCollected=revTotals.yCollected,yExpected=revTotals.yExpected;
   let mLinked=0,mOverhead=0;
-  expenses.forEach(e=>{
+  const dashExpenses=(typeof expenseOccurrences==='function')
+    ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
+    :expenses;
+  dashExpenses.forEach(e=>{
     const d=new Date((e.date||'')+'T12:00:00');
     if(isNaN(d.getTime())||d.getFullYear()!==y||d.getMonth()!==m)return;
     const amt=Number(e.amount)||0;
@@ -5416,6 +5453,9 @@ function renderSessions(){
       }
       const pills=[];
       if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
+      if(isGirlScoutBadgeCourseName(s.course))pills.push(pill('Girl Scout','#f3e8f5','#6b3a7a','Girl Scout badge class, not a Safe Sitter® class'));
+      if(sessionRequiresRN(s))pills.push(pill('RN only','#e2efe7','#2d7a5e','Registered nurse instructors only'));
+      if(sessionRequiresSafeSitter(s))pills.push(pill('Safe Sitter only','#e6eff7','#1a5c8a','Safe Sitter® instructors only'));
       if(kit)pills.push(kit);
       const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
       return`<tr style="${cxRowStyle}">
@@ -5928,8 +5968,14 @@ function openAddSession(){
   showModal(`<div class="modal-head"><h3>Add new session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Course *</label>
-      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option></select>
-      <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div></div>
+      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option></select>
+      <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div>
+      <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="m-rnonly" onchange="updateRnNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
+        RN instructors only
+      </label>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Any job can be limited to registered nurses. Instructors who are not RNs will not see it on Open Jobs and cannot claim it. Courses that are already RN-only stay checked.</div>
+      </div>
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
         <input type="checkbox" id="m-hold" onchange="toggleHoldMode(this.checked)" style="width:16px;height:16px;cursor:pointer">
@@ -6614,8 +6660,16 @@ function openEditSession(id){
         <option ${s.course==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes'?'selected':''}>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option>
         <option ${s.course==='Social Ready'?'selected':''}>Social Ready</option>
         <option ${s.course==='Girl Scouts — First Aid Badge Workshop'?'selected':''}>Girl Scouts — First Aid Badge Workshop</option>
+        <option ${s.course==='Girl Scout Badge Class'?'selected':''}>Girl Scout Badge Class</option>
+        ${['Safe Sitter®','Intro to Babysitting','Safe@Home','Safe@Home — Virtual','Safe@Home — Series','Grandparents: Getting Started','Care Ready','Baby Ready','All Kids Welcome','Stay Ready: Choking Rescue and CPR','Campus Ready: Safety Skills for College Life','Steady and Ready','My First Babysitters Club','My First Babysitters Club — Single Session','Ready. Period.','Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes','Social Ready','Girl Scouts — First Aid Badge Workshop','Girl Scout Badge Class'].includes(s.course)?'':`<option selected>${escapeHtml(s.course||'')}</option>`}
       </select>
-      <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div></div>
+      <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div>
+      <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="m-rnonly" ${s.requiresRN?'checked':''} onchange="updateRnNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
+        RN instructors only
+      </label>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Any job can be limited to registered nurses. Instructors who are not RNs will not see it on Open Jobs and cannot claim it. Courses that are already RN-only stay checked.</div>
+      </div>
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
         <input type="checkbox" id="m-hold" ${s.isHold?'checked':''} onchange="toggleHoldMode(this.checked)" style="width:16px;height:16px;cursor:pointer">
@@ -6834,6 +6888,7 @@ async function saveSession(editId){
   // text into notes and blanks the old column. Nothing is lost; it just moves.
   const instructorInfo='';
   const feeReceived=readFeeReceived('m-fee-received', editId?(sessions.find(x=>x.id===editId)||{}).feeReceived:null);
+  const requiresRN=!!((document.getElementById('m-rnonly')||{}).checked||(COURSES[course]||{}).requiresRN);
   // Duplicate check runs while the modal is still open, so backing out leaves
   // everything she typed exactly where it was.
   if(!confirmNotDuplicate({course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,isVirtual,isCancelled:false},editId||null))return;
@@ -6843,9 +6898,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN};
     sessions.push(s);
   }
   const matChoice=sessionMaterialsFromForm(editId);
@@ -10003,7 +10058,75 @@ function expensePayOptions(selected){
   return '<option value="">Not recorded</option>'+EXP_PAY_METHODS.map(([k,label])=>`<option value="${k}"${k===cur?' selected':''}>${label}</option>`).join('');
 }
 function expenseFromDB(x){
-  return {id:x.id,description:x.description,amount:Number(x.amount),date:x.date,category:x.category||'Other',paymentMethod:normalizeExpensePay(x.payment_method),sessionId:x.session_id||null,createdAt:x.created_at||Date.now()};
+  return {id:x.id,description:x.description,amount:Number(x.amount),date:x.date,category:x.category||'Other',paymentMethod:normalizeExpensePay(x.payment_method),sessionId:x.session_id||null,createdAt:x.created_at||Date.now(),recurrence:normalizeExpenseRecurrence(x.recurrence),recurUntil:x.recur_until?String(x.recur_until).slice(0,10):'',recurActive:x.recur_active!==false};
+}
+const EXP_RECUR_OPTS=[['','One time'],['weekly','Weekly'],['monthly','Monthly'],['yearly','Yearly']];
+function normalizeExpenseRecurrence(v){
+  const raw=String(v==null?'':v).trim().toLowerCase();
+  return raw==='weekly'||raw==='monthly'||raw==='yearly'?raw:'';
+}
+function expenseRecurLabel(v){
+  const key=normalizeExpenseRecurrence(v);
+  const hit=EXP_RECUR_OPTS.find(([k])=>k===key);
+  return hit&&key?hit[1]:'';
+}
+function expenseRecurOptions(selected){
+  const cur=normalizeExpenseRecurrence(selected);
+  return EXP_RECUR_OPTS.map(([k,label])=>`<option value="${k}"${k===cur?' selected':''}>${label}</option>`).join('');
+}
+// Advance a YYYY-MM-DD by n weeks, months, or years. Month and year steps
+// keep the start day, or the last day of a shorter month.
+function expenseRecurDate(ymd, freq, steps){
+  const parts=String(ymd||'').slice(0,10).split('-').map(n=>parseInt(n,10));
+  if(parts.length<3||parts.some(n=>!isFinite(n)))return '';
+  const n=steps||0;
+  let y=parts[0], m=parts[1], day=parts[2];
+  if(freq==='weekly'){
+    const d=new Date(y, m-1, day+(7*n), 12, 0, 0);
+    y=d.getFullYear();m=d.getMonth()+1;day=d.getDate();
+  }else if(freq==='monthly'){
+    const idx=(m-1)+n;
+    y=y+Math.floor(idx/12);
+    m=((idx%12)+12)%12+1;
+    const last=new Date(y, m, 0).getDate();
+    day=Math.min(parts[2], last);
+  }else if(freq==='yearly'){
+    y=y+n;
+    const last=new Date(y, m, 0).getDate();
+    day=Math.min(parts[2], last);
+  }
+  return y+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+}
+function expenseRecurHorizon(start){
+  const today=new Date();
+  const startYear=parseInt(String(start||'').slice(0,4),10);
+  const y=Math.max(today.getFullYear(), isFinite(startYear)?startYear:today.getFullYear());
+  return (y+3)+'-12-31';
+}
+// One stored expense becomes the charges that belong on the books.
+// A one-time row is itself. A repeating row is one charge per period from
+// its start date through its end date, or three years out if it is still going.
+function expenseOccurrences(e){
+  if(!e)return [];
+  const freq=normalizeExpenseRecurrence(e.recurrence);
+  if(!freq)return [e];
+  const start=String(e.date||'').slice(0,10);
+  if(!start)return [];
+  const until=e.recurUntil?String(e.recurUntil).slice(0,10):'';
+  const active=e.recurActive!==false;
+  const cap=until||(active?expenseRecurHorizon(start):start);
+  const posts=[];
+  for(let i=0;i<400;i++){
+    const date=i===0?start:expenseRecurDate(start, freq, i);
+    if(!date||date>cap)break;
+    posts.push(Object.assign({}, e, {date:date, sourceId:e.id, occurrenceIndex:i}));
+  }
+  return posts;
+}
+function expensePosts(){
+  const out=[];
+  (typeof expenses==='undefined'?[]:expenses).forEach(e=>expenseOccurrences(e).forEach(p=>out.push(p)));
+  return out;
 }
 function expenseSessionChoices(){
   return (sessions||[]).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(a.code||'').localeCompare(String(b.code||'')));
@@ -10427,7 +10550,7 @@ function renderExpenses(){
   }
   let list=expenses.filter(e=>{
     if(catF&&e.category!==catF)return false;
-    if(yearF&&!(e.date||'').startsWith(yearF))return false;
+    if(yearF&&!expenseOccurrences(e).some(p=>String(p.date||'').startsWith(yearF)))return false;
     if(linkF==='linked'&&!e.sessionId)return false;
     if(linkF==='unlinked'&&e.sessionId)return false;
     if(linkF&&linkF!=='linked'&&linkF!=='unlinked'&&e.sessionId!==linkF)return false;
@@ -10435,7 +10558,7 @@ function renderExpenses(){
   });
   const total=list.reduce((s,e)=>s+e.amount,0);
   const thisYear=new Date().getFullYear().toString();
-  const ytd=expenses.filter(e=>e.date.startsWith(thisYear)).reduce((s,e)=>s+e.amount,0);
+  const ytd=expensePosts().filter(e=>String(e.date||'').startsWith(thisYear)).reduce((s,e)=>s+e.amount,0);
   document.getElementById('exp-metrics').innerHTML=`
     <div class="metric"><div class="m-label">Showing total</div><div class="m-val red">${fmt(total)}</div><div class="m-sub">${list.length} expense${list.length!==1?'s':''}</div></div>
     <div class="metric"><div class="m-label">Year to date (${thisYear})</div><div class="m-val red">${fmt(ytd)}</div><div class="m-sub">All categories</div></div>
@@ -10447,14 +10570,17 @@ function renderExpenses(){
       const pay=expensePayLabel(e.paymentMethod);
       const sess=e.sessionId?(sessions||[]).find(s=>s.id===e.sessionId):null;
       const sessCell=sess?`<button type="button" class="btn sm" onclick="openLinkedSession('${sess.id}')">${escapeHtml(expenseSessionShort(sess))}</button>`:'<span style="color:var(--muted)">Not linked</span>';
+      const recur=expenseRecurLabel(e.recurrence);
+      const recurNote=!recur?'':(e.recurActive===false?'Stopped'+(e.recurUntil?' '+new Date(e.recurUntil+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''):(recur+(e.recurUntil?' through '+new Date(e.recurUntil+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'')));
+      const stopBtn=recur&&e.recurActive!==false?`<button class="btn sm" onclick="stopExpenseRecurrence('${e.id}')">Stop repeating</button>`:'';
       return`<tr>
         <td style="white-space:nowrap">${d}</td>
-        <td style="font-weight:500">${escapeHtml(e.description)}</td>
+        <td style="font-weight:500">${escapeHtml(e.description)}${recurNote?`<div style="font-size:13px;font-weight:500;color:#1a5c8a">${escapeHtml(recurNote)}</div>`:''}</td>
         <td><span class="tag pending">${escapeHtml(e.category)}</span></td>
         <td style="white-space:nowrap;color:${pay?'var(--text)':'var(--muted)'}">${pay?escapeHtml(pay):'—'}</td>
         <td style="white-space:nowrap">${sessCell}</td>
         <td style="color:var(--danger);font-weight:500">${fmt(e.amount)}</td>
-        <td><div class="btn-row"><button class="btn sm" onclick="openEditExpense('${e.id}')">Edit</button><button class="btn sm danger" onclick="deleteExpense('${e.id}')">Delete</button></div></td></tr>`;
+        <td><div class="btn-row"><button class="btn sm" onclick="openEditExpense('${e.id}')">Edit</button>${stopBtn}<button class="btn sm danger" onclick="deleteExpense('${e.id}')">Delete</button></div></td></tr>`;
     }).join(''):'<tr class="empty-row"><td colspan="7">No expenses yet.</td></tr>')+'</tbody>';
 }
 
@@ -10469,6 +10595,9 @@ function expenseFormHtml(e, presetSessionId){
     <div class="fg"><label>Date *</label><input type="date" id="m-edate" value="${dateVal}"></div>
     <div class="fg"><label>Category</label><select id="m-ecat">${catOpts}</select></div>
     <div class="fg"><label>Payment method</label><select id="m-epay">${expensePayOptions(e?e.paymentMethod:'')}</select></div>
+    <div class="fg"><label>Repeats</label><select id="m-erecur">${expenseRecurOptions(e?e.recurrence:'')}</select></div>
+    <div class="fg"><label>Repeat until <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="date" id="m-euntil" value="${e&&e.recurUntil?e.recurUntil:''}"></div>
+    <div class="fg full" style="font-size:14px;color:var(--muted);line-height:1.5">Leave Repeats on One time for a single charge. Weekly, monthly, or yearly counts that amount in each period until you stop it or the end date passes. You do not enter it again.</div>
     <div class="fg full sess-field">${expenseSessionPickerHtml(sessionId, preset?expenseSessionPickerLabel(preset):'')}</div>
     <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px;font-size:14px;color:#1a5c8a;line-height:1.5">Instructor pay is tracked on each session. Do not add it here.</div>
     <div class="fg full" style="background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);padding:10px 12px;font-size:14px;color:var(--warn);line-height:1.5">Community partner commission does not belong here. It is already carried on the Finances tab as its own expense line, pulled from each partner&rsquo;s statement. Entering a payout here as well would count it twice.</div>
@@ -10495,7 +10624,7 @@ async function saveExpense(){
   const amt=parseFloat(document.getElementById('m-eamt').value);
   const date=document.getElementById('m-edate').value;
   if(!desc||!amt||!date){alert('Please fill in description, amount, and date.');return;}
-  const e={id:sid(),description:desc,amount:amt,date,category:document.getElementById('m-ecat').value,paymentMethod:readExpensePay(),sessionId:readExpenseSession(),createdAt:Date.now()};
+  const e={id:sid(),description:desc,amount:amt,date,category:document.getElementById('m-ecat').value,paymentMethod:readExpensePay(),sessionId:readExpenseSession(),createdAt:Date.now(),recurrence:normalizeExpenseRecurrence((document.getElementById('m-erecur')||{}).value),recurUntil:(document.getElementById('m-euntil')||{}).value||'',recurActive:true};
   expenses.unshift(e);
   const back=_expenseReturnSession;
   _expenseReturnSession=null;
@@ -10518,6 +10647,10 @@ async function updateExpense(id){
   const date=document.getElementById('m-edate').value;
   if(!desc||!amt||!date){alert('Please fill in description, amount, and date.');return;}
   e.description=desc;e.amount=amt;e.date=date;e.category=document.getElementById('m-ecat').value;e.paymentMethod=readExpensePay();e.sessionId=readExpenseSession();
+  e.recurrence=normalizeExpenseRecurrence((document.getElementById('m-erecur')||{}).value);
+  e.recurUntil=(document.getElementById('m-euntil')||{}).value||'';
+  if(e.recurrence)e.recurActive=e.recurActive!==false;
+  else e.recurActive=true;
   const back=_expenseReturnSession;
   _expenseReturnSession=null;
   finishExpenseEdit(back);
@@ -10528,14 +10661,14 @@ async function updateExpense(id){
 // If a column has not been added yet, the rest of the row still saves.
 async function writeExpenseRow(kind,e,label){
   const method=normalizeExpensePay(e.paymentMethod);
-  const fields={description:e.description,amount:e.amount,date:e.date,category:e.category,payment_method:method||null,session_id:e.sessionId||null};
+  const fields={description:e.description,amount:e.amount,date:e.date,category:e.category,payment_method:method||null,session_id:e.sessionId||null,recurrence:normalizeExpenseRecurrence(e.recurrence)||null,recur_until:e.recurUntil||null,recur_active:e.recurActive!==false};
   if(kind==='insert'){fields.id=e.id;fields.created_at=e.createdAt;}
   const run=(payload)=>{
     const q=sb.from('expenses');
     return kind==='insert'?q.insert(payload):q.update(payload).eq('id',e.id);
   };
   let payload=Object.assign({},fields);
-  let missingPay=false,missingSess=false;
+  let missingPay=false,missingSess=false,missingRecur=false;
   for(let attempt=0;attempt<3;attempt++){
     let res;
     try{res=await run(payload);}catch(err){res={error:err};}
@@ -10545,6 +10678,7 @@ async function writeExpenseRow(kind,e,label){
         const bits=[];
         if(missingPay)bits.push('payment method (run migrations/expense_payment_method.sql)');
         if(missingSess)bits.push('session link (run migrations/expense_session_link.sql)');
+        if(missingRecur)bits.push('repeating schedule (run migrations/expense_recurrence.sql)');
         showToast('⚠️ Saved without '+bits.join(' and ')+'. Run that file in the Supabase SQL editor, then edit this expense.');
       }
       return true;
@@ -10558,6 +10692,12 @@ async function writeExpenseRow(kind,e,label){
     if(absent&&/session_id/.test(msg)&&Object.prototype.hasOwnProperty.call(payload,'session_id')){
       delete payload.session_id;missingSess=true;dropped=true;
     }
+    if(absent&&/recur/.test(msg)){
+      if(Object.prototype.hasOwnProperty.call(payload,'recurrence'))delete payload.recurrence;
+      if(Object.prototype.hasOwnProperty.call(payload,'recur_until'))delete payload.recur_until;
+      if(Object.prototype.hasOwnProperty.call(payload,'recur_active'))delete payload.recur_active;
+      missingRecur=true;dropped=true;
+    }
     if(!dropped){
       console.error(label+' failed:',err);
       showToast('⚠️ '+label+' did not save: '+((err.message||'database error').slice(0,90))+'. Refresh to see true state.');
@@ -10565,6 +10705,15 @@ async function writeExpenseRow(kind,e,label){
     }
   }
   return false;
+}
+
+async function stopExpenseRecurrence(id){
+  const e=expenses.find(x=>x.id===id);if(!e||!normalizeExpenseRecurrence(e.recurrence))return;
+  if(!confirm('Stop this repeating expense? Charges already due stay on the books. Later periods will not include it.'))return;
+  e.recurActive=false;
+  e.recurUntil=fmtYMD(new Date());
+  renderExpenses();renderDashboard();renderFinances();
+  writeExpenseRow('update',e,'Stop repeating expense');
 }
 
 async function deleteExpense(id){
@@ -10721,6 +10870,8 @@ function matNormTitle(course){
 function matAliasCourse(course){
   if(course&&(Object.prototype.hasOwnProperty.call(MAT_NEEDS,course)||Object.prototype.hasOwnProperty.call(MAT_BOOKS,course)))return '';
   const n=matNormTitle(course);
+  // Girl Scout badge workshops bring their own plan. Never hand them a Safe Sitter® kit.
+  if(/girl scout/.test(n)&&/badge|workshop|first aid/.test(n))return '';
   if(!n||n.indexOf('virtual')>=0)return '';
   if(n.indexOf('intro to babysitting')>=0)return 'Intro to Babysitting';
   if(/safe\s*@\s*home|safe at home|safeathome/.test(n)||n.indexOf('safe@home')>=0)return 'Safe@Home';
@@ -13196,7 +13347,9 @@ function printYearReport(){
     label:new Date(year,m,1,12,0,0).toLocaleDateString('en-US',{month:'long'})
   }));
   const undatedHold=built.undated;
-  expenses.forEach(e=>{
+  expenses.forEach(function(src){
+   const posts=(typeof expenseOccurrences==='function')?expenseOccurrences(src):[src];
+   posts.forEach(e=>{
     const d=new Date(e.date+'T12:00:00');
     if(isNaN(d.getTime())||d.getFullYear()!==year)return;
     const mi=d.getMonth();
@@ -13205,6 +13358,7 @@ function printYearReport(){
     // session was cancelled. It is not also inside the session cost above.
     if(e.sessionId){months[mi].linked+=amt;months[mi].cost+=amt;}
     else{months[mi].overhead+=amt;months[mi].cost+=amt;}
+   });
   });
   invalidateCommissionCache();
   partnerCommissionMonths(year).forEach((amt,mi)=>{
@@ -13240,7 +13394,9 @@ function printYearReport(){
 
   // Expense breakdown by category. Every stored category is its own row,
   // including Rentals and any value that is not in the dropdown list.
-  const catBuckets=expenseCategoryTotals(expenses.filter(e=>{
+  const catBuckets=expenseCategoryTotals((typeof expenseOccurrences==='function'
+    ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
+    :expenses).filter(e=>{
     const d=new Date((e&&e.date?e.date:'')+'T12:00:00');
     return !isNaN(d.getTime())&&d.getFullYear()===year;
   }));
@@ -13517,7 +13673,9 @@ function printMonthReport(){
     const d=new Date((e&&e.date?e.date:'')+'T12:00:00');
     return !isNaN(d.getTime())&&d.getFullYear()===year&&d.getMonth()===mi;
   };
-  const monthExpenses=expenses.filter(inThisMonth);
+  const monthExpenses=(typeof expenseOccurrences==='function'
+    ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
+    :expenses).filter(inThisMonth);
 
   const tot={rev:0,fee:0,mat:0,instr:0,legacy:0,linked:0,extra:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0,regs:0};
   const courseBuckets={};
