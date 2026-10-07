@@ -1201,6 +1201,25 @@ async function checkCode(){
   btn.disabled=false;btn.textContent='Continue →';
 }
 
+// Girl Scout badge workshops (First Aid and any later badge course) include
+// Daisies and Brownies, so the list runs from Kindergarten through 8th grade.
+// Other courses keep their own lists.
+function isGirlScoutBadgeCourse(course){
+  const name=String(course||'');
+  return /girl scouts?/i.test(name)&&/badge/i.test(name);
+}
+function registrationGradeOptions(course){
+  const blank='<option value="">Select grade...</option>';
+  const name=String(course||'');
+  if(name==='Campus Ready: Safety Skills for College Life')return blank+'<option>11th grade</option><option>12th grade</option><option>College student</option>';
+  if(name==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
+  if(name==='Ready. Period.')return blank+'<option>5th grade</option><option>6th grade</option><option>7th grade</option>';
+  if(name==='Safe Sitter®')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option>';
+  if(/^Safe@Home/.test(name)||name==='All Kids Welcome')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
+  if(name==='Stay Ready: Choking Rescue and CPR')return blank+'<option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
+  if(isGirlScoutBadgeCourse(name))return blank+'<option>Kindergarten</option><option>1st grade</option><option>2nd grade</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
+  return blank+'<option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
+}
 function setBanner(id){
   const s=currentSession;
   const basePrice=getSessionBasePrice(s.course, s.date, s.createdAt)||0;
@@ -1283,7 +1302,7 @@ function setBanner(id){
 
   // Grade field — hidden entirely for the adult courses (no participant grade).
   // Safe Sitter® is grades 6–8. Safe@Home and All Kids Welcome use grades 3–9.
-  // Intro to Babysitting and Stay Ready keep their own ranges below.
+  // Girl Scout badge workshops are Kindergarten through 8th. Grade stays required.
   const gradeField=document.getElementById('grade-field');
   const gradeSel=document.getElementById('s-grade');
   if(gradeField)gradeField.style.display=isAdult?'none':'';
@@ -1293,24 +1312,7 @@ function setBanner(id){
     // blank first option, silently wiping whatever the parent chose. Remember the
     // current value and put it back if it still exists in the new option list.
     const prevGrade=gradeSel.value;
-    const GRADES_3_9='<option value="">Select grade...</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
-    const GRADES_6_8='<option value="">Select grade...</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
-    const isSafeSitter=s.course==='Safe Sitter®';
-    const is39=isSafeAtHome||s.course==='All Kids Welcome';
-    const isStayReady=s.course==='Stay Ready: Choking Rescue and CPR';
-    gradeSel.innerHTML=isCampusReady
-      ?'<option value="">Select grade...</option><option>11th grade</option><option>12th grade</option><option>College student</option>'
-      :isSeasonReady
-      ?'<option value="">Select grade...</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>'
-      :isPeriod
-      ?'<option value="">Select grade...</option><option>5th grade</option><option>6th grade</option><option>7th grade</option>'
-      :isSafeSitter
-      ?GRADES_6_8
-      :is39
-      ?GRADES_3_9
-      :isStayReady
-        ?'<option value="">Select grade...</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>'
-        :'<option value="">Select grade...</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
+    gradeSel.innerHTML=registrationGradeOptions(s.course);
     if(prevGrade&&Array.prototype.some.call(gradeSel.options,o=>o.value===prevGrade)){
       gradeSel.value=prevGrade;
     }
