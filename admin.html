@@ -151,12 +151,31 @@ tr:hover td{background:#fafbfd}
 .row-menu-item.danger{color:var(--danger)}
 .row-menu-item.danger:hover{background:var(--danger-bg)}
 .row-menu-item.sep{border-top:1px solid var(--border);margin-top:4px;padding-top:11px}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .fg{display:flex;flex-direction:column;gap:4px}
 .fg.full{grid-column:1/-1}
 .fg label{font-size:15px;font-weight:500;color:var(--muted)}
 .fg input,.fg select,.fg textarea{padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--sky)}
+/* Expense session typeahead. The list floats over the notes under the field
+   and stays inside the dialog, so a long class name ellipsizes instead of
+   spilling into the next control. */
+.sess-pick-head{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap}
+.sess-pick-head > label{margin:0}
+.fg .sess-pick-past{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;text-transform:none;letter-spacing:0;user-select:none}
+.fg .sess-pick-past input{width:16px;height:16px;margin:0;padding:0;border:none;flex:none;accent-color:var(--navy);cursor:pointer}
+.fg.sess-field{min-width:0;max-width:100%}
+.sess-pick,.sess-pick-input{min-width:0;max-width:100%}
+.sess-pick-input{position:relative}
+.fg .sess-pick-input input{width:100%;max-width:100%;min-width:0;padding-right:36px}
+.sess-pick-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);z-index:2;width:26px;height:26px;border:none;background:transparent;color:var(--muted);font-size:18px;line-height:1;border-radius:6px;cursor:pointer;padding:0}
+.sess-pick-clear:hover{background:var(--cream);color:var(--text)}
+.sess-pick-clear[hidden]{display:none}
+.sess-pick-list{margin:0;padding:4px;list-style:none;background:#fff;border:1.5px solid var(--border);border-radius:var(--r-sm);box-shadow:0 10px 28px rgba(26,39,68,.16);overflow-x:hidden;overflow-y:auto}
+.sess-pick-list[hidden]{display:none}
+.sess-pick-opt{display:block;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:15px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sess-pick-opt.is-on,.sess-pick-opt:hover{background:var(--sky-l);color:#16324d}
+.sess-pick-empty{padding:8px 10px;font-size:14px;color:var(--muted);line-height:1.4}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding-top:60px}
 .modal{background:white;border-radius:var(--r);width:560px;max-width:95vw;max-height:85vh;overflow-y:auto}
 .modal-head{padding:20px 22px 0;display:flex;align-items:center;justify-content:space-between}
@@ -7988,6 +8007,7 @@ function showModal(html){
   _pushModalState();
 }
 function closeModal(){
+  if(typeof expenseSessionParkList==='function')expenseSessionParkList();
   document.getElementById('modal-root').innerHTML='';
   // Clean the sentinel back off the stack so history stays tidy over a long
   // session. _skipModalPop tells the handler below that this pop was ours,
@@ -9950,29 +9970,347 @@ function expenseSessionShort(s){
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):(s.isHold?'on hold':'');
   return [s.code,d].filter(Boolean).join(', ');
 }
-function expenseSessionOptions(selected, query){
-  const q=String(query||'').trim().toLowerCase();
-  const rows=expenseSessionChoices().filter(s=>{
-    if(!q)return true;
-    const blob=[s.code,s.date,s.course,s.location,s.city,s.holdTerm,s.isCancelled?'cancelled':'',s.isHold?'hold':''].join(' ').toLowerCase();
-    return blob.indexOf(q)>=0;
-  });
-  let html='<option value="">Not linked to a session</option>';
-  rows.forEach(s=>{
-    html+=`<option value="${escapeHtml(s.id)}"${s.id===selected?' selected':''}>${escapeHtml(sessionChoiceLabel(s))}</option>`;
-  });
-  if(selected&&!rows.some(s=>s.id===selected)){
-    const cur=(sessions||[]).find(s=>s.id===selected);
-    if(cur)html+=`<option value="${escapeHtml(cur.id)}" selected>${escapeHtml(sessionChoiceLabel(cur))}</option>`;
-  }
-  return html;
+// Session link on an expense. One field: type a code, date, course, or location
+// and pick a match. Nothing is stored until a row is picked, and the x clears
+// the link. With the field empty, the list is the next sessions dated today or
+// later, soonest first, and cancelled sessions stay out. Include past sessions
+// brings older dates, and cancelled ones, into a search. A link that is already
+// saved still shows in the field even when that session is past or cancelled.
+let _esessHi=-1;
+let _esessScrollBound=false;
+function expenseSessionPickerLabel(s){
+  if(!s)return '';
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'No date');
+  const parts=[s.code,d,s.course,s.location].filter(Boolean);
+  let label=parts.join(' · ');
+  if(s.isCancelled)label+=' · Cancelled';
+  else if(s.isHold)label+=' · On hold';
+  return label;
 }
-function filterExpenseSessions(){
-  const q=document.getElementById('m-esess-q');
-  const sel=document.getElementById('m-esess');
-  if(!sel)return;
-  const keep=sel.value;
-  sel.innerHTML=expenseSessionOptions(keep, q?q.value:'');
+function expenseSessionPickerMatches(s, query){
+  const q=String(query||'').trim().toLowerCase();
+  if(!q||!s)return !!s;
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+  const blob=[s.code,s.date,d,s.course,s.location,s.city,s.holdTerm,s.isCancelled?'cancelled':'',s.isHold?'on hold':''].join(' ').toLowerCase();
+  return blob.indexOf(q)>=0;
+}
+function expenseSessionOnOrAfterToday(s, today){
+  if(!s)return false;
+  const end=sessionEndDate(s);
+  return !!(end&&String(end)>=today);
+}
+function expenseSessionPickerRows(list, opts){
+  const o=opts||{};
+  const today=o.today||fmtYMD(new Date());
+  const includePast=!!o.includePast;
+  const selected=o.selected||'';
+  const q=String(o.query||'').trim().toLowerCase();
+  const cap=o.limit!=null?o.limit:(q?30:8);
+  const rows=(list||[]).filter(function(s){
+    if(!s||!s.id)return false;
+    if(!expenseSessionPickerMatches(s, q))return false;
+    const linked=!!(selected&&s.id===selected);
+    const upcoming=expenseSessionOnOrAfterToday(s, today);
+    const cancelled=!!s.isCancelled;
+    // An empty field shows the next upcoming sessions, not the archive.
+    if(!q)return upcoming&&!cancelled;
+    if(linked)return true;
+    if(cancelled&&!includePast)return false;
+    if(!upcoming&&!includePast)return false;
+    return true;
+  });
+  rows.sort(function(a,b){
+    const aUp=expenseSessionOnOrAfterToday(a, today)?0:1;
+    const bUp=expenseSessionOnOrAfterToday(b, today)?0:1;
+    if(aUp!==bUp)return aUp-bUp;
+    const ad=a.date?String(a.date):'';
+    const bd=b.date?String(b.date):'';
+    if(aUp===0){
+      const as=ad&&ad<today?today:ad;
+      const bs=bd&&bd<today?today:bd;
+      const c=(as||'9999-99-99').localeCompare(bs||'9999-99-99');
+      if(c)return c;
+    }else{
+      if(!ad&&bd)return 1;
+      if(ad&&!bd)return -1;
+      if(ad&&bd){
+        const c=bd.localeCompare(ad);
+        if(c)return c;
+      }
+    }
+    return String(a.code||'').localeCompare(String(b.code||''));
+  });
+  return rows.slice(0, cap);
+}
+function expenseSessionSelectedId(){
+  const el=document.getElementById('m-esess');
+  return el&&el.value?el.value:'';
+}
+function expenseSessionIncludePast(){
+  const el=document.getElementById('m-esess-past');
+  return !!(el&&el.checked);
+}
+function expenseSessionQueryForList(){
+  const input=document.getElementById('m-esess-q');
+  if(!input)return '';
+  const id=expenseSessionSelectedId();
+  const s=id?(sessions||[]).find(x=>x.id===id):null;
+  const label=s?expenseSessionPickerLabel(s):'';
+  if(label&&input.value===label)return '';
+  return input.value;
+}
+function expenseSessionSyncClear(){
+  const btn=document.getElementById('m-esess-clear');
+  const hidden=document.getElementById('m-esess');
+  if(!btn)return;
+  btn.hidden=!(hidden&&hidden.value);
+}
+function expenseSessionBindScroll(){
+  if(_esessScrollBound)return;
+  _esessScrollBound=true;
+  document.addEventListener('scroll',function(){
+    const list=document.getElementById('m-esess-list');
+    if(!list||list.hidden)return;
+    expenseSessionPlaceList();
+  },true);
+  window.addEventListener('resize',function(){
+    const list=document.getElementById('m-esess-list');
+    if(!list||list.hidden)return;
+    expenseSessionPlaceList();
+  });
+}
+function expenseSessionParkList(){
+  const list=document.getElementById('m-esess-list');
+  const wrap=document.getElementById('m-esess-wrap');
+  if(!list)return;
+  if(wrap){
+    if(list.parentNode!==wrap)wrap.appendChild(list);
+  }else if(list.parentNode===document.body){
+    list.remove();
+  }
+}
+function expenseSessionPlaceList(){
+  const input=document.getElementById('m-esess-q');
+  const list=document.getElementById('m-esess-list');
+  if(!input||!list)return;
+  const r=input.getBoundingClientRect();
+  const modal=input.closest('.modal');
+  if(modal){
+    const mr=modal.getBoundingClientRect();
+    if(r.bottom<mr.top+4||r.top>mr.bottom-4){
+      expenseSessionClose(true);
+      return;
+    }
+  }
+  const gap=4;
+  const spaceBelow=Math.max(0, window.innerHeight-r.bottom-gap-12);
+  const spaceAbove=Math.max(0, r.top-gap-12);
+  const want=280;
+  let top,maxH;
+  if(spaceBelow>=160||spaceBelow>=spaceAbove){
+    maxH=Math.max(120, Math.min(want, spaceBelow));
+    top=r.bottom+gap;
+  }else{
+    maxH=Math.max(120, Math.min(want, spaceAbove));
+    top=Math.max(8, r.top-gap-maxH);
+  }
+  let left=r.left;
+  let width=r.width;
+  if(left<8){width-=8-left;left=8;}
+  if(left+width>window.innerWidth-8)width=Math.max(160, window.innerWidth-8-left);
+  list.style.position='fixed';
+  list.style.left=left+'px';
+  list.style.width=width+'px';
+  list.style.top=top+'px';
+  list.style.maxHeight=maxH+'px';
+  list.style.zIndex='400';
+}
+function expenseSessionReveal(el){
+  const list=document.getElementById('m-esess-list');
+  if(!list||!el)return;
+  const top=el.offsetTop;
+  const bottom=top+el.offsetHeight;
+  if(top<list.scrollTop)list.scrollTop=top;
+  else if(bottom>list.scrollTop+list.clientHeight)list.scrollTop=bottom-list.clientHeight;
+}
+function expenseSessionHighlight(i){
+  _esessHi=i;
+  const list=document.getElementById('m-esess-list');
+  const input=document.getElementById('m-esess-q');
+  if(!list)return;
+  const opts=list.querySelectorAll('[role="option"]');
+  opts.forEach(function(el,idx){
+    const on=idx===i;
+    el.classList.toggle('is-on', on);
+    el.setAttribute('aria-selected', on?'true':'false');
+  });
+  if(input){
+    if(opts[i])input.setAttribute('aria-activedescendant', opts[i].id);
+    else input.removeAttribute('aria-activedescendant');
+  }
+}
+function expenseSessionMove(delta){
+  const list=document.getElementById('m-esess-list');
+  if(!list)return;
+  const opts=list.querySelectorAll('[role="option"]');
+  const n=opts.length;
+  if(!n)return;
+  let i=_esessHi;
+  if(i<0)i=delta>0?0:n-1;
+  else i=(i+delta+n)%n;
+  expenseSessionHighlight(i);
+  expenseSessionReveal(opts[i]);
+}
+function expenseSessionOpen(){
+  const list=document.getElementById('m-esess-list');
+  const input=document.getElementById('m-esess-q');
+  if(!list||!input)return;
+  expenseSessionBindScroll();
+  if(list.parentNode!==document.body)document.body.appendChild(list);
+  const query=expenseSessionQueryForList();
+  const rows=expenseSessionPickerRows(sessions,{
+    today:fmtYMD(new Date()),
+    includePast:expenseSessionIncludePast(),
+    selected:expenseSessionSelectedId(),
+    query:query
+  });
+  if(_esessHi>=rows.length)_esessHi=rows.length-1;
+  // A typed search highlights the first match so Enter can pick it. An empty
+  // field only shows suggestions; Enter must not swap the saved link.
+  if(_esessHi<0&&rows.length&&query)_esessHi=0;
+  if(!rows.length){
+    const msg=query?'No matching sessions':(expenseSessionIncludePast()?'No upcoming sessions. Type to search past sessions.':'No upcoming sessions');
+    list.innerHTML='<li class="sess-pick-empty">'+msg+'</li>';
+  }else{
+    const hint=(!query&&expenseSessionIncludePast())?'<li class="sess-pick-empty">Type to search past sessions.</li>':'';
+    list.innerHTML=rows.map(function(s,i){
+      const label=expenseSessionPickerLabel(s);
+      const on=i===_esessHi;
+      return '<li role="option" id="m-esess-opt-'+i+'" data-id="'+escapeHtml(s.id)+'" class="sess-pick-opt'+(on?' is-on':'')+'" aria-selected="'+(on?'true':'false')+'" title="'+escapeHtml(label)+'" onmousedown="event.preventDefault()" onmouseenter="expenseSessionHighlight('+i+')" onclick="expenseSessionChoose(this.getAttribute(\'data-id\'))">'+escapeHtml(label)+'</li>';
+    }).join('')+hint;
+  }
+  expenseSessionPlaceList();
+  list.hidden=false;
+  input.setAttribute('aria-expanded','true');
+  const activeEl=list.querySelector('.sess-pick-opt.is-on');
+  if(activeEl)input.setAttribute('aria-activedescendant', activeEl.id);
+  else input.removeAttribute('aria-activedescendant');
+}
+function expenseSessionClose(restore){
+  const list=document.getElementById('m-esess-list');
+  const input=document.getElementById('m-esess-q');
+  if(list){list.hidden=true;list.innerHTML='';}
+  expenseSessionParkList();
+  if(input){
+    input.setAttribute('aria-expanded','false');
+    input.removeAttribute('aria-activedescendant');
+  }
+  _esessHi=-1;
+  if(restore){
+    const id=expenseSessionSelectedId();
+    const s=id?(sessions||[]).find(x=>x.id===id):null;
+    if(input)input.value=s?expenseSessionPickerLabel(s):'';
+    expenseSessionSyncClear();
+  }
+}
+function expenseSessionChoose(id){
+  const s=(sessions||[]).find(x=>x.id===id);
+  const hidden=document.getElementById('m-esess');
+  const input=document.getElementById('m-esess-q');
+  if(hidden)hidden.value=s?s.id:'';
+  if(input)input.value=s?expenseSessionPickerLabel(s):'';
+  expenseSessionSyncClear();
+  expenseSessionClose(false);
+  if(input)input.focus();
+}
+function clearExpenseSession(){
+  const hidden=document.getElementById('m-esess');
+  const input=document.getElementById('m-esess-q');
+  if(hidden)hidden.value='';
+  if(input)input.value='';
+  expenseSessionSyncClear();
+  _esessHi=-1;
+  if(input)input.focus();
+  expenseSessionOpen();
+}
+function expenseSessionQueryChanged(){
+  _esessHi=0;
+  expenseSessionOpen();
+  expenseSessionSyncClear();
+}
+function expenseSessionPastChanged(){
+  const list=document.getElementById('m-esess-list');
+  if(list&&!list.hidden){
+    _esessHi=expenseSessionQueryForList()?0:-1;
+    expenseSessionOpen();
+  }
+}
+function expenseSessionFocused(){
+  const input=document.getElementById('m-esess-q');
+  if(input){
+    const id=expenseSessionSelectedId();
+    const s=id?(sessions||[]).find(x=>x.id===id):null;
+    if(s&&input.value===expenseSessionPickerLabel(s))setTimeout(function(){if(document.activeElement===input)input.select();},0);
+  }
+  _esessHi=-1;
+  expenseSessionOpen();
+}
+function expenseSessionBlurred(e){
+  const next=e&&e.relatedTarget;
+  if(next&&(next.id==='m-esess-q'||next.id==='m-esess-clear'||next.id==='m-esess-past'))return;
+  setTimeout(function(){
+    const input=document.getElementById('m-esess-q');
+    if(!input)return;
+    const active=document.activeElement;
+    if(active&&(active.id==='m-esess-q'||active.id==='m-esess-clear'||active.id==='m-esess-past'))return;
+    if(active&&active.closest&&active.closest('#m-esess-list'))return;
+    expenseSessionClose(true);
+  },0);
+}
+function expenseSessionKeydown(e){
+  const list=document.getElementById('m-esess-list');
+  const open=list&&!list.hidden;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();
+    if(!open){
+      _esessHi=e.key==='ArrowUp'?-1:0;
+      expenseSessionOpen();
+      if(e.key==='ArrowUp')expenseSessionMove(-1);
+      return;
+    }
+    expenseSessionMove(e.key==='ArrowDown'?1:-1);
+    return;
+  }
+  if(e.key==='Enter'){
+    if(!open)return;
+    const hi=list.querySelector('[role="option"].is-on');
+    if(!hi)return;
+    e.preventDefault();
+    expenseSessionChoose(hi.getAttribute('data-id'));
+    return;
+  }
+  if(e.key==='Escape'){
+    if(!open)return;
+    e.preventDefault();
+    expenseSessionClose(true);
+    return;
+  }
+  if(e.key==='Tab')expenseSessionClose(true);
+}
+function expenseSessionPickerHtml(sessionId, sessionLabel){
+  const clearHidden=sessionId?'':' hidden';
+  return `<div class="sess-pick-head">
+      <label for="m-esess-q">Session</label>
+      <label class="sess-pick-past"><input type="checkbox" id="m-esess-past" onchange="expenseSessionPastChanged()"> Include past sessions</label>
+    </div>
+    <div class="sess-pick" id="m-esess-wrap">
+      <div class="sess-pick-input">
+        <input type="text" id="m-esess-q" role="combobox" aria-expanded="false" aria-controls="m-esess-list" aria-autocomplete="list" aria-haspopup="listbox" autocomplete="off" spellcheck="false" placeholder="Search by code, date, course, or location" value="${escapeHtml(sessionLabel)}" oninput="expenseSessionQueryChanged()" onfocus="expenseSessionFocused()" onclick="expenseSessionFocused()" onkeydown="expenseSessionKeydown(event)" onblur="expenseSessionBlurred(event)">
+        <button type="button" class="sess-pick-clear" id="m-esess-clear" aria-label="Unlink session" title="Unlink session" onmousedown="event.preventDefault()" onclick="clearExpenseSession()"${clearHidden}>\u00d7</button>
+        <input type="hidden" id="m-esess" value="${escapeHtml(sessionId)}">
+      </div>
+      <ul class="sess-pick-list" id="m-esess-list" role="listbox" aria-label="Sessions" hidden onmousedown="event.preventDefault()"></ul>
+    </div>`;
 }
 function readExpenseSession(){
   const el=document.getElementById('m-esess');
@@ -10077,10 +10415,7 @@ function expenseFormHtml(e, presetSessionId){
     <div class="fg"><label>Date *</label><input type="date" id="m-edate" value="${dateVal}"></div>
     <div class="fg"><label>Category</label><select id="m-ecat">${catOpts}</select></div>
     <div class="fg"><label>Payment method</label><select id="m-epay">${expensePayOptions(e?e.paymentMethod:'')}</select></div>
-    <div class="fg full"><label>Session</label>
-      <input type="text" id="m-esess-q" placeholder="Search by code, date, course, or location" oninput="filterExpenseSessions()" style="margin-bottom:6px">
-      <select id="m-esess" size="6" style="width:100%;font-size:15px">${expenseSessionOptions(sessionId,'')}</select>
-    </div>
+    <div class="fg full sess-field">${expenseSessionPickerHtml(sessionId, preset?expenseSessionPickerLabel(preset):'')}</div>
     <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px;font-size:14px;color:#1a5c8a;line-height:1.5">Instructor pay is tracked on each session. Do not add it here.</div>
     <div class="fg full" style="background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);padding:10px 12px;font-size:14px;color:var(--warn);line-height:1.5">Community partner commission does not belong here. It is already carried on the Finances tab as its own expense line, pulled from each partner&rsquo;s statement. Entering a payout here as well would count it twice.</div>
   </div>`;
