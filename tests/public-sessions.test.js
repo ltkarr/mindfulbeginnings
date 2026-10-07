@@ -146,6 +146,23 @@ test('custom jobs stay off the public list even with an https registration link'
   }), () => 75), 75);
 });
 
+test('a dated private troop session stays off the public list and still has a family price', () => {
+  const troop = row({
+    code: 'GS-H4782',
+    course: 'Girl Scouts — First Aid Badge Workshop',
+    date: '2026-12-08',
+    time: '6:30–7:30pm',
+    is_custom_job: false,
+    is_hold: false,
+    is_private: true,
+    has_host: true,
+    price_override: 15
+  });
+  assert.equal(isPublicSession(troop, TODAY), false);
+  assert.equal(sessionPrice(troop, () => 45), 15);
+  assert.equal(courseAudience('Girl Scouts — First Aid Badge Workshop'), 'Girl Scout troops');
+});
+
 test('private/host sessions are excluded from the public list', () => {
   assert.equal(isPrivateHostSession(row({ has_host: false })), false);
   assert.equal(isPrivateHostSession(row({ has_host: true })), true);

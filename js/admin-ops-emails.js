@@ -184,6 +184,50 @@
       };
     }
 
+    if (kind === 'familyForward') {
+      var hostName = val(info, 'hostFirst', 'there');
+      var familyPay = val(info, 'familyPayLine', '[Family price at registration is not entered yet.]');
+      var orgCover = val(info, 'orgCoverLine', '[What the organization covers is not entered yet.]');
+      var overview = val(info, 'overviewText', '');
+      var link = val(info, 'regLink', 'https://register.mindfulbeginnings.org/register.html');
+      lines.push('Hi ' + hostName + ',');
+      lines.push('');
+      lines.push('Please forward the message below to your families. It has the date, what each family pays, the private registration link, and what the organization covers. This is a draft for you to send. Nothing is emailed from here.');
+      lines.push('');
+      lines.push('—— Forward to families ——');
+      lines.push('');
+      lines.push('Hello,');
+      lines.push('');
+      lines.push('Here are the details for our ' + course + ' with Mindful Beginnings.');
+      lines.push('');
+      lines.push('Date: ' + dateLong);
+      lines.push('Time: ' + time);
+      lines.push('Location: ' + address);
+      lines.push('');
+      lines.push(familyPay);
+      lines.push('Register on this private link (this class is not on the public class list):');
+      lines.push(link);
+      if (code) lines.push('Session code: ' + code);
+      lines.push('');
+      lines.push(orgCover);
+      if (overview) {
+        lines.push('');
+        lines.push(overview);
+      } else {
+        lines.push('');
+        lines.push('[Course overview is not on file for this course yet.]');
+      }
+      lines.push('');
+      lines.push('Warmly,');
+      lines.push('Lindsay');
+      lines.push('Mindful Beginnings');
+      return {
+        field: 'to',
+        subject: 'Please forward: ' + course + (dateShort && dateShort !== 'the scheduled date' ? ' — ' + dateShort : ''),
+        body: lines.join('\n')
+      };
+    }
+
     if (kind === 'hostLetter') {
       var cost = val(info, 'priceText', '');
       if (!cost || cost === '$0') cost = '[Cost]';

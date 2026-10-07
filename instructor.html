@@ -472,7 +472,8 @@ if(typeof COURSES==='undefined'){
     'My First Babysitters Club — Single Session':{hours:2.5, maxStudents:12},
     'Ready. Period.':{hours:1.5, maxStudents:18, requiresRN:true},
     'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{hours:1, maxStudents:20, requiresRN:true},
-    'Social Ready':{hours:1, maxStudents:20, instrFlatFee:100, virtual:true}
+    'Social Ready':{hours:1, maxStudents:20, instrFlatFee:100, virtual:true},
+    'Girl Scouts — First Aid Badge Workshop':{hours:1, maxStudents:15, requiresRN:true}
   };
   console.warn('config-instructor.js did not define COURSES — using built-in fallback. Check that /config-instructor.js is deploying correctly.');
 }
@@ -482,7 +483,7 @@ if(typeof COURSES==='undefined'){
 // to a stale config. Name matching is intentionally loose so renamed variants (e.g.
 // "Safe Sitter® Babysitting") stay covered.
 Object.keys(COURSES).forEach(c=>{
-  if(/stay ready|campus ready|ready\. ?period|season ready/i.test(c))COURSES[c].requiresRN=true;  // RN instructors only
+  if(/stay ready|campus ready|ready\. ?period|season ready|first aid/i.test(c))COURSES[c].requiresRN=true;  // RN instructors only
   if(/safe sitter|grandparent/i.test(c))COURSES[c].requiresSafeSitter=true;  // Safe Sitter® trained only
 });
 if(typeof INSTR_RATE==='undefined'){window.INSTR_RATE=50;}

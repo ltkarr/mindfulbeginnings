@@ -5,6 +5,7 @@
    Sep  6 2026 · Added My First Babysitters Club — Single Session, Ready. Period.,
                  and Season Ready; corrected My First Babysitters Club matCost to $30
    Oct  5 2026 · Added Social Ready ($35, 1 hour, cap 20, $100 flat fee, virtual)
+   Oct  7 2026 · Added Girl Scouts — First Aid Badge Workshop ($45, 1 hour, cap 15, RN)
    ════════════════════════════════════════════════════════════════════════
 
    Loaded by register.html and instructor.html. This file is the single
@@ -102,7 +103,13 @@ const COURSES={
   // virtual:true matches Safe@Home — Virtual and All Kids Welcome so Zoom pay has no
   // travel hour. A session can still be taught in person; Girl Scouts virtual series
   // may raise the cap to 30 with the session-level max-students override.
-  'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true,audience:'Grades 4–8'}
+  'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true,audience:'Grades 4–8'},
+  // Girl Scouts — First Aid Badge Workshop: 60-minute in-person badge workshop.
+  // The $45 guide price is the full per-scout amount. A troop split (GS-H4782)
+  // sets the session family price to $15 and the organization flat fee to $30,
+  // so families check out at $15 and the troop is invoiced $30 × the roster.
+  // RN instructors only, same as the other hands-on first-aid and CPR workshops.
+  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true,audience:'Girl Scout troops'}
 };
 
 
@@ -207,7 +214,8 @@ const MAX_STUDENTS={
   'My First Babysitters Club — Single Session':12,
   'Ready. Period.':18,
   'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,
-  'Social Ready':20
+  'Social Ready':20,
+  'Girl Scouts — First Aid Badge Workshop':15
 };
 
 

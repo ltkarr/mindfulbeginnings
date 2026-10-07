@@ -5,6 +5,7 @@ const path = require('path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const emails = require('../js/admin-ops-emails.js');
+const overviews = require('../js/course-overviews.js');
 
 const root = path.join(__dirname, '..');
 const admin = fs.readFileSync(path.join(root, 'admin.html'), 'utf8');
@@ -110,6 +111,66 @@ test('host letter is the initial confirm and drops the free spot when there is n
   const venue = emails.draft('hostLetter', sample({ hasHostSpot: false }));
   assert.doesNotMatch(venue.body, /completely free/);
   assert.doesNotMatch(venue.body, /I am the host for this session/);
+});
+
+test('a troop family-forward draft includes the private link, both prices, and the course overview', () => {
+  const course = 'Girl Scouts — First Aid Badge Workshop';
+  const overview = overviews.textFor(course);
+  assert.match(overview, /Brownies through Ambassadors/);
+  assert.match(overview, /60-minute hands-on workshop, taught by a registered nurse/);
+  assert.match(overview, /Check–Call–Care/);
+  assert.match(overview, /call 911/);
+  assert.match(overview, /first aid kit/);
+  assert.match(overview, /scrapes, nosebleeds, burns, bee stings, and basic sprains/);
+  assert.match(overview, /staged-injury scenario/);
+  assert.match(overview, /student handout/);
+  assert.match(overview, /badge-step completion summary/);
+  assert.match(overview, /not a CPR or First Aid certification/);
+  assert.match(overview, /troop leader confirms which badge steps/);
+  assert.match(overview, /does not claim Girl Scouts of the USA \(GSUSA\) endorsement/);
+  assert.equal(overviews.textFor(course + ' (Troop 34182)'), overview);
+  assert.equal(overviews.textFor('Safe Sitter®'), '');
+
+  const draft = emails.draft('familyForward', {
+    course: course,
+    dateLong: 'Tuesday, December 8, 2026',
+    dateShort: 'December 8',
+    time: '6:30–7:30pm',
+    address: 'Takoma Presbyterian Church — 310 Tulip Ave, Takoma Park, MD 20912',
+    hostFirst: 'Mary',
+    code: 'GS-H4782',
+    regLink: 'https://register.mindfulbeginnings.org/register.html?code=GS-H4782',
+    familyPayLine: 'What each family pays: $15 per registration, at checkout on the private link. The organization amount is not added to that charge.',
+    orgCoverLine: 'What the organization covers: Girl Scout Troop 34182 (Mary Polacek) is invoiced $30 per scout. For 15 scouts on the roster, the invoice is $450. Families are not charged this at checkout.',
+    overviewText: overview
+  });
+  assert.equal(draft.field, 'to');
+  assert.equal(draft.subject, 'Please forward: Girl Scouts — First Aid Badge Workshop — December 8');
+  assert.match(draft.body, /^Hi Mary,/);
+  assert.match(draft.body, /Please forward the message below to your families/);
+  assert.match(draft.body, /Nothing is emailed from here/);
+  assert.match(draft.body, /Date: Tuesday, December 8, 2026/);
+  assert.match(draft.body, /Time: 6:30–7:30pm/);
+  assert.match(draft.body, /Takoma Presbyterian Church/);
+  assert.match(draft.body, /\$15 per registration/);
+  assert.match(draft.body, /https:\/\/register\.mindfulbeginnings\.org\/register\.html\?code=GS-H4782/);
+  assert.match(draft.body, /not on the public class list/);
+  assert.match(draft.body, /\$30 per scout/);
+  assert.match(draft.body, /\$450/);
+  assert.match(draft.body, /not a CPR or First Aid certification/);
+  assert.doesNotMatch(draft.body, /mailto:/);
+});
+
+test('admin offers the family-forward draft from the session menu and does not send it', () => {
+  assert.match(admin, /src="\/js\/course-overviews\.js"/);
+  assert.match(admin, /Email for families \(host forwards\)/);
+  assert.match(admin, /function openFamilyForward\(sessId\)/);
+  assert.match(admin, /draft\('familyForward'/);
+  assert.match(admin, /Nothing is sent from this screen/);
+  const fn = admin.slice(admin.indexOf('function openFamilyForward'), admin.indexOf('function openHostLetter'));
+  assert.match(fn, /hostEmailsForSession/);
+  assert.match(fn, /openDocEmail/);
+  assert.doesNotMatch(fn, /outlook\.office|mail\.google|mailto:/);
 });
 
 test('meal and special-note pickers read session text and skip unrelated lines', () => {
