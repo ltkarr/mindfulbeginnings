@@ -285,6 +285,12 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
         <p><strong>My child can safely participate.</strong> I certify that to the best of my knowledge my child is able to safely participate in the program.</p>
         <p id="terms-stay-ready" style="display:none"><strong>Prerequisite confirmation.</strong> My child has taken the Safe Sitter® Babysitting Course and/or a CPR and First Aid course previously.</p>
       </div>
+      <div id="terms-girl-scout" style="display:none">
+        <p><strong>What this workshop is.</strong> This is a Girl Scout badge workshop taught by a registered nurse from Mindful Beginnings. It is not a Safe Sitter® babysitting class, and completing it does not award a Safe Sitter® certificate.</p>
+        <p><strong>Educational only.</strong> Any first aid or safety skill that is shown is practice for the badge. Completing the workshop does not certify the participant in CPR or first aid.</p>
+        <p><strong>Risk acknowledgment and release of liability.</strong> I acknowledge that there may be a risk of injury involved in workshop activities. I agree to release, hold harmless, and indemnify Mindful Beginnings and their staff from any and all claims arising from my child's participation.</p>
+        <p><strong>My child can safely participate.</strong> I certify that to the best of my knowledge my child is able to safely participate in the workshop.</p>
+      </div>
       <!-- Grandparent / adult clauses -->
       <div id="terms-grandparent" style="display:none">
         <p><strong>Attendance and punctuality.</strong> I understand the importance of attending all sessions and arriving on time.</p>
@@ -613,12 +619,12 @@ const sb = createClient ? createClient(
 // NEW_PRICING_EFFECTIVE identical to the value in admin.html.
 if(typeof getSessionBasePrice==='undefined'){
   // Prices for sessions that existed BEFORE the Aug 2026 program-guide update.
-  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45};
-  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45};
+  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45};
+  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45};
   // Program-guide prices for sessions created on/after the cutover. (Steady and Ready
   // stays $65 — the guide's $50 is a confirmed typo. 2027 keeps the planned step-ups.)
-  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45};
-  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45};
+  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45};
+  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45};
   const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
   // Prices raised after the Aug 6 cutover — applied only to sessions CREATED on/after
   // each `from` moment, so nothing already scheduled re-prices. Keep identical to the
@@ -664,7 +670,7 @@ if(typeof getSessionBasePrice==='undefined'){
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':15};
+  window.MAX_STUDENTS={'Safe Sitter®':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':15,'Girl Scout Badge Class':15};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -1285,6 +1291,7 @@ function setBanner(id){
   const isSeasonReady=s.course==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes';
   const isPeriod=s.course==='Ready. Period.';
   const isOwnRelease=isCampusReady||isSeasonReady||isPeriod;
+  const isGirlScout=isGirlScoutBadgeCourse(s.course);
   // Stay Ready: Choking Rescue and CPR DOES use manikins — intentionally excluded from isNoCPR
   const noHost=s.hasHost===false;
 
@@ -1297,6 +1304,8 @@ function setBanner(id){
   if(accomNotice){
     accomNotice.innerHTML=isOwnRelease
       ?'We want every participant to succeed. If the participant needs any accommodations, please let the instructor know as soon as possible, and note anything that will help below.'
+      :isGirlScout
+      ?'This is a Girl Scout badge workshop taught by a registered nurse. It is not a Safe Sitter® class. If your child needs any accommodations, please let the instructor know as soon as possible, and note anything that will help below.'
       :'A great deal of information is presented in a short period of time during the Safe Sitter\u00ae course. We want every child to succeed, and we will work with you to make alternate plans if your child has difficulty keeping up. Please let us know if there is anything we should know to help your child succeed. If your child needs accommodations, please let the Instructor or Site Coordinator know as soon as possible. <strong>Please note:</strong> Safe Sitter\u00ae does not provide CPR certification, release the names of graduates, or act as a referral source of babysitters.';
   }
 
@@ -1346,6 +1355,8 @@ function setBanner(id){
         ?'<strong>📋 Please note:</strong> This course includes hands-on practice of CPR and rescue skills on manikins. <strong>This course is educational only and does not provide CPR certification.</strong>'
         :isStayReady
         ?'<strong>📋 Please note:</strong> This session includes hands-on practice of choking rescue and CPR on manikins. <strong>This session does not provide CPR certification.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
+        :isGirlScout
+        ?'<strong>📋 Please note:</strong> This Girl Scout badge workshop is taught by a registered nurse. <strong>It is not a Safe Sitter® class and does not award a Safe Sitter® certificate or CPR certification.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
         :'<strong>📋 Please note:</strong> Your child will practice CPR and rescue skills on manikins during this course. <strong>This course does not provide CPR certification.</strong> Upon successful completion, your child will receive a Safe Sitter® certificate of completion.';
     }
   }
@@ -1364,6 +1375,8 @@ function setBanner(id){
         ?'This class includes hands-on practice of CPR and rescue skills on manikins. Manikins require strict standards for controlling infection. Do you give permission for the participant to practice on the manikins?'
       :(s.course==='Stay Ready: Choking Rescue and CPR'
         ?'This session includes hands-on practice of choking rescue and CPR on manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?'
+        :isGirlScout
+        ?'This Girl Scout badge workshop may include hands-on safety practice. Do you give permission for your child to take part?'
         :'Safe Sitter® includes practice of rescue skills on CPR manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?');
     permSec.querySelectorAll('.radio-lbl')[0].childNodes[1].textContent=' Yes, I give permission';
     permSec.querySelectorAll('.radio-lbl')[1].childNodes[1].textContent=' No, I do not give permission';
@@ -1377,7 +1390,9 @@ function setBanner(id){
   }
 
   // Waiver — swap between child and adult clause text inside the agreement box
-  document.getElementById('terms-standard').style.display=(isAdult||isOwnRelease)?'none':'';
+  document.getElementById('terms-standard').style.display=(isAdult||isOwnRelease||isGirlScout)?'none':'';
+  const gsTerms=document.getElementById('terms-girl-scout');
+  if(gsTerms)gsTerms.style.display=isGirlScout?'':'none';
   document.getElementById('terms-grandparent').style.display=isAdult?'':'none';
   const crTerms=document.getElementById('terms-campus-ready');
   if(crTerms)crTerms.style.display=isCampusReady?'':'none';

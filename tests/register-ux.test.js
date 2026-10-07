@@ -151,7 +151,7 @@ test('Care Ready gets the adult registration treatment (no grade, no parent/guar
   assert.match(register, /isAdult\?'Your full name \(electronic signature\) \*'/);
   assert.match(register, /const isAdult=isAdultCourseName\(currentSession&&currentSession\.course\)/);
   assert.match(register, /document\.getElementById\('terms-grandparent'\)\.style\.display=isAdult\?'':'none'/);
-  assert.match(register, /isAdult\|\|isOwnRelease\)\?'none':''/);
+  assert.match(register, /isAdult\|\|isOwnRelease\|\|isGirlScout\)\?'none':''/);
 });
 
 test('Care Ready CPR notice is adult-worded with no certification claim', () => {

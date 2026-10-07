@@ -473,7 +473,8 @@ if(typeof COURSES==='undefined'){
     'Ready. Period.':{hours:1.5, maxStudents:18, requiresRN:true},
     'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{hours:1, maxStudents:20, requiresRN:true},
     'Social Ready':{hours:1, maxStudents:20, instrFlatFee:100, virtual:true},
-    'Girl Scouts — First Aid Badge Workshop':{hours:1, maxStudents:15, requiresRN:true}
+    'Girl Scouts — First Aid Badge Workshop':{hours:1, maxStudents:15, requiresRN:true},
+    'Girl Scout Badge Class':{hours:1, maxStudents:15, requiresRN:true}
   };
   console.warn('config-instructor.js did not define COURSES — using built-in fallback. Check that /config-instructor.js is deploying correctly.');
 }
@@ -485,6 +486,11 @@ if(typeof COURSES==='undefined'){
 Object.keys(COURSES).forEach(c=>{
   if(/stay ready|campus ready|ready\. ?period|season ready|first aid/i.test(c))COURSES[c].requiresRN=true;  // RN instructors only
   if(/safe sitter|grandparent/i.test(c))COURSES[c].requiresSafeSitter=true;  // Safe Sitter® trained only
+  // Girl Scout badge workshops are RN-only and are never Safe Sitter® classes.
+  if(/girl scouts?/i.test(c)&&/badge/i.test(c)){
+    COURSES[c].requiresRN=true;
+    COURSES[c].requiresSafeSitter=false;
+  }
 });
 if(typeof INSTR_RATE==='undefined'){window.INSTR_RATE=50;}
 if(typeof INSTR_TRAVEL==='undefined'){window.INSTR_TRAVEL=50;}
@@ -967,7 +973,7 @@ function goodToKnowHTML(s){
   if(s.instructorInfo)bits.push(escapeHtml(s.instructorInfo).replace(/\n/g,'<br>'));
   const facts=[];
   if(sessionRequiresRN(s))facts.push('Requires an <strong>RN credential</strong>');
-  if(c.requiresSafeSitter)facts.push('Requires <strong>Safe Sitter® training</strong>');
+  if(sessionRequiresSafeSitter(s))facts.push('Requires <strong>Safe Sitter® training</strong>');
   if(!s.isCustomJob){
     const cap=s.maxStudentsOverride||c.maxStudents;
     if(cap){
@@ -1777,11 +1783,13 @@ function canTeach(course){
 function sessionRequiresRN(s){
   if(!s)return false;
   if(s.requiresRN)return true;
+  if(/girl scouts?/i.test(s.course||'')&&/badge/i.test(s.course||''))return true;
   return !!(COURSES[s.course]||{}).requiresRN;
 }
 // Same idea for the per-job "Safe Sitter® instructors only" tick in admin.
 function sessionRequiresSafeSitter(s){
   if(!s)return false;
+  if(/girl scouts?/i.test(s.course||'')&&/badge/i.test(s.course||''))return false;
   if(s.requiresSS)return true;
   return !!(COURSES[s.course]||{}).requiresSafeSitter;
 }
