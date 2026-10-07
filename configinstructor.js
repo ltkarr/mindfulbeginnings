@@ -35,7 +35,8 @@ const COURSES={
   "My First Babysitters Club — Single Session":{hours:2.5,maxStudents:12},
   "Ready. Period.":{hours:1.5,maxStudents:18,requiresRN:true},
   "Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes":{hours:1,maxStudents:20,requiresRN:true},
-  "Social Ready":{hours:1,maxStudents:20,instrFlatFee:100,virtual:true}
+  "Social Ready":{hours:1,maxStudents:20,instrFlatFee:100,virtual:true},
+  "Girl Scouts — First Aid Badge Workshop":{hours:1,maxStudents:15,requiresRN:true}
 };
 
 /* Instructor pay constants (an instructor's own hourly rate, set in the admin,

@@ -44,7 +44,8 @@
     'My First Babysitters Club — Single Session': 'Younger sitters',
     'Ready. Period.': 'Grades 5–7',
     'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 'Student athletes · Grades 6–12',
-    'Social Ready': 'Grades 4–8'
+    'Social Ready': 'Grades 4–8',
+    'Girl Scouts — First Aid Badge Workshop': 'Girl Scout troops'
   };
 
   function todayLocalISO(now) {
