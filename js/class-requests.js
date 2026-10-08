@@ -6,30 +6,31 @@
   var PUBLIC_ORIGIN = 'https://register.mindfulbeginnings.org';
   var LINDSAY_EMAIL = 'lindsay@mindfulbeginnings.org';
 
-  // Catalog prices match config.js (program guide). A few old Google Form
+  // Catalog prices match config.js (classes page prices for new sessions,
+  // Oct 2026: see LATER_PRICE_CHANGES). A few old Google Form
   // prices were stale; the intake shows these amounts so a new session matches
   // what families are charged everywhere else.
   var COURSES = [
     { key: 'safe-sitter', course: 'Safe Sitter®', abbr: 'SS', price: 225, hours: '5 hours', audience: 'Grades 6–8', where: 'in person', requiresSS: true, host: true, org: true },
     { key: 'safe-at-home', course: 'Safe@Home', abbr: 'SAH', price: 85, hours: '90 minutes', audience: 'Grades 3–5', where: 'in person', host: true, org: true },
     { key: 'safe-at-home-virtual', course: 'Safe@Home — Virtual', abbr: 'SAHV', price: 40, hours: '60 minutes', audience: 'Grades 3–5', where: 'virtual', virtual: true, host: true, org: true },
-    { key: 'care-ready', course: 'Care Ready', abbr: 'CRE', price: 185, hours: '2.5 hours', audience: 'Adult caregivers', where: 'in person', host: true, org: true },
-    { key: 'grandparents', course: 'Grandparents: Getting Started', abbr: 'GP', price: 185, hours: '3 hours', audience: 'Adults', where: 'in person', requiresSS: true, host: true, org: true },
+    { key: 'care-ready', course: 'Care Ready', abbr: 'CRE', price: 195, hours: '2.5 hours', audience: 'Adult caregivers', where: 'in person', host: true, org: true },
+    { key: 'grandparents', course: 'Grandparents: Getting Started', abbr: 'GP', price: 195, hours: '3 hours', audience: 'Adults', where: 'in person', requiresSS: true, host: true, org: true },
     { key: 'mfbc-single', course: 'My First Babysitters Club — Single Session', abbr: 'MFBC1', price: 95, hours: '2.5 hours', audience: 'Grades 4–5', where: 'in person', host: true, org: true },
     { key: 'mfbc-series', course: 'My First Babysitters Club', abbr: 'MFBC', price: 165, hours: '1 hour a week', audience: 'Younger sitters · multi-week', where: 'in person', host: false, org: true },
     { key: 'campus-ready', course: 'Campus Ready: Safety Skills for College Life', abbr: 'CR', price: 75, hours: '1 hour', audience: 'Ages 16+', where: 'in person', requiresRN: true, host: true, org: true },
     { key: 'ready-period', course: 'Ready. Period.', abbr: 'RP', price: 75, hours: '90 minutes', audience: 'Grades 5–8', where: 'in person', requiresRN: true, host: true, org: true },
-    { key: 'stay-ready', course: 'Stay Ready: Choking Rescue and CPR', abbr: 'SR', price: 75, hours: '90 minutes', audience: 'Grades 8+', where: 'in person', requiresRN: true, host: true, org: true },
+    { key: 'stay-ready', course: 'Stay Ready: Choking Rescue and CPR', abbr: 'SR', price: 85, hours: '90 minutes', audience: 'Grades 8+', where: 'in person', requiresRN: true, host: true, org: true },
     { key: 'steady-ready', course: 'Steady and Ready', abbr: 'STR', price: 65, hours: '1.5 hours', audience: 'Ages 8+', where: 'in person', host: true, org: true },
     { key: 'intro', course: 'Intro to Babysitting', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Grades 6–8', where: 'in person', host: true, org: true },
     { key: 'intro-virtual', course: 'Intro to Babysitting', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Grades 6–8', where: 'virtual', virtual: true, host: true, org: true },
     { key: 'all-kids-welcome', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '1 hour', audience: 'Experienced sitters', where: 'in person', host: true, org: true },
     { key: 'all-kids-welcome-virtual', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '1 hour', audience: 'Experienced sitters', where: 'virtual', virtual: true, host: true, org: true },
-    // Social Ready matches config.js: $35/kid, 1 hour, grades 4–8, code SOC.
+    // Social Ready matches config.js: $45/kid (classes page, Oct 2026), 1 hour, grades 4–8, code SOC.
     // In person and virtual are separate choices, same as All Kids Welcome.
-    { key: 'social-ready', course: 'Social Ready', abbr: 'SOC', price: 35, hours: '1 hour', audience: 'Grades 4–8', where: 'in person', host: true, org: true },
-    { key: 'social-ready-virtual', course: 'Social Ready', abbr: 'SOC', price: 35, hours: '1 hour', audience: 'Grades 4–8', where: 'virtual', virtual: true, host: true, org: true },
-    { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 225, hours: '2.5 hours', audience: 'Expecting or new parents · per couple', where: 'in person', host: false, org: true },
+    { key: 'social-ready', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Grades 4–8', where: 'in person', host: true, org: true },
+    { key: 'social-ready-virtual', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Grades 4–8', where: 'virtual', virtual: true, host: true, org: true },
+    { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 195, hours: '2.5 hours', audience: 'Expecting or new parents · per couple', where: 'in person', host: false, org: true },
     { key: 'season-ready', course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', abbr: 'SEAR', price: 25, hours: '60 minutes', audience: 'Student athletes', where: 'in person', requiresRN: true, host: false, org: true },
     // First Aid badge: $45 guide price, 60 minutes, RN only. A troop split is
     // entered on the session (family price + organization flat fee), not here.
