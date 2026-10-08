@@ -44,7 +44,7 @@ const names = [
 const sandbox = {
   COURSES: {
     'Safe Sitter®': { price: 225, matCost: 20.35, hours: 5, maxStudents: 16 },
-    'Girl Scouts — First Aid Badge Workshop': { price: 45, matCost: 0, hours: 1, maxStudents: 15, requiresRN: true }
+    'Girl Scouts — First Aid Badge Workshop': { price: 45, matCost: 0, hours: 1, maxStudents: 15 }
   },
   sessions: [],
   registrations: [],
@@ -282,8 +282,9 @@ test('a custom job still ignores a per-scout split until it is a course session'
   assert.match(blocked.familyPayLine, /not set on a custom job/);
 });
 
-test('the First Aid Badge course is on the session form, at $45 for 60 minutes, RN only', () => {
-  assert.match(admin, /'Girl Scouts — First Aid Badge Workshop':\{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true\}/);
+test('the First Aid Badge course is on the session form, at $45 for 60 minutes', () => {
+  assert.match(admin, /'Girl Scouts — First Aid Badge Workshop':\{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15\}/);
+  assert.doesNotMatch(admin, /'Girl Scouts — First Aid Badge Workshop':\{[^}\n]*requiresRN/);
   assert.equal((admin.match(/Girl Scouts — First Aid Badge Workshop/g) || []).length > 3, true);
   assert.match(admin, /<option>Girl Scouts — First Aid Badge Workshop<\/option>/);
   assert.match(admin, /s\.course==='Girl Scouts — First Aid Badge Workshop'/);
