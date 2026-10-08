@@ -6,6 +6,9 @@
                  and Season Ready; corrected My First Babysitters Club matCost to $30
    Oct  5 2026 · Added Social Ready ($35, 1 hour, cap 20, $100 flat fee, virtual)
    Oct  7 2026 · Added Girl Scouts — First Aid Badge Workshop ($45, 1 hour, cap 15, RN)
+   Oct  8 2026 · Classes page prices for NEW sessions (LATER_PRICE_CHANGES, from Oct 9):
+                 Social Ready $45, Stay Ready $85, Grandparents $195, Care Ready $195,
+                 Baby Ready $195. Existing sessions keep their current prices.
    ════════════════════════════════════════════════════════════════════════
 
    Loaded by register.html and instructor.html. This file is the single
@@ -133,6 +136,19 @@ const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
    Keep this list identical in config.js, register.html, and admin.html.
 */
 const LATER_PRICE_CHANGES=[
+  // CLASSES PAGE PRICES, Oct 2026. Taken from mindfulbeginnings.org/classes
+  // (prices per participant). Only sessions CREATED from midnight ET on
+  // Oct 9 2026 onward charge these. Every session already in the database
+  // (newest was created Oct 8 2026) keeps the price it has today, and a
+  // per-session price override still wins over all of this.
+  {from:'2026-10-09T04:00:00Z',   // midnight ET, night of Oct 8 2026
+   prices:{
+     'Social Ready':45,
+     'Stay Ready: Choking Rescue and CPR':85,
+     'Grandparents: Getting Started':195,
+     'Care Ready':195,
+     'Baby Ready':195
+   }},
   // ── PROGRAM GUIDE CUTOVER · Aug 26 2026 ──────────────────────────────
   // Every price below is taken straight from the published Program & Course
   // Guide. Sessions created from midnight ET tonight onward charge these

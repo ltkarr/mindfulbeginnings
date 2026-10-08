@@ -87,16 +87,16 @@ test('host course choices on the page match the catalog, and organizations are s
   assert.match(register, /Need help finding a class\? <a href="mailto:lindsay@mindfulbeginnings\.org">Contact us<\/a>\./);
 });
 
-test('Social Ready is $35 per kid on both the home host and organization course menus', () => {
+test('Social Ready is $45 per kid on both the home host and organization course menus', () => {
   ['social-ready', 'social-ready-virtual'].forEach(function (key) {
     const course = model.courseByKey(key);
     assert.equal(course.course, 'Social Ready');
-    assert.equal(course.price, 35);
+    assert.equal(course.price, 45);
     assert.equal(course.host, true);
     assert.equal(course.org, true);
     assert.equal(course.abbr, 'SOC');
     const label = model.courseOptionLabel(course);
-    assert.match(label, /\$35/);
+    assert.match(label, /\$45/);
     assert.match(hostPage, new RegExp('value="' + key + '"'));
     assert.match(orgPage, new RegExp('value="' + key + '"'));
     assert.match(hostPage, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
@@ -112,7 +112,7 @@ test('Social Ready is $35 per kid on both the home host and organization course 
   assert.equal(hostPlan.row.code, 'SOC-261102');
   assert.equal(hostPlan.row.is_virtual, false);
   assert.equal(hostPlan.row.price_override, null);
-  assert.match(model.buildDraft(host, hostPlan.row).body, /\$35 per participant/);
+  assert.match(model.buildDraft(host, hostPlan.row).body, /\$45 per participant/);
 
   const virtual = model.normalizeSubmission(hostBody({ courseKey: 'social-ready-virtual', address: 'Virtual' }));
   const virtualPlan = model.buildSessionRow(virtual, []);
@@ -124,7 +124,7 @@ test('Social Ready is $35 per kid on both the home host and organization course 
   const orgPlan = model.buildSessionRow(org, []);
   assert.equal(orgPlan.row.course, 'Social Ready');
   assert.equal(orgPlan.row.price_override, null);
-  assert.match(model.buildDraft(org, orgPlan.row).body, /\$35 per participant/);
+  assert.match(model.buildDraft(org, orgPlan.row).body, /\$45 per participant/);
 });
 
 test('organization course choices match the catalog, including Girl Scout badge and four billing options', () => {
