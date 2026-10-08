@@ -1131,14 +1131,15 @@ const COURSES={
   // series may set a session-level capacity override of 30.
   'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true},
   // Girl Scouts — First Aid Badge Workshop: 60 minutes, $45 guide price, up to 15.
-  // RN instructors only (hands-on first aid, same rule as Stay Ready). A troop
-  // split does not change this default: Family price at registration is what
-  // each family pays (GS-H4782 is $15) and Organization flat fee per girl is
-  // what the troop is invoiced ($30 × the roster).
-  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true},
+  // RN-only is the per-session "RN instructors only" checkbox, not the course
+  // type. A troop split does not change the guide price: Family price at
+  // registration is what each family pays (GS-H4782 is $15) and Organization
+  // flat fee per girl is what the troop is invoiced ($30 × the roster).
+  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15},
   // Girl Scout Badge Class is its own job type. It is not a Safe Sitter® class.
-  // RN instructors only, same guide price and cap as the First Aid workshop.
-  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,requiresRN:true}
+  // Same guide price and cap as the First Aid workshop. Tick "RN instructors
+  // only" on a session when that job should be limited to RNs.
+  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15}
 };
 // ─── STUDENT MATERIAL RATES ──────────────────────────────────
 // COURSES[...].matCost is the per-participant handbook and supply allowance.
@@ -2441,7 +2442,6 @@ function isGirlScoutBadgeCourseName(course){
 function sessionRequiresRN(s){
   if(!s)return false;
   if(s.requiresRN)return true;
-  if(/girl scouts?/i.test(s&&s.course||'')&&/badge/i.test(s&&s.course||''))return true;
   return !!(COURSES[s.course]||{}).requiresRN;
 }
 // Safe Sitter® restriction for one specific job. Same two ways in: the course itself is
@@ -10493,7 +10493,6 @@ function readExpenseSession(){
   const el=document.getElementById('m-esess');
   return el&&el.value?el.value:null;
 }
-let _expenseReturnSession=null;
 function openLinkedSession(id){
   const s=(sessions||[]).find(x=>x.id===id);if(!s)return;
   if(s.isCustomJob)openEditCustomJob(id);
@@ -10605,18 +10604,17 @@ function expenseFormHtml(e, presetSessionId){
 }
 
 function openAddExpense(sessionId){
-  if(sessionId)_expenseReturnSession=sessionId;
-  else _expenseReturnSession=_costSessionId||null;
   showModal(`<div class="modal-head"><h3>Add expense</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-  <div class="modal-body">${expenseFormHtml(null, sessionId||_expenseReturnSession||'')}</div>
-  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveExpense()">Add expense</button></div>`);
+  <div class="modal-body">${expenseFormHtml(null, sessionId||'')}</div>
+  <div class="modal-foot"><button class="btn" type="button" onclick="closeModal()">Cancel</button><button class="btn primary" type="button" onclick="saveExpense()">Add expense</button></div>`);
 }
 
-function finishExpenseEdit(back){
+// Saving or editing an expense stays on Finances. A session that was open
+// earlier must not pop back up over the expense list.
+function finishExpenseEdit(){
   closeModal();
   renderExpenses();renderDashboard();renderFinances();
   if(typeof renderSessions==='function')renderSessions();
-  if(back)openLinkedSession(back);
 }
 
 async function saveExpense(){
@@ -10626,18 +10624,15 @@ async function saveExpense(){
   if(!desc||!amt||!date){alert('Please fill in description, amount, and date.');return;}
   const e={id:sid(),description:desc,amount:amt,date,category:document.getElementById('m-ecat').value,paymentMethod:readExpensePay(),sessionId:readExpenseSession(),createdAt:Date.now(),recurrence:normalizeExpenseRecurrence((document.getElementById('m-erecur')||{}).value),recurUntil:(document.getElementById('m-euntil')||{}).value||'',recurActive:true};
   expenses.unshift(e);
-  const back=_expenseReturnSession;
-  _expenseReturnSession=null;
-  finishExpenseEdit(back);
+  finishExpenseEdit();
   writeExpenseRow('insert',e,'New expense');
 }
 
 function openEditExpense(id){
   const e=expenses.find(x=>x.id===id);if(!e)return;
-  if(_costSessionId)_expenseReturnSession=_costSessionId;
   showModal(`<div class="modal-head"><h3>Edit expense</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">${expenseFormHtml(e, e.sessionId||'')}</div>
-  <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="updateExpense('${id}')">Save changes</button></div>`);
+  <div class="modal-foot"><button class="btn" type="button" onclick="closeModal()">Cancel</button><button class="btn primary" type="button" onclick="updateExpense('${id}')">Save changes</button></div>`);
 }
 
 async function updateExpense(id){
@@ -10651,9 +10646,7 @@ async function updateExpense(id){
   e.recurUntil=(document.getElementById('m-euntil')||{}).value||'';
   if(e.recurrence)e.recurActive=e.recurActive!==false;
   else e.recurActive=true;
-  const back=_expenseReturnSession;
-  _expenseReturnSession=null;
-  finishExpenseEdit(back);
+  finishExpenseEdit();
   writeExpenseRow('update',e,'Expense edit');
 }
 
