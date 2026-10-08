@@ -13,7 +13,8 @@
    Only three kinds of value live here, and all change rarely:
      hours / maxStudents        → teaching length and class cap
      instrFlatFee               → flat instructor fee, where a course has one
-     requiresRN / requiresSafeSitter / virtual  → who may see the job
+     requiresRN / requiresSafeSitter / requiresLeadTeacher / redCross / virtual
+                            → who may see the job
    If you change any of those in config.js or admin.html, change them here too.
    If this file is ever missing, instructor.html falls back to its own built-in
    copy and keeps working.
@@ -37,7 +38,9 @@ const COURSES={
   "Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes":{hours:1,maxStudents:20,requiresRN:true},
   "Social Ready":{hours:1,maxStudents:20,instrFlatFee:100,virtual:true},
   "Girl Scouts — First Aid Badge Workshop":{hours:1,maxStudents:15},
-  "Girl Scout Badge Class":{hours:1,maxStudents:15}
+  "Girl Scout Badge Class":{hours:1,maxStudents:15},
+  "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED":{hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true},
+  "Adult & Pediatric First Aid/CPR/AED Certification":{hours:5.5,maxStudents:12,redCross:true,requiresLeadTeacher:true}
 };
 
 /* Instructor pay constants (an instructor's own hourly rate, set in the admin,

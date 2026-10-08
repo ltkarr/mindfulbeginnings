@@ -439,7 +439,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="filter-row">
         <select id="sf-course" onchange="renderSessions()">
           <option value="">All courses</option>
-          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option>
+          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option>
         </select>
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
@@ -901,6 +901,9 @@ function regCreatedTime(r){
 // RN, Safe Sitter®, and contract type are credentials and agreements, not a level.
 const INSTRUCTOR_LEVELS=['Started','Established','Senior','Lead'];
 let INSTRUCTOR_LEVEL_COL=true;
+let LEAD_TEACHER_COL=true;
+const LEAD_TEACHER_RATE=75;
+const LEAD_COL_SQL_TOAST='⚠️ Saved, but WITHOUT Lead Teacher — run migrations/20261008_lead_teacher.sql in the Supabase SQL editor, then set Lead Teacher again.';
 function normalizeInstructorLevel(v){
   return INSTRUCTOR_LEVELS.indexOf(v)>=0?v:'Started';
 }
@@ -926,7 +929,7 @@ function instructorFromDB(r){
   //   alter table instructors add column if not exists archived_at timestamptz;
   //   update instructors set is_active = true where is_active is null;
   //   grant select (is_active) on public.instructors to anon;
-  return{id:r.id,name:r.name,active:(r.is_active===undefined||r.is_active===null)?true:!!r.is_active,archivedAt:r.archived_at||null,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,pinChangeRequired:!!r.pin_change_required,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,level:normalizeInstructorLevel(r.instructor_level),createdAt:r.created_at||Date.now()};
+  return{id:r.id,name:r.name,active:(r.is_active===undefined||r.is_active===null)?true:!!r.is_active,archivedAt:r.archived_at||null,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,pinChangeRequired:!!r.pin_change_required,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,isLeadTeacher:!!r.is_lead_teacher,redCrossCertId:r.red_cross_instructor_id||'',redCrossCertExpires:r.red_cross_cert_expires?String(r.red_cross_cert_expires).slice(0,10):'',level:normalizeInstructorLevel(r.instructor_level),createdAt:r.created_at||Date.now()};
 }
 // headshot_path is deliberately absent below: only the instructor portal writes it,
 // and including it here would break saving an instructor on databases that have not
@@ -939,6 +942,13 @@ function instructorToDB(i){
   // Omitted once we know the database has not had instructor_level added yet,
   // so the rest of the instructor row can still be saved.
   if(INSTRUCTOR_LEVEL_COL)row.instructor_level=normalizeInstructorLevel(i.level);
+  // Omitted once we know migrations/20261008_lead_teacher.sql has not been run,
+  // so the rest of the instructor row can still be saved.
+  if(typeof LEAD_TEACHER_COL==='undefined'||LEAD_TEACHER_COL){
+    row.is_lead_teacher=!!i.isLeadTeacher;
+    row.red_cross_instructor_id=i.redCrossCertId?String(i.redCrossCertId).trim():null;
+    row.red_cross_cert_expires=i.redCrossCertExpires?String(i.redCrossCertExpires).slice(0,10):null;
+  }
   return row;
 }
 function jobFromDB(r){
@@ -1172,7 +1182,16 @@ const COURSES={
   // Girl Scout Badge Class is its own job type. It is not a Safe Sitter® class.
   // Same guide price and cap as the First Aid workshop. Tick "RN instructors
   // only" on a session when that job should be limited to RNs.
-  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15}
+  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15},
+  // American Red Cross. Classes page: $295, 7 hours, ages 11-14. Lead Teachers
+  // only. Pay is $75/hour in the pay math, not a course flat fee. Class size is
+  // not on the classes page; 12 matches the other hands-on CPR workshops.
+  // $295 is also on the Oct 9 new-session price list. No booked session exists.
+  'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true},
+  // Same 5.5-hour course is listed three times on the classes page, always $125.
+  // The $195 cards next to it are Baby Ready and Grandparents, not this course.
+  // $125 is also on the Oct 9 new-session price list. No booked session exists.
+  'Adult & Pediatric First Aid/CPR/AED Certification':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:5.5,maxStudents:12,redCross:true,requiresLeadTeacher:true}
 };
 // ─── STUDENT MATERIAL RATES ──────────────────────────────────
 // COURSES[...].matCost is the per-participant handbook and supply allowance.
@@ -1212,7 +1231,9 @@ const LATER_PRICE_CHANGES=[
      'Stay Ready: Choking Rescue and CPR':85,
      'Grandparents: Getting Started':195,
      'Care Ready':195,
-     'Baby Ready':195
+     'Baby Ready':195,
+     'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,
+     'Adult & Pediatric First Aid/CPR/AED Certification':125
    }},
   // PROGRAM GUIDE CUTOVER — every price below comes straight from the published
   // Program & Course Guide. Sessions created from midnight ET tonight onward charge
@@ -1354,11 +1375,14 @@ const COURSE_ABBR={
   'Social Ready':'SOC',
   // GSFA, not FA — keep the Girl Scout program in the registration code.
   'Girl Scouts — First Aid Badge Workshop':'GSFA',
-  'Girl Scout Badge Class':'GSB'
+  'Girl Scout Badge Class':'GSB',
+  'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':'RCB',
+  'Adult & Pediatric First Aid/CPR/AED Certification':'RCA'
 };
 // Custom-job titles are free text ("My First Babysitter's Club — Greenwood
 // Elementary — 10 week series"), so match the program out of the words.
 const TITLE_ABBR=[
+  [/red cross babysitter/i,'RCB'],[/adult\s*&\s*pediatric|pediatric first aid\/cpr/i,'RCA'],
   [/first\s*babysitter/i,'MFBC'],[/safe\s*sitter/i,'SS'],
   [/safe\s*@?\s*home/i,'SAH'],[/intro to babysit/i,'IB'],
   [/grandparent/i,'GP'],[/baby\s*ready/i,'BR'],[/care\s*ready/i,'CRE'],[/all kids welcome/i,'AKW'],
@@ -1748,12 +1772,23 @@ function isInstructorPaymentDone(s,jdi){
 function instrBaseFee(s,instr){
   if(s&&s.instrPayOverride!=null&&s.instrPayOverride!=='')return Number(s.instrPayOverride);
   const c=COURSES[s.course]||{};
-  const rate=(instr&&instr.hourlyRate)?instr.hourlyRate:INSTR_RATE;
+  // A Lead Teacher is paid $75/hour for every session, whatever the course's
+  // usual flat fee or the rate on their profile. An unassigned Red Cross
+  // session is estimated the same way, because only a Lead Teacher can teach it.
+  // Travel and the extra 30 minutes stay, at that $75 rate. A session pay
+  // override above still wins. Paid jobs keep the frozen amount in instrDisplayFee.
+  const leadRate=(typeof LEAD_TEACHER_RATE!=='undefined')?LEAD_TEACHER_RATE:75;
+  const lead=!!((instr&&instr.isLeadTeacher)||(!instr&&(c.requiresLeadTeacher||c.redCross)));
+  const rate=lead?leadRate:((instr&&instr.hourlyRate)?instr.hourlyRate:INSTR_RATE);
   // Travel is paid as one hour at the instructor's own hourly rate. Virtual courses
   // (All Kids Welcome) have no travel.
   const travel=(c.virtual||s.isVirtual)?0:rate;
   const extra=INSTR_EXTRA_HOURS*rate; // extra 30 minutes of pay on every job
+  if(lead)return (c.hours||0)*rate+travel+extra;
   return c.instrFlatFee!==undefined?c.instrFlatFee+extra:(c.hours||0)*rate+travel+extra;
+}
+function usualInstrPayAmount(course,virtual){
+  return instrBaseFee({course:course,isVirtual:!!virtual},null);
 }
 
 // Fee to DISPLAY/COUNT for the primary instructor slot. Once a job is marked paid we
@@ -2473,8 +2508,23 @@ function instrAnsweredSafeSitter(i){
   return false;                                   // includes certified-but-no-date: we still want the date
 }
 // Can this instructor see/teach this course? Mirrors the instructor portal's canTeach().
+function courseRequiresLeadTeacher(course){
+  const c=COURSES[course]||{};
+  return !!(c.requiresLeadTeacher||c.redCross);
+}
+function sessionRequiresLeadTeacher(s){
+  return !!(s&&courseRequiresLeadTeacher(s.course));
+}
+function leadTeacherAssignmentBlock(course,instrId){
+  if(!instrId||!courseRequiresLeadTeacher(course))return '';
+  const inst=(typeof instructors!=='undefined'&&instructors)?instructors.find(x=>x.id===instrId):null;
+  if(inst&&inst.isLeadTeacher)return '';
+  const name=inst&&inst.name?inst.name:'That instructor';
+  return name+' is not a Lead Teacher. Only a Lead Teacher can be assigned to a Red Cross course.';
+}
 function instrEligible(i,course){
   const c=COURSES[course]||{};
+  if((c.requiresLeadTeacher||c.redCross)&&!(i&&i.isLeadTeacher))return false;
   if(c.requiresRN&&!(i&&i.isRN))return false;
   if(c.requiresSafeSitter&&!instrIsSafeSitter(i))return false;
   return true;
@@ -2508,6 +2558,8 @@ function sessionRequiresSafeSitter(s){
 // the session or the course, a Safe Sitter® flag on the session or the course,
 // or every instructor when neither flag is set.
 function sessionWhoCanTeach(s){
+  const c=(typeof COURSES!=='undefined'&&s&&COURSES[s.course])||{};
+  if(c.requiresLeadTeacher||c.redCross)return 'Lead Teachers only';
   const rn=sessionRequiresRN(s);
   const ss=sessionRequiresSafeSitter(s);
   if(rn&&ss)return 'RN and Safe Sitter® instructors only';
@@ -2519,15 +2571,30 @@ function sessionWhoCanTeach(s){
 // per-job RN flag. Mirrors the instructor portal's canTeach().
 function instrEligibleForSession(i,s){
   if(!s)return true;
+  if(sessionRequiresLeadTeacher(s)&&!(i&&i.isLeadTeacher))return false;
   if(sessionRequiresRN(s)&&!(i&&i.isRN))return false;
   if(sessionRequiresSafeSitter(s)&&!instrIsSafeSitter(i))return false;
   return instrEligible(i,s.course);
 }
 function instrEligMarkSession(i,s){
   if(instrEligibleForSession(i,s))return '';
+  if(sessionRequiresLeadTeacher(s)&&!(i&&i.isLeadTeacher))return ' ⚠ not a Lead Teacher - cannot see this Red Cross job';
   if(sessionRequiresRN(s)&&!(i&&i.isRN))return ' ⚠ not an RN — cannot see this job';
   if(sessionRequiresSafeSitter(s)&&!instrIsSafeSitter(i))return ' ⚠ not Safe Sitter® certified — cannot see this job';
   return ' ⚠ not eligible for this course';
+}
+function refreshSessionInstrMarks(){
+  const course=(document.getElementById('m-course')||{}).value||'';
+  ['m-instr','m-instr2'].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(!sel)return;
+    [...sel.options].forEach(o=>{
+      if(!o.value)return;
+      const inst=instructors.find(x=>x.id===o.value);
+      if(!inst)return;
+      o.textContent=instrSortName(inst.name)+instrEligMarkSession(inst,{course:course})+instrInactiveMark(inst);
+    });
+  });
 }
 // Shows an advisory inside the session modals when the selected course requires a
 // specific instructor credential (RN-only or Safe Sitter®-only courses).
@@ -2543,7 +2610,10 @@ function updateRnNotice(){
   if(!sel||!note)return;
   const c=COURSES[sel.value]||{};
   const marked=!!(rnBox&&rnBox.checked);
-  if(c.requiresRN||marked){
+  if(c.requiresLeadTeacher||c.redCross){
+    note.style.display='block';
+    note.innerHTML='⚠️ This is an American Red Cross course. Only instructors marked <strong>Lead Teacher</strong> will see it, can claim it, or can be assigned to it. A Lead Teacher is paid $75/hour for this session.';
+  }else if(c.requiresRN||marked){
     note.style.display='block';
     note.innerHTML=c.requiresRN
       ?'⚠️ This course must be taught by a certified registered nurse (RN). Only instructors marked as <strong>Registered Nurse (RN)</strong> in their profile will see this job post on their board.'
@@ -5655,6 +5725,7 @@ function renderSessions(){
       const pills=[];
       if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
       if(isGirlScoutBadgeCourseName(s.course))pills.push(pill('Girl Scout','#f3e8f5','#6b3a7a','Girl Scout badge class, not a Safe Sitter® class'));
+      if(sessionRequiresLeadTeacher(s))pills.push(pill('Lead Teacher','#f7f3ea','#7a5c1e','American Red Cross course. Lead Teachers only.'));
       if(sessionRequiresRN(s))pills.push(pill('RN only','#e2efe7','#2d7a5e','Registered nurse instructors only'));
       if(sessionRequiresSafeSitter(s))pills.push(pill('Safe Sitter only','#e6eff7','#1a5c8a','Safe Sitter® instructors only'));
       if(kit)pills.push(kit);
@@ -6229,7 +6300,7 @@ function openAddSession(){
   showModal(`<div class="modal-head"><h3>Add new session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Course *</label>
-      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option></select>
+      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option></select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div>
       <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="m-rnonly" onchange="updateRnNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
@@ -6372,12 +6443,14 @@ function openAddSession(){
     }
     updateRnNotice();
     renderSeriesWarning();
+    refreshSessionInstrMarks();
   });
   updateMaxHint();
   updatePricePreview();
   updateInstrPayPreview();
   toggleVirtualFields('no');
   updateRnNotice();
+  refreshSessionInstrMarks();
   toggleInstrSelect('no');
   wireSessionMaterials(null);
 }
@@ -6592,6 +6665,8 @@ async function saveCustomJob(){
   }
   const instrEl=document.getElementById('cj-instr');
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
+  const leadBlock=leadTeacherAssignmentBlock(title,preInstrId);
+  if(leadBlock){alert(leadBlock);return;}
   if(!confirmNotDuplicate({course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,isVirtual:false,isCancelled:false},null))return;
   if(_savingSession)return; _savingSession=true;
   try{
@@ -6765,6 +6840,8 @@ async function saveEditCustomJob(id){
   if(isRecurring&&recurEndDate<=date){alert('The last meeting date must be after the first meeting date.');return;}
   const instrEl=document.getElementById('cj-instr');
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
+  const leadBlock=leadTeacherAssignmentBlock(title,preInstrId);
+  if(leadBlock){alert(leadBlock);return;}
   const siteName=document.getElementById('cj-loc').value||title;
   const _prevDate=s.date;
   let code=(document.getElementById('cj-code')?.value||'').trim().toUpperCase();
@@ -6811,6 +6888,7 @@ function toggleVirtualFields(val){
     [addrFg,cityFg,stateFg,zipFg].forEach(el=>{if(el)el.style.display=isVirt?'none':'flex';});
   }
   if(zoom)zoom.style.display=isVirt?'flex':'none';
+  if(typeof updateInstrPayPreview==='function')updateInstrPayPreview();
 }
 
 function toggleInstrSelect(val){
@@ -6868,12 +6946,12 @@ function updateInstrPayPreview(){
   const payEl=document.getElementById('m-instr-pay-override');
   const out=document.getElementById('m-instr-pay-preview');
   if(!courseEl||!payEl||!out)return;
-  const dc=COURSES[courseEl.value]||{};
-  const base=(dc.instrFlatFee!==undefined?dc.instrFlatFee:(dc.hours||0)*INSTR_RATE+INSTR_RATE)+INSTR_EXTRA_HOURS*INSTR_RATE;
+  const virtual=(document.getElementById('m-virtual')||{}).value==='yes';
+  const base=usualInstrPayAmount(courseEl.value,virtual);
   const raw=payEl.value;
   if(raw===''){
     out.style.color='var(--muted)';
-    out.textContent='Using usual fee of $'+base+' per instructor';
+    out.textContent='Using usual fee of '+fmt(base)+' per instructor';
     return;
   }
   const v=Number(raw);
@@ -6882,7 +6960,7 @@ function updateInstrPayPreview(){
     out.textContent='Same as usual — you can leave this blank';
   }else{
     out.style.color='var(--warn)';
-    out.textContent='⚠ Custom pay: $'+v+' per instructor (usual is $'+base+')';
+    out.textContent='⚠ Custom pay: '+fmt(v)+' per instructor (usual is '+fmt(base)+')';
   }
 }
 
@@ -6922,7 +7000,9 @@ function openEditSession(id){
         <option ${s.course==='Social Ready'?'selected':''}>Social Ready</option>
         <option ${s.course==='Girl Scouts — First Aid Badge Workshop'?'selected':''}>Girl Scouts — First Aid Badge Workshop</option>
         <option ${s.course==='Girl Scout Badge Class'?'selected':''}>Girl Scout Badge Class</option>
-        ${['Safe Sitter®','Intro to Babysitting','Safe@Home','Safe@Home — Virtual','Safe@Home — Series','Grandparents: Getting Started','Care Ready','Baby Ready','All Kids Welcome','Stay Ready: Choking Rescue and CPR','Campus Ready: Safety Skills for College Life','Steady and Ready','My First Babysitters Club','My First Babysitters Club — Single Session','Ready. Period.','Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes','Social Ready','Girl Scouts — First Aid Badge Workshop','Girl Scout Badge Class'].includes(s.course)?'':`<option selected>${escapeHtml(s.course||'')}</option>`}
+        <option ${s.course==="Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED"?'selected':''}>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option>
+        <option ${s.course==='Adult & Pediatric First Aid/CPR/AED Certification'?'selected':''}>Adult &amp; Pediatric First Aid/CPR/AED Certification</option>
+        ${['Safe Sitter®','Intro to Babysitting','Safe@Home','Safe@Home — Virtual','Safe@Home — Series','Grandparents: Getting Started','Care Ready','Baby Ready','All Kids Welcome','Stay Ready: Choking Rescue and CPR','Campus Ready: Safety Skills for College Life','Steady and Ready','My First Babysitters Club','My First Babysitters Club — Single Session','Ready. Period.','Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes','Social Ready','Girl Scouts — First Aid Badge Workshop','Girl Scout Badge Class',"Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED",'Adult & Pediatric First Aid/CPR/AED Certification'].includes(s.course)?'':`<option selected>${escapeHtml(s.course||'')}</option>`}
       </select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div>
       <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
@@ -7022,10 +7102,10 @@ function openEditSession(id){
     ${externalRegistrationFieldHtml(s)}
     ${orgBillingFieldsHtml(s)}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
-    <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee of ${fmt((()=>{const dc=COURSES[s.course]||{};return (dc.instrFlatFee!==undefined?dc.instrFlatFee:(dc.hours||0)*INSTR_RATE+INSTR_RATE)+INSTR_EXTRA_HOURS*INSTR_RATE;})())})</span></label>
+    <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee of ${fmt(usualInstrPayAmount(s.course,s.isVirtual))})</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
-        <input type="number" id="m-instr-pay-override" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="Default: ${(()=>{const dc=COURSES[s.course]||{};return (dc.instrFlatFee!==undefined?dc.instrFlatFee:(dc.hours||0)*INSTR_RATE+INSTR_RATE)+INSTR_EXTRA_HOURS*INSTR_RATE;})()}" min="0" step="1" oninput="updateInstrPayPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="m-instr-pay-override" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="Default: ${usualInstrPayAmount(s.course,s.isVirtual)}" min="0" step="1" oninput="updateInstrPayPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
         <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
@@ -7050,8 +7130,9 @@ function openEditSession(id){
   updateInstrPayPreview();
   toggleVirtualFields(s.isVirtual?'yes':'no');
   toggleInstrSelect(s.ownerTaught?'yes':'no');
-  document.getElementById('m-course').addEventListener('change',()=>{updateRnNotice();renderSeriesWarning();});
+  document.getElementById('m-course').addEventListener('change',()=>{updateRnNotice();renderSeriesWarning();refreshSessionInstrMarks();});
   updateRnNotice();
+  refreshSessionInstrMarks();
   renderSeriesWarning();
   wireSessionMaterials(id);
 }
@@ -7113,6 +7194,8 @@ async function saveSession(editId){
   let secondInstructorId=(instr2El&&instr2El.value)?instr2El.value:null;
   // Guard: a person can't be both primary and second
   if(secondInstructorId&&secondInstructorId===preInstrId)secondInstructorId=null;
+  const leadBlock=leadTeacherAssignmentBlock(course,isOwner?null:preInstrId)||leadTeacherAssignmentBlock(course,secondInstructorId);
+  if(leadBlock){alert(leadBlock);return;}
   const maxOverrideRaw=document.getElementById('m-maxoverride').value;
   const maxStudentsOverride=maxOverrideRaw&&Number(maxOverrideRaw)>0?Number(maxOverrideRaw):null;
   const priceOverrideRaw=document.getElementById('m-price-override').value;
@@ -8540,6 +8623,7 @@ function renderInstructors(){
             const creds=[];
             if(instrIsSafeSitter(i))creds.push('🧒 Safe Sitter®');
             if(i.isRN)creds.push('🩺 RN');
+            if(i.isLeadTeacher)creds.push('Lead Teacher');
             return`<br><span style="font-size:14px;color:${creds.length?'#1a5c8a':'var(--muted)'};font-weight:500" title="Controls which job posts this instructor sees in their portal">${creds.length?creds.join(' · '):'Everyone-courses only'}</span>`;
           })()}
           ${({proprietary:'<br><span style="font-size:14px;color:#1a5c8a;font-weight:500">📄 RN agreement</span>',mb_courses:'<br><span style="font-size:14px;color:#1a5c8a;font-weight:500" title="Signed the original MB Courses agreement. Their saved PDF still prints that version, which is what they agreed to.">📄 MB Courses agreement <span style="color:var(--muted);font-weight:400">(2025 version)</span></span>',mb_courses_2026:'<br><span style="font-size:14px;color:#1a5c8a;font-weight:500">📄 MB Courses agreement</span>',curriculum:'<br><span style="font-size:14px;color:#7a5c1a;font-weight:500">📄 Curriculum Specialist agreement</span>'})[i.contractType]||''}
@@ -8550,7 +8634,7 @@ function renderInstructors(){
         <td style="color:var(--muted);font-size:15px">${i.email||'—'}</td>
         <td style="color:var(--muted);font-size:15px">${i.phone||'—'}</td>
         <td style="color:var(--muted);font-size:15px">${i.zelle||'—'}</td>
-        <td style="font-weight:500;color:var(--success)">$${i.hourlyRate||50}/hr</td>
+        <td style="font-weight:500;color:var(--success)" title="${i.isLeadTeacher?'Lead Teacher pay is $75/hour for every session. The rate on the profile stays on file.':''}">${i.isLeadTeacher?'$75/hr':'$'+(i.hourlyRate||50)+'/hr'}</td>
         <td><span class="pin-badge" data-pin="${escapeHtml(i.pin||'')}">••••</span> <button type="button" class="btn sm" onclick="event.stopPropagation();toggleInstructorPin(this)">${i.pin?'Show':'—'}</button>${i.pinChangeRequired?'<div style="font-size:13px;color:var(--warn);margin-top:3px">PIN change pending</div>':''}</td>
         <td style="font-size:15px">${i.safeSitterTrainingDate?trainDate:(i.safeSitterCertified===false?'<span style="color:var(--muted)">Not trained</span>':'<span style="color:var(--warn);font-weight:500" title="This instructor has not entered a Safe Sitter® training date in their portal yet">⚠ Needed</span>')}</td>
         <td style="font-size:15px;color:${i.sweatshirtSize?'var(--text)':'var(--muted)'}">${i.sweatshirtSize||'—'}</td>
@@ -8600,7 +8684,7 @@ function exportInstructorsCSV(){
       .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
     const trainDate=i.safeSitterTrainingDate||'';
     // Summary row
-    rows.push([instrActive(i)?'Active':'Inactive',i.name,normalizeInstructorLevel(i.level),i.email||'',i.phone||'',i.zelle||'','$'+(i.hourlyRate||50)+'/hr',i.pin,trainDate,i.sweatshirtSize||'',i.contractSigned?'Yes':'No',classesTaughtBy(i.id),classesPendingBy(i.id),'$'+pendingAmt.toFixed(2),'$'+paidAmt.toFixed(2),'','','','','','','','','']);
+    rows.push([instrActive(i)?'Active':'Inactive',i.name,normalizeInstructorLevel(i.level),i.email||'',i.phone||'',i.zelle||'',i.isLeadTeacher?'$75/hr':('$'+(i.hourlyRate||50)+'/hr'),i.pin,trainDate,i.sweatshirtSize||'',i.contractSigned?'Yes':'No',classesTaughtBy(i.id),classesPendingBy(i.id),'$'+pendingAmt.toFixed(2),'$'+paidAmt.toFixed(2),'','','','','','','','','']);
     // Job detail rows
     myJobs.forEach(s=>{
       const jd=jobDataCache[s.id]||{};
@@ -8622,6 +8706,38 @@ function exportInstructorsCSV(){
   showToast('✅ CSV downloaded — open in Google Sheets to view your live roster.');
 }
 
+function redCrossCertWarning(i){
+  if(!i||!i.isLeadTeacher)return '';
+  const bits=[];
+  if(!String(i.redCrossCertId||'').trim())bits.push('Red Cross instructor certificate ID is blank');
+  const exp=String(i.redCrossCertExpires||'').slice(0,10);
+  if(!exp)bits.push('certificate expiration date is blank');
+  else if(exp<fmtYMD(new Date()))bits.push('certificate expiration date is in the past');
+  if(!bits.length)return '';
+  return bits.join('; ')+'. Lead Teacher stays on until you uncheck it.';
+}
+function leadTeacherFormHtml(i){
+  const on=!!(i&&i.isLeadTeacher);
+  const warn=redCrossCertWarning(i);
+  return `<div class="fg full" style="background:#f7f3ea;border:1px solid #e2d3b0;border-radius:var(--r-sm);padding:10px 12px">
+    <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Lead Teacher</div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-ilead" ${on?'checked':''} style="width:auto;margin:0"> Lead Teacher — holds an American Red Cross instructor certificate</label>
+    <div class="form-grid">
+      <div class="fg"><label>Red Cross instructor certificate ID</label><input type="text" id="m-ircid" value="${escapeHtml((i&&i.redCrossCertId)||'')}" placeholder="Certificate ID"></div>
+      <div class="fg"><label>Certificate expiration</label><input type="date" id="m-ircxp" value="${(i&&i.redCrossCertExpires)||''}"></div>
+    </div>
+    <div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">A Lead Teacher is paid $75/hour for every session they teach. Only a Lead Teacher can see, claim, or be assigned a Red Cross course. A blank or past expiration date is a reminder. It does not turn Lead Teacher off.</div>
+    ${warn?`<div style="font-size:14px;color:var(--warn);margin-top:6px">⚠ ${escapeHtml(warn)}</div>`:''}
+  </div>`;
+}
+function applyLeadTeacherFields(i){
+  const box=document.getElementById('m-ilead');
+  if(!box||!i)return;
+  i.isLeadTeacher=!!box.checked;
+  i.redCrossCertId=(document.getElementById('m-ircid')?.value||'').trim();
+  i.redCrossCertExpires=document.getElementById('m-ircxp')?.value||'';
+}
+
 function openAddInstructor(){
   showModal(`<div class="modal-head"><h3>Add instructor</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
@@ -8638,6 +8754,7 @@ function openAddInstructor(){
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready, Campus Ready, Ready. Period. &amp; Season Ready jobs</label>
       <div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">Courses open to everyone (All Kids Welcome, Steady and Ready, My First Babysitters Club, Safe@Home, Safe@Home — Virtual, Safe@Home — Series, Intro to Babysitting) are always visible. Check both boxes if the instructor holds both credentials.</div>
     </div>
+    ${leadTeacherFormHtml(null)}
     <div class="fg full"><label>Contractor agreement version</label><select id="m-icontract" style="width:100%"><option value="standard" selected>Safe Sitter® instructor agreement</option><option value="proprietary">RN agreement (Campus Ready / Stay Ready)</option><option value="mb_courses_2026">MB Courses instructor agreement (Safe@Home, Intro, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready)</option><option value="curriculum">Curriculum Specialist agreement (content development, not teaching)</option></select><div style="font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5">Controls which agreement this person sees and signs on the instructor portal. Pick it when you hire them, before sharing their PIN.</div></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveInstructor(null)">Add instructor</button></div>`);
@@ -8662,6 +8779,7 @@ function openEditInstructor(id){
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" ${i.isRN?'checked':''} style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready, Campus Ready, Ready. Period. &amp; Season Ready jobs</label>
       <div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">Courses open to everyone (All Kids Welcome, Steady and Ready, My First Babysitters Club, Safe@Home, Safe@Home — Virtual, Safe@Home — Series, Intro to Babysitting) are always visible. Check both boxes if the instructor holds both credentials.</div>
     </div>
+    ${leadTeacherFormHtml(i)}
     <div class="fg full"><label>Contractor agreement version</label><select id="m-icontract" style="width:100%"><option value="standard" ${(i.contractType||'standard')==='standard'?'selected':''}>Safe Sitter® instructor agreement</option><option value="proprietary" ${i.contractType==='proprietary'?'selected':''}>RN agreement (Campus Ready / Stay Ready)</option><option value="mb_courses_2026" ${i.contractType==='mb_courses_2026'?'selected':''}>MB Courses instructor agreement (Safe@Home, Intro, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready)</option>${i.contractType==='mb_courses'?'<option value="mb_courses" selected>MB Courses instructor agreement — 2025 version (retired, already signed)</option>':''}<option value="curriculum" ${i.contractType==='curriculum'?'selected':''}>Curriculum Specialist agreement (content development, not teaching)</option></select><div style="font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5">Controls which agreement this person sees and signs on the instructor portal. Changing this does not un-sign an agreement that was already signed.${i.contractType==='mb_courses'?' This person signed the retired 2025 MB Courses agreement — switching them to the current version will make the portal show the new terms as already signed, so only do it after they have actually signed the new one.':''}</div></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveInstructor('${id}')">Save</button></div>`);
@@ -8687,6 +8805,7 @@ async function saveInstructor(editId){
     instructors.push(i);
     sortInstructors();
   }
+  applyLeadTeacherFields(i);
   try{
     let row=instructorToDB(i);
     let {error}=await sb.from('instructors').upsert(row);
@@ -8695,6 +8814,7 @@ async function saveInstructor(editId){
     // working, and remind Lindsay to run the one-time setup SQL.
     let ssColumnMissing=false;
     let levelColumnMissing=false;
+    let leadColumnMissing=false;
     if(error&&String(error.message||'').includes('safe_sitter_certified')){
       delete row.safe_sitter_certified;
       ({error}=await sb.from('instructors').upsert(row));
@@ -8720,6 +8840,14 @@ async function saveInstructor(editId){
         }
       }
     }
+    if(error&&/is_lead_teacher|red_cross_/i.test(String(error.message||''))){
+      LEAD_TEACHER_COL=false;
+      delete row.is_lead_teacher;
+      delete row.red_cross_instructor_id;
+      delete row.red_cross_cert_expires;
+      ({error}=await sb.from('instructors').upsert(row));
+      if(!error)leadColumnMissing=true;
+    }
     if(error)throw new Error(error.message||error.code||JSON.stringify(error));
     // If she set a 6-digit PIN by hand (e.g. an instructor called and could not manage
     // the portal prompt), that satisfies the change — clear the pending flag so the
@@ -8731,7 +8859,7 @@ async function saveInstructor(editId){
       else console.warn('Could not clear pin_change_required:',pcErr.message||pcErr);
     }
     closeModal();renderInstructors();
-    showToast(levelColumnMissing?LEVEL_COL_SQL_TOAST:(ssColumnMissing?'⚠ Saved, but the Safe Sitter® checkbox is NOT stored yet — please run the one-time setup SQL in Supabase.':(editId?'✓ Instructor updated!':'✓ Instructor added!')));
+    showToast(leadColumnMissing?LEAD_COL_SQL_TOAST:(levelColumnMissing?LEVEL_COL_SQL_TOAST:(ssColumnMissing?'⚠ Saved, but the Safe Sitter® checkbox is NOT stored yet — please run the one-time setup SQL in Supabase.':(editId?'✓ Instructor updated!':'✓ Instructor added!'))));
   }catch(e){
     console.error(e);
     if(!editId)instructors=instructors.filter(x=>x.id!==i.id);
@@ -8830,7 +8958,7 @@ async function openInstructorProfile(id){
 
   const mySessions=sessions.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.instructorId===i.id;}).sort((a,b)=>b.date.localeCompare(a.date));
   const totalEarned=mySessions.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.payStatus==='paid';})
-    .reduce((sum,s)=>{const c=COURSES[s.course]||{};return sum+instrBaseFee(s,i);},0);
+    .reduce((sum,s)=>sum+instrDisplayFee(s,i,jobDataCache[s.id]||{}),0);
 
   // Get signed URLs for docs
   const[resumeUrl,cprUrl,licUrl,headshotUrl]=await Promise.all([
@@ -8843,7 +8971,7 @@ async function openInstructorProfile(id){
     const jd=jobDataCache[s.id]||{};
     const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     const c=COURSES[s.course]||{};
-    const fee=instrBaseFee(s,i);
+    const fee=instrDisplayFee(s,i,jd);
     return`<tr><td style="font-size:15px">${d}</td><td style="font-size:15px">${s.course}</td><td style="font-size:15px">${fmt(fee)}</td><td><span class="tag ${jd.payStatus==='paid'?'paid':'pending'}">${jd.payStatus||'pending'}</span></td></tr>`;
   }).join(''):`<tr><td colspan="4" style="text-align:center;color:var(--muted);font-style:italic;padding:16px">No sessions yet</td></tr>`;
 
@@ -8861,6 +8989,7 @@ async function openInstructorProfile(id){
       <div class="fg"><div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Sweatshirt Size</div><div style="font-size:16px;${i.sweatshirtSize?'font-weight:500':'color:var(--muted);font-style:italic'}">${i.sweatshirtSize||'Not set'}</div></div>
       <div class="fg"><div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Safe Sitter® Credential</div><div style="font-size:16px;${instrIsSafeSitter(i)?'font-weight:500;color:var(--success)':'color:var(--muted);font-style:italic'}">${instrIsSafeSitter(i)?'🧒 Safe Sitter® certified — sees Safe Sitter®-only jobs':'Not certified — Safe Sitter®-only jobs are hidden'}</div></div>
       <div class="fg"><div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">RN Credential</div><div style="font-size:16px;${i.isRN?'font-weight:500;color:var(--success)':'color:var(--muted);font-style:italic'}">${i.isRN?'🩺 Registered Nurse — sees RN-only jobs':'Not an RN — RN-only jobs are hidden'}</div></div>
+      <div class="fg" style="grid-column:1/-1"><div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Lead Teacher</div><div style="font-size:16px;${i.isLeadTeacher?'font-weight:500;color:var(--success)':'color:var(--muted);font-style:italic'}">${i.isLeadTeacher?('Lead Teacher — paid $75/hour. Red Cross instructor certificate '+(i.redCrossCertId?escapeHtml(i.redCrossCertId):'ID not on file')+(i.redCrossCertExpires?' · expires '+escapeHtml(i.redCrossCertExpires):'')):'Not a Lead Teacher — Red Cross courses stay hidden'}${redCrossCertWarning(i)?`<div style="color:var(--warn);font-size:14px;margin-top:4px">⚠ ${escapeHtml(redCrossCertWarning(i))}</div>`:''}</div></div>
     </div>
 
     <div style="margin-bottom:16px">
@@ -8941,6 +9070,14 @@ function renderJobs(){
   // The Jobs & materials screen was removed. Callers still refresh through this.
 }
 function assignInstructor(sessId,instrId){
+  const assignSession=sessions.find(x=>x.id===sessId);
+  if(assignSession&&instrId&&sessionRequiresLeadTeacher(assignSession)){
+    const assignInst=instructors.find(x=>x.id===instrId);
+    if(!(assignInst&&assignInst.isLeadTeacher)){
+      alert((assignInst&&assignInst.name?assignInst.name:'That instructor')+' is not a Lead Teacher. Only a Lead Teacher can be assigned to a Red Cross course.');
+      return;
+    }
+  }
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   jobDataCache[sessId].instructorId=instrId||null;
   if(instrId)jobDataCache[sessId].waitlist=(jobDataCache[sessId].waitlist||[]).filter(id=>id!==instrId);
@@ -9496,6 +9633,12 @@ function openJobPayText(s,instr){
   if(openJobPayIsFlat(s))return 'Instructor pay: '+fmt(Number(s.instrPayOverride));
   if(s&&s.isCustomJob)return "Pay isn't set yet";
   const c=(typeof COURSES!=='undefined'&&COURSES[s&&s.course])||{};
+  // Red Cross jobs are only offered to Lead Teachers, and every Lead Teacher
+  // is paid $75/hour, so the note can show one dollar amount.
+  if((instr&&instr.isLeadTeacher)||c.requiresLeadTeacher||c.redCross){
+    const person=(instr&&instr.isLeadTeacher)?instr:{isLeadTeacher:true};
+    return 'Instructor pay: '+fmt(instrBaseFee(s,person));
+  }
   const perPerson=!!(instr&&isFinite(Number(instr.hourlyRate))&&Number(instr.hourlyRate)>0);
   if(c.instrFlatFee!==undefined){
     if(perPerson)return 'Instructor pay: '+fmt(instrBaseFee(s,instr));
@@ -9576,25 +9719,54 @@ function openJobPortalHtml(){
 function emailOpenJobs(){
   const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
   const open=sessions.filter(s=>!s.ownerTaught&&!s.isHold&&!s.isCancelled&&s.date&&new Date(s.date+'T12:00:00')>=startOfToday&&!(jobDataCache[s.id]||{}).instructorId).sort((a,b)=>a.date.localeCompare(b.date));
-  const recips=[...new Set(instructors.filter(i=>instrActive(i)&&i.email&&i.email.includes('@')).map(i=>i.email.trim()))];
-  if(!recips.length){alert('No instructor email addresses are on file yet. Add each instructor\'s email on the Instructors tab (use Add instructor or edit an existing one), then try again.');return;}
   if(!open.length){alert('There are no open jobs right now, so there is nothing to send. A job counts as open when it is not taught by you, not on hold, not cancelled, dated today or later, and not yet claimed by an instructor.');return;}
+  const general=open.filter(s=>!sessionRequiresLeadTeacher(s));
+  const leadJobs=open.filter(s=>sessionRequiresLeadTeacher(s));
+  const recips=[...new Set(instructors.filter(i=>instrActive(i)&&i.email&&i.email.includes('@')).map(i=>i.email.trim()))];
+  const leadRecips=[...new Set(instructors.filter(i=>instrActive(i)&&i.isLeadTeacher&&i.email&&i.email.includes('@')).map(i=>i.email.trim()))];
+  if(general.length&&!recips.length){alert('No instructor email addresses are on file yet. Add each instructor\'s email on the Instructors tab (use Add instructor or edit an existing one), then try again.');return;}
+  if(!general.length&&leadJobs.length&&!leadRecips.length){alert('Red Cross jobs are open, but no Lead Teacher has an email on file. Add a Lead Teacher email on the Instructors tab, then try again.');return;}
   const fmtD=s=>new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  const lines=open.map((s,idx)=>openJobDigestLine(s,idx,fmtD(s)));
-  const preview=open.map((s,idx)=>openJobDigestHtml(s,idx,fmtD(s))).join('');
-  const jobText=lines.join('\n\n')+'\n\n'+openJobPortalText();
-  openDocEmail({
-    type:'openJobs',
-    category:'Open jobs digest',
-    sessionLine:open.length+' open job'+(open.length===1?'':'s'),
-    subject:openJobCopyText('Mindful Beginnings jobs available now'),
-    emails:recips,
-    field:'bcc',
-    note:openJobCopyText('Copy the job list below into your message. Each job shows the instructor pay and who can teach it. The instructor portal link is at the bottom of the list.'),
-    extraHtml:'<div class="section-label">'+escapeHtml(openJobCopyText('Jobs open right now'))+'</div><div class="facts">'+preview+openJobPortalHtml()+'</div>',
-    copyExtra:jobText,
-    copyExtraLabel:'Copy job list'
-  });
+  const panes=[];
+  if(general.length){
+    const lines=general.map((s,idx)=>openJobDigestLine(s,idx,fmtD(s)));
+    const preview=general.map((s,idx)=>openJobDigestHtml(s,idx,fmtD(s))).join('');
+    const jobText=lines.join('\n\n')+'\n\n'+openJobPortalText();
+    panes.push({
+      label:'Open jobs',
+      type:'openJobs',
+      category:'Open jobs digest',
+      sessionLine:general.length+' open job'+(general.length===1?'':'s'),
+      subject:openJobCopyText('Mindful Beginnings jobs available now'),
+      emails:recips,
+      field:'bcc',
+      note:openJobCopyText('Copy the job list below into your message. Each job shows the instructor pay and who can teach it. The instructor portal link is at the bottom of the list.'),
+      extraHtml:'<div class="section-label">'+escapeHtml(openJobCopyText('Jobs open right now'))+'</div><div class="facts">'+preview+openJobPortalHtml()+'</div>',
+      copyExtra:jobText,
+      copyExtraLabel:'Copy job list'
+    });
+  }
+  if(leadJobs.length&&leadRecips.length){
+    const lines=leadJobs.map((s,idx)=>openJobDigestLine(s,idx,fmtD(s)));
+    const preview=leadJobs.map((s,idx)=>openJobDigestHtml(s,idx,fmtD(s))).join('');
+    const jobText=lines.join('\n\n')+'\n\n'+openJobPortalText();
+    panes.push({
+      label:'Lead Teacher jobs',
+      type:'openJobs',
+      category:'Lead Teacher jobs',
+      sessionLine:leadJobs.length+' Lead Teacher job'+(leadJobs.length===1?'':'s'),
+      subject:openJobCopyText('Mindful Beginnings Lead Teacher jobs available now'),
+      emails:leadRecips,
+      field:'bcc',
+      note:openJobCopyText('This note is only for Lead Teachers. Do not send it to the whole roster. Copy the job list below. Each job shows the instructor pay. The instructor portal link is at the bottom of the list.'),
+      extraHtml:'<div class="section-label">'+escapeHtml(openJobCopyText('Lead Teacher jobs open right now'))+'</div><div class="facts">'+preview+openJobPortalHtml()+'</div>',
+      copyExtra:jobText,
+      copyExtraLabel:'Copy job list'
+    });
+  }
+  if(!panes.length)return;
+  if(panes.length===1)openDocEmail(panes[0]);
+  else openDocEmail({panes:panes});
 }
 
 function opsEmailsApi(){
