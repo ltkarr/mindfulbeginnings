@@ -204,10 +204,10 @@ test('a cancelled custom-job fee and a zero organization bill add nothing', () =
 });
 
 test('the dashboard labels Collected, Expected, and Booked, and the month figure stays booked', () => {
-  assert.match(admin, /Collected \$\{fmt\(yCollected\)\}/);
-  assert.match(admin, /Expected \$\{fmt\(yExpected\)\}/);
-  assert.match(admin, /Booked \$\{fmt\(yRev\)\} for \$\{y\}/);
-  assert.match(admin, /Revenue this month stays the booked total/);
+  assert.match(admin, /Collected in \$\{y\} \$\{fmt\(yCollected\)\}/);
+  assert.match(admin, /Expected in \$\{y\} \$\{fmt\(yExpected\)\}/);
+  assert.match(admin, /Booked in \$\{y\} \$\{fmt\(yRev\)\}/);
+  assert.match(admin, /Booked for classes dated in \$\{monthName\} \$\{y\}/);
   assert.match(admin, />Mark received</);
   assert.match(admin, /function setFeeReceived\(/);
   assert.match(admin, /function readFeeReceived\(/);

@@ -222,8 +222,9 @@ test('handbook stock follows the roster and stays given out after a kit is check
   planSandbox.matCheckouts = [];
   planSandbox.sessions = [{ id: 'oct', course: 'Safe Sitter®', date: '2026-10-10', isVirtual: false }];
   planSandbox.registrations = [];
-  assert.equal(planSandbox.matBookCommitted('hb', null, 'ahead'), 10);
-  assert.equal(planSandbox.matBookCommitted('note', null, 'ahead'), 10);
+  assert.equal(planSandbox.matBookCommitted('hb', null, 'ahead'), 0);
+  assert.equal(planSandbox.matBookCommitted('note', null, 'ahead'), 0);
+  assert.equal(planSandbox.sessionFullHeadcount(planSandbox.sessions[0]), 10);
   assert.equal(planSandbox.matBookCommitted('sah', null, 'all'), 0);
 
   planSandbox.registrations = [
@@ -506,6 +507,14 @@ test('a nearby class for the same instructor keeps the kit already out', () => {
 
 test('dashboard materials cues name the next action and hide a class with nothing to do', () => {
   planSandbox.matToday = () => '2026-09-26';
+  planSandbox.COURSES = {
+    'Safe Sitter®': { maxStudents: 10 },
+    'Safe@Home': { maxStudents: 8 },
+    'Grandparents: Getting Started': { maxStudents: 12 }
+  };
+  planSandbox.sessionMaxStudents = function (s) {
+    return (planSandbox.COURSES[s.course] || { maxStudents: 8 }).maxStudents;
+  };
   planSandbox.equipment = [
     { id: 'infant', name: 'Infant CPR Manikins', qty: 1 },
     { id: 'child', name: 'Child Manikins', qty: 1 },
@@ -567,12 +576,12 @@ test('dashboard materials cues name the next action and hide a class with nothin
   ];
   const byId = Object.fromEntries(classes.map((s) => [s.id, s]));
   const keep = planSandbox.dashMatCue(byId.keep);
-  assert.match(keep.text, /Kim already has the kit — email them to keep materials; you'll put handbooks out\. Put out 4 handbooks\./);
+  assert.match(keep.text, /Kim already has the kit — email them to keep materials; you'll put handbooks out\. Put out 4 handbooks \(12 if the class fills\)\./);
   const short = planSandbox.dashMatCue(byId.short);
-  assert.match(short.text, /Need kit back from Kim and Bronwen before this class — shelf short on Infant\/Child\/AV\. Put out 5 handbooks and 5 notebooks\./);
+  assert.match(short.text, /Need kit back from Kim and Bronwen before this class — shelf short on Infant\/Child\/AV\. Put out 5 handbooks and 5 notebooks \(10 if the class fills\)\./);
   const pull = planSandbox.dashMatCue(byId.pull);
   assert.equal(pull.text, 'Pull a new kit from the shelf for Alex.');
-  assert.equal(planSandbox.dashMatCue(byId.intro).text, 'Put out 3 handbooks.');
+  assert.equal(planSandbox.dashMatCue(byId.intro).text, 'Put out 3 handbooks (8 if the class fills).');
   assert.equal(planSandbox.dashMatCue(byId.welcome), null);
   assert.equal(planSandbox.dashMatCue(byId.later), null);
   assert.equal(planSandbox.dashMatCue(byId.past), null);

@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261008-expense-refresh';
+window.MB_ADMIN_BUILD='20261008-admin-review';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -77,7 +77,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1)}
 .logout-btn{font-size:15px;color:rgba(255,255,255,.45);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif}
 .logout-btn:hover{color:white}
-.main-content{margin-left:var(--sidebar-w);padding:20px 28px;min-height:100vh;transition:margin-left .18s ease}
+.main-content{margin-left:var(--sidebar-w);padding:20px 28px;min-height:100vh;transition:margin-left .18s ease;max-width:calc(100vw - var(--sidebar-w));box-sizing:border-box;min-width:0}
 .page-header{margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .page-title{font-family:'DM Serif Display',serif;font-size:27px}
 .page-sub{font-size:16px;color:var(--muted);margin-top:2px}
@@ -92,7 +92,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .card{background:white;border:0.5px solid var(--border);border-radius:var(--r);padding:20px 22px;margin-bottom:16px}
 .card-title{font-size:16px;font-weight:500;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.7px}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+/* Finances has many nowrap columns. Keep the table inside the card and
+   scroll it sideways on a narrow screen instead of widening the page. */
+#screen-finances{min-width:0;max-width:100%}
+#screen-finances .card{min-width:0;max-width:100%}
+#fin-table{width:max-content;min-width:100%}
 /* A wide table's own scrollbar sits at the very bottom of the table, which on a long
    list is hundreds of rows out of reach. This mirrors it as a slim always-visible bar
    pinned to the top of the card, so sideways scrolling is available from any row. */
@@ -175,7 +180,7 @@ tr:hover td{background:#fafbfd}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap}
 .row-menu{position:fixed;z-index:300;background:white;border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:0 8px 28px rgba(26,39,68,.18);padding:6px;min-width:220px;display:flex;flex-direction:column;gap:2px}
 .row-menu-item{text-align:left;padding:9px 12px;border:none;background:none;border-radius:6px;font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);cursor:pointer;white-space:nowrap;font-weight:500}
-.row-menu-item:hover{background:var(--cream)}
+.row-menu-item:hover,.row-menu-item:focus{background:var(--cream);outline:2px solid var(--sky);outline-offset:-2px}
 .row-menu-item.danger{color:var(--danger)}
 .row-menu-item.danger:hover{background:var(--danger-bg)}
 .row-menu-item.sep{border-top:1px solid var(--border);margin-top:4px;padding-top:11px}
@@ -331,7 +336,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
   .nav-item.active{border-bottom-color:var(--sky);border-left:none}
   .nav-icon{display:none}
   .sidebar-footer{display:none}
-  .main-content{margin-left:0;margin-top:56px;padding:20px 16px}
+  .main-content{margin-left:0;margin-top:56px;padding:20px 16px;max-width:100%}
 }
 </style>
 </head>
@@ -1544,20 +1549,23 @@ function updateOrgSplitPreview(){
 // load code already expects, so nothing downstream changes.
 const PAGE_SIZE=1000;
 async function fetchAll(table,build){
-  // Paging is only reliable with a stable sort, so every query gets an id
-  // tiebreak on top of whatever ordering the caller asked for. If a table has
-  // no id column the query is retried without the tiebreak.
+  // Paging is only reliable with a stable sort. job_data has no id column —
+  // ordering it by id makes PostgREST return 400 — so that table sorts on
+  // session_id. Every other table still gets an id tiebreak. If a table has
+  // no id column the query is retried without the tiebreak, and that first
+  // failing request is not sent for job_data.
+  const stableOrder=table==='job_data'?'session_id':'id';
   let useIdOrder=true;
   let from=0,rows=[];
   for(;;){
     const run=async(withId)=>{
       let q=sb.from(table).select('*');
       if(build)q=build(q);
-      if(withId)q=q.order('id',{ascending:true});
+      if(withId)q=q.order(stableOrder,{ascending:true});
       return q.range(from,from+PAGE_SIZE-1);
     };
     let res=await run(useIdOrder);
-    if(res.error&&useIdOrder){useIdOrder=false;res=await run(false);}
+    if(res.error&&useIdOrder&&stableOrder==='id'){useIdOrder=false;res=await run(false);}
     if(res.error)return{data:null,error:res.error};
     const page=res.data||[];
     rows=rows.concat(page);
@@ -1650,6 +1658,7 @@ async function loadData(){
     // An instructor may have accepted a job since the last load — let the
     // equipment checkouts pick up the newly assigned name.
     if(equipmentTablesReady){
+      releaseStaleCancelledGear();
       syncCheckoutInstructors();
       syncLargeClassKits();
     }
@@ -4876,7 +4885,7 @@ function renderReports(){
   const refTotal=regs.length;
   const unspecified=(refRows.find(row=>row.source==='Not specified')||{count:0}).count;
   document.getElementById('rep-referral-metrics').innerHTML=`
-    <div class="metric"><div class="m-label">Registrations counted</div><div class="m-val">${refTotal}</div></div>
+    <div class="metric" title="Waitlist and cancelled registrations are left out. Host seats are included. The dashboard Registrations this year figure leaves host seats out and only counts classes dated this year, so the two numbers are not the same list."><div class="m-label">Registrations counted</div><div class="m-val">${refTotal}</div><div class="m-sub">${(document.getElementById('rep-year')?.value||'all')==='all'?'All time':'This filter'}. Includes host seats. Waitlist and cancelled are not included.</div></div>
     <div class="metric"><div class="m-label">Top source</div><div class="m-val" style="font-size:21px">${refRows.length?escapeHtml(refRows[0].source):'—'}</div><div class="m-sub">${refRows.length?refRows[0].count+' families':''}</div></div>
     <div class="metric"><div class="m-label">Did not specify</div><div class="m-val">${unspecified}</div></div>
   `;
@@ -5077,6 +5086,7 @@ function dashChecklistSessions(list, today){
 function renderDashboard(){
   if(typeof renderClassRequestBanner==='function')renderClassRequestBanner();
   const now=new Date();const m=now.getMonth();const y=now.getFullYear();
+  const monthName=now.toLocaleDateString('en-US',{month:'long'});
   // Dated classes stay in their own month. Undated paid holds count toward
   // this year, and toward this month when the hold-term year is this year.
   const revTotals=dashboardRevenueTotals(now);
@@ -5118,10 +5128,10 @@ function renderDashboard(){
   },0);
   const pendingCount=registrations.filter(r=>r.payStatus==='pending'&&regOwesMoney(r)).length;
   document.getElementById('dash-metrics').innerHTML=`
-    <div class="metric" title="Collected is money already in for ${y}: paid family registrations after PayPal and Venmo fees, plus an organization bill or custom-job fee only once it has been received. Expected is booked organization bills and custom-job fees that have not been received. Booked is Collected plus Expected. Revenue this month stays the booked total for classes dated this month."><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub" style="line-height:1.45"><span style="color:#1d6b45;font-weight:650">Collected ${fmt(yCollected)}</span><br><span style="color:#b86a00;font-weight:650">Expected ${fmt(yExpected)}</span><br>Booked ${fmt(yRev)} for ${y}</div></div>
+    <div class="metric" title="Revenue this month is the booked total for classes dated in ${monthName} ${y} only. Collected in ${y} is money already in for the whole year: paid family registrations after PayPal and Venmo fees, plus an organization bill or custom-job fee only once it has been received. Expected in ${y} is booked organization bills and custom-job fees for the year that have not been received. Booked in ${y} is Collected plus Expected. The year figures are larger than this month on purpose."><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub">Booked for classes dated in ${monthName} ${y}</div><div class="m-sub" style="line-height:1.45;margin-top:6px"><span style="color:#1d6b45;font-weight:650">Collected in ${y} ${fmt(yCollected)}</span><br><span style="color:#b86a00;font-weight:650">Expected in ${y} ${fmt(yExpected)}</span><br>Booked in ${y} ${fmt(yRev)}</div><div class="m-sub" style="margin-top:6px">This month is ${monthName} only. Collected and Expected are all of ${y}, so they will not add up to the month.</div></div>
     <div class="metric" title="Instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Class costs this month</div><div class="m-val red">${fmt(mCost)}</div>${mOverhead?`<div class="m-sub">${fmt(mOverhead)} overhead is on the yearly view</div>`:''}</div>
     <div class="metric" title="Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${fmtSigned(mProfit)}</div><div class="m-sub">Revenue minus class costs and liaison commission</div></div>
-    <div class="metric" title="Paid, pending, and unpaid registrations for classes dated this year. Host seats and the waitlist are not included."><div class="m-label">Registrations this year</div><div class="m-val">${totRegs}</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'all paid'}</div></div>
+    <div class="metric" title="Paid, pending, and unpaid registrations for classes dated ${y}. Host seats, the waitlist, and cancelled registrations are not included. Reports counts host seats and, on All time, every year."><div class="m-label">Registrations this year</div><div class="m-val">${totRegs}</div><div class="m-sub">Paid, pending, and unpaid for classes in ${y}. Host seats, waitlist, and cancelled are not included.</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'All of these are paid.'}</div></div>
     <div class="metric" title="Classes still ahead. Holds and cancelled classes are not included."><div class="m-label">Upcoming sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled&&sessionEndDate(s)>=fmtYMD(now)).length}</div></div>
   `;
   // Build a continuous 6-month window anchored on the current month: 3 months
@@ -5403,14 +5413,14 @@ function renderSessions(){
   t.innerHTML=`<colgroup><col class="c-date"><col class="c-course"><col class="c-loc"><col class="c-instr"><col class="c-seats"><col class="c-pay"><col class="c-wrap"><col class="c-mgr"></colgroup><thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Wrap-up</th><th class="mgr-cell" style="background:white"></th></tr></thead><tbody>`+
     (list.length?list.map(s=>{
       const f=calcFin(s);
-      const d=s.date?('<span class="sess-wrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s)):'<span class="sess-wrap">Date TBD</span>';
+      const d=s.date?('<span class="sess-wrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s)+sessionDateRainHtml(s)):'<span class="sess-wrap">Date TBD</span>';
       const jdi=jobDataCache[s.id]||{};
       const instr=(()=>{
         if(s.ownerTaught)return'You (owner)';
         const instrId=jdi.instructorId||s.instructorId;
-        if(!instrId)return'Hired (unassigned)';
+        if(!instrId)return'Hired - not yet assigned to a job';
         const instrObj=instructors.find(x=>x.id===instrId);
-        return instrObj?instrObj.name:'Hired (unassigned)';
+        return instrObj?instrObj.name:'Hired - not yet assigned to a job';
       })();
       const isPast=new Date(sessionEndDate(s)+'T12:00:00')<new Date();
       // Wrap-up "instructor paid" step: complete when ALL applicable instructors are paid
@@ -5428,7 +5438,7 @@ function renderSessions(){
       // Dimming marks a cancelled row out among live ones. In the Cancelled view every row
       // is cancelled, so dimming there would just make the whole table hard to read.
       const cxRowStyle=(s.isCancelled&&scope!=='cancelled')?'opacity:.55':'';
-      const mgr=bg=>`<td class="mgr-cell" style="text-align:right;background:${bg}"><button class="btn sm" onclick="openSessionMenu(event,'${s.id}')">Manage \u25be</button></td>`;
+      const mgr=bg=>`<td class="mgr-cell" style="text-align:right;background:${bg}"><button type="button" class="btn sm" aria-haspopup="menu" aria-expanded="false" aria-label="Manage session" onclick="openSessionMenu(event,'${s.id}')" onkeydown="sessionMenuButtonKey(event,'${s.id}')">Manage \u25be</button></td>`;
       const where=locCell(s.isVirtual?'Virtual':s.location);
       if(s.isHold){
         const enrolled=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course);
@@ -5503,20 +5513,51 @@ function renderSessions(){
 // table stays narrow and fits on screen. Uses position:fixed so it is never
 // clipped by the table's horizontal scroll container.
 let _sessionMenuEl=null;
-function closeSessionMenu(){
+let _sessionMenuBtn=null;
+function closeSessionMenu(opts){
+  const returnFocus=!(opts&&opts.returnFocus===false);
+  const btn=_sessionMenuBtn;
   if(_sessionMenuEl){_sessionMenuEl.remove();_sessionMenuEl=null;}
+  if(btn){
+    btn.setAttribute('aria-expanded','false');
+    if(returnFocus&&document.contains(btn))btn.focus();
+  }
+  _sessionMenuBtn=null;
   document.removeEventListener('click',_sessionMenuOutside,true);
   window.removeEventListener('scroll',closeSessionMenu,true);
   window.removeEventListener('resize',closeSessionMenu);
   window.removeEventListener('keydown',_sessionMenuKey);
 }
-function _sessionMenuOutside(e){ if(_sessionMenuEl&&!_sessionMenuEl.contains(e.target))closeSessionMenu(); }
-function _sessionMenuKey(e){ if(e.key==='Escape')closeSessionMenu(); }
+function _sessionMenuOutside(e){ if(_sessionMenuEl&&!_sessionMenuEl.contains(e.target)&&e.target!==_sessionMenuBtn)closeSessionMenu(); }
+function _sessionMenuItems(){return _sessionMenuEl?[..._sessionMenuEl.querySelectorAll('[role="menuitem"]')]:[];}
+function _sessionMenuKey(e){
+  if(!_sessionMenuEl)return;
+  const items=_sessionMenuItems();
+  if(!items.length)return;
+  const i=items.indexOf(document.activeElement);
+  if(e.key==='Escape'){e.preventDefault();closeSessionMenu();return;}
+  if(e.key==='ArrowDown'){e.preventDefault();items[i<0?0:(i+1)%items.length].focus();return;}
+  if(e.key==='ArrowUp'){e.preventDefault();items[i<0?items.length-1:(i-1+items.length)%items.length].focus();return;}
+  if(e.key==='Home'){e.preventDefault();items[0].focus();return;}
+  if(e.key==='End'){e.preventDefault();items[items.length-1].focus();return;}
+}
+function sessionMenuButtonKey(ev,sessId){
+  if(ev.key!=='ArrowDown'&&ev.key!=='ArrowUp')return;
+  ev.preventDefault();
+  if(!_sessionMenuEl||_sessionMenuEl.dataset.sess!==sessId)openSessionMenu(ev,sessId);
+  const items=_sessionMenuItems();
+  if(!items.length)return;
+  items[ev.key==='ArrowUp'?items.length-1:0].focus();
+}
 function openSessionMenu(ev,sessId){
-  ev.stopPropagation();
+  if(ev){ev.preventDefault();ev.stopPropagation();}
   const reopen=_sessionMenuEl&&_sessionMenuEl.dataset.sess===sessId;
-  closeSessionMenu();
-  if(reopen)return; // clicking the same button again closes it
+  closeSessionMenu({returnFocus:false});
+  if(reopen){
+    const b=ev&&ev.currentTarget;
+    if(b)b.setAttribute('aria-expanded','false');
+    return;
+  }
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const isPast=new Date(sessionEndDate(s)+'T12:00:00')<new Date();
   const esc=t=>String(t).replace(/'/g,"\\'");
@@ -5571,10 +5612,16 @@ function openSessionMenu(ev,sessId){
   items.push({label:'🗑 Delete',act:`deleteSession('${sessId}')`,danger:true});
 
   const btn=ev.currentTarget;
+  btn.setAttribute('aria-expanded','true');
+  btn.setAttribute('aria-controls','session-row-menu');
+  _sessionMenuBtn=btn;
   const menu=document.createElement('div');
   menu.className='row-menu';
+  menu.id='session-row-menu';
+  menu.setAttribute('role','menu');
+  menu.setAttribute('aria-label','Session actions');
   menu.dataset.sess=sessId;
-  menu.innerHTML=items.map(it=>`<button class="row-menu-item${it.danger?' danger':''}${it.sep?' sep':''}" onclick="closeSessionMenu();${it.act}">${it.label}</button>`).join('');
+  menu.innerHTML=items.map(it=>`<button type="button" class="row-menu-item${it.danger?' danger':''}${it.sep?' sep':''}" role="menuitem" onclick="closeSessionMenu({returnFocus:false});${it.act}">${it.label}</button>`).join('');
   document.body.appendChild(menu);
   // Position under the button, flipping up/left when near a screen edge.
   const r=btn.getBoundingClientRect();
@@ -5584,6 +5631,8 @@ function openSessionMenu(ev,sessId){
   menu.style.left=left+'px';
   menu.style.top=top+'px';
   _sessionMenuEl=menu;
+  const first=menu.querySelector('[role="menuitem"]');
+  if(first)first.focus();
   setTimeout(()=>document.addEventListener('click',_sessionMenuOutside,true),0);
   window.addEventListener('scroll',closeSessionMenu,true);
   window.addEventListener('resize',closeSessionMenu);
@@ -5648,7 +5697,28 @@ function sessionAboutWhenText(s){
     const label=recurLabel(s);
     if(label)lines.push(label);
   }
+  const rain=typeof sessionRainDate==='function'?sessionRainDate(s):null;
+  if(rain){
+    const onRain=s.date===rain.rain;
+    lines.push(onRain?('Rain date. Original date '+_aboutDateLabel(rain.event)+'.'):('Rain date '+_aboutDateLabel(rain.rain)+'.'));
+  }
   return lines.join('\n');
+}
+// SFF-261011 is the SWDCCC Fall Family Fest. The working date was moved to the
+// rain date after the organizer called it for weather. Both dates stay visible.
+function sessionRainDate(s){
+  if(!s||s.code!=='SFF-261011')return null;
+  return {event:'2026-10-11',rain:'2026-10-18'};
+}
+function sessionDateRainHtml(s){
+  const rain=sessionRainDate(s);
+  if(!rain||!s.date)return '';
+  const fmt=iso=>new Date(iso+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  let text='';
+  if(s.date===rain.rain)text='Rain date · original date '+fmt(rain.event);
+  else if(s.date===rain.event)text='Rain date '+fmt(rain.rain);
+  else text='Original date '+fmt(rain.event)+' · rain date '+fmt(rain.rain);
+  return `<br><span class="sess-wrap" style="font-size:14px;color:#1a5c8a;font-weight:600">${escapeHtml(text)}</span>`;
 }
 // Who holds the class. A job-board claim wins the label "Claimed". A person
 // only on the session row (not yet on the job) is "Assigned". The second
@@ -7065,35 +7135,41 @@ async function cancelSession(id){
   openCancellationEmails(id);
 }
 
-// Cancelling a class cancels the need for its equipment. A reservation that has not
-// physically left the shelf yet is removed outright, so the kit frees up for someone
-// else and the class stops appearing in the equipment reminders. A kit that is ALREADY
-// out is a different matter — it still has to come back — so that record is kept, its
-// due date is pulled forward to today and it is flagged, which puts it in your return
-// list instead of sitting there as a reservation for a class that is not happening.
-function releaseEquipmentForCancelledSession(sessId){
+// Cancelling a class cancels the need for its equipment. Nothing is deleted.
+// A reservation that has not physically left the shelf is marked returned, so
+// the kit frees up and the class does not sit as overdue. A kit that is already
+// out stays on the record as "Needs return — session cancelled", not overdue.
+function releaseEquipmentForCancelledSession(sessId, quiet){
   const tied=matCheckouts.filter(c=>c.sessionId===sessId);
-  if(!tied.length)return;
+  if(!tied.length)return 0;
   const t=matToday();
   let freed=0,toReturn=0;
   tied.forEach(c=>{
-    const nothingOut=coNoEquipment(c)||coUsesExisting(c)||c.outDate>t||!!c.returnedDate;
+    if(c.returnedDate)return;
+    const nothingOut=coNoEquipment(c)||coUsesExisting(c)||!c.outDate||c.outDate>t||coReservationNeverLeft(c);
     if(nothingOut){
-      matCheckouts=matCheckouts.filter(x=>x.id!==c.id);
+      c.returnedDate=t;
+      if(!/session cancelled/i.test(c.notes||''))c.notes=(c.notes?c.notes+' · ':'')+'Released — session cancelled';
       freed++;
-      dbWrite(sb.from('equipment_checkouts').delete().eq('id',c.id),'Cancelled session equipment release');
+      dbWrite(sb.from('equipment_checkouts').update({returned_date:c.returnedDate,notes:c.notes}).eq('id',c.id),'Cancelled session equipment release');
     }else{
-      c.dueDate=t;
-      if(!/class cancelled/i.test(c.notes||''))c.notes=(c.notes?c.notes+' · ':'')+'Class cancelled — arrange return';
+      if(!/needs return — session cancelled/i.test(c.notes||''))c.notes=(c.notes?c.notes+' · ':'')+'Needs return — session cancelled';
       toReturn++;
-      dbWrite(sb.from('equipment_checkouts').update({due_date:c.dueDate,notes:c.notes}).eq('id',c.id),'Cancelled session equipment flagged for return');
+      dbWrite(sb.from('equipment_checkouts').update({notes:c.notes}).eq('id',c.id),'Cancelled session equipment flagged for return');
     }
   });
-  renderMaterials();
+  if(!quiet)renderMaterials();
   const bits=[];
   if(freed)bits.push(freed+' reservation'+(freed===1?'':'s')+' released');
-  if(toReturn)bits.push(toReturn+' kit'+(toReturn===1?'':'s')+' already out — flagged for return');
-  if(bits.length)showToast('📦 Equipment: '+bits.join('; ')+'.');
+  if(toReturn)bits.push(toReturn+' kit'+(toReturn===1?'':'s')+' already out — needs return, session cancelled');
+  if(!quiet&&bits.length)showToast('📦 Equipment: '+bits.join('; ')+'.');
+  return freed+toReturn;
+}
+// Older cancellations predate the release above. On load, mark shelf
+// reservations returned and leave kits that already went out as needs-return.
+// Records stay in the table either way.
+function releaseStaleCancelledGear(){
+  (sessions||[]).filter(s=>s&&s.isCancelled).forEach(s=>releaseEquipmentForCancelledSession(s.id, true));
 }
 
 // Put a cancelled session back on the calendar. Used when a cancellation was a mistake
@@ -10623,8 +10699,8 @@ function expenseFormHtml(e, presetSessionId){
     <div class="fg"><label>Date *</label><input type="date" id="m-edate" value="${dateVal}"></div>
     <div class="fg"><label>Category</label><select id="m-ecat">${catOpts}</select></div>
     <div class="fg"><label>Payment method</label><select id="m-epay">${expensePayOptions(e?e.paymentMethod:'')}</select></div>
-    <div class="fg"><label>Repeats</label><select id="m-erecur">${expenseRecurOptions(e?e.recurrence:'')}</select></div>
-    <div class="fg"><label>Repeat until <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="date" id="m-euntil" value="${e&&e.recurUntil?e.recurUntil:''}"></div>
+    <div class="fg"><label>Repeats</label><select id="m-erecur" onchange="syncExpenseRepeatUntil()">${expenseRecurOptions(e?e.recurrence:'')}</select></div>
+    <div class="fg" id="m-euntil-wrap"${e&&e.recurrence?'':' hidden'}><label>Repeat until <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="date" id="m-euntil" value="${e&&e.recurrence&&e.recurUntil?e.recurUntil:''}"${e&&e.recurrence?'':' disabled'}></div>
     <div class="fg full" style="font-size:14px;color:var(--muted);line-height:1.5">Leave Repeats on One time for a single charge. Weekly, monthly, or yearly counts that amount in each period until you stop it or the end date passes. You do not enter it again.</div>
     <div class="fg full sess-field">${expenseSessionPickerHtml(sessionId, preset?expenseSessionPickerLabel(preset):'')}</div>
     <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px;font-size:14px;color:#1a5c8a;line-height:1.5">Instructor pay is tracked on each session. Do not add it here.</div>
@@ -10632,10 +10708,21 @@ function expenseFormHtml(e, presetSessionId){
   </div>`;
 }
 
+function syncExpenseRepeatUntil(){
+  const sel=document.getElementById('m-erecur');
+  const wrap=document.getElementById('m-euntil-wrap');
+  const input=document.getElementById('m-euntil');
+  if(!sel||!input)return;
+  const one=!sel.value;
+  if(wrap)wrap.hidden=one;
+  input.disabled=one;
+  if(one)input.value='';
+}
 function openAddExpense(sessionId){
   showModal(`<div class="modal-head"><h3>Add expense</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">${expenseFormHtml(null, sessionId||'')}</div>
   <div class="modal-foot"><button class="btn" type="button" onclick="closeModal()">Cancel</button><button class="btn primary" type="button" onclick="saveExpense()">Add expense</button></div>`);
+  syncExpenseRepeatUntil();
 }
 
 // Saving or editing an expense stays on Finances. A session that was open
@@ -10651,7 +10738,8 @@ async function saveExpense(){
   const amt=parseFloat(document.getElementById('m-eamt').value);
   const date=document.getElementById('m-edate').value;
   if(!desc||!amt||!date){alert('Please fill in description, amount, and date.');return;}
-  const e={id:sid(),description:desc,amount:amt,date,category:document.getElementById('m-ecat').value,paymentMethod:readExpensePay(),sessionId:readExpenseSession(),createdAt:Date.now(),recurrence:normalizeExpenseRecurrence((document.getElementById('m-erecur')||{}).value),recurUntil:(document.getElementById('m-euntil')||{}).value||'',recurActive:true};
+  const recur=normalizeExpenseRecurrence((document.getElementById('m-erecur')||{}).value);
+  const e={id:sid(),description:desc,amount:amt,date,category:document.getElementById('m-ecat').value,paymentMethod:readExpensePay(),sessionId:readExpenseSession(),createdAt:Date.now(),recurrence:recur,recurUntil:recur?((document.getElementById('m-euntil')||{}).value||''):'',recurActive:true};
   expenses.unshift(e);
   finishExpenseEdit();
   writeExpenseRow('insert',e,'New expense');
@@ -10662,6 +10750,7 @@ function openEditExpense(id){
   showModal(`<div class="modal-head"><h3>Edit expense</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">${expenseFormHtml(e, e.sessionId||'')}</div>
   <div class="modal-foot"><button class="btn" type="button" onclick="closeModal()">Cancel</button><button class="btn primary" type="button" onclick="updateExpense('${id}')">Save changes</button></div>`);
+  syncExpenseRepeatUntil();
 }
 
 async function updateExpense(id){
@@ -10672,7 +10761,7 @@ async function updateExpense(id){
   if(!desc||!amt||!date){alert('Please fill in description, amount, and date.');return;}
   e.description=desc;e.amount=amt;e.date=date;e.category=document.getElementById('m-ecat').value;e.paymentMethod=readExpensePay();e.sessionId=readExpenseSession();
   e.recurrence=normalizeExpenseRecurrence((document.getElementById('m-erecur')||{}).value);
-  e.recurUntil=(document.getElementById('m-euntil')||{}).value||'';
+  e.recurUntil=e.recurrence?((document.getElementById('m-euntil')||{}).value||''):'';
   if(e.recurrence)e.recurActive=e.recurActive!==false;
   else e.recurActive=true;
   finishExpenseEdit();
@@ -10748,8 +10837,8 @@ async function deleteExpense(id){
 // ─── MATERIALS (equipment inventory + checkouts) ─────────────
 // Durable kits (manikins, AV) are checkout rows: out on a date, back when returned.
 // Handbooks and notebooks are not checkout lines and are never typed per class.
-// Their shelf count is the Equipment row. Need is recomputed from the roster:
-// one per registered student (class capacity if nobody is registered yet).
+// Their shelf count is the Equipment row. Need is one per registered student.
+// Capacity is only a secondary "if full" figure, never the count that reserves stock.
 // Copies given out do not come back when the kit is checked in.
 
 // Local date as YYYY-MM-DD. NOT toISOString() — that is UTC, which after ~8pm ET
@@ -10817,7 +10906,23 @@ function coUsesExisting(c){return(c.items||[]).some(it=>it&&it.usesExisting);}
 // removes the session from the checkout dropdown and the materials reminders,
 // never consumes inventory, and can't be overdue.
 function coNoEquipment(c){return(c.items||[]).some(it=>it&&it.noEquipment);}
-function coIsOverdue(c){return!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returnedDate&&c.dueDate&&c.dueDate<matToday();}
+function coSessionCancelled(c){
+  if(!c||!c.sessionId||typeof sessions==='undefined')return false;
+  const s=(sessions||[]).find(x=>x&&x.id===c.sessionId);
+  return !!(s&&s.isCancelled);
+}
+// A reservation whose planned out date is still ahead, or whose class was
+// cancelled before that out date, never left the shelf.
+function coReservationNeverLeft(c){
+  if(!c||c.returnedDate||coNoEquipment(c)||coUsesExisting(c))return false;
+  const s=(typeof sessions!=='undefined'?(sessions||[]):[]).find(x=>x&&x.id===c.sessionId);
+  if(!s||!s.isCancelled)return false;
+  const t=matToday();
+  if(!c.outDate||c.outDate>t)return true;
+  const cancelled=s.cancelledAt?String(s.cancelledAt).slice(0,10):'';
+  return !!(cancelled&&c.outDate>cancelled);
+}
+function coIsOverdue(c){return!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returnedDate&&c.dueDate&&c.dueDate<matToday()&&!coSessionCancelled(c);}
 
 // ── What each course needs on-site (the "will I need materials?" warning system) ──
 // Edit the numbers here if a course's kit ever changes. Keys are matched against
@@ -11012,13 +11117,14 @@ function matPlanHits(draft,s,outDate,dueDate,excludeId){
 }
 function sessionHeadcount(s,override){
   if(override!=null&&override!=='')return Math.max(0,Number(override)||0);
-  let enrolled=0;
   if(s&&s.id&&typeof seatsOnSession==='function'){
-    try{enrolled=seatsOnSession(s.id)||0;}catch(e){enrolled=0;}
+    try{return Math.max(0,Number(seatsOnSession(s.id))||0);}catch(e){return 0;}
   }
-  if(enrolled>0)return enrolled;
+  return 0;
+}
+function sessionFullHeadcount(s){
   if(s&&typeof sessionMaxStudents==='function'){
-    try{return sessionMaxStudents(s)||0;}catch(e){}
+    try{const n=Number(sessionMaxStudents(s))||0;if(n>0)return n;}catch(e){}
   }
   const course=s&&s.course;
   if(typeof COURSES!=='undefined'&&COURSES[course]&&COURSES[course].maxStudents)return COURSES[course].maxStudents;
@@ -11081,6 +11187,19 @@ function matBookCommitted(eqId,excludeSessionId,mode){
 function matConsumableFree(eq,excludeSessionId){
   if(!eq)return 0;
   return (Number(eq.qty)||0)-matBookCommitted(eq.id,excludeSessionId,'all');
+}
+// Reserved copies of a consumable versus what is still on the shelf.
+// A shortage is reserved ahead greater than on hand. It is a warning only.
+function matConsumableShortages(){
+  const out=[];
+  (equipment||[]).forEach(function(eq){
+    if(!matEqIsConsumable(eq))return;
+    const onHand=(Number(eq.qty)||0)-matPhysicallyOut(eq.id);
+    const reserved=matReservedAhead(eq.id);
+    if(!(reserved>onHand))return;
+    out.push({name:eq.name,reserved:reserved,onHand:onHand,short:reserved-onHand});
+  });
+  return out;
 }
 function matBookBuySentence(plan){
   const rows=(plan&&plan.bookBuy)||[];
@@ -11309,7 +11428,7 @@ function dashMatKindLabel(kind){
   if(kind==='av')return 'AV';
   return kind;
 }
-function dashMatBookPhrase(books){
+function dashMatBookPhrase(books, ifFull){
   if(!books)return '';
   const parts=[];
   Object.keys(books).forEach(function(k){
@@ -11320,8 +11439,9 @@ function dashMatBookPhrase(books){
     if(n===1)word=word.slice(0,-1);
     parts.push(n+' '+word);
   });
-  if(!parts.length)return '';
-  return 'Put out '+parts.join(' and ');
+  const full=Number(ifFull)||0;
+  if(!parts.length)return full?('0 now ('+full+' if the class fills)'):'';
+  return 'Put out '+parts.join(' and ')+(full?' ('+full+' if the class fills)':'');
 }
 function dashMatPersonName(s){
   if(typeof sessionInstructorList==='function'){
@@ -11367,7 +11487,14 @@ function dashMatCue(s){
   if(s.date<today||s.date>dashMatAddDays(today,14))return null;
   const co=(matCheckouts||[]).find(function(c){return c.sessionId===s.id&&!c.returnedDate;});
   const jd=(typeof jobDataCache!=='undefined'&&jobDataCache&&jobDataCache[s.id])||{};
-  const bookPhrase=jd.materialsSent?'':dashMatBookPhrase(sessionBookNeeds(s));
+  const enrolled=sessionHeadcount(s);
+  const full=sessionFullHeadcount(s);
+  const ifFull=full&&full!==enrolled?full:0;
+  let bookPhrase=jd.materialsSent?'':dashMatBookPhrase(sessionBookNeeds(s), ifFull);
+  if(!bookPhrase&&!jd.materialsSent&&(!s.date||s.date>=MAT_BOOKS_SINCE)&&matCourseBooks(s.course)&&ifFull){
+    const words=(matCourseBooks(s.course)||[]).map(function(k){return k==='ssNotebook'?'notebooks':'handbooks';});
+    bookPhrase='0 '+(words.join(' and ')||'copies')+' now ('+ifFull+' if the class fills)';
+  }
   const needs=sessionMatNeeds(s);
   const person=dashMatPersonName(s);
   const who=dashMatFirst(person)||'the instructor';
@@ -11572,7 +11699,9 @@ function matInventoryCardsInner(showEdit){
         .sort((a,b)=>a.outDate.localeCompare(b.outDate)).slice(0,1)
         .forEach(c=>{next='Next out '+new Date(c.outDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});});
     }
-    const cls=onHand<0?'red':onHand===0?'red':'green';
+    const short=matEqIsConsumable(eq)&&ahead>onHand;
+    const cls=onHand<0||short?'red':onHand===0?'red':'green';
+    const reserveNote=short?('⚠ Short '+(ahead-onHand)+': '+ahead+' reserved, '+onHand+' on hand'):(ahead?ahead+' reserved ahead':'Nothing reserved ahead');
     return`<div class="metric">
       <div class="m-label">${escapeHtml(eq.name)}</div>
       <div style="display:flex;gap:14px;align-items:flex-end;margin-top:4px">
@@ -11580,7 +11709,7 @@ function matInventoryCardsInner(showEdit){
         <div><div class="m-label">${matEqIsConsumable(eq)?'Given out':'Checked out'}</div><div class="m-val" style="font-size:28px">${out}</div></div>
         <div><div class="m-label">Owned</div><div class="m-val" style="font-size:28px;color:var(--muted)">${eq.qty}</div></div>
       </div>
-      <div class="m-sub">${onHand<0?'⚠ More are out than you own':ahead?ahead+' reserved ahead':'Nothing reserved ahead'}${next?' · '+next:''}${eq.reorderAt==null?'':(onHand<=Number(eq.reorderAt)?' · Order more (at or below '+eq.reorderAt+')':' · Reorder at '+eq.reorderAt)}</div>
+      <div class="m-sub"${short?' style="color:var(--danger);font-weight:650"':''}>${reserveNote}${next?' · '+next:''}${eq.reorderAt==null?'':(onHand<=Number(eq.reorderAt)?' · Order more (at or below '+eq.reorderAt+')':' · Reorder at '+eq.reorderAt)}</div>
       ${showEdit===false?'':`<div class="btn-row" style="margin-top:8px"><button class="btn sm" onclick="openEditEquipment('${eq.id}')">Edit</button></div>`}
     </div>`;
   }).join('');
@@ -12119,6 +12248,10 @@ function renderMatAlerts(){
   if(reorders.length){
     bits.push(`<div class="alert warn">📦 &nbsp;<span><strong>Order more stock.</strong><br>${reorders.map(r=>'Order more '+escapeHtml(r.name)+' (need '+r.need+').').join('<br>')}</span></div>`);
   }
+  const shortages=matConsumableShortages();
+  if(shortages.length){
+    bits.push(`<div class="alert danger">⚠️ &nbsp;<span><strong>Low stock — more reserved than on hand:</strong><br>${shortages.map(r=>escapeHtml(r.name)+': '+r.reserved+' reserved, '+r.onHand+' on hand (short '+r.short+')').join('<br>')}</span></div>`);
+  }
   const overdue=matCheckouts.filter(coIsOverdue);
   if(overdue.length){
     bits.push(`<div class="alert danger">⏰ &nbsp;<span><strong>Overdue — not marked returned:</strong><br>${overdue.map(c=>{
@@ -12175,6 +12308,7 @@ function matCheckoutStatusLabel(c, today){
   if(coNoEquipment(c))return 'No equipment needed';
   if(coUsesExisting(c))return 'Already with instructor';
   if(c.returnedDate)return 'Returned';
+  if(typeof coSessionCancelled==='function'&&coSessionCancelled(c))return (typeof coReservationNeverLeft==='function'&&coReservationNeverLeft(c))?'Released — session cancelled':'Needs return — session cancelled';
   if(c.dueDate&&c.dueDate<t)return 'Overdue';
   if(c.outDate&&c.outDate<=t)return 'Out now';
   return 'Upcoming';
@@ -12196,6 +12330,8 @@ function renderMatTable(){
       if(label==='No equipment needed')status=`<span class="tag host" title="You marked this class as needing no equipment — remove this row to undo">🚫 No equipment needed</span>`;
       else if(label==='Already with instructor')status=`<span class="tag host" title="Keeping kit already with this instructor. Nothing extra leaves the shelf.">Keeping kit</span>`;
       else if(label==='Returned')status=`<span class="tag paid">✓ Returned ${new Date(c.returnedDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
+      else if(label==='Released — session cancelled')status=`<span class="tag" style="background:#f2f2f2;color:#555">Released — session cancelled</span>`;
+      else if(label==='Needs return — session cancelled')status=`<span class="tag" style="background:var(--warn-bg);color:var(--warn)">Needs return — session cancelled</span>`;
       else if(label==='Overdue')status=`<span class="tag" style="background:var(--danger-bg);color:var(--danger)">⏰ Overdue</span>`;
       else if(label==='Out now')status=`<span class="tag unpaid">Out now</span>`;
       else status=`<span class="tag host">Upcoming</span>`;
