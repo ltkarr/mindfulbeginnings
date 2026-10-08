@@ -9,6 +9,12 @@
    Oct  8 2026 · Classes page prices for NEW sessions (LATER_PRICE_CHANGES, from Oct 9):
                  Social Ready $45, Stay Ready $85, Grandparents $195, Care Ready $195,
                  Baby Ready $195. Existing sessions keep their current prices.
+   Oct  8 2026 · Added two American Red Cross courses (redCross + requiresLeadTeacher).
+                 New-session prices, same Oct 9 list as the other classes-page prices:
+                 Babysitter's Training $295 / 7 hours, Adult & Pediatric First Aid/CPR/AED
+                 $125 / 5.5 hours. No booked session of either course exists, so the
+                 catalog columns match those amounts. No existing course price,
+                 length, audience, or billing unit was changed.
    ════════════════════════════════════════════════════════════════════════
 
    Loaded by register.html and instructor.html. This file is the single
@@ -48,7 +54,9 @@ const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
 
    Credential flags:
      requiresSafeSitter → only Safe Sitter® certified instructors see these jobs
-     requiresRN         → only Registered Nurse instructors see these jobs   */
+     requiresRN         → only Registered Nurse instructors see these jobs
+     redCross           → American Red Cross certification course
+     requiresLeadTeacher→ only Lead Teachers (Red Cross instructors) see these jobs */
 const COURSES={
   'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
   'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Grades 4–8'},
@@ -116,7 +124,22 @@ const COURSES={
   // Girl Scout Badge Class: the job type for a troop badge workshop that is
   // not a Safe Sitter® class. Same guide price and cap as the First Aid
   // workshop. Tick "RN instructors only" on a session to limit who can claim it.
-  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,audience:'Girl Scout troops'}
+  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,audience:'Girl Scout troops'},
+  // American Red Cross. The public card is "Red Cross Babysitter's Training +
+  // Pediatric First Aid/CPR/AED", $295, 7 hours, ages 11–14. Students earn
+  // American Red Cross Babysitter's Training and Pediatric First Aid/CPR/AED
+  // certifications. The classes page does not publish a class size; 12 matches
+  // the other hands-on CPR workshops and can be overridden on a session.
+  // Lead Teachers only. Their pay is $75/hour, applied in the pay math.
+  // $295 is the new-session price (LATER_PRICE_CHANGES, from Oct 9 2026).
+  // The catalog columns match it because no session of this course exists yet.
+  'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11-14'},
+  // Listed three times on the classes page (ages 11-14, high school juniors
+  // and seniors, and parents / nannies / grandparents). Every card is $125
+  // for the same 5.5-hour course, so this is one course, not three prices.
+  // The $195 figures next to those cards belong to Baby Ready and Grandparents.
+  // $125 is the new-session price (LATER_PRICE_CHANGES, from Oct 9 2026).
+  'Adult & Pediatric First Aid/CPR/AED Certification':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:5.5,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'}
 };
 
 
@@ -147,7 +170,9 @@ const LATER_PRICE_CHANGES=[
      'Stay Ready: Choking Rescue and CPR':85,
      'Grandparents: Getting Started':195,
      'Care Ready':195,
-     'Baby Ready':195
+     'Baby Ready':195,
+     'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,
+     'Adult & Pediatric First Aid/CPR/AED Certification':125
    }},
   // ── PROGRAM GUIDE CUTOVER · Aug 26 2026 ──────────────────────────────
   // Every price below is taken straight from the published Program & Course
@@ -236,7 +261,9 @@ const MAX_STUDENTS={
   'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,
   'Social Ready':20,
   'Girl Scouts — First Aid Badge Workshop':15,
-  'Girl Scout Badge Class':15
+  'Girl Scout Badge Class':15,
+  'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,
+  'Adult & Pediatric First Aid/CPR/AED Certification':12
 };
 
 

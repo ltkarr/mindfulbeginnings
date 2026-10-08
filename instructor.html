@@ -474,7 +474,9 @@ if(typeof COURSES==='undefined'){
     'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{hours:1, maxStudents:20, requiresRN:true},
     'Social Ready':{hours:1, maxStudents:20, instrFlatFee:100, virtual:true},
     'Girl Scouts — First Aid Badge Workshop':{hours:1, maxStudents:15},
-    'Girl Scout Badge Class':{hours:1, maxStudents:15}
+    'Girl Scout Badge Class':{hours:1, maxStudents:15},
+    'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{hours:7, maxStudents:12, redCross:true, requiresLeadTeacher:true},
+    'Adult & Pediatric First Aid/CPR/AED Certification':{hours:5.5, maxStudents:12, redCross:true, requiresLeadTeacher:true}
   };
   console.warn('config-instructor.js did not define COURSES — using built-in fallback. Check that /config-instructor.js is deploying correctly.');
 }
@@ -490,6 +492,14 @@ Object.keys(COURSES).forEach(c=>{
   if(!girlScoutBadge&&/stay ready|campus ready|ready\. ?period|season ready|first aid/i.test(c))COURSES[c].requiresRN=true;  // RN instructors only
   if(/safe sitter|grandparent/i.test(c))COURSES[c].requiresSafeSitter=true;  // Safe Sitter® trained only
   if(girlScoutBadge){
+    COURSES[c].requiresRN=false;
+    COURSES[c].requiresSafeSitter=false;
+  }
+  // American Red Cross courses include "first aid", which the line above would
+  // mark RN-only. A Lead Teacher teaches them. An RN who is not a Lead Teacher does not.
+  if(COURSES[c].redCross||/red cross|first aid\/cpr\/aed/i.test(c)){
+    COURSES[c].redCross=true;
+    COURSES[c].requiresLeadTeacher=true;
     COURSES[c].requiresRN=false;
     COURSES[c].requiresSafeSitter=false;
   }
@@ -529,11 +539,13 @@ const PORTAL_VERSION='v2026-09-20.2';
 function instrFee(s){
   if(s&&s.instrPayOverride!=null&&s.instrPayOverride!=='')return Number(s.instrPayOverride);
   const c=COURSES[s&&s.course]||{};
-  const rate=me?me.hourlyRate:INSTR_RATE;
+  const lead=!!(me&&me.isLeadTeacher);
+  const rate=lead?((typeof LEAD_TEACHER_RATE!=='undefined')?LEAD_TEACHER_RATE:75):(me?me.hourlyRate:INSTR_RATE);
   const extra=INSTR_EXTRA_HOURS*rate; // extra 30 minutes of pay on every job
+  const travel=(c.virtual||(s&&s.isVirtual))?0:rate;
+  if(lead)return (c.hours||0)*rate+travel+extra;
   if(c.instrFlatFee!==undefined)return c.instrFlatFee+extra;
   // Travel is paid as one hour at the instructor's own rate (no travel for virtual sessions).
-  const travel=(c.virtual||(s&&s.isVirtual))?0:rate;
   return(c.hours||0)*rate+travel+extra;
 }
 // Fee to show for a job. Once a job is paid, the admin freezes the exact amount paid
@@ -1060,7 +1072,7 @@ async function doLogin(){
       btn.disabled=false;btn.textContent='Sign in';return;
     }
     // Keep the PIN client-side so we can authorize subsequent operations. It is also the password the user just typed; we are not learning anything they don't already know.
-    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||'',pinChangeRequired:(profile.pin_change_required===undefined||profile.pin_change_required===null)?null:!!profile.pin_change_required};
+    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||'',pinChangeRequired:(profile.pin_change_required===undefined||profile.pin_change_required===null)?null:!!profile.pin_change_required,isLeadTeacher:(profile.is_lead_teacher===undefined||profile.is_lead_teacher===null)?null:!!profile.is_lead_teacher,redCrossCertId:profile.red_cross_instructor_id||'',redCrossCertExpires:profile.red_cross_cert_expires?String(profile.red_cross_cert_expires).slice(0,10):''};
     me.level=normalizeInstructorLevel(profile.instructor_level);
     // instructor_login may predate the column. The helper RPC is the same pattern
     // as instructor_is_rn. If that has not been created yet either, stay on Started
@@ -1137,6 +1149,19 @@ async function doLogin(){
     if(me.isRN===null){
       try{const{data:rn}=await sb.rpc('instructor_is_rn',{p_pin:pin});me.isRN=(typeof rn==='boolean')?rn:false;}
       catch(e){me.isRN=false;}
+    }
+    // Lead Teacher is a separate credential from instructor level. instructor_login
+    // may omit the new columns until the migration is applied. The helper RPC
+    // returns them. If that RPC is missing too, fail closed for Red Cross jobs.
+    if(me.isLeadTeacher===null){
+      try{
+        const{data:lead,error:leadErr}=await sb.rpc('instructor_lead_teacher',{p_pin:pin});
+        if(!leadErr&&lead&&typeof lead==='object'){
+          me.isLeadTeacher=!!lead.is_lead_teacher;
+          if(lead.red_cross_instructor_id)me.redCrossCertId=String(lead.red_cross_instructor_id);
+          if(lead.red_cross_cert_expires)me.redCrossCertExpires=String(lead.red_cross_cert_expires).slice(0,10);
+        }else me.isLeadTeacher=false;
+      }catch(e){me.isLeadTeacher=false;}
     }
     // Which agreement version this instructor signs ('standard' Safe Sitter® vs
     // 'proprietary' RN agreement). If the instructor_login function predates the
@@ -1774,6 +1799,7 @@ function isSafeSitterCertified(){
 }
 function canTeach(course){
   const c=COURSES[course]||{};
+  if((c.requiresLeadTeacher||c.redCross)&&!(me&&me.isLeadTeacher))return false;
   if(c.requiresRN&&!me.isRN)return false;
   if(c.requiresSafeSitter&&!isSafeSitterCertified())return false;
   return true;
@@ -1804,6 +1830,8 @@ function sessionRequiresSafeSitter(s){
 // jobs are withheld from anyone who is not an RN, and the board explains why.
 function canTeachSession(s){
   if(!s)return false;
+  const c=(typeof COURSES!=='undefined'&&COURSES[s.course])||{};
+  if((c.requiresLeadTeacher||c.redCross)&&!(me&&me.isLeadTeacher))return false;
   if(sessionRequiresRN(s)&&!me.isRN)return false;
   if(sessionRequiresSafeSitter(s)&&!isSafeSitterCertified())return false;
   if(!RN_RESTRICTION_KNOWN&&s.isCustomJob&&!me.isRN)return false;
@@ -1812,6 +1840,8 @@ function canTeachSession(s){
 // Badge shown on job cards for credential-restricted courses (only eligible
 // instructors ever see these cards, so the badge is informational).
 function credentialPill(s){
+  const c=(typeof COURSES!=='undefined'&&s&&COURSES[s.course])||{};
+  if(c.requiresLeadTeacher||c.redCross)return'<span class="pill pill-rn">Lead Teachers only</span>';
   if(sessionRequiresRN(s))return'<span class="pill pill-rn">🩺 RN instructors only</span>';
   if(sessionRequiresSafeSitter(s))return'<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>';
   return'';
@@ -3497,8 +3527,8 @@ function renderMyInfo(){
       <div class="info-row"><span class="info-label">Email</span><span>${escapeHtml(me.email)||'Not on file'}</span></div>
       <div class="info-row"><span class="info-label">Phone</span><span>${escapeHtml(me.phone)||'Not on file'}</span></div>
       <div class="info-row"><span class="info-label">Zelle</span><span>${escapeHtml(me.zelle)||'Not on file — contact Lindsay to add'}</span></div>
-      <div class="info-row"><span class="info-label">Hourly rate</span><span style="font-weight:500;color:var(--success)">$${me.hourlyRate||50}/hour</span></div>
-      <div class="info-row"><span class="info-label">Credentials on file</span><span>${[isSafeSitterCertified()?'🧒 Safe Sitter® certified':null,me.isRN?'🩺 Registered Nurse (RN)':null].filter(Boolean).join(' · ')||'General instructor'}</span></div>
+      <div class="info-row"><span class="info-label">Hourly rate</span><span style="font-weight:500;color:var(--success)">${me.isLeadTeacher?'$75/hour for every session':'$'+(me.hourlyRate||50)+'/hour'}</span></div>
+      <div class="info-row"><span class="info-label">Credentials on file</span><span>${[me.isLeadTeacher?'Lead Teacher':null,isSafeSitterCertified()?'🧒 Safe Sitter® certified':null,me.isRN?'🩺 Registered Nurse (RN)':null].filter(Boolean).join(' · ')||'General instructor'}</span></div>
     </div>
     <div style="font-size:14px;color:var(--muted);margin-top:8px;line-height:1.6">Your credentials determine which courses appear on your Open jobs board. If a credential is missing or looks wrong, contact Lindsay.</div>
     <div class="info-card" style="margin-top:14px">
