@@ -3,7 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Admin — Mindful Beginnings</title>
+<script>
+// Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
+// An admin tab left open compares that file and reloads when a deploy changes it,
+// so a save cannot keep running the previous page.
+window.MB_ADMIN_BUILD='20261008-expense-refresh';
+(function(){
+  var build=window.MB_ADMIN_BUILD;
+  function checkAdminBuild(){
+    var root=document.getElementById('modal-root');
+    if(root&&root.firstElementChild)return;
+    fetch('/admin-build.txt?mb='+Date.now(),{cache:'no-store'})
+      .then(function(r){return r.ok?r.text():'';})
+      .then(function(t){
+        var next=String(t||'').trim();
+        if(next&&next!==build)location.reload();
+      }).catch(function(){});
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible')checkAdminBuild();
+  });
+  window.addEventListener('focus',checkAdminBuild);
+  setInterval(checkAdminBuild,60000);
+})();
+</script>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -8086,6 +8113,8 @@ function showModal(html){
 function closeModal(){
   if(typeof expenseSessionParkList==='function')expenseSessionParkList();
   document.getElementById('modal-root').innerHTML='';
+  // Drop the session that was open earlier. An expense save used to reopen it.
+  _costSessionId=null;
   // Clean the sentinel back off the stack so history stays tidy over a long
   // session. _skipModalPop tells the handler below that this pop was ours,
   // not a navigation attempt.
