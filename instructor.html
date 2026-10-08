@@ -3551,11 +3551,13 @@ function checkAndNotifyOnboardingComplete(){
 }
 
 // ─── EMAIL ───────────────────────────────────────────────────
-// EmailJS template IDs.
-//   TPL_LINDSAY_JOB_NOTIFY → existing template that notifies Lindsay when an instructor accepts a job.
-//   TPL_INSTRUCTOR_JOB_CONFIRM → new template that confirms the booking to the instructor. The template's
-//   "To" field must be set to {{instructor_email}} in the EmailJS dashboard so it routes to the instructor.
-//   Replace the placeholder string below with the new template ID once you create it.
+// EmailJS template IDs (service service_delt0r4).
+//   TPL_LINDSAY_JOB_NOTIFY → Lindsay when an instructor accepts a job.
+//   TPL_INSTRUCTOR_JOB_CONFIRM → the instructor. To must be {{instructor_email}}.
+//   TPL_LINDSAY_JOB_CANCEL → Lindsay when an instructor drops a job. Body uses {{message}}.
+// Each send also passes instructor_name, instructor_email, instructor_phone, course,
+// date, time, location, fee, and students. Job-accept emails pass a separate `message`
+// for each recipient so a template whose body is only {{message}} is not blank.
 const TPL_LINDSAY_JOB_NOTIFY='template_iqkujzi';
 const TPL_INSTRUCTOR_JOB_CONFIRM='template_bd5icd7';
 const TPL_LINDSAY_JOB_CANCEL='template_c94yuzm';
@@ -3563,14 +3565,19 @@ const TPL_LINDSAY_JOB_CANCEL='template_c94yuzm';
 function sendJobAcceptedNotification(session){
   const jd=jobDataCache[session.id]||{};
   const fee=instrFee(session)+(jd.referralBonus||0);
-  const params={
+  const when=fmtSessDates(session)+(session.time?' at '+session.time:'');
+  const where=(session.location||'TBD')+(session.city?', '+session.city:'');
+  const who=isAdultCourse(session.course)?'Participants':'Students';
+  const shared={
     instructor_name:me.name,instructor_email:me.email||'not on file',instructor_phone:me.phone||'not on file',
     course:session.course,date:fmtSessDates(session),time:session.time||'TBD',
-    location:(session.location||'TBD')+(session.city?', '+session.city:''),
+    location:where,
     fee:fmt(fee),students:filledSeats(session)
   };
-  // 1) Notify Lindsay
-  emailjs.send('service_delt0r4',TPL_LINDSAY_JOB_NOTIFY,params)
+  const lindsayMessage=`${me.name} accepted the ${session.course} session on ${when}.\n\nLocation: ${where}\n${who} registered: ${filledSeats(session)}\nInstructor fee: ${fmt(fee)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}`;
+  const instructorMessage=`You are confirmed to teach ${session.course} on ${when}.\n\nLocation: ${where}\n${who} registered: ${filledSeats(session)}\nYour fee: ${fmt(fee)}\n\nIf this is wrong, contact Lindsay at lindsay@mindfulbeginnings.org.`;
+  // 1) Notify Lindsay. Her wording stays off the instructor template.
+  emailjs.send('service_delt0r4',TPL_LINDSAY_JOB_NOTIFY,Object.assign({},shared,{message:lindsayMessage}))
     .then(() => {
       console.log('✓ Job notification sent to Lindsay');
     })
@@ -3585,7 +3592,7 @@ function sendJobAcceptedNotification(session){
     });
   // 2) Confirm to the instructor — only fire if we have an email on file
   if(me.email&&TPL_INSTRUCTOR_JOB_CONFIRM&&!TPL_INSTRUCTOR_JOB_CONFIRM.includes('REPLACE_WITH')){
-    emailjs.send('service_delt0r4',TPL_INSTRUCTOR_JOB_CONFIRM,params)
+    emailjs.send('service_delt0r4',TPL_INSTRUCTOR_JOB_CONFIRM,Object.assign({},shared,{message:instructorMessage}))
       .then(() => {
         console.log('✓ Job confirmation sent to', me.email);
       })
