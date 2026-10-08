@@ -387,6 +387,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div id="class-request-banner"></div>
       <div class="metrics" id="dash-metrics"></div>
+      <div id="dash-upcoming" style="margin-bottom:16px"></div>
       <div id="dash-materials" style="margin-bottom:16px"></div>
       <div id="org-billing" style="margin-bottom:16px"></div>
       <div id="instructor-milestones" style="margin-bottom:16px"></div>
@@ -5096,6 +5097,147 @@ function dashChecklistSessions(list, today){
   if(due.length)return due;
   return incomplete.slice(0,5);
 }
+// A vendor fair is an instructor staffing a Mindful Beginnings table.
+// Teaching jobs and regular classes are not vendor fairs.
+function isVendorFairSession(s){
+  if(!s)return false;
+  const code=String(s.code||'').trim().toUpperCase();
+  if(code.indexOf('RUA-')===0)return true;
+  const name=String(s.course||'').toLowerCase();
+  return /represent us|\bvendor\b|\bbooth\b|\btable\b|\bfair\b|\bfest\b|welcome event|\bexpo\b|shopping event|market booth/.test(name);
+}
+// A custom job with no fee coming in (a free community class, for example).
+function isNoFeeJob(s){
+  if(!s||!s.isCustomJob||isVendorFairSession(s))return false;
+  const fee=s.priceOverride==null?0:Number(s.priceOverride);
+  return !(fee>0);
+}
+// Instructor pay entered on the session that has not been marked paid.
+// A cancelled session contributes nothing here: unpaid estimates are not owed.
+function instructorPayStillOwed(s){
+  if(!s||s.isCancelled)return 0;
+  const total=Number(financeSessionFigures(s).instr)||0;
+  const paid=paidOutInstructorFee(s);
+  return round2(Math.max(0,total-paid));
+}
+function customJobPayMissing(s){
+  if(!s||!s.isCustomJob||s.isCancelled||s.ownerTaught)return false;
+  const set=s.instrPayOverride!=null&&s.instrPayOverride!==''&&isFinite(Number(s.instrPayOverride));
+  if(set)return false;
+  const jdi=(typeof jobDataCache!=='undefined'&&jobDataCache&&s.id)?(jobDataCache[s.id]||{}):{};
+  if(jdi.payStatus==='paid'&&jdi.paidFee!=null)return false;
+  if(jdi.secondInstrPaid&&jdi.secondInstrPaidFee!=null)return false;
+  return true;
+}
+// Instructor pay already inside this month's class costs, split so the card
+// can say vendor fairs and other jobs are included. This does not add money.
+function dashboardMonthPaySplit(now){
+  const n=now instanceof Date?now:new Date();
+  const y=n.getFullYear(),m=n.getMonth();
+  let vendor=0,otherJobs=0;
+  (sessions||[]).forEach(s=>{
+    const slot=financeRevenueSlot(s, n);
+    if(!slot||slot.year!==y||slot.month!==m)return;
+    const instr=Number(financeSessionFigures(s).instr)||0;
+    if(!(instr>0))return;
+    if(isVendorFairSession(s))vendor+=instr;
+    else if(s.isCustomJob)otherJobs+=instr;
+  });
+  return {vendor:round2(vendor),otherJobs:round2(otherJobs)};
+}
+function sessionStillAhead(s, today){
+  if(!s||s.isCancelled)return false;
+  const end=sessionEndDate(s);
+  return !!(end&&String(end)>=today);
+}
+function financeSlotIsCurrentMonth(s, now){
+  const n=now instanceof Date?now:new Date();
+  const slot=financeRevenueSlot(s, n);
+  return !!(slot&&slot.year===n.getFullYear()&&slot.month===n.getMonth());
+}
+// Money still to send for sessions that have not finished, plus bills tied to
+// a session and dated today or later. Not added to this month's profit.
+// A session dated this month is already inside class costs. A later session is not.
+function upcomingCommittedExpenses(now){
+  const n=now instanceof Date?now:new Date();
+  const today=fmtYMD(n);
+  const vendorRows=[];
+  const noFeeRows=[];
+  const classRows=[];
+  let unset=0;
+  (sessions||[]).forEach(s=>{
+    if(!sessionStillAhead(s, today))return;
+    if(customJobPayMissing(s))unset++;
+    const owed=instructorPayStillOwed(s);
+    if(!(owed>0))return;
+    const row={id:s.id,code:s.code||'',course:s.course||'',date:s.date||sessionEndDate(s)||'',amount:owed,inThisMonth:financeSlotIsCurrentMonth(s, n)};
+    if(isVendorFairSession(s))vendorRows.push(row);
+    else if(isNoFeeJob(s))noFeeRows.push(row);
+    else classRows.push(row);
+  });
+  const byDate=(a,b)=>String(a.date).localeCompare(String(b.date))||String(a.code).localeCompare(String(b.code));
+  vendorRows.sort(byDate);noFeeRows.sort(byDate);classRows.sort(byDate);
+  const sum=rows=>round2(rows.reduce((a,r)=>a+r.amount,0));
+  const vendor=sum(vendorRows),noFee=sum(noFeeRows),classes=sum(classRows);
+  const thisMonthInstructor=round2([].concat(vendorRows,noFeeRows,classRows).reduce((a,r)=>a+(r.inThisMonth?r.amount:0),0));
+  let thisMonthBills=0,laterBills=0;
+  const billRows=[];
+  const posts=(typeof expenseOccurrences==='function')
+    ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
+    :(expenses||[]);
+  posts.forEach(e=>{
+    if(!e||!e.sessionId)return;
+    const d=String(e.date||'').slice(0,10);
+    if(!d||d<today)return;
+    const amt=Number(e.amount)||0;
+    if(!(amt>0))return;
+    const inThisMonth=d.slice(0,7)===today.slice(0,7);
+    if(inThisMonth)thisMonthBills=round2(thisMonthBills+amt);
+    else laterBills=round2(laterBills+amt);
+    billRows.push({date:d,amount:amt,sessionId:e.sessionId,description:e.description||e.category||'Bill',inThisMonth:inThisMonth});
+  });
+  billRows.sort(byDate);
+  const bills=round2(thisMonthBills+laterBills);
+  const instructor=round2(vendor+noFee+classes);
+  const alreadyInMonth=round2(thisMonthInstructor+thisMonthBills);
+  const later=round2(instructor-thisMonthInstructor+laterBills);
+  return {
+    total:round2(instructor+bills),
+    instructor,vendor,noFee,classes,bills,
+    alreadyInMonth,later,
+    vendorRows,noFeeRows,classRows,billRows,unset
+  };
+}
+function upcomingWhenNote(inThisMonth){
+  return inThisMonth?'Included in class costs above':'Not in this month\'s profit';
+}
+function renderUpcomingExpenses(now){
+  const el=document.getElementById('dash-upcoming');
+  if(!el)return;
+  const ahead=upcomingCommittedExpenses(now);
+  if(!ahead.total&&!ahead.unset){el.innerHTML='';return;}
+  const money=n=>fmt(n);
+  const when=d=>{
+    if(!d)return 'Date not set';
+    const dt=new Date(d+'T12:00:00');
+    if(isNaN(dt.getTime()))return escapeHtml(d);
+    return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  };
+  const rowHtml=(r)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:15px">
+      <div style="min-width:0"><span style="color:var(--muted)">${when(r.date)}</span> <span style="font-weight:600">${escapeHtml(r.course||r.code||'Session')}</span><div style="color:var(--muted);font-size:14px">${upcomingWhenNote(r.inThisMonth)}</div></div>
+      <div style="font-weight:650;color:var(--danger);white-space:nowrap">${money(r.amount)}</div>
+    </div>`;
+  const vendorBlock=ahead.vendorRows.length?`<div style="font-size:14px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px">Vendor fairs · ${money(ahead.vendor)}</div>${ahead.vendorRows.map(rowHtml).join('')}`:'';
+  const noFeeBlock=ahead.noFeeRows.length?`<div style="font-size:14px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px">Jobs with no class fee · ${money(ahead.noFee)}</div>${ahead.noFeeRows.map(rowHtml).join('')}`:'';
+  const classLine=ahead.classes?`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:15px"><div>Classes and other jobs still to pay <span style="color:var(--muted)">(${ahead.classRows.length})</span></div><div style="font-weight:650;color:var(--danger)">${money(ahead.classes)}</div></div>`:'';
+  const billLine=ahead.bills?`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:15px"><div>Bills tied to a session and dated ahead</div><div style="font-weight:650;color:var(--danger)">${money(ahead.bills)}</div></div>`:'';
+  const unsetLine=ahead.unset?`<div style="font-size:15px;color:var(--warn);margin-top:8px">Pay is not set yet on ${ahead.unset} upcoming job${ahead.unset===1?'':'s}, so ${ahead.unset===1?'that one is':'those are'} not in this total.</div>`:'';
+  el.innerHTML=`<div class="card" style="padding:14px 16px">
+    <div class="card-title">Upcoming expenses</div>
+    <div style="font-size:15px;color:var(--muted);line-height:1.45;margin-top:-2px">Instructor pay that has not been sent yet, for sessions that are still ahead. ${money(ahead.alreadyInMonth)} is already inside class costs above. ${money(ahead.later)} is for later and is not in this month's profit.</div>
+    ${vendorBlock}${noFeeBlock}${classLine}${billLine}${unsetLine}
+  </div>`;
+}
 function renderDashboard(){
   if(typeof renderClassRequestBanner==='function')renderClassRequestBanner();
   const now=new Date();const m=now.getMonth();const y=now.getFullYear();
@@ -5140,13 +5282,22 @@ function renderDashboard(){
     return sum+(s?regEffectivePrice(r,s):0);
   },0);
   const pendingCount=registrations.filter(r=>r.payStatus==='pending'&&regOwesMoney(r)).length;
+  const paySplit=dashboardMonthPaySplit(now);
+  const includedBits=[];
+  if(paySplit.vendor)includedBits.push(fmt(paySplit.vendor)+' for vendor fairs');
+  if(paySplit.otherJobs)includedBits.push(fmt(paySplit.otherJobs)+' for other jobs');
+  const includedLine=includedBits.length?`<div class="m-sub">Includes ${includedBits.join(' and ')} this month</div>`:'';
+  const ahead=upcomingCommittedExpenses(now);
+  const otherAhead=round2((ahead.noFee||0)+(ahead.classes||0));
   document.getElementById('dash-metrics').innerHTML=`
     <div class="metric" title="Revenue this month is the booked total for classes dated in ${monthName} ${y} only. Collected in ${y} is money already in for the whole year: paid family registrations after PayPal and Venmo fees, plus an organization bill or custom-job fee only once it has been received. Expected in ${y} is booked organization bills and custom-job fees for the year that have not been received. Booked in ${y} is Collected plus Expected. The year figures are larger than this month on purpose."><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub">Booked for classes dated in ${monthName} ${y}</div><div class="m-sub" style="line-height:1.45;margin-top:6px"><span style="color:#1d6b45;font-weight:650">Collected in ${y} ${fmt(yCollected)}</span><br><span style="color:#b86a00;font-weight:650">Expected in ${y} ${fmt(yExpected)}</span><br>Booked in ${y} ${fmt(yRev)}</div><div class="m-sub" style="margin-top:6px">This month is ${monthName} only. Collected and Expected are all of ${y}, so they will not add up to the month.</div></div>
-    <div class="metric" title="Instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Class costs this month</div><div class="m-val red">${fmt(mCost)}</div>${mOverhead?`<div class="m-sub">${fmt(mOverhead)} overhead is on the yearly view</div>`:''}</div>
+    <div class="metric" title="Instructor pay for classes, vendor fairs, and other jobs dated this month, whether or not it has been sent yet, plus class expenses and liaison commission. Company overhead is on the yearly view."><div class="m-label">Class costs this month</div><div class="m-val red">${fmt(mCost)}</div>${includedLine}${mOverhead?`<div class="m-sub">${fmt(mOverhead)} overhead is on the yearly view</div>`:''}</div>
     <div class="metric" title="Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${fmtSigned(mProfit)}</div><div class="m-sub">Revenue minus class costs and liaison commission</div></div>
+    <div class="metric" title="Instructor pay not sent yet for sessions that are still ahead, plus bills tied to a session and dated today or later. Sessions dated this month are already inside class costs. Later sessions are not in this month's profit."><div class="m-label">Upcoming expenses</div><div class="m-val red">${fmt(ahead.total)}</div><div class="m-sub">Instructor pay not sent yet, for sessions that are not finished</div><div class="m-sub">Vendor fairs ${fmt(ahead.vendor)}</div><div class="m-sub">Other sessions ${fmt(otherAhead)}</div>${ahead.bills?`<div class="m-sub">Bills dated ahead ${fmt(ahead.bills)}</div>`:''}<div class="m-sub">${fmt(ahead.alreadyInMonth)} is already inside class costs. ${fmt(ahead.later)} is for later.</div></div>
     <div class="metric" title="Paid, pending, and unpaid registrations for classes dated ${y}. Host seats, the waitlist, and cancelled registrations are not included. Reports counts host seats and, on All time, every year."><div class="m-label">Registrations this year</div><div class="m-val">${totRegs}</div><div class="m-sub">Paid, pending, and unpaid for classes in ${y}. Host seats, waitlist, and cancelled are not included.</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'All of these are paid.'}</div></div>
     <div class="metric" title="Classes still ahead. Holds and cancelled classes are not included."><div class="m-label">Upcoming sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled&&sessionEndDate(s)>=fmtYMD(now)).length}</div></div>
   `;
+  renderUpcomingExpenses(now);
   // Build a continuous 6-month window anchored on the current month: 3 months
   // back through 2 months ahead. This keeps the current month and next month
   // (e.g. June and July) always visible, and shows every month in between even
