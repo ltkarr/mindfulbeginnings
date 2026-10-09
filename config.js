@@ -139,7 +139,7 @@ const COURSES={
   // for the same 5.5-hour course, so this is one course, not three prices.
   // The $195 figures next to those cards belong to Baby Ready and Grandparents.
   // $125 is the new-session price (LATER_PRICE_CHANGES, from Oct 9 2026).
-  'Adult & Pediatric First Aid/CPR/AED Certification':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:5.5,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'}
+  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:5.5,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'}
 };
 
 
@@ -168,11 +168,11 @@ const LATER_PRICE_CHANGES=[
    prices:{
      'Social Ready':45,
      'Stay Ready: Choking Rescue and CPR':85,
-     'Grandparents: Getting Started':195,
-     'Care Ready':195,
+     'Grandparents: Getting Started':185,
+     'Care Ready':175,
      'Baby Ready':195,
      'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,
-     'Adult & Pediatric First Aid/CPR/AED Certification':125
+     'Adult & Pediatric First Aid/CPR/AED Certification':185
    }},
   // ── PROGRAM GUIDE CUTOVER · Aug 26 2026 ──────────────────────────────
   // Every price below is taken straight from the published Program & Course

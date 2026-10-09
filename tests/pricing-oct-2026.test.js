@@ -24,8 +24,8 @@ const NEWEST_EXISTING_SESSION = 1791470081950; // newest sessions.created_at on 
 const CHANGES = {
   'Social Ready': [35, 45],
   'Stay Ready: Choking Rescue and CPR': [75, 85],
-  'Grandparents: Getting Started': [185, 195],
-  'Care Ready': [185, 195],
+  'Grandparents: Getting Started': [185, 185],
+  'Care Ready': [185, 175],
   'Baby Ready': [225, 195]
 };
 

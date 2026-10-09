@@ -44,17 +44,17 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
   const cfg = loadConfig();
   const oct9 = cfg.LATER_PRICE_CHANGES.find(c => c.from === '2026-10-09T04:00:00Z');
   assert.equal(oct9.prices[BABYSITTER], 295);
-  assert.equal(oct9.prices[ADULT], 125);
+  assert.equal(oct9.prices[ADULT], 185);
   assert.equal(oct9.prices['Social Ready'], 45);
   assert.equal(oct9.prices['Stay Ready: Choking Rescue and CPR'], 85);
-  assert.equal(oct9.prices['Grandparents: Getting Started'], 195);
-  assert.equal(oct9.prices['Care Ready'], 195);
+  assert.equal(oct9.prices['Grandparents: Getting Started'], 185);
+  assert.equal(oct9.prices['Care Ready'], 175);
   assert.equal(oct9.prices['Baby Ready'], 195);
 
   for (const createdAt of [BEFORE, EXISTING, CUTOVER]) {
     assert.equal(cfg.getSessionBasePrice(BABYSITTER, '2026-11-01', createdAt), 295);
-    assert.equal(cfg.getSessionBasePrice(ADULT, '2026-11-01', createdAt), 125);
-    assert.equal(cfg.getSessionBasePrice(ADULT, '2027-03-01', createdAt), 125);
+    assert.equal(cfg.getSessionBasePrice(ADULT, '2026-11-01', createdAt), 185);
+    assert.equal(cfg.getSessionBasePrice(ADULT, '2027-03-01', createdAt), 185);
   }
   // A session already in the database keeps the price it has today.
   assert.equal(cfg.getSessionBasePrice('Social Ready', '2026-11-01', EXISTING), 35);
@@ -73,8 +73,8 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
   assert.equal(baby.requiresLeadTeacher, true);
   assert.equal(adult.requiresLeadTeacher, true);
   assert.equal(baby.price, 295);
-  assert.equal(adult.price, 125);
-  assert.equal(adult.priceNew, 125);
+  assert.equal(adult.price, 185);
+  assert.equal(adult.priceNew, 185);
   assert.equal(cfg.COURSES['Stay Ready: Choking Rescue and CPR'].hours, 1.5);
   assert.equal(cfg.COURSES['Steady and Ready'].hours, 1.5);
   assert.equal(cfg.COURSES['Baby Ready'].hours, 2.5);
@@ -92,7 +92,7 @@ test('admin and the register fallback carry the same Oct 9 Red Cross prices', ()
   assert.equal(norm(admin), want);
   assert.equal(norm(register), want);
   assert.match(want, /295/);
-  assert.match(want, /125/);
+  assert.match(want, /185/);
   assert.match(admin, /redCross:true,requiresLeadTeacher:true/);
 });
 
