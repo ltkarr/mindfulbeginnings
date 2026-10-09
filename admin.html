@@ -5134,13 +5134,24 @@ function ackMilestone(instrId,milestone){
   renderDashboard();
 }
 // Tasks that make up one class's pre-class checklist. Host and instructor
-// lines are omitted when that class has neither.
+// lines are omitted when that class has neither. A custom job (a booth, a
+// walk, a fair) has no class roster and no host family: the owner still checks
+// off putting materials out for the instructor, and the instructor still gets
+// a reminder. Host and family reminders stay off that card.
+function preClassMaterialsLabel(s){
+  return (s&&s.isCustomJob)?'Put out materials for the instructor':'Put out handbooks &amp; supplies';
+}
+function preClassInstrReminderLabel(s){
+  return (s&&s.isCustomJob)?'Send reminder to instructor':'Send reminder + roster to instructor';
+}
+function preClassShowsStudentCount(s){return !(s&&s.isCustomJob);}
 function preClassTaskList(s){
   const jd=(typeof jobDataCache!=='undefined'&&s&&jobDataCache[s.id])||{};
   const hasInstr=!!(s&&!s.ownerTaught&&(jd.instructorId||s.instructorId));
   const hasHost=!!(s&&s.hasHost!==false);
   const tasks=[{key:'materialsSent',done:!!jd.materialsSent}];
   if(hasInstr)tasks.push({key:'instrReminderSent',done:!!jd.instrReminderSent});
+  if(s&&s.isCustomJob)return tasks;
   if(hasHost)tasks.push({key:'hostReminderSent',done:!!jd.hostReminderSent});
   tasks.push({key:'classReminderSent',done:!!jd.classReminderSent});
   return tasks;
@@ -5446,6 +5457,7 @@ function renderDashboard(){
         const jd=jobDataCache[s.id]||{};
         const hasInstr=!s.ownerTaught&&((jd.instructorId)||s.instructorId);
         const hasHost=s.hasHost!==false;
+        const custom=!!s.isCustomJob;
         // Milestone badge + accent
         let badge='',accent='var(--border)';
         if(dayDiff===0){badge='<span style="background:#fdf0ee;color:#c0392b;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">Today</span>';accent='#c0392b';}
@@ -5459,18 +5471,19 @@ function renderDashboard(){
           </label>${btn||''}</div>`;
         const sendBtn=(onclick,emoji,color,bg,border)=>`<button onclick="${onclick}" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid ${border};background:${bg};color:${color};cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;flex-shrink:0">${emoji} Send</button>`;
         const items=[];
-        items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,'Put out handbooks &amp; supplies',''));
-        if(hasInstr)items.push(item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,'Send reminder + roster to instructor',sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee')));
-        if(hasHost)items.push(item(!!jd.hostReminderSent,`toggleReminderFlag('${s.id}','hostReminderSent',this.checked)`,'Host reminder — 1 week before',sendBtn(`openHostReminder('${s.id}')`,'📬','#b86a00','#fff7e6','#f0d090')));
-        items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Family reminder — before class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
+        items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,preClassMaterialsLabel(s),''));
+        if(hasInstr)items.push(item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,preClassInstrReminderLabel(s),sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee')));
+        if(!custom&&hasHost)items.push(item(!!jd.hostReminderSent,`toggleReminderFlag('${s.id}','hostReminderSent',this.checked)`,'Host reminder — 1 week before',sendBtn(`openHostReminder('${s.id}')`,'📬','#b86a00','#fff7e6','#f0d090')));
+        if(!custom)items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Family reminder — before class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
         const instrLabel=checklistInstructorLabel(s);
         const hostLabel=checklistHostLabel(s);
+        const countBit=preClassShowsStudentCount(s)?` · ${cnt} student${cnt!==1?'s':''}`:'';
         const roleLine=(label,value,empty)=>`<span style="min-width:0"><span style="color:var(--muted)">${label}:</span> <span style="${value===empty?'color:var(--muted);font-style:italic':'font-weight:600'}">${escapeHtml(value)}</span></span>`;
         return`<div style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid ${accent}">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">
             <div style="font-size:15px;min-width:0">
               <span style="font-weight:600">${s.course}</span>
-              <span style="color:var(--muted);margin-left:6px">${d} · ${cnt} student${cnt!==1?'s':''}</span>
+              <span style="color:var(--muted);margin-left:6px">${d}${countBit}</span>
             </div>
             <div style="flex-shrink:0">${badge}</div>
           </div>
@@ -13281,9 +13294,87 @@ function invoiceLineFor(s){
   const rate=orgBillRate(s);
   return{sessionId:s.id,date:s.date,desc:split?s.course+' — organization flat fee':s.course,qty,rate,amount:qty*rate,flat:false};
 }
-function sessionIsComplete(s){
+// Minutes since midnight for the END of a free-text class time ("10:00 AM - 3:00 PM",
+// "1:00-4:00 PM", "6:30–7:30pm", "9:00 a.m. – 3:00 p.m."). Null when no end time
+// can be read — a start time alone is not enough, and neither is a bare range
+// with no AM/PM. A missing end meridian borrows the start's, and flips to the
+// other half of the day when that is the only way the class finishes after it starts.
+function sessionEndMinutes(timeStr){
+  if(!timeStr)return null;
+  const src=String(timeStr).replace(/[–—]/g,'-');
+  const re=/(\d{1,2})(?::(\d{2}))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\s*(?:to|-|through)\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?/ig;
+  let m,last=null;
+  while((m=re.exec(src)))last=m;
+  if(!last)return null;
+  const meridiem=s=>!s?'':(/p/i.test(s)?'pm':'am');
+  const clock=(h,min,ap)=>{
+    if(h<1||h>12||min<0||min>59)return null;
+    let hour=h%12;
+    if(ap==='pm')hour+=12;
+    return hour*60+min;
+  };
+  const endAp=meridiem(last[6]);
+  const endH=Number(last[4]), endMin=last[5]?Number(last[5]):0;
+  if(endAp)return clock(endH,endMin,endAp);
+  const startAp=meridiem(last[3]);
+  if(!startAp)return null;
+  const start=clock(Number(last[1]),last[2]?Number(last[2]):0,startAp);
+  let end=clock(endH,endMin,startAp);
+  if(start==null||end==null)return null;
+  if(end<=start){
+    end=clock(endH,endMin,startAp==='am'?'pm':'am');
+    if(end==null||end<=start)return null;
+  }
+  return end;
+}
+// Wall-clock date and minutes in Eastern Time. Billing follows the class, which
+// is taught in America/New_York, not the clock of whoever has the dashboard open.
+function newYorkClock(date){
+  const d=date instanceof Date?date:new Date();
+  const parts=new Intl.DateTimeFormat('en-US',{
+    timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+  }).formatToParts(d);
+  const get=t=>{const p=parts.find(x=>x.type===t);return p?p.value:'';};
+  let hour=Number(get('hour'));
+  if(hour===24)hour=0;
+  return {ymd:get('year')+'-'+get('month')+'-'+get('day'),minutes:hour*60+Number(get('minute'))};
+}
+// Time text for the last meeting day. A later extra day can carry its own time;
+// a blank one means the session's main time, same as the rest of this page.
+function sessionEndTimeText(s){
+  const end=sessionEndDate(s);
+  if(!end||!s)return '';
+  const days=Array.isArray(s.extraDays)?s.extraDays:[];
+  for(let i=0;i<days.length;i++){
+    const x=days[i];
+    if(x&&x.date===end&&String(x.time||'').trim())return String(x.time).trim();
+  }
+  return String(s.time||'').trim();
+}
+// Taught — and therefore billable — only after the class has ended. When the
+// end time can be read, that instant is Eastern Time on the last meeting day.
+// When it cannot, the session counts as taught starting the day after the class
+// date, so a same-day class is never billed in the morning just because the
+// date is today. Cancelled sessions keep the old date check: a cancellation is
+// still never billed, and this does not move one between "taught" and "not yet
+// taught" on the invoice line list. `now` is only for tests.
+function sessionIsComplete(s, now){
   const end=sessionEndDate(s);if(!end)return false;
-  return end<=fmtYMD(new Date());
+  const clock=now instanceof Date?now:new Date();
+  if(s&&s.isCancelled)return end<=fmtYMD(clock);
+  const ny=newYorkClock(clock);
+  const endMin=sessionEndMinutes(sessionEndTimeText(s));
+  if(endMin==null)return ny.ymd>end;
+  if(ny.ymd>end)return true;
+  if(ny.ymd<end)return false;
+  return ny.minutes>=endMin;
+}
+// Organization sessions that are still ahead. Same taught rule as the invoice
+// prompts, so a class running today stays in this count until it ends.
+function orgSessionsStillToTeach(list, now){
+  const rows=list||sessions;
+  return rows.filter(s=>!!(s&&!s.isHold&&!s.isCancelled&&String(s.billToOrg||'').trim()&&s.date&&!sessionIsComplete(s, now)));
 }
 // All org-billed sessions for an org in a YYYY-MM month (holds excluded).
 function orgSessionsForMonth(org,ym){
@@ -13293,12 +13384,12 @@ function orgSessionsForMonth(org,ym){
 }
 // Completed org sessions not yet on any invoice, grouped by org + month — powers the
 // "ready to invoice" alert cards at the end of each month.
-function uninvoicedOrgGroups(){
+function uninvoicedOrgGroups(now){
   const done=invoicedSessionIds();
   const groups={};
   sessions.forEach(s=>{
     if(s.isHold||s.isCancelled||!s.billToOrg||!s.date)return;   // a cancelled class is never billed
-    if(done.has(s.id)||!sessionIsComplete(s))return;
+    if(done.has(s.id)||!sessionIsComplete(s, now))return;
     const key=s.billToOrg.trim()+'|'+s.date.slice(0,7);
     if(!groups[key])groups[key]={org:s.billToOrg.trim(),ym:s.date.slice(0,7),sessions:[],total:0};
     const li=invoiceLineFor(s);
@@ -13494,8 +13585,8 @@ function renderOrgBilling(){
   }
 
   // Org work still on the calendar. Nothing can be invoiced until it is taught,
-  // so this is context, not a task.
-  const upcoming=sessions.filter(s=>!s.isHold&&!s.isCancelled&&(s.billToOrg||'').trim()&&s.date&&!sessionIsComplete(s));
+  // so this is context, not a task. A same-day class stays here until it ends.
+  const upcoming=orgSessionsStillToTeach();
   const upcomingTotal=upcoming.reduce((n,s)=>n+(invoiceLineFor(s).amount||0),0);
   const footBits=[];
   if(upcoming.length)footBits.push(`${upcoming.length} organization session${upcoming.length===1?'':'s'} still to teach (${fmt(upcomingTotal)}) — billable once complete.`);
