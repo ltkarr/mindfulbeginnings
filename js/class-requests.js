@@ -14,8 +14,8 @@
     { key: 'safe-sitter', course: 'Safe Sitter®', abbr: 'SS', price: 225, hours: '5 hours', audience: 'Grades 6–8', where: 'in person', requiresSS: true, host: true, org: true },
     { key: 'safe-at-home', course: 'Safe@Home', abbr: 'SAH', price: 85, hours: '90 minutes', audience: 'Grades 3–5', where: 'in person', host: true, org: true },
     { key: 'safe-at-home-virtual', course: 'Safe@Home — Virtual', abbr: 'SAHV', price: 40, hours: '60 minutes', audience: 'Grades 3–5', where: 'virtual', virtual: true, host: true, org: true },
-    { key: 'care-ready', course: 'Care Ready', abbr: 'CRE', price: 195, hours: '2.5 hours', audience: 'Adult caregivers', where: 'in person', host: true, org: true },
-    { key: 'grandparents', course: 'Grandparents: Getting Started', abbr: 'GP', price: 195, hours: '3 hours', audience: 'Adults', where: 'in person', requiresSS: true, host: true, org: true },
+    { key: 'care-ready', course: 'Care Ready', abbr: 'CRE', price: 175, hours: '2.5 hours', audience: 'Adult caregivers', where: 'in person', host: true, org: true },
+    { key: 'grandparents', course: 'Grandparents: Getting Started', abbr: 'GP', price: 185, hours: '3 hours', audience: 'Adults', where: 'in person', requiresSS: true, host: true, org: true },
     { key: 'mfbc-single', course: 'My First Babysitters Club — Single Session', abbr: 'MFBC1', price: 95, hours: '2.5 hours', audience: 'Grades 4–5', where: 'in person', host: true, org: true },
     { key: 'mfbc-series', course: 'My First Babysitters Club', abbr: 'MFBC', price: 165, hours: '1 hour a week', audience: 'Younger sitters · multi-week', where: 'in person', host: false, org: true },
     { key: 'campus-ready', course: 'Campus Ready: Safety Skills for College Life', abbr: 'CR', price: 75, hours: '1 hour', audience: 'Ages 16+', where: 'in person', requiresRN: true, host: true, org: true },
@@ -36,9 +36,9 @@
     // entered on the session (family price + organization flat fee), not here.
     { key: 'gs-first-aid', course: 'Girl Scouts — First Aid Badge Workshop', abbr: 'GSFA', price: 45, hours: '1 hour', audience: 'Girl Scout troops', where: 'in person', requiresRN: true, host: false, org: true },
     // New-session prices, same amounts as the Oct 9 list in config.js.
-    // These courses have no booked sessions, so the intake shows $295 and $125.
+    // These courses have no booked sessions, so the intake shows $295 and $185.
     { key: 'rc-babysitter', course: "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED", abbr: 'RCB', price: 295, hours: '7 hours', audience: 'Ages 11-14', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
-    { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 125, hours: '5.5 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 185, hours: '5.5 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet — I would like guidance' },
     { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course — we will follow up with pricing' }
   ];
