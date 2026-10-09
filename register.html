@@ -7,8 +7,9 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/email-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- Pinned. crossorigin is safe here: jsDelivr sends Access-Control-Allow-Origin: *. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js" crossorigin="anonymous"></script>
 <!-- Shared course data / pricing / caps / promos. Must load before the inline script below. -->
 <script src="/config.js"></script>
 <script src="/js/public-sessions.js"></script>
@@ -586,15 +587,58 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
 
 <script>
 // ─── SAFETY NET ──────────────────────────────────────────────
-// If any uncaught error happens while loading, show a visible message instead of a blank page.
+// Show a note only when our own page script throws. Opaque "Script error."
+// events (cross-origin CDN code, or scripts injected by Safari and the
+// Facebook in-app browser) and resource-load errors are noise — registration
+// still works, and a fixed bar over the buttons was making parents quit.
+function isOwnPageFailure(ev){
+  if(!ev)return false;
+  // A failed image, script, or stylesheet reports an error whose target is the
+  // element. In-app browsers deliver some of those to window. Not our bug.
+  if(ev.target&&ev.target!==window)return false;
+  var msg=typeof ev.message==='string'?ev.message:'';
+  // Browsers hide cross-origin details behind this exact string.
+  if(msg==='Script error.'||msg==='Script error')return false;
+  if(!msg.trim())return false;
+  var file=typeof ev.filename==='string'?ev.filename.trim():'';
+  // No source URL is how injected / masked scripts show up. An empty filename
+  // must not be resolved against this page — that would look same-origin.
+  if(!file)return false;
+  try{
+    if(new URL(file,window.location.href).origin!==window.location.origin)return false;
+  }catch(e){return false;}
+  return true;
+}
 window.addEventListener('error',function(ev){
   try{
+    if(!isOwnPageFailure(ev))return;
     if(document.getElementById('mb-fatal-banner'))return;
     var b=document.createElement('div');
     b.id='mb-fatal-banner';
-    b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#fff7e6;border-top:2px solid #f0c000;color:#7a5a00;font:14px/1.5 sans-serif;padding:12px 16px;text-align:center';
-    b.innerHTML='<strong>Something interrupted loading.</strong> Please refresh the page. If it keeps happening, email lindsay@mindfulbeginnings.org. <span style="opacity:.7">('+(ev&&ev.message?String(ev.message).slice(0,160):'unknown')+')</span>';
-    (document.body||document.documentElement).appendChild(b);
+    b.setAttribute('role','alert');
+    // In the page flow, at the top. A fixed bottom bar covers Continue / Reserve on a phone.
+    b.style.cssText='position:relative;background:#fff7e6;border-bottom:1px solid #f0d878;color:#7a5a00;font:14px/1.45 "Source Sans Pro",arial,sans-serif;padding:10px 48px 10px 16px;text-align:left';
+    var text=document.createElement('div');
+    var strong=document.createElement('strong');
+    strong.textContent='Something interrupted loading.';
+    text.appendChild(strong);
+    text.appendChild(document.createTextNode(' Please refresh the page. If it keeps happening, email lindsay@mindfulbeginnings.org. '));
+    var detail=document.createElement('span');
+    detail.style.opacity='.7';
+    detail.textContent='('+String(ev.message).slice(0,160)+')';
+    text.appendChild(detail);
+    var close=document.createElement('button');
+    close.type='button';
+    close.id='mb-fatal-dismiss';
+    close.setAttribute('aria-label','Dismiss');
+    close.textContent='\u00d7';
+    close.style.cssText='position:absolute;top:0;right:0;width:44px;height:100%;border:0;background:transparent;color:#7a5a00;font-size:22px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center';
+    close.addEventListener('click',function(){if(b.parentNode)b.parentNode.removeChild(b);});
+    b.appendChild(text);
+    b.appendChild(close);
+    var root=document.body||document.documentElement;
+    if(root.firstChild)root.insertBefore(b,root.firstChild);
+    else root.appendChild(b);
   }catch(e){}
 });
 
