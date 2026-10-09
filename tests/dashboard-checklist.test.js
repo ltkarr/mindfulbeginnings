@@ -42,6 +42,9 @@ vm.runInContext(
     'sessionHostDisplayName',
     'checklistInstructorLabel',
     'checklistHostLabel',
+    'preClassMaterialsLabel',
+    'preClassInstrReminderLabel',
+    'preClassShowsStudentCount',
     'preClassTaskList',
     'preClassChecklistDone',
     'dashChecklistSessions'
@@ -163,11 +166,78 @@ test('checklist cards name the instructor and the host, or say when either is mi
   assert.match(block, /roleLine\('Instructor',instrLabel,'No instructor'\)/);
   assert.match(block, /roleLine\('Host',hostLabel,'No host'\)/);
   assert.match(block, /escapeHtml\(value\)/);
-  assert.match(block, /Send reminder \+ roster to instructor/);
+  assert.match(block, /preClassMaterialsLabel\(s\)/);
+  assert.match(block, /preClassInstrReminderLabel\(s\)/);
+  assert.match(block, /preClassShowsStudentCount\(s\)/);
+  assert.match(block, /toggleMaterialsFromDash\('\$\{s\.id\}',this\.checked\)/);
+  assert.match(block, /if\(!custom&&hasHost\)/);
+  assert.match(block, /if\(!custom\)items\.push\(item\(!!jd\.classReminderSent/);
+  assert.match(admin, /return \(s&&s\.isCustomJob\)\?'Send reminder to instructor':'Send reminder \+ roster to instructor';/);
   assert.match(block, /Host reminder — 1 week before/);
   assert.match(block, /Family reminder — before class/);
   assert.match(block, /openInstructorReminder\('\$\{s\.id\}'\)/);
   assert.match(block, /openHostReminder\('\$\{s\.id\}'\)/);
   assert.match(block, /openClassReminder\('\$\{s\.id\}'\)/);
   assert.match(block, /fmtSessDate\(s,/);
+});
+
+test('custom jobs keep a materials checkbox and an instructor reminder only', () => {
+  const walk = sess('walk', '2026-10-17', {
+    course: 'Represent us at Shatterproof Walk DC',
+    isCustomJob: true,
+    hasHost: true,
+    instructorId: 'i1'
+  });
+  const fest = sess('fest', '2026-10-17', {
+    course: 'Represent us at Goddard School Bethesda Fall Fest',
+    isCustomJob: true,
+    hasHost: false,
+    instructorId: 'i2'
+  });
+  sandbox.jobDataCache = { walk: {}, fest: {} };
+  const keys = (s) => [...sandbox.preClassTaskList(s)].map((t) => t.key);
+  assert.deepEqual(keys(walk), ['materialsSent', 'instrReminderSent']);
+  assert.deepEqual(keys(fest), ['materialsSent', 'instrReminderSent']);
+  assert.equal(sandbox.preClassMaterialsLabel(walk), 'Put out materials for the instructor');
+  assert.equal(sandbox.preClassInstrReminderLabel(walk), 'Send reminder to instructor');
+  assert.equal(sandbox.preClassShowsStudentCount(walk), false);
+  assert.equal(sandbox.preClassShowsStudentCount(fest), false);
+
+  const klass = sess('ss', '2026-10-16', { isCustomJob: false, hasHost: true, instructorId: 'i1' });
+  sandbox.jobDataCache.ss = {};
+  assert.deepEqual(keys(klass), ['materialsSent', 'instrReminderSent', 'hostReminderSent', 'classReminderSent']);
+  assert.equal(sandbox.preClassMaterialsLabel(klass), 'Put out handbooks &amp; supplies');
+  assert.equal(sandbox.preClassInstrReminderLabel(klass), 'Send reminder + roster to instructor');
+  assert.equal(sandbox.preClassShowsStudentCount(klass), true);
+
+  // Host and family flags do not keep a custom job on the card. The materials
+  // checkbox is the owner's own reminder, and it uses the same flag as before.
+  sandbox.jobDataCache.walk = { materialsSent: true, instrReminderSent: true };
+  assert.equal(sandbox.preClassChecklistDone(walk), true);
+  sandbox.jobDataCache.walk = {
+    materialsSent: false,
+    instrReminderSent: true,
+    hostReminderSent: true,
+    classReminderSent: true
+  };
+  assert.equal(sandbox.preClassChecklistDone(walk), false);
+  assert.equal(sandbox.preClassTaskList(walk)[0].done, false);
+
+  const today = new Date(2026, 9, 9);
+  sandbox.jobDataCache.walk = { materialsSent: true, instrReminderSent: false };
+  assert.deepEqual(sandbox.dashChecklistSessions([walk, fest], today).map((s) => s.id), ['walk', 'fest']);
+  sandbox.jobDataCache.fest = { materialsSent: true, instrReminderSent: true };
+  assert.deepEqual(sandbox.dashChecklistSessions([walk, fest], today).map((s) => s.id), ['walk']);
+
+  const ownerBooth = sess('booth', '2026-10-17', {
+    course: 'Represent us at a booth',
+    isCustomJob: true,
+    ownerTaught: true,
+    instructorId: null,
+    hasHost: false
+  });
+  sandbox.jobDataCache.booth = {};
+  assert.deepEqual(keys(ownerBooth), ['materialsSent']);
+  sandbox.jobDataCache.booth = { materialsSent: true };
+  assert.equal(sandbox.preClassChecklistDone(ownerBooth), true);
 });
