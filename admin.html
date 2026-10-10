@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261008-admin-review';
+window.MB_ADMIN_BUILD='20261010-lockbox-session';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -185,7 +185,7 @@ tr:hover td{background:#fafbfd}
 .row-menu-item.danger:hover{background:var(--danger-bg)}
 .row-menu-item.sep{border-top:1px solid var(--border);margin-top:4px;padding-top:11px}
 .form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-.fg{display:flex;flex-direction:column;gap:4px}
+.fg{display:flex;flex-direction:column;gap:4px;min-width:0}
 .fg.full{grid-column:1/-1}
 .fg label{font-size:15px;font-weight:500;color:var(--muted)}
 .fg input,.fg select,.fg textarea{padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s}
@@ -217,6 +217,27 @@ tr:hover td{background:#fafbfd}
 .modal-body{padding:18px 22px}
 .modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
 .modal.about-modal{width:640px}
+
+.lockbox{background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:12px 14px;margin:0 0 12px}
+.lockbox-label{display:flex;align-items:flex-start;gap:10px;margin:0;font-size:16px;font-weight:650;color:var(--text);cursor:pointer;line-height:1.35}
+.lockbox-label input{width:18px;height:18px;margin-top:2px;accent-color:var(--success);cursor:pointer;flex:none}
+.lockbox-when{margin:4px 0 0 28px;font-size:14px;color:var(--muted);line-height:1.4}
+.lockbox-hint{margin:2px 0 0 28px;font-size:14px;color:var(--muted);line-height:1.45}
+.lockbox-dash-when{font-weight:400;color:var(--muted)}
+.sess-fold{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--r-sm);background:#fff;min-width:0;margin:0 0 10px}
+.sess-fold:last-child{margin-bottom:0}
+@media(min-width:769px){
+  .modal:has(.sess-fold){width:680px}
+}
+.sess-fold>summary{cursor:pointer;list-style:none;padding:11px 14px;font-weight:650;font-size:16px;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sess-fold>summary::-webkit-details-marker{display:none}
+.sess-fold>summary:after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);flex:none;margin-top:-4px}
+.sess-fold[open]>summary{border-bottom:1px solid var(--border)}
+.sess-fold[open]>summary:after{transform:rotate(-135deg);margin-top:4px}
+.sess-fold-body{padding:12px 12px 4px;min-width:0}
+.row-menu-more{border-top:1px solid var(--border);margin-top:4px;padding-top:4px}
+.row-menu-more>summary{cursor:pointer;list-style:none;padding:9px 12px;font-size:16px;font-weight:500;color:var(--muted)}
+.row-menu-more>summary::-webkit-details-marker{display:none}
 .about-title{font-family:'DM Serif Display',serif;font-size:22px;line-height:1.25;color:var(--navy)}
 .about-block{padding:14px 0 2px;border-top:1px solid var(--border);margin-top:14px}
 .about-kicker{font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
@@ -337,6 +358,13 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
   .nav-icon{display:none}
   .sidebar-footer{display:none}
   .main-content{margin-left:0;margin-top:56px;padding:20px 16px;max-width:100%}
+  .form-grid{grid-template-columns:minmax(0,1fr)}
+  .fg{min-width:0}
+  .fg input,.fg select,.fg textarea{max-width:100%}
+  .modal-bg{padding:12px 10px 0}
+  .modal,.modal.about-modal{width:100%;max-width:100%;max-height:calc(100vh - 12px)}
+  .modal-body{padding:14px}
+  .fg label,.lockbox,.lockbox-hint,.sess-fold>summary{overflow-wrap:anywhere}
 }
 </style>
 </head>
@@ -952,10 +980,15 @@ function instructorToDB(i){
   return row;
 }
 function jobFromDB(r){
-  return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',repNotified:r.rep_notified||false,parentLetterSent:r.parent_letter_sent||false,instrFollowupSent:r.instr_followup_sent||false,instrReminderSent:r.instr_reminder_sent||false,hostReminderSent:r.host_reminder_sent||false,classReminderSent:r.class_reminder_sent||false,evalSentToHost:r.eval_sent_to_host||false,referralBonus:r.referral_bonus||0,secondInstrPaid:r.second_instr_paid||false,secondInstrPayDate:r.second_instr_pay_date||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee),secondInstrPaidFee:r.second_instr_paid_fee==null?null:Number(r.second_instr_paid_fee)};
+  return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,materialsSentAt:r.materials_sent_at||null,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',repNotified:r.rep_notified||false,parentLetterSent:r.parent_letter_sent||false,instrFollowupSent:r.instr_followup_sent||false,instrReminderSent:r.instr_reminder_sent||false,hostReminderSent:r.host_reminder_sent||false,classReminderSent:r.class_reminder_sent||false,evalSentToHost:r.eval_sent_to_host||false,referralBonus:r.referral_bonus||0,secondInstrPaid:r.second_instr_paid||false,secondInstrPayDate:r.second_instr_pay_date||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee),secondInstrPaidFee:r.second_instr_paid_fee==null?null:Number(r.second_instr_paid_fee)};
 }
+let MATERIALS_SENT_AT_COL=true;
 function jobToDB(sessId,j){
-  return{session_id:sessId,instructor_id:j.instructorId||null,waitlist:j.waitlist||[],materials_method:j.materialsMethod||null,materials_sent:j.materialsSent||false,eval_received:j.evalReceived||false,pay_status:j.payStatus||null,pay_date:j.payDate||null,notes:j.notes||'',rep_notified:j.repNotified||false,parent_letter_sent:j.parentLetterSent||false,instr_followup_sent:j.instrFollowupSent||false,instr_reminder_sent:j.instrReminderSent||false,host_reminder_sent:j.hostReminderSent||false,class_reminder_sent:j.classReminderSent||false,eval_sent_to_host:j.evalSentToHost||false,referral_bonus:j.referralBonus||0,second_instr_paid:j.secondInstrPaid||false,second_instr_pay_date:j.secondInstrPayDate||null,paid_fee:j.paidFee==null?null:Number(j.paidFee),second_instr_paid_fee:j.secondInstrPaidFee==null?null:Number(j.secondInstrPaidFee)};
+  const row={session_id:sessId,instructor_id:j.instructorId||null,waitlist:j.waitlist||[],materials_method:j.materialsMethod||null,materials_sent:j.materialsSent||false,eval_received:j.evalReceived||false,pay_status:j.payStatus||null,pay_date:j.payDate||null,notes:j.notes||'',rep_notified:j.repNotified||false,parent_letter_sent:j.parentLetterSent||false,instr_followup_sent:j.instrFollowupSent||false,instr_reminder_sent:j.instrReminderSent||false,host_reminder_sent:j.hostReminderSent||false,class_reminder_sent:j.classReminderSent||false,eval_sent_to_host:j.evalSentToHost||false,referral_bonus:j.referralBonus||0,second_instr_paid:j.secondInstrPaid||false,second_instr_pay_date:j.secondInstrPayDate||null,paid_fee:j.paidFee==null?null:Number(j.paidFee),second_instr_paid_fee:j.secondInstrPaidFee==null?null:Number(j.secondInstrPaidFee)};
+  // Same checkbox as materials_sent. The time is omitted until
+  // migrations/materials_lockbox.sql has been run, so the check-off still saves.
+  if(MATERIALS_SENT_AT_COL)row.materials_sent_at=j.materialsSent?(j.materialsSentAt||null):null;
+  return row;
 }
 // Equipment inventory (reusable teaching kits: manikins, AV kits) and their checkouts.
 // A checkout can bundle several items ({equipmentId, qty} pairs in the items jsonb),
@@ -1743,6 +1776,12 @@ async function upsertJobData(sessId){
     return false;
   }
   if(res&&res.error){
+    const raw=String(res.error.message||'');
+    if(MATERIALS_SENT_AT_COL&&/materials_sent_at/i.test(raw)){
+      MATERIALS_SENT_AT_COL=false;
+      showToast('⚠️ The check-off will save, but the checked time needs a database column. Run migrations/materials_lockbox.sql in the Supabase SQL editor.');
+      return upsertJobData(sessId);
+    }
     console.error('Failed to save job data (database rejected):',res.error,'\nPayload:',payload);
     const msg=(res.error.message||'database error').slice(0,90);
     showToast('⚠️ Did not save: '+msg+'. See console for details.');
@@ -2604,7 +2643,13 @@ function updateRnNotice(){
   const rnBox=document.getElementById('m-rnonly');
   if(sel&&rnBox){
     const courseRn=!!((COURSES[sel.value]||{}).requiresRN);
-    if(courseRn)rnBox.checked=true;
+    if(courseRn){
+      rnBox.checked=true;
+      const row=document.getElementById('m-rn-row');
+      if(row)row.style.display=row.getAttribute('data-show')||'flex';
+      const reveal=document.getElementById('m-rn-reveal');
+      if(reveal)reveal.style.display='none';
+    }
     rnBox.disabled=courseRn;
   }
   if(!sel||!note)return;
@@ -5471,7 +5516,8 @@ function renderDashboard(){
           </label>${btn||''}</div>`;
         const sendBtn=(onclick,emoji,color,bg,border)=>`<button onclick="${onclick}" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid ${border};background:${bg};color:${color};cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;flex-shrink:0">${emoji} Send</button>`;
         const items=[];
-        items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,preClassMaterialsLabel(s),''));
+        const matStamp=materialsCheckedStamp(jd);
+        items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,preClassMaterialsLabel(s)+(matStamp?` <span class="lockbox-dash-when">${escapeHtml(matStamp)}</span>`:''),''));
         if(hasInstr)items.push(item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,preClassInstrReminderLabel(s),sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee')));
         if(!custom&&hasHost)items.push(item(!!jd.hostReminderSent,`toggleReminderFlag('${s.id}','hostReminderSent',this.checked)`,'Host reminder — 1 week before',sendBtn(`openHostReminder('${s.id}')`,'📬','#b86a00','#fff7e6','#f0d090')));
         if(!custom)items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Family reminder — before class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
@@ -5756,6 +5802,50 @@ function renderSessions(){
   renderDupeBanner();
 }
 
+
+// "Materials in lock box" is the same materialsSent flag as the dashboard
+// checklist (Put out handbooks & supplies / Put out materials for the instructor).
+function materialsCheckedStamp(jd){
+  if(!jd||!jd.materialsSent)return '';
+  const raw=jd.materialsSentAt;
+  if(!raw)return 'Checked';
+  const dt=new Date(raw);
+  if(isNaN(dt.getTime()))return 'Checked';
+  return 'Checked '+dt.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+}
+function paintLockboxRow(sessId){
+  const box=document.getElementById('sess-lockbox');
+  if(!box||box.getAttribute('data-sess')!==sessId)return;
+  const jd=(jobDataCache&&jobDataCache[sessId])||{};
+  box.checked=!!jd.materialsSent;
+  const when=document.getElementById('lockbox-when');
+  if(when)when.textContent=jd.materialsSent?(materialsCheckedStamp(jd)||'Checked'):'Not checked yet';
+}
+function lockboxFieldHtml(s){
+  if(!s||!s.id)return '';
+  const jd=(typeof jobDataCache!=='undefined'&&jobDataCache&&jobDataCache[s.id])||{};
+  const stamp=materialsCheckedStamp(jd);
+  return `<div class="lockbox" id="lockbox-panel">
+    <label class="lockbox-label">
+      <input type="checkbox" id="sess-lockbox" data-sess="${s.id}" ${jd.materialsSent?'checked':''} onchange="toggleMaterialsLockbox('${s.id}',this.checked)">
+      <span>Materials in lock box</span>
+    </label>
+    <div class="lockbox-when" id="lockbox-when">${stamp?escapeHtml(stamp):'Not checked yet'}</div>
+    <div class="lockbox-hint">Same check-off as the dashboard (${preClassMaterialsLabel(s)}).</div>
+  </div>`;
+}
+function revealTeachLimit(rowId,btnId,foldId){
+  const row=document.getElementById(rowId);
+  if(row)row.style.display=row.getAttribute('data-show')||'block';
+  const btn=document.getElementById(btnId);
+  if(btn)btn.style.display='none';
+  const fold=foldId?document.getElementById(foldId):null;
+  if(fold)fold.open=true;
+}
+function isSessionFamilyAction(label){
+  return /Roster|Email class|Add student|Host reminder|Email for families|Registrations|Host letter|Copy registration|Copy text/.test(String(label||''));
+}
+
 // ─── PER-ROW ACTIONS MENU ────────────────────────────────────
 // Collapses the session row actions into one compact "Manage ▾" popover so the
 // table stays narrow and fits on screen. Uses position:fixed so it is never
@@ -5859,6 +5949,19 @@ function openSessionMenu(ev,sessId){
   items.push({label:'✏️ Edit session',act:`openEditSession('${sessId}')`,sep:true});
   items.push({label:'🗑 Delete',act:`deleteSession('${sessId}')`,danger:true});
 
+  // Custom jobs have no class roster. Family, host, and student actions stay
+  // available under More actions so nothing is removed.
+  const moreItems=[];
+  if(s.isCustomJob){
+    const keep=[];
+    items.forEach(function(it){
+      if(isSessionFamilyAction(it.label))moreItems.push(it);
+      else keep.push(it);
+    });
+    items.length=0;
+    keep.forEach(function(it){items.push(it);});
+  }
+
   const btn=ev.currentTarget;
   btn.setAttribute('aria-expanded','true');
   btn.setAttribute('aria-controls','session-row-menu');
@@ -5869,7 +5972,12 @@ function openSessionMenu(ev,sessId){
   menu.setAttribute('role','menu');
   menu.setAttribute('aria-label','Session actions');
   menu.dataset.sess=sessId;
-  menu.innerHTML=items.map(it=>`<button type="button" class="row-menu-item${it.danger?' danger':''}${it.sep?' sep':''}" role="menuitem" onclick="closeSessionMenu({returnFocus:false});${it.act}">${it.label}</button>`).join('');
+  const menuItemHtml=it=>`<button type="button" class="row-menu-item${it.danger?' danger':''}${it.sep?' sep':''}" role="menuitem" onclick="closeSessionMenu({returnFocus:false});${it.act}">${it.label}</button>`;
+  const sepAt=items.findIndex(function(it){return it.sep;});
+  const head=sepAt<0?items:items.slice(0,sepAt);
+  const tail=sepAt<0?[]:items.slice(sepAt);
+  const moreHtml=moreItems.length?`<details class="row-menu-more"><summary>More actions</summary>${moreItems.map(menuItemHtml).join('')}</details>`:'';
+  menu.innerHTML=head.map(menuItemHtml).join('')+moreHtml+tail.map(menuItemHtml).join('');
   document.body.appendChild(menu);
   // Position under the button, flipping up/left when near a screen edge.
   const r=btn.getBoundingClientRect();
@@ -6030,7 +6138,7 @@ function openSessionAbout(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
   const editLabel=s.isCustomJob?'Edit job':'Edit session';
   showModal(`<div class="modal-head"><h3>About</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-  <div class="modal-body">${sessionAboutBodyHtml(s)}</div>
+  <div class="modal-body">${lockboxFieldHtml(s)}${sessionAboutBodyHtml(s)}</div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Close</button><button class="btn primary" onclick="openEditSession('${s.id}')">${editLabel}</button></div>`);
   const box=document.querySelector('#modal-root .modal');
   if(box)box.classList.add('about-modal');
@@ -6711,8 +6819,63 @@ function openEditCustomJob(id){
   _editClosures=JSON.parse(JSON.stringify(s.closures||[]));
   loadEditCosts(s.additionalCosts);
   showModal(`<div class="modal-head"><h3>Edit custom job</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-  <div class="modal-body"><div class="form-grid">
+  <div class="modal-body">
+${lockboxFieldHtml(s)}
+<details class="sess-fold" open><summary>Basics</summary><div class="sess-fold-body form-grid">
     <div class="fg full"><label>Job title *</label><input type="text" id="cj-title" value="${s.course||''}"></div>
+    <div class="fg"><label>Date <span id="cj-date-req">${s.isHold?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'* <span style="font-weight:400;color:var(--muted)">(first meeting if recurring)</span>'}</span></label><input type="date" id="cj-date" value="${s.date||''}"></div>
+    <div class="fg"><label>Time</label><input type="text" id="cj-time" value="${s.time||''}" placeholder="e.g. 4:00 – 5:00 PM"></div>
+    <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" value="${s.location||''}"></div>
+    <div class="fg full"><label>Street Address</label><input type="text" id="cj-addr" value="${s.hostAddress||''}"></div>
+    <div class="fg"><label>City</label><input type="text" id="cj-city" value="${s.city||''}"></div>
+    <div class="fg"><label>State</label><input type="text" id="cj-state" value="${s.state||''}" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="fg"><label>Zip</label><input type="text" id="cj-zip" value="${s.zip||''}" maxlength="10"></div>
+    <div class="fg"><label>On-site contact name</label><input type="text" id="cj-cname" value="${escapeHtml(s.contactName||'')}" placeholder="e.g. Dana Rivera, site coordinator"></div>
+    <div class="fg"><label>On-site contact phone</label><input type="text" id="cj-cphone" value="${escapeHtml(s.hostPhone||'')}" placeholder="e.g. 301-555-0142"></div>
+    <div class="fg full" style="margin-top:-4px;font-size:14px;color:var(--muted)">Who the instructor calls or checks in with on the day. This appears on the job details and in the instructor assignment email.</div>
+</div></details>
+<details class="sess-fold" id="sess-job-instr" open><summary>Instructor &amp; pay</summary><div class="sess-fold-body form-grid">
+    <div class="fg full"><label>Total pay for this job *</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px;color:var(--muted)">$</span>
+        <input type="number" id="cj-pay" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="e.g. 150" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+      </div>
+    </div>
+    <div class="fg full"><label>What the organization pays you <span style="font-weight:400;color:var(--muted)">(optional — counted as revenue)</span></label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px;color:var(--muted)">$</span>
+        <input type="number" id="cj-orgfee" value="${s.priceOverride!=null&&s.priceOverride!==0?s.priceOverride:''}" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+      </div>
+      ${feeReceivedBoxHtml(s,'cj-fee-received')}
+      ${customJobSplitHintHtml()}
+    </div>
+    <div class="fg full"><label>Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — name the partner here to invoice them at month end; the amount above becomes the invoice line)</span></label>
+      <input type="text" id="cj-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. Girls on the Run">
+      ${orgDatalistHtml()}
+    </div>
+    <div class="fg full"><label>Assign to instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
+      <select id="cj-instr" style="width:100%"><option value="">— Post as open job —</option></select>
+    </div>
+    <div id="cj-cred-row" class="fg full" data-show="block" style="display:${(s.requiresRN||s.requiresSS)?'block':'none'}">
+    <div class="fg full" style="background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="cj-rnonly" ${s.requiresRN?'checked':''} onchange="updateCjCredNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
+        🩺 RN instructors only
+      </label>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Restrict this job to instructors marked <strong>Registered Nurse (RN)</strong> in their profile. Leave unchecked and every instructor sees it on their board.</div>
+      <div id="cj-rn-notice" style="display:none;margin-top:8px;padding:8px 10px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:14px;line-height:1.5"></div>
+    </div>
+    <div class="fg full" style="background:#eef3f8;border:1px solid #c2d6e6;border-radius:var(--r-sm);padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="cj-ssonly" ${s.requiresSS?'checked':''} onchange="updateCjCredNotice()" style="width:16px;height:16px;accent-color:#1a5c8a;cursor:pointer">
+        🧒 Safe Sitter® instructors only
+      </label>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Restrict this job to instructors marked <strong>Safe Sitter® certified</strong> in their profile. Leave unchecked and every instructor sees it on their board.</div>
+      <div id="cj-ss-notice" style="display:none;margin-top:8px;padding:8px 10px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:14px;line-height:1.5"></div>
+    </div>
+    </div>
+</div></details>
+<details class="sess-fold"><summary>More options</summary><div class="sess-fold-body form-grid">
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
         <input type="checkbox" id="cj-hold" ${s.isHold?'checked':''} onchange="toggleCustomHoldMode(this.checked)" style="width:16px;height:16px;cursor:pointer">
@@ -6727,8 +6890,6 @@ function openEditCustomJob(id){
         </div>
       </div>
     </div>
-    <div class="fg"><label>Date <span id="cj-date-req">${s.isHold?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'* <span style="font-weight:400;color:var(--muted)">(first meeting if recurring)</span>'}</span></label><input type="date" id="cj-date" value="${s.date||''}"></div>
-    <div class="fg"><label>Time</label><input type="text" id="cj-time" value="${s.time||''}" placeholder="e.g. 4:00 – 5:00 PM"></div>
     <div class="fg full" style="background:#f3f7fb;border:1px solid #d6e4f0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:16px;text-transform:none;letter-spacing:0"><input type="checkbox" id="cj-recur" ${s.isRecurring?'checked':''} onchange="toggleRecurFields(this.checked)" style="width:16px;height:16px;accent-color:#1a5c8a;cursor:pointer"> <span style="font-weight:500">↻ This is a recurring job</span> <span style="font-weight:400;color:var(--muted)">(meets more than once, e.g. weekly)</span></label>
       <div id="cj-recur-fields" style="display:${s.isRecurring?'grid':'none'};grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
@@ -6764,55 +6925,10 @@ function openEditCustomJob(id){
       </div>
       <div id="closures-list"></div>
     </div>
-    <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" value="${s.location||''}"></div>
-    <div class="fg full"><label>Street Address</label><input type="text" id="cj-addr" value="${s.hostAddress||''}"></div>
-    <div class="fg"><label>City</label><input type="text" id="cj-city" value="${s.city||''}"></div>
-    <div class="fg"><label>State</label><input type="text" id="cj-state" value="${s.state||''}" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
-    <div class="fg"><label>Zip</label><input type="text" id="cj-zip" value="${s.zip||''}" maxlength="10"></div>
-    <div class="fg"><label>On-site contact name</label><input type="text" id="cj-cname" value="${escapeHtml(s.contactName||'')}" placeholder="e.g. Dana Rivera, site coordinator"></div>
-    <div class="fg"><label>On-site contact phone</label><input type="text" id="cj-cphone" value="${escapeHtml(s.hostPhone||'')}" placeholder="e.g. 301-555-0142"></div>
-    <div class="fg full" style="margin-top:-4px;font-size:14px;color:var(--muted)">Who the instructor calls or checks in with on the day. This appears on the job details and in the instructor assignment email.</div>
     <div class="fg full"><label>Session code <span style="font-weight:400;color:var(--muted)">(this is what parents type to register — clear it to regenerate)</span></label>
       <input type="text" id="cj-code" value="${escapeHtml(s.code||'')}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
-    <div class="fg full"><label>Total pay for this job *</label>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:18px;color:var(--muted)">$</span>
-        <input type="number" id="cj-pay" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="e.g. 150" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
-      </div>
-    </div>
-    <div class="fg full"><label>What the organization pays you <span style="font-weight:400;color:var(--muted)">(optional — counted as revenue)</span></label>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:18px;color:var(--muted)">$</span>
-        <input type="number" id="cj-orgfee" value="${s.priceOverride!=null&&s.priceOverride!==0?s.priceOverride:''}" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
-      </div>
-      ${feeReceivedBoxHtml(s,'cj-fee-received')}
-      ${customJobSplitHintHtml()}
-    </div>
-    <div class="fg full"><label>Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — name the partner here to invoice them at month end; the amount above becomes the invoice line)</span></label>
-      <input type="text" id="cj-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. Girls on the Run">
-      ${orgDatalistHtml()}
-    </div>
     ${sessionCostsFieldHtml()}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
-    <div class="fg full" style="background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:10px 12px">
-      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
-        <input type="checkbox" id="cj-rnonly" ${s.requiresRN?'checked':''} onchange="updateCjCredNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
-        🩺 RN instructors only
-      </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Restrict this job to instructors marked <strong>Registered Nurse (RN)</strong> in their profile. Leave unchecked and every instructor sees it on their board.</div>
-      <div id="cj-rn-notice" style="display:none;margin-top:8px;padding:8px 10px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:14px;line-height:1.5"></div>
-    </div>
-    <div class="fg full" style="background:#eef3f8;border:1px solid #c2d6e6;border-radius:var(--r-sm);padding:10px 12px">
-      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
-        <input type="checkbox" id="cj-ssonly" ${s.requiresSS?'checked':''} onchange="updateCjCredNotice()" style="width:16px;height:16px;accent-color:#1a5c8a;cursor:pointer">
-        🧒 Safe Sitter® instructors only
-      </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Restrict this job to instructors marked <strong>Safe Sitter® certified</strong> in their profile. Leave unchecked and every instructor sees it on their board.</div>
-      <div id="cj-ss-notice" style="display:none;margin-top:8px;padding:8px 10px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:14px;line-height:1.5"></div>
-    </div>
-    <div class="fg full"><label>Assign to instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
-      <select id="cj-instr" style="width:100%"><option value="">— Post as open job —</option></select>
-    </div>
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="cj-waitlist" ${s.allowWaitlist!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
@@ -6820,11 +6936,15 @@ function openEditCustomJob(id){
       </label>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">After someone claims the job, other instructors see a Taken card until one person joins the waitlist — then that Taken card disappears for everyone else (instructors already on the waitlist still see it). If the waitlist empties again, the Taken card comes back. Uncheck this to hide the job from everyone else as soon as it is claimed, with no Taken card and no waitlist button.</div>
     </div>
+    <div class="fg full" id="cj-cred-reveal" style="display:${(s.requiresRN||s.requiresSS)?'none':'block'}">
+      <button type="button" class="btn sm" onclick="revealTeachLimit('cj-cred-row','cj-cred-reveal','sess-job-instr')">Limit who can teach</button>
+    </div>
     ${externalRegistrationFieldHtml(s)}
     <div class="fg full"><label>Notes / job description</label>
       <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea></div>
     ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
-  </div></div>
+</div></details>
+  </div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveEditCustomJob('${id}')">Save changes</button></div>`);
   renderEditDates();renderEditClosures();renderEditCosts();
   fillCjInstrSelect(jdi.instructorId||s.instructorId||'');updateCjCredNotice();
@@ -6991,7 +7111,9 @@ function openEditSession(id){
   _editClosures=JSON.parse(JSON.stringify(s.closures||[]));
   _pricingCtxCreatedAt=s.createdAt??null; // existing session → keep the price table it was created under
   showModal(`<div class="modal-head"><h3>Edit session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-  <div class="modal-body"><div class="form-grid">
+  <div class="modal-body">
+${lockboxFieldHtml(s)}
+<details class="sess-fold" open><summary>Basics</summary><div class="sess-fold-body form-grid">
     <div class="fg full"><label>Course</label>
       <select id="m-course">
         <option ${s.course==='Safe Sitter®'?'selected':''}>Safe Sitter®</option>
@@ -7018,12 +7140,67 @@ function openEditSession(id){
         ${['Safe Sitter®','Intro to Babysitting','Safe@Home','Safe@Home — Virtual','Safe@Home — Series','Grandparents: Getting Started','Care Ready','Baby Ready','All Kids Welcome','Stay Ready: Choking Rescue and CPR','Campus Ready: Safety Skills for College Life','Steady and Ready','My First Babysitters Club','My First Babysitters Club — Single Session','Ready. Period.','Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes','Social Ready','Girl Scouts — First Aid Badge Workshop','Girl Scout Badge Class',"Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED",'Adult & Pediatric First Aid/CPR/AED Certification'].includes(s.course)?'':`<option selected>${escapeHtml(s.course||'')}</option>`}
       </select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div>
+    </div>
+    <div class="fg"><label>Date <span id="m-date-req">${s.isHold?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'*'}</span></label><input type="date" id="m-date" value="${s.date}"></div>
+    <div class="fg"><label>Time</label><input type="text" id="m-time" value="${s.time||''}"></div>
+    <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" value="${s.location||''}"></div>
+    <div class="fg full">
+      <label>Session format</label>
+      <select id="m-virtual" onchange="toggleVirtualFields(this.value)">
+        <option value="no" ${!s.isVirtual?'selected':''}>In-person</option>
+        <option value="yes" ${s.isVirtual?'selected':''}>Virtual (Zoom)</option>
+      </select>
+    </div>
+    <div class="fg full" id="m-zoom-wrap" style="display:${s.isVirtual?'flex':'none'}">
+      <label>Zoom link <span style="font-weight:400;color:var(--muted)">(sent to registered families)</span></label>
+      <input type="text" id="m-zoom" value="${s.zoomLink||''}" placeholder="e.g. https://zoom.us/j/123456789">
+    </div>
+</div></details>
+<details class="sess-fold" id="sess-instr-fold" open><summary>Instructor &amp; pay</summary><div class="sess-fold-body form-grid">
+    <div class="fg full"><label>Instructor</label>
+      <select id="m-owner" onchange="toggleInstrSelect(this.value)"><option value="no" ${!s.ownerTaught?'selected':''}>Hired instructor</option><option value="yes" ${s.ownerTaught?'selected':''}>You are teaching</option></select></div>
+    <div class="fg full" id="m-instr-wrap" style="margin-top:-4px;display:${s.ownerTaught?'none':'flex'}">
+      <label>Pre-assign instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
+      <select id="m-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option>${instrPickList(assignedInstrId).map(i=>`<option value="${i.id}" ${assignedInstrId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}${instrInactiveMark(i)}</option>`).join('')}</select>
+    </div>
+    <div class="fg full" id="m-instr2-wrap" style="margin-top:-4px">
+      <label id="m-instr2-label">Second instructor <span style="font-weight:400;color:var(--muted)">(optional — for large classes needing two instructors)</span></label>
+      <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option>${instrPickList(s.secondInstructorId).map(i=>`<option value="${i.id}" ${s.secondInstructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}${instrInactiveMark(i)}</option>`).join('')}</select>
+    </div>
+    <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee of ${fmt(usualInstrPayAmount(s.course,s.isVirtual))})</span></label>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:16px;color:var(--muted)">$</span>
+        <input type="number" id="m-instr-pay-override" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="Default: ${usualInstrPayAmount(s.course,s.isVirtual)}" min="0" step="1" oninput="updateInstrPayPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
+      </div>
+    </div>
+    <div id="m-rn-row" class="fg full" data-show="flex" style="display:${(s.requiresRN||(COURSES[s.course]||{}).requiresRN)?'flex':'none'}">
       <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="m-rnonly" ${s.requiresRN?'checked':''} onchange="updateRnNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
         RN instructors only
       </label>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Any job can be limited to registered nurses. Instructors who are not RNs will not see it on Open Jobs and cannot claim it. Courses that are already RN-only stay checked.</div>
+    </div>
+</div></details>
+<details class="sess-fold" open><summary>Host &amp; families</summary><div class="sess-fold-body form-grid">
+    <div class="fg full" style="display:${s.isVirtual?'none':'flex'}"><label>Street Address</label><input type="text" id="m-haddr" value="${s.hostAddress||''}"></div>
+    <div class="fg" style="display:${s.isVirtual?'none':'flex'}"><label>City</label><input type="text" id="m-city" value="${s.city||''}"></div>
+    <div class="fg" style="display:${s.isVirtual?'none':'flex'}"><label>State</label><input type="text" id="m-state" value="${s.state||''}" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="fg" style="display:${s.isVirtual?'none':'flex'}"><label>Zip</label><input type="text" id="m-zip" value="${s.zip||''}" maxlength="10"></div>
+    <div class="fg"><label>Contact Name</label><input type="text" id="m-cname" value="${s.contactName||''}"></div>
+    <div class="fg"><label>Contact Phone / Email</label><input type="text" id="m-hphone" value="${s.hostPhone||''}"></div>
+    <div class="fg full"><label>Host registration</label>
+      <select id="m-hashost"><option value="yes" ${s.hasHost!==false?'selected':''}>Allow host registration (private home)</option><option value="no" ${s.hasHost===false?'selected':''}>No host — public venue</option></select></div>
+    <div class="fg full"><label>Family price at registration <span style="font-weight:400;color:var(--muted)">(charged at checkout only — not the organization bill. Leave blank to use the course default of $${getCoursePrice(s.course,s.date,s.createdAt)})</span></label>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:16px;color:var(--muted)">$</span>
+        <input type="number" id="m-price-override" value="${s.priceOverride!=null?s.priceOverride:''}" placeholder="Default: ${getCoursePrice(s.course,s.date,s.createdAt)}" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <span id="m-price-preview" style="font-size:15px;font-weight:500"></span>
       </div>
+    </div>
+    ${orgBillingFieldsHtml(s)}
+</div></details>
+<details class="sess-fold"><summary>More options</summary><div class="sess-fold-body form-grid">
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
         <input type="checkbox" id="m-hold" ${s.isHold?'checked':''} onchange="toggleHoldMode(this.checked)" style="width:16px;height:16px;cursor:pointer">
@@ -7038,8 +7215,6 @@ function openEditSession(id){
         </div>
       </div>
     </div>
-    <div class="fg"><label>Date <span id="m-date-req">${s.isHold?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'*'}</span></label><input type="date" id="m-date" value="${s.date}"></div>
-    <div class="fg"><label>Time</label><input type="text" id="m-time" value="${s.time||''}"></div>
     <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <label style="margin-bottom:0">Additional class days <span style="font-weight:400;color:var(--muted)">(optional — for courses that meet more than once)</span></label>
@@ -7059,24 +7234,7 @@ function openEditSession(id){
       <div id="closures-list"></div>
       <div style="font-size:14px;color:var(--muted);margin-top:6px">Instructors see these on the job board so they know exactly which weeks are off before accepting.</div>
     </div>
-    <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" value="${s.location||''}"></div>
-    <div class="fg full" style="display:${s.isVirtual?'none':'flex'}"><label>Street Address</label><input type="text" id="m-haddr" value="${s.hostAddress||''}"></div>
-    <div class="fg" style="display:${s.isVirtual?'none':'flex'}"><label>City</label><input type="text" id="m-city" value="${s.city||''}"></div>
-    <div class="fg" style="display:${s.isVirtual?'none':'flex'}"><label>State</label><input type="text" id="m-state" value="${s.state||''}" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
-    <div class="fg" style="display:${s.isVirtual?'none':'flex'}"><label>Zip</label><input type="text" id="m-zip" value="${s.zip||''}" maxlength="10"></div>
-    <div class="fg"><label>Contact Name</label><input type="text" id="m-cname" value="${s.contactName||''}"></div>
-    <div class="fg"><label>Contact Phone / Email</label><input type="text" id="m-hphone" value="${s.hostPhone||''}"></div>
     <div class="fg full"><label>Session code</label><input type="text" id="m-code" value="${s.code}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
-    <div class="fg full"><label>Instructor</label>
-      <select id="m-owner" onchange="toggleInstrSelect(this.value)"><option value="no" ${!s.ownerTaught?'selected':''}>Hired instructor</option><option value="yes" ${s.ownerTaught?'selected':''}>You are teaching</option></select></div>
-    <div class="fg full" id="m-instr-wrap" style="margin-top:-4px;display:${s.ownerTaught?'none':'flex'}">
-      <label>Pre-assign instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
-      <select id="m-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option>${instrPickList(assignedInstrId).map(i=>`<option value="${i.id}" ${assignedInstrId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}${instrInactiveMark(i)}</option>`).join('')}</select>
-    </div>
-    <div class="fg full" id="m-instr2-wrap" style="margin-top:-4px">
-      <label id="m-instr2-label">Second instructor <span style="font-weight:400;color:var(--muted)">(optional — for large classes needing two instructors)</span></label>
-      <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option>${instrPickList(s.secondInstructorId).map(i=>`<option value="${i.id}" ${s.secondInstructorId===i.id?'selected':''}>${instrSortName(i.name)}${instrEligMark(i,s.course)}${instrInactiveMark(i)}</option>`).join('')}</select>
-    </div>
     ${sessionMaterialsPanelHtml()}
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
@@ -7091,37 +7249,9 @@ function openEditSession(id){
         ${s.maxStudentsOverride?`<span style="font-size:15px;color:var(--warn)">⚠ Capacity overridden to ${s.maxStudentsOverride} (default is ${(COURSES[s.course]||{maxStudents:8}).maxStudents})</span>`:`<span style="font-size:15px;color:var(--muted)">Course default: ${(COURSES[s.course]||{maxStudents:8}).maxStudents}</span>`}
       </div>
     </div>
-    <div class="fg full"><label>Host registration</label>
-      <select id="m-hashost"><option value="yes" ${s.hasHost!==false?'selected':''}>Allow host registration (private home)</option><option value="no" ${s.hasHost===false?'selected':''}>No host — public venue</option></select></div>
     <div class="fg full"><label>WiFi info <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="m-wifi" value="${s.wifiInfo||''}" placeholder="e.g. Network: HomeWifi · Password: abc123"></div>
-    <div class="fg full">
-      <label>Session format</label>
-      <select id="m-virtual" onchange="toggleVirtualFields(this.value)">
-        <option value="no" ${!s.isVirtual?'selected':''}>In-person</option>
-        <option value="yes" ${s.isVirtual?'selected':''}>Virtual (Zoom)</option>
-      </select>
-    </div>
-    <div class="fg full" id="m-zoom-wrap" style="display:${s.isVirtual?'flex':'none'}">
-      <label>Zoom link <span style="font-weight:400;color:var(--muted)">(sent to registered families)</span></label>
-      <input type="text" id="m-zoom" value="${s.zoomLink||''}" placeholder="e.g. https://zoom.us/j/123456789">
-    </div>
-    <div class="fg full"><label>Family price at registration <span style="font-weight:400;color:var(--muted)">(charged at checkout only — not the organization bill. Leave blank to use the course default of $${getCoursePrice(s.course,s.date,s.createdAt)})</span></label>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-size:16px;color:var(--muted)">$</span>
-        <input type="number" id="m-price-override" value="${s.priceOverride!=null?s.priceOverride:''}" placeholder="Default: ${getCoursePrice(s.course,s.date,s.createdAt)}" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
-        <span id="m-price-preview" style="font-size:15px;font-weight:500"></span>
-      </div>
-    </div>
     ${externalRegistrationFieldHtml(s)}
-    ${orgBillingFieldsHtml(s)}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
-    <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee of ${fmt(usualInstrPayAmount(s.course,s.isVirtual))})</span></label>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-size:16px;color:var(--muted)">$</span>
-        <input type="number" id="m-instr-pay-override" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="Default: ${usualInstrPayAmount(s.course,s.isVirtual)}" min="0" step="1" oninput="updateInstrPayPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
-        <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
-      </div>
-    </div>
     <div class="fg full"><label>Notes for instructors <span style="font-weight:400;color:var(--muted)">(shown on the job board)</span></label>
       <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${(()=>{
         // Notes and the old "Job details for instructors" box both displayed on the same
@@ -7134,7 +7264,11 @@ function openEditSession(id){
     </div>
     ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
     ${sessionCostsFieldHtml()}
-  </div></div>
+    <div class="fg full" id="m-rn-reveal" style="display:${(s.requiresRN||(COURSES[s.course]||{}).requiresRN)?'none':'block'}">
+      <button type="button" class="btn sm" onclick="revealTeachLimit('m-rn-row','m-rn-reveal','sess-instr-fold')">Limit who can teach</button>
+    </div>
+</div></details>
+  </div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveSession('${id}')">Save changes</button></div>`);
   renderEditCosts();
   renderEditDates();
@@ -9104,19 +9238,31 @@ function setMaterialsMethod(sessId,method){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   jobDataCache[sessId].materialsMethod=method;renderJobs();upsertJobData(sessId);
 }
-function toggleMaterials(sessId,checked){
+// One saved flag for the dashboard checklist and the session screen.
+// materialsSent is job_data.materials_sent. materialsSentAt is the checked time.
+function setMaterialsSent(sessId,checked){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
-  jobDataCache[sessId].materialsSent=checked;renderJobs();upsertJobData(sessId);
+  const jd=jobDataCache[sessId];
+  jd.materialsSent=!!checked;
+  jd.materialsSentAt=checked?new Date().toISOString():null;
+  paintLockboxRow(sessId);
+  return upsertJobData(sessId);
 }
-// Same as toggleMaterials, but called from the dashboard reminder panel so it
-// refreshes the dashboard (and Jobs tab if mounted) instead of only the Jobs tab.
+function toggleMaterials(sessId,checked){
+  setMaterialsSent(sessId,checked);
+  renderJobs();
+}
+// Dashboard checklist and the session "Materials in lock box" box both call this.
 function toggleMaterialsFromDash(sessId,checked){
-  if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
-  jobDataCache[sessId].materialsSent=checked;
-  showToast(checked?'Handbooks & supplies marked as out':'Handbooks & supplies marked not out');
+  setMaterialsSent(sessId,checked);
+  const s=(typeof sessions!=='undefined'&&sessions||[]).find(x=>x.id===sessId);
+  const what=s&&s.isCustomJob?'Materials for the instructor':'Handbooks & supplies';
+  showToast(checked?what+' marked in the lock box':what+' marked not in the lock box');
   renderDashboard();
   if(typeof renderJobs==='function')renderJobs();
-  upsertJobData(sessId);
+}
+function toggleMaterialsLockbox(sessId,checked){
+  toggleMaterialsFromDash(sessId,checked);
 }
 // Tracks whether each pre-class reminder (instructor, host, class) has been sent.
 function toggleReminderFlag(sessId,field,checked){
