@@ -157,6 +157,7 @@ test('phone layout stacks form fields in one column', () => {
   const css = admin.slice(admin.indexOf('@media(max-width:768px)'), admin.indexOf('</style>'));
   assert.match(css, /\.form-grid\{grid-template-columns:minmax\(0,1fr\)\}/);
   assert.match(css, /\.fg\{min-width:0\}/);
+  assert.match(css, /\.sess-fold-body div\[style\*="justify-content:space-between"\]\{flex-wrap:wrap;gap:8px\}/);
 });
 
 test('lock box timestamp migration is in the repo and is not applied by the app', () => {
