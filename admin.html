@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261010-lockbox-session';
+window.MB_ADMIN_BUILD='20261011-packing-list';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -368,6 +368,75 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
   .sess-fold-body div[style*="justify-content:space-between"]{flex-wrap:wrap;gap:8px}
   .sess-fold-body div[style*="justify-content:space-between"]>label{flex:1 1 100%;min-width:0}
 }
+/* Packing list. Cards, not a wide table, so a long class name wraps inside its
+   own cell on a phone instead of painting over the next column. */
+#screen-packing{min-width:0;max-width:100%}
+.pack-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pack-range-label{font-size:15px;font-weight:500;color:var(--muted)}
+.pack-actions select{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;max-width:100%}
+.pack-actions select:focus{border-color:var(--sky)}
+.pack-busy-card{margin-bottom:16px}
+.pack-busy-lead,.pack-busy-empty,.pack-empty{font-size:16px;line-height:1.45;color:var(--text)}
+.pack-busy-empty,.pack-empty{color:var(--muted)}
+.pack-busy-list{list-style:none;margin:10px 0 0;padding:0}
+.pack-busy-list li{padding:8px 0;border-top:0.5px solid var(--border);line-height:1.45;overflow-wrap:anywhere}
+.pack-busy-list li:first-child{border-top:none;padding-top:2px}
+.pack-busy-date{font-weight:650}
+.pack-busy-counts{color:var(--muted)}
+.pack-group{background:white;border:0.5px solid var(--border);border-radius:var(--r);padding:4px 16px 6px;margin-bottom:14px;min-width:0}
+.pack-group-title{font-family:'DM Serif Display',serif;font-size:22px;font-weight:400;line-height:1.25;padding:12px 0 8px;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+.pack-group-count{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--muted);font-weight:500}
+.pack-row{display:grid;grid-template-columns:minmax(7.5rem,10rem) minmax(6.5rem,9rem) minmax(0,1.4fr) minmax(0,1fr) minmax(11rem,14.5rem);column-gap:14px;row-gap:4px;align-items:start;padding:12px 0;border-top:0.5px solid var(--border);min-width:0}
+.pack-row>*{min-width:0;overflow-wrap:anywhere}
+.pack-dow{font-weight:650;line-height:1.3}
+.pack-day,.pack-stamp,.pack-muted{color:var(--muted)}
+.pack-day,.pack-stamp{font-size:14px;line-height:1.35}
+.pack-time,.pack-place,.pack-course{line-height:1.4}
+.pack-course{font-weight:650}
+.pack-lock{display:flex;align-items:flex-start;gap:8px;margin:0;font-weight:650;line-height:1.35;cursor:pointer}
+.pack-lock input{width:18px;height:18px;margin:2px 0 0;flex:none;accent-color:var(--success);cursor:pointer}
+.pack-stamp{margin:3px 0 0 26px}
+.pack-flag{margin:4px 0 0 26px;font-size:13px;font-weight:650;color:#3d6f99;line-height:1.3}
+.pack-row.is-pack{box-shadow:inset 3px 0 0 #c5d8ea;padding-left:10px}
+.pack-print-only{display:none}
+.pack-pdf-brand{font-family:'DM Serif Display',Georgia,serif;font-size:26px;line-height:1.2;color:#1a2744}
+.pack-pdf h1{font-family:'DM Serif Display',Georgia,serif;font-size:20px;font-weight:400;margin:2px 0 0;line-height:1.2}
+.pack-pdf-meta{margin-top:6px;font-size:14px;color:#6b7a99;line-height:1.45}
+.pack-pdf-busy,.pack-pdf-section{margin-top:18px}
+.pack-pdf-busy h2,.pack-pdf-section h2{font-family:'DM Serif Display',Georgia,serif;font-size:18px;font-weight:400;margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid #dde4ee;break-after:avoid;page-break-after:avoid}
+.pack-pdf-busy p,.pack-pdf-empty{font-size:14px;line-height:1.45;color:#1a2744}
+.pack-pdf-busy ul{margin:8px 0 0;padding-left:18px}
+.pack-pdf-busy li{margin:4px 0;line-height:1.4;overflow-wrap:anywhere}
+.pack-pdf-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.pack-pdf-table th{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#6b7a99;font-weight:600;text-align:left;padding:6px 8px 6px 0;border-bottom:1px solid #1a2744;vertical-align:bottom;line-height:1.3}
+.pack-pdf-table td{font-size:13px;line-height:1.4;padding:8px 8px 8px 0;border-bottom:0.5px solid #e4eaf2;vertical-align:top;overflow-wrap:anywhere}
+.pack-pdf-table tr{break-inside:avoid;page-break-inside:avoid}
+.pack-pdf-flag{margin-top:3px;font-size:11px;font-weight:650;color:#1a5c8a}
+@media(max-width:1100px){
+  .pack-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .pack-course,.pack-place,.pack-mat{grid-column:1 / -1}
+}
+@media(max-width:768px){
+  #screen-packing .pack-actions{width:100%}
+  #screen-packing .pack-actions select{flex:1 1 12rem;min-width:0}
+  #screen-packing .pack-actions .btn{flex:1 1 100%}
+  .pack-group{padding:4px 12px 6px}
+}
+@media print{
+  body.pack-printing{background:#fff;min-height:0 !important;height:auto !important}
+  body.pack-printing #app,
+  body.pack-printing .main-content,
+  body.pack-printing #screen-packing{min-height:0 !important;height:auto !important}
+  body.pack-printing > div{display:none !important}
+  body.pack-printing > #app{display:block !important}
+  body.pack-printing .sidebar{display:none !important;position:static !important;height:0 !important;overflow:hidden !important}
+  body.pack-printing .screen:not(#screen-packing),
+  body.pack-printing .pack-screen-only{display:none !important}
+  body.pack-printing #screen-packing{display:block !important}
+  body.pack-printing .main-content{margin:0 !important;padding:0 !important;max-width:none !important;min-height:0 !important}
+  body.pack-printing .pack-print-only{display:block !important}
+  body.pack-printing .pack-pdf{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 </style>
 </head>
 <body>
@@ -394,6 +463,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
     <div class="nav-items">
       <div class="nav-item active" title="Dashboard" onclick="showScreen('dashboard',this)"><span class="nav-icon">◈</span> <span class="nav-label">Dashboard</span></div>
       <div class="nav-item" title="Sessions" onclick="showScreen('sessions',this)"><span class="nav-icon">◷</span> <span class="nav-label">Sessions</span></div>
+      <div class="nav-item" title="Packing list" onclick="showScreen('packing',this)"><span class="nav-icon">▤</span> <span class="nav-label">Packing list</span></div>
       <div class="nav-item" id="nav-requests" title="Class requests" onclick="showScreen('requests',this)"><span class="nav-icon">✉</span> <span class="nav-label">Class requests</span></div>
       <div class="nav-item" title="Registrations" onclick="showScreen('registrations',this)"><span class="nav-icon">◻</span> <span class="nav-label">Registrations</span></div>
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
@@ -654,6 +724,28 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div class="metrics" id="rep-promo-metrics"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="promo-table"></table></div></div>
+    </div>
+
+    <div class="screen" id="screen-packing">
+      <div class="page-header pack-screen-only">
+        <div>
+          <div class="page-title">Packing list</div>
+          <div class="page-sub" id="pack-sub">In-person classes, grouped by who is teaching.</div>
+        </div>
+        <div class="pack-actions">
+          <label class="pack-range-label" for="pack-range">Range</label>
+          <select id="pack-range" onchange="setPackingRange(this.value)">
+            <option value="14">Next 2 weeks</option>
+            <option value="30">Next 30 days</option>
+            <option value="60" selected>Next 60 days</option>
+            <option value="90">Next 90 days</option>
+          </select>
+          <button class="btn primary" type="button" onclick="downloadPackingPdf()" title="Opens the print dialog. Choose Save as PDF.">Download PDF</button>
+        </div>
+      </div>
+      <div id="pack-busy" class="pack-screen-only"></div>
+      <div id="pack-list" class="pack-screen-only"></div>
+      <div id="pack-print-sheet" class="pack-print-only"></div>
     </div>
 
   </div>
@@ -1141,6 +1233,7 @@ function rerenderActiveScreen(){
   else if(name==='jobs')renderJobs();
   else if(name==='materials')renderMaterials();
   else if(name==='reports')renderReports();
+  else if(name==='packing')renderPackingList();
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshData();});
 window.addEventListener('focus',refreshData);
@@ -4562,6 +4655,7 @@ function showScreen(name,el){
   if(name==='jobs')renderJobs();
   if(name==='materials')renderMaterials();
   if(name==='reports')renderReports();
+  if(name==='packing')renderPackingList();
 }
 
 // ─── REPORTS ─────────────────────────────────────────────────
@@ -9265,6 +9359,274 @@ function toggleMaterialsFromDash(sessId,checked){
 }
 function toggleMaterialsLockbox(sessId,checked){
   toggleMaterialsFromDash(sessId,checked);
+}
+
+// ─── PACKING LIST ────────────────────────────────────────────
+// Upcoming in-person classes, grouped so Lindsay can see what still has to go
+// in the lock box for each instructor. The checkbox is the same job_data
+// materials_sent / materials_sent_at flag as the dashboard and the session screen.
+const PACKING_TOGETHER_DAYS=8;
+let packingRangeDays=60;
+function packingRangeDaysValue(raw){
+  const n=Number(raw);
+  if(n===14||n===30||n===60||n===90)return n;
+  return 60;
+}
+function packingRangeLabel(days){
+  if(Number(days)===14)return 'Next 2 weeks';
+  return 'Next '+Number(days)+' days';
+}
+function packingInPerson(s){
+  if(!s||s.isVirtual||s.isCancelled||s.isHold)return false;
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(s.date||''));
+}
+// today and today+days are both included. sessions.date is YYYY-MM-DD text.
+function packingInRange(s, today, days){
+  if(!packingInPerson(s))return false;
+  const start=String(today||'');
+  const end=matAddDays(start, Number(days)||0);
+  if(!start||!end)return false;
+  return s.date>=start&&s.date<=end;
+}
+function packingPlace(s){
+  const loc=String(s&&s.location||'').trim();
+  const city=String(s&&s.city||'').trim();
+  const addr=String(s&&s.hostAddress||'').trim();
+  const head=loc||addr;
+  if(head&&city&&head.toLowerCase().indexOf(city.toLowerCase())===-1)return head+', '+city;
+  return head||city||'Place not set';
+}
+// owner_taught is Lindsay. Otherwise sessions.instructor_id, with the job_data
+// copy only when the session column is empty.
+function packingInstructorGroup(s, instructorList, jobData){
+  if(s&&s.ownerTaught)return {id:'owner', name:'Lindsay (owner)'};
+  let id=s&&s.instructorId?s.instructorId:null;
+  if(!id&&jobData&&s&&s.id&&jobData[s.id]&&jobData[s.id].instructorId)id=jobData[s.id].instructorId;
+  if(!id)return {id:'none', name:'Needs an instructor'};
+  const inst=(instructorList||[]).find(function(x){return x&&x.id===id;});
+  const name=inst&&String(inst.name||'').trim();
+  if(!name)return {id:'missing:'+id, name:'Instructor not on the roster'};
+  return {id:'id:'+id, name:name};
+}
+function packingTimeKey(time){
+  const raw=String(time||'').trim();
+  const m=raw.match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
+  if(!m)return '99:99';
+  let h=Number(m[1]);
+  const min=m[2]?Number(m[2]):0;
+  const ap=(m[3]||'').toLowerCase();
+  if(ap.startsWith('p')&&h<12)h+=12;
+  if(ap.startsWith('a')&&h===12)h=0;
+  if(h===24)h=0;
+  return String(h).padStart(2,'0')+':'+String(min).padStart(2,'0');
+}
+function packingGroupRank(group){
+  if(!group||group.id==='none')return '\uffff';
+  if(group.id==='owner')return 'lindsay';
+  const parts=String(group.name||'').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length)return '';
+  return (parts[parts.length-1]+' '+parts.slice(0,-1).join(' ')).toLowerCase();
+}
+function packingDayParts(ymd){
+  const dt=new Date(String(ymd||'')+'T12:00:00');
+  if(isNaN(dt.getTime()))return {dow:'', day:String(ymd||''), full:String(ymd||'')};
+  return {
+    dow:dt.toLocaleDateString('en-US',{weekday:'short'}),
+    day:dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    full:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})
+  };
+}
+function packingFormatSpan(start, end){
+  const a=new Date(String(start||'')+'T12:00:00');
+  const b=new Date(String(end||'')+'T12:00:00');
+  if(isNaN(a.getTime())||isNaN(b.getTime()))return '';
+  const leftOpts={month:'short',day:'numeric'};
+  if(a.getFullYear()!==b.getFullYear())leftOpts.year='numeric';
+  const left=a.toLocaleDateString('en-US',leftOpts);
+  const right=b.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  return left+' – '+right;
+}
+function packingMaterialsText(sent, sentAt){
+  if(!sent)return 'Not checked yet';
+  const stamp=materialsCheckedStamp({materialsSent:true, materialsSentAt:sentAt||null});
+  return stamp||'Checked';
+}
+function packingMarkTogether(rows){
+  return (rows||[]).map(function(row, i){
+    const together=(rows||[]).some(function(other, j){
+      if(j===i||!row.date||!other.date)return false;
+      return Math.abs(matDaysBetween(row.date, other.date))<=PACKING_TOGETHER_DAYS;
+    });
+    return Object.assign({}, row, {packTogether:together});
+  });
+}
+function packingCourseCountText(courses){
+  return (courses||[]).map(function(c){return c.course+' ('+c.count+')';}).join(', ');
+}
+function packingBusyDays(rows){
+  const by={};
+  (rows||[]).forEach(function(r){
+    if(!r||!r.date)return;
+    if(!by[r.date])by[r.date]=[];
+    by[r.date].push(r.course||'Class');
+  });
+  return Object.keys(by).sort().filter(function(d){return by[d].length>=3;}).map(function(d){
+    const counts={};
+    by[d].forEach(function(c){counts[c]=(counts[c]||0)+1;});
+    const courses=Object.keys(counts).map(function(course){return {course:course, count:counts[course]};})
+      .sort(function(a,b){return b.count-a.count||a.course.localeCompare(b.course);});
+    return {date:d, total:by[d].length, courses:courses};
+  });
+}
+function packingBuildModel(sessionList, instructorList, jobData, today, days){
+  const span=packingRangeDaysValue(days);
+  const start=String(today||'');
+  const end=matAddDays(start, span);
+  const rows=(sessionList||[]).filter(function(s){return packingInRange(s, start, span);}).map(function(s){
+    const group=packingInstructorGroup(s, instructorList, jobData);
+    const jd=(jobData&&s.id&&jobData[s.id])||{};
+    return {
+      id:s.id,
+      date:s.date,
+      time:String(s.time||'').trim(),
+      course:String(s.course||'').trim()||'Class',
+      place:packingPlace(s),
+      groupId:group.id,
+      groupName:group.name,
+      materialsSent:!!jd.materialsSent,
+      materialsSentAt:jd.materialsSentAt||null
+    };
+  }).sort(function(a,b){
+    return a.date.localeCompare(b.date)||packingTimeKey(a.time).localeCompare(packingTimeKey(b.time))||a.course.localeCompare(b.course)||String(a.id).localeCompare(String(b.id));
+  });
+  const grouped={};
+  rows.forEach(function(r){
+    if(!grouped[r.groupId])grouped[r.groupId]={id:r.groupId, name:r.groupName, rows:[]};
+    grouped[r.groupId].rows.push(r);
+  });
+  const groups=Object.keys(grouped).map(function(k){
+    const g=grouped[k];
+    g.rows=packingMarkTogether(g.rows);
+    return g;
+  }).sort(function(a,b){
+    const ra=packingGroupRank(a), rb=packingGroupRank(b);
+    if(ra<rb)return -1;
+    if(ra>rb)return 1;
+    return a.name.localeCompare(b.name);
+  });
+  return {today:start, days:span, end:end, rows:rows, groups:groups, busy:packingBusyDays(rows)};
+}
+function packingCurrentModel(){
+  const today=(typeof matToday==='function')?matToday():fmtYMD(new Date());
+  return packingBuildModel(typeof sessions!=='undefined'?sessions:[], typeof instructors!=='undefined'?instructors:[], typeof jobDataCache!=='undefined'?jobDataCache:{}, today, packingRangeDays);
+}
+function packingBusyHtml(model){
+  const open='<div class="card pack-busy-card"><div class="card-title">Busy days</div>';
+  if(!model.busy.length)return open+'<p class="pack-busy-empty">No day in this range has 3 or more in-person sessions.</p></div>';
+  const items=model.busy.map(function(b){
+    return '<li><span class="pack-busy-date">'+escapeHtml(packingDayParts(b.date).full)+'</span> <span class="pack-busy-counts">· '+b.total+' sessions · '+escapeHtml(packingCourseCountText(b.courses))+'</span></li>';
+  }).join('');
+  return open+'<p class="pack-busy-lead">Equipment is tight on these dates.</p><ul class="pack-busy-list">'+items+'</ul></div>';
+}
+function packingRowHtml(r){
+  const parts=packingDayParts(r.date);
+  const time=r.time?escapeHtml(r.time):'<span class="pack-muted">Time not set</span>';
+  const flag=r.packTogether?'<div class="pack-flag">Pack together</div>':'';
+  const id=escapeHtml(r.id);
+  return '<article class="pack-row'+(r.packTogether?' is-pack':'')+'">'+
+    '<div class="pack-date"><div class="pack-dow">'+escapeHtml(parts.dow)+'</div><div class="pack-day">'+escapeHtml(parts.day)+'</div></div>'+
+    '<div class="pack-time">'+time+'</div>'+
+    '<div class="pack-course">'+escapeHtml(r.course)+'</div>'+
+    '<div class="pack-place">'+escapeHtml(r.place)+'</div>'+
+    '<div class="pack-mat"><label class="pack-lock"><input type="checkbox" data-sess="'+id+'"'+(r.materialsSent?' checked':'')+' onchange="toggleMaterialsFromPacking(this)"> <span>Materials in lock box</span></label>'+
+    '<div class="pack-stamp">'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</div>'+flag+'</div></article>';
+}
+function packingGroupsHtml(model){
+  if(!model.groups.length)return '<div class="card"><p class="pack-empty">No in-person classes in '+escapeHtml(packingRangeLabel(model.days).toLowerCase())+'.</p></div>';
+  return model.groups.map(function(g){
+    const n=g.rows.length;
+    return '<section class="pack-group"><h2 class="pack-group-title">'+escapeHtml(g.name)+' <span class="pack-group-count">'+n+' '+(n===1?'session':'sessions')+'</span></h2><div class="pack-rows">'+g.rows.map(packingRowHtml).join('')+'</div></section>';
+  }).join('');
+}
+function packingPrintHtml(model, generatedAt){
+  const when=(generatedAt instanceof Date&&!isNaN(generatedAt.getTime()))
+    ? generatedAt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
+    : '';
+  let busy;
+  if(model.busy.length){
+    const items=model.busy.map(function(b){
+      return '<li><strong>'+escapeHtml(packingDayParts(b.date).full)+'</strong> · '+b.total+' sessions · '+escapeHtml(packingCourseCountText(b.courses))+'</li>';
+    }).join('');
+    busy='<section class="pack-pdf-busy"><h2>Busy days</h2><p>Dates with 3 or more in-person sessions.</p><ul>'+items+'</ul></section>';
+  }else{
+    busy='<section class="pack-pdf-busy"><h2>Busy days</h2><p>No day in this range has 3 or more in-person sessions.</p></section>';
+  }
+  const sections=model.groups.length?model.groups.map(function(g){
+    const body=g.rows.map(function(r){
+      const flag=r.packTogether?'<div class="pack-pdf-flag">Pack together</div>':'';
+      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</td></tr>';
+    }).join('');
+    return '<section class="pack-pdf-section"><h2>'+escapeHtml(g.name)+'</h2><table class="pack-pdf-table"><colgroup><col style="width:22%"><col style="width:14%"><col style="width:24%"><col style="width:22%"><col style="width:18%"></colgroup><thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Place</th><th>Materials in lock box</th></tr></thead><tbody>'+body+'</tbody></table></section>';
+  }).join(''):'<p class="pack-pdf-empty">No in-person classes in this range.</p>';
+  return '<div class="pack-pdf"><header class="pack-pdf-head"><div class="pack-pdf-brand">Mindful Beginnings</div><h1>Packing list</h1><p class="pack-pdf-meta">Generated '+escapeHtml(when)+' · '+escapeHtml(packingRangeLabel(model.days))+' · '+escapeHtml(packingFormatSpan(model.today, model.end))+'</p></header>'+busy+sections+'</div>';
+}
+function renderPackingList(){
+  const busyEl=document.getElementById('pack-busy');
+  const listEl=document.getElementById('pack-list');
+  const sheet=document.getElementById('pack-print-sheet');
+  const sub=document.getElementById('pack-sub');
+  const range=document.getElementById('pack-range');
+  if(range)range.value=String(packingRangeDays);
+  const model=packingCurrentModel();
+  if(sub){
+    const n=model.rows.length;
+    sub.textContent=n+' in-person '+(n===1?'session':'sessions')+' · '+packingRangeLabel(model.days)+' · '+packingFormatSpan(model.today, model.end);
+  }
+  if(busyEl)busyEl.innerHTML=packingBusyHtml(model);
+  if(listEl)listEl.innerHTML=packingGroupsHtml(model);
+  if(sheet)sheet.innerHTML=packingPrintHtml(model, new Date());
+}
+function setPackingRange(raw){
+  packingRangeDays=packingRangeDaysValue(raw);
+  renderPackingList();
+}
+function toggleMaterialsFromPacking(box){
+  const sessId=box&&box.getAttribute?box.getAttribute('data-sess'):'';
+  if(!sessId)return;
+  const checked=!!box.checked;
+  setMaterialsSent(sessId, checked);
+  const s=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x.id===sessId;});
+  const what=s&&s.isCustomJob?'Materials for the instructor':'Handbooks & supplies';
+  showToast(checked?what+' marked in the lock box':what+' marked not in the lock box');
+  renderPackingList();
+}
+// Same-page print, not a new window: iPhone Safari blocks pop-up PDFs, and the
+// print dialog can save a PDF on both iPhone and a computer. The pack-printing
+// class is what swaps in the clean sheet; other tabs print as they did before.
+function downloadPackingPdf(){
+  renderPackingList();
+  const prevTitle=document.title;
+  document.title='Mindful Beginnings packing list';
+  document.body.classList.add('pack-printing');
+  let cleared=false;
+  function clearPackPrint(){
+    if(cleared)return;
+    cleared=true;
+    document.body.classList.remove('pack-printing');
+    document.title=prevTitle;
+  }
+  window.addEventListener('afterprint', clearPackPrint, {once:true});
+  try{
+    const mq=window.matchMedia('print');
+    const onMq=function(e){
+      if(!e.matches){
+        if(mq.removeEventListener)mq.removeEventListener('change', onMq);
+        clearPackPrint();
+      }
+    };
+    if(mq.addEventListener)mq.addEventListener('change', onMq);
+  }catch(err){}
+  window.print();
 }
 // Tracks whether each pre-class reminder (instructor, host, class) has been sent.
 function toggleReminderFlag(sessId,field,checked){
