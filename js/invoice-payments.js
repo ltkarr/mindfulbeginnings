@@ -1,17 +1,14 @@
 /* Organization invoice payment options.
    Shown on the invoice page, the print / PDF view, and the invoice email.
-   Handles are the ones already used for families. Nothing here is invented.
    Venmo and Zelle match js/payments.js (VENMO_USER, ZELLE_EMAIL), pay.html,
-   and register.html. No PayPal username, email, or paypal.me is stored. */
+   and register.html. PayPal uses the same Mindful Beginnings email. */
 (function (root) {
   'use strict';
 
   var VENMO_USER = 'mindfulbeginnings';
   var ZELLE_EMAIL = 'lindsay@mindfulbeginnings.org';
-  // Exact sentence already printed on organization invoices.
-  var CHECK_PAYABLE = 'Please make checks payable to Mindful Beginnings LLC.';
-  // No PayPal username, email, phone, or paypal.me link exists in this repo.
-  var PAYPAL_TODO = 'TODO: no PayPal username, email, or paypal.me link is on file.';
+  var PAYPAL_EMAIL = 'lindsay@mindfulbeginnings.org';
+  var CHECK_PAYABLE = 'Please make checks payable to Mindful Beginnings LLC and mail to 8803 Bradmoor Drive, Bethesda, MD 20817.';
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
@@ -21,7 +18,7 @@
 
   function paymentMethods() {
     return [
-      { id: 'paypal', label: 'PayPal', detail: PAYPAL_TODO },
+      { id: 'paypal', label: 'PayPal', detail: PAYPAL_EMAIL },
       { id: 'venmo', label: 'Venmo', detail: '@' + VENMO_USER },
       { id: 'zelle', label: 'Zelle', detail: ZELLE_EMAIL },
       { id: 'check', label: 'Check', detail: CHECK_PAYABLE }
@@ -126,7 +123,7 @@
     VENMO_USER: VENMO_USER,
     ZELLE_EMAIL: ZELLE_EMAIL,
     CHECK_PAYABLE: CHECK_PAYABLE,
-    PAYPAL_TODO: PAYPAL_TODO,
+    PAYPAL_EMAIL: PAYPAL_EMAIL,
     paymentMethods: paymentMethods,
     paymentPlainText: paymentPlainText,
     html: html,

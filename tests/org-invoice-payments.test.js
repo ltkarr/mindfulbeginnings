@@ -20,10 +20,10 @@ function quotedConst(src, name) {
 }
 
 const EXPECTED = [
-  'PayPal: TODO: no PayPal username, email, or paypal.me link is on file.',
+  'PayPal: lindsay@mindfulbeginnings.org',
   'Venmo: @mindfulbeginnings',
   'Zelle: lindsay@mindfulbeginnings.org',
-  'Check: Please make checks payable to Mindful Beginnings LLC.'
+  'Check: Please make checks payable to Mindful Beginnings LLC and mail to 8803 Bradmoor Drive, Bethesda, MD 20817.'
 ];
 
 test('invoice payment lines reuse the Venmo and Zelle handles already in the repo', () => {
@@ -33,16 +33,17 @@ test('invoice payment lines reuse the Venmo and Zelle handles already in the rep
   assert.equal(quotedConst(payHtml, 'zelleEmail'), 'lindsay@mindfulbeginnings.org');
   assert.match(register, /@mindfulbeginnings/);
   assert.match(register, /lindsay@mindfulbeginnings\.org/);
-  assert.equal(pay.CHECK_PAYABLE, 'Please make checks payable to Mindful Beginnings LLC.');
+  assert.equal(pay.PAYPAL_EMAIL, 'lindsay@mindfulbeginnings.org');
+  assert.equal(pay.CHECK_PAYABLE, 'Please make checks payable to Mindful Beginnings LLC and mail to 8803 Bradmoor Drive, Bethesda, MD 20817.');
   assert.deepEqual(pay.paymentMethods().map(function (m) { return m.label + ': ' + m.detail; }), EXPECTED);
 });
 
-test('PayPal has no stored handle, so the invoice marks that line TODO', () => {
+test('PayPal lists lindsay@mindfulbeginnings.org and the payment block has no TODO', () => {
   const paypal = pay.paymentMethods().find(function (m) { return m.id === 'paypal'; });
-  assert.match(paypal.detail, /^TODO:/);
-  assert.doesNotMatch(paypal.detail, /@/);
-  assert.doesNotMatch(paypal.detail, /paypal\.me\//i);
-  assert.equal((pay.paymentPlainText().match(/TODO/g) || []).length, 1);
+  assert.equal(paypal.detail, 'lindsay@mindfulbeginnings.org');
+  assert.doesNotMatch(pay.paymentPlainText(), /TODO/);
+  assert.doesNotMatch(pay.html(), /TODO/);
+  assert.doesNotMatch(pay.emailBody({ invoiceNumber: 'MB-1', total: 0 }), /TODO/);
 });
 
 test('the on-screen invoice, the printable page, and the email body list every method', () => {
@@ -82,7 +83,8 @@ test('the on-screen invoice, the printable page, and the email body list every m
   assert.match(email, /Payment due within 30 days of invoice date\./);
   EXPECTED.forEach(function (line) { assert.ok(email.indexOf(line) !== -1, line); });
   assert.match(email, /Thank you for partnering with Mindful Beginnings\./);
-  assert.doesNotMatch(email, /paypal\.me\//i);
+  assert.match(email, /8803 Bradmoor Drive, Bethesda, MD 20817/);
+  assert.doesNotMatch(email, /TODO/);
 });
 
 test('admin prints the payment block on every invoice and copies it into the email', () => {
