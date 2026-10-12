@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261011-packing-list';
+window.MB_ADMIN_BUILD='20261012-org-invoice-payments';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -39,6 +39,7 @@ window.MB_ADMIN_BUILD='20261011-packing-list';
 <script src="/js/admin-ops-emails.js"></script>
 <script src="/js/class-requests.js"></script>
 <script src="/js/class-requests-admin.js"></script>
+<script src="/js/invoice-payments.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13770,7 +13771,11 @@ async function deleteCheckout(id){
 // generated covering every completed session for that org in that month. Line
 // amounts are frozen into the invoice (line_items jsonb) at creation time, so
 // later price or roster edits never rewrite an invoice that was already sent.
-const INVOICE_DEFAULT_TERMS='Payment due within 30 days of invoice date. Please make checks payable to Mindful Beginnings LLC.';
+// Older invoices stored this as notes. It names a check and nothing else.
+// New invoices keep the due-date sentence here. PayPal, Venmo, Zelle, and
+// this same check line are printed from js/invoice-payments.js on every invoice.
+const INVOICE_CHECK_ONLY_TERMS='Payment due within 30 days of invoice date. Please make checks payable to Mindful Beginnings LLC.';
+const INVOICE_DEFAULT_TERMS='Payment due within 30 days of invoice date.';
 // Seed bill-to details for known partners (used only when no earlier invoice exists for the org).
 const ORG_BILLING_DEFAULTS={
   'congregation beth el':{name:'Congregation Beth El',attn:'Allison Brown, Youth Programming and Engagement Director',address:'8215 Old Georgetown Road\nBethesda, MD 20814'}
@@ -14140,7 +14145,7 @@ function openCreateInvoice(presetOrg,presetYm){
     <div class="fg"><label>Bill-to name</label><input type="text" id="inv-billname"></div>
     <div class="fg"><label>Attention <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="inv-attn" placeholder="e.g. Program Director"></div>
     <div class="fg full"><label>Bill-to address</label><textarea id="inv-addr" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical"></textarea></div>
-    <div class="fg full"><label>Payment terms / notes <span style="font-weight:400;color:var(--muted)">(printed on the invoice)</span></label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical">${INVOICE_DEFAULT_TERMS}</textarea></div>
+    <div class="fg full"><label>Payment terms / notes <span style="font-weight:400;color:var(--muted)">(printed on the invoice)</span></label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical">${INVOICE_DEFAULT_TERMS}</textarea><div style="font-size:14px;color:var(--muted);margin-top:4px">Every invoice also lists PayPal, Venmo, Zelle, and check. Those details are added on the invoice, the PDF, and the invoice email.</div></div>
   </div></div>
   <div class="modal-foot" style="justify-content:space-between;align-items:center">
     <div id="inv-total" style="font-size:18px;font-weight:600"></div>
@@ -14160,7 +14165,10 @@ function prefillInvoiceOrg(){
   document.getElementById('inv-attn').value=bt.attn||seed.attn||'';
   document.getElementById('inv-addr').value=bt.address||seed.address||'';
   document.getElementById('inv-email').value=bt.email||seed.email||'';
-  if(prev&&prev.notes)document.getElementById('inv-notes').value=prev.notes;
+  // A previous invoice that only mentioned a check should not hide the other
+  // ways to pay. Custom notes are kept. The check line still prints below.
+  const prevNotes=String((prev&&prev.notes)||'').trim();
+  if(prevNotes&&prevNotes!==INVOICE_CHECK_ONLY_TERMS)document.getElementById('inv-notes').value=prevNotes;
 }
 function syncInvoiceDue(){
   const issue=document.getElementById('inv-issue')?.value;
@@ -14260,6 +14268,9 @@ function openInvoiceDoc(id){
       <td style="text-align:right">${li.flat?'flat fee':fmtN(li.rate)}</td>
       <td style="text-align:right;font-weight:500">${fmtN(li.amount)}</td>
     </tr>`).join('');
+  const payApi=(typeof MBInvoicePayments!=='undefined')?MBInvoicePayments:null;
+  const payBlock=payApi&&typeof payApi.html==='function'?payApi.html():'';
+  const payEmail=payApi&&typeof payApi.emailBody==='function'?payApi.emailBody(v):'';
   const html=`<!DOCTYPE html><html><head><title>Invoice ${escapeHtml(v.invoiceNumber)} — Mindful Beginnings</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -14276,7 +14287,9 @@ function openInvoiceDoc(id){
   </style></head><body>
   <div class="no-print">
     <button onclick="window.print()" style="background:#4a8fc4;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:17px;cursor:pointer;font-weight:500">🖨️ Print / Save as PDF</button>
+    <button onclick="(function(){var t=document.getElementById('invoice-email-source');var text=t?t.value:'';function show(){if(!t)return;t.style.position='static';t.style.left='auto';t.style.width='100%';t.style.height='280px';t.style.margin='12px 24px';t.style.padding='12px';t.focus();t.select();}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){alert('Invoice email copied. Paste it into your own message.');},function(){show();alert('Could not copy automatically. The email is selected so you can copy it.');});return;}show();try{document.execCommand('copy');alert('Invoice email copied. Paste it into your own message.');}catch(e){alert('Could not copy automatically. The email is selected so you can copy it.');}})()" style="background:#fff;color:#1a2744;border:none;padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer;font-weight:500">Copy email</button>
     <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">Close</button>
+    <textarea id="invoice-email-source" readonly style="position:absolute;left:-9999px;height:1px;width:1px">${escapeHtml(payEmail)}</textarea>
   </div>
   <div class="pg">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px">
@@ -14309,6 +14322,7 @@ function openInvoiceDoc(id){
       <tfoot><tr class="total-row"><td colspan="4" style="text-align:right">TOTAL DUE</td><td style="text-align:right">${fmtN(v.total)}</td></tr></tfoot>
     </table>
     ${v.notes?`<div style="margin-top:26px;background:#f8f9fc;border:1px solid #dde4ee;border-radius:8px;padding:14px 16px;font-size:15.5px">${escapeHtml(v.notes).replace(/\n/g,'<br>')}</div>`:''}
+    ${payBlock}
     <div style="margin-top:36px;font-size:15px;color:#6b7a99">Thank you for partnering with Mindful Beginnings.</div>
     <div style="margin-top:26px;padding-top:12px;border-top:1px solid #dde4ee;font-size:13px;color:#aaa;display:flex;justify-content:space-between">
       <span>Mindful Beginnings LLC · Invoice ${escapeHtml(v.invoiceNumber)}</span>
