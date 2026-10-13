@@ -143,7 +143,11 @@ test('each person is a button that opens a bio dialog', () => {
     'Miryam Buchler': 'center top',
     'Kelley Butler': 'center top',
     'Marcie Berul': 'center 93%',
-    'Jasmine Rhodes': 'center top'
+    'Jasmine Rhodes': 'center top',
+    'Mary Parks': 'center top',
+    'Jessica Katz': 'center top',
+    'Ashira Lavine': 'center top',
+    'Bela Shah Spooner': 'center 28%'
   };
   const found = cards();
   Object.keys(frames).forEach((name) => {
