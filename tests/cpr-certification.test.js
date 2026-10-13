@@ -19,13 +19,15 @@ test('group CPR page is static HTML with a title and description', () => {
   assert.equal(page.includes('\u2014'), false);
 });
 
-test('schedule and contact links use mailto, phone, and the public site', () => {
-  const mailto = 'mailto:lindsay@mindfulbeginnings.org?subject=Group%20CPR%20certification%20request';
-  assert.equal((page.match(new RegExp(mailto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length, 2);
-  assert.match(page, />Schedule a group class</);
-  assert.match(page, /href="#request"/);
-  assert.match(page, /id="request"/);
-  assert.equal((page.match(/href="tel:\+17039875979"/g) || []).length, 2);
+test('schedule and contact links open the host page, contact page, and phone in the same tab', () => {
+  assert.equal((page.match(/href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"/g) || []).length, 3);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Request a class</);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Schedule a group class</);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Schedule your group class</);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/contact"[^>]*>lindsay@<wbr>mindfulbeginnings\.org</);
+  assert.doesNotMatch(page, /mailto:/);
+  assert.doesNotMatch(page, /target="_blank"/);
+  assert.equal((page.match(/href="tel:703-987-5979"/g) || []).length, 2);
   assert.match(page, />703-987-5979</);
   assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/"/);
   assert.match(page, />mindfulbeginnings\.org</);
