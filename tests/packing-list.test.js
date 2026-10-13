@@ -259,14 +259,11 @@ test('the packing tab is added without removing the other screens', () => {
     'Registrations',
     'Finances',
     'Instructors',
-    'Liaisons',
-    'Partnerships',
-    'Equipment',
-    'Reports',
+    'More',
     'Narrow the menu',
     'Sign out'
   ]);
-  for (const id of ['dashboard', 'sessions', 'requests', 'registrations', 'finances', 'instructors', 'partners', 'orgpartners', 'materials', 'reports', 'packing']) {
+  for (const id of ['dashboard', 'sessions', 'requests', 'registrations', 'finances', 'instructors', 'more', 'partners', 'orgpartners', 'materials', 'reports', 'packing']) {
     assert.match(admin, new RegExp('id="screen-' + id + '"'));
   }
   assert.match(admin, /id="pack-range"/);
@@ -326,4 +323,59 @@ test('each session shows registered participants, and a multi-session list shows
   assert.doesNotMatch(sandbox.packingGroupsHtml(one), /Total:/);
   assert.doesNotMatch(sandbox.packingPrintHtml(one, new Date('2026-10-11T15:00:00.000Z')), /Total:/);
   assert.match(sandbox.packingGroupsHtml(one), /1 participant registered/);
+});
+
+test('each in-person class gets a bring line from the kit and the registration count', () => {
+  sandbox.sessionBookNeeds = function (s, n) {
+    if (!(n > 0)) return null;
+    if (s.course === 'Safe Sitter®') return { ssHandbook: n, ssNotebook: n };
+    if (s.course === 'Intro to Babysitting') return { itbHandbook: n };
+    return null;
+  };
+  sandbox.sessionMatNeeds = function (s, n) {
+    if (s.course !== 'Safe Sitter®') return null;
+    return n > 8 ? { infant: 2, child: 2, av: 1 } : { infant: 1, child: 1, av: 1 };
+  };
+  sandbox.matPlanForSession = function (draft) {
+    const n = Number(draft.headcount) || 0;
+    if (draft.course === 'Intro to Babysitting') {
+      return { skip: !n, books: n ? [{ kind: 'itbHandbook', need: n, shortfall: 1 }] : [], lines: [] };
+    }
+    if (draft.course !== 'Safe Sitter®') return { skip: true, books: [], lines: [] };
+    return {
+      skip: false,
+      books: n ? [{ kind: 'ssHandbook', need: n, shortfall: 99 }, { kind: 'ssNotebook', need: n, shortfall: 3 }] : [],
+      lines: [
+        { kind: 'av', need: 1, shortfall: 1, consumable: false },
+        { kind: 'infant', need: n > 8 ? 4 : 1, shortfall: 2, consumable: false },
+        { kind: 'child', need: 1, shortfall: 0, consumable: false }
+      ]
+    };
+  };
+  const sessions = [
+    sess({ id: 'kids', date: '2026-10-19', instructorId: 'hc', course: 'Safe Sitter®' }),
+    sess({ id: 'intro', date: '2026-10-21', instructorId: 'bk', course: 'Intro to Babysitting' }),
+    sess({ id: 'care', date: '2026-10-22', instructorId: 'bk', course: 'Care Ready' })
+  ];
+  const regs = [];
+  for (let i = 0; i < 8; i++) regs.push({ sessionId: 'kids', payStatus: 'paid', studentName: 'Kid ' + i });
+  regs.push({ sessionId: 'intro', payStatus: 'paid', studentName: 'One' });
+  const built = sandbox.packingBuildModel(sessions, instructors, {}, TODAY, 60, regs);
+  const byId = Object.fromEntries(built.rows.map((r) => [r.id, r]));
+  assert.equal(byId.kids.bring, 'Bring: 8 Safe Sitter handbooks, 8 Safe Sitter notebooks, 1 AV kit, 1 infant manikin, 1 child manikin');
+  assert.equal(byId.intro.bring, 'Bring: 1 Intro to Babysitting handbook');
+  assert.equal(byId.care.bring, '');
+  const big = sandbox.packingBuildModel([
+    sess({ id: 'full', date: '2026-10-23', instructorId: 'bk', course: 'Safe Sitter®' })
+  ], instructors, {}, TODAY, 60, Array.from({ length: 9 }, (_, i) => ({ sessionId: 'full', payStatus: 'paid', studentName: 'S' + i })));
+  assert.equal(big.rows[0].bring, 'Bring: 9 Safe Sitter handbooks, 9 Safe Sitter notebooks, 1 AV kit, 4 infant manikins, 1 child manikin');
+  const screen = sandbox.packingGroupsHtml(built);
+  const pdf = sandbox.packingPrintHtml(built, new Date('2026-10-11T15:00:00.000Z'));
+  assert.match(screen, /class="pack-bring">Bring: 8 Safe Sitter handbooks, 8 Safe Sitter notebooks, 1 AV kit, 1 infant manikin, 1 child manikin/);
+  assert.match(pdf, /class="pack-bring">Bring: 8 Safe Sitter handbooks, 8 Safe Sitter notebooks, 1 AV kit, 1 infant manikin, 1 child manikin/);
+  assert.doesNotMatch(screen, /missing|shortfall|on hand|free of/i);
+  assert.doesNotMatch(pdf, /missing|shortfall|on hand|free of/i);
+  delete sandbox.sessionBookNeeds;
+  delete sandbox.sessionMatNeeds;
+  delete sandbox.matPlanForSession;
 });

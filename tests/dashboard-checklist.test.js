@@ -89,7 +89,8 @@ test('dashboard no longer renders the removed widgets', () => {
   assert.doesNotMatch(admin, /Sessions needing registrations/);
   assert.doesNotMatch(admin, /Recent registrations/);
   assert.match(admin, /id="reminder-alerts"/);
-  assert.match(admin, /id="dash-materials"/);
+  assert.doesNotMatch(admin, /id="dash-materials"/);
+  assert.doesNotMatch(admin, /id="org-billing"/);
   assert.match(admin, /All caught up — no upcoming class still needs checklist work/);
   assert.match(admin, /dashChecklistSessions\(sessions, now\)\.filter\(function\(s\)\{return !preClassChecklistDone\(s\);\}/);
 });
@@ -160,7 +161,7 @@ test('checklist cards name the instructor and the host, or say when either is mi
   sandbox.registrations = [{ sessionId: 'both', payStatus: 'host', parentName: 'Sam Parent', studentName: 'Kid' }];
   assert.equal(sandbox.sessionHostDisplayName(named), 'Dana Rivera');
 
-  const block = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('renderOrgBilling();'));
+  const block = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('// ─── SESSIONS'));
   assert.match(block, /checklistInstructorLabel\(s\)/);
   assert.match(block, /checklistHostLabel\(s\)/);
   assert.match(block, /roleLine\('Instructor',instrLabel,'No instructor'\)/);
