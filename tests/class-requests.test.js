@@ -132,8 +132,8 @@ test('organization course choices match the catalog, including Girl Scout badge 
   model.coursesFor('organization').forEach(function (course) {
     assert.match(orgPage, new RegExp('value="' + course.key + '"'));
   });
-  assert.match(orgPage, /href="https:\/\/mindfulbeginnings\.org\/girl-scouts"/);
-  assert.match(orgPage, />https:\/\/mindfulbeginnings\.org\/girl-scouts</);
+  assert.match(orgPage, /href="\/girl-scouts"/);
+  assert.match(orgPage, />the Girl Scouts page</);
   assert.doesNotMatch(orgPage, /gsnc/);
   assert.doesNotMatch(hostPage, /gsnc/);
   assert.doesNotMatch(hostPage, /lindsay/i);
