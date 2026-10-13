@@ -81,17 +81,19 @@ test('public registration no longer writes the registrations table directly', ()
 
 test('instructor portal does not select session notes or every job column', () => {
   assert.doesNotMatch(instructor, /\.from\('job_data'\)\.select\('\*'\)/);
+  assert.doesNotMatch(instructor, /\.from\('sessions'\)/);
   assert.match(instructor, /session_id,instructor_id,waitlist/);
   assert.match(instructor, /instructor_job_details/);
   assert.match(instructor, /instructor_session_notes/);
-  const lists = [
-    ...instructor.matchAll(/SESSION_COLS\w*='([^']+)'/g),
-    ...instructor.matchAll(/sessions'\)\.select\('([^']+)'\)/g)
-  ].map(m => m[1]);
-  assert.ok(lists.length >= 3);
-  lists.forEach(list => {
-    assert.equal(list.split(',').includes('notes'), false, list);
-    assert.equal(list.split(',').includes('admin_private_notes'), false, list);
+  assert.match(instructor, /instructor_list_sessions/);
+  const privacy = fs.readFileSync(path.join(root, 'migrations/20261013_sessions_privacy_lockdown.sql'), 'utf8');
+  const start = privacy.indexOf('function public.instructor_list_sessions');
+  const selectAt = privacy.indexOf('select id, code, course', start);
+  const end = privacy.indexOf('from public.sessions', selectAt);
+  const list = privacy.slice(selectAt, end);
+  assert.ok(selectAt > start && end > selectAt);
+  ['notes', 'admin_private_notes', 'host_address', 'zoom_link', 'host_phone', 'wifi_info'].forEach((col) => {
+    assert.equal(list.includes(col), false, col);
   });
 });
 

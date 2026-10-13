@@ -29,137 +29,144 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#27467A;--navy2:#1B3358;--sky:#27467A;--sky-l:#E9EFF8;
-  --cream:#ffffff;--text:#575757;--muted:#757575;--border:#dde4ee;
-  --success:#2d7a5e;--success-bg:#eaf5f0;--danger:#c0392b;
-  --r:12px;--r-sm:8px;
+  --navy:#1E3161;--navy2:#0F1D3F;--sky:#1E3161;--sky-l:#F8F4EA;
+  --gold:#EFC75A;--gold-deep:#C7A24A;
+  --cream:#F5F2EA;--text:#1E3161;--muted:#3E4E72;--border:rgba(30,49,97,0.18);
+  --success:#1F6B4A;--success-bg:#E7F4EC;--danger:#9E2B25;
+  --r:16px;--r-sm:12px;
 }
-body{font-family:'Source Sans Pro',arial,sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
-header{background:var(--navy);padding:18px 32px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px}
-.site-nav{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
-.site-nav a{color:#fff;font-weight:600;font-size:14px;text-decoration:none}
-.site-nav a:hover{color:#EFC75A}
-.site-nav a.header-btn{color:#1E3161;background:#EFC75A;border-radius:999px;padding:6px 14px;font-weight:800}
-.site-nav a.header-btn[aria-current="page"]{background:#fff}
-header img{height:44px;width:44px;object-fit:contain;border-radius:50%;background:white;padding:4px}
-.htext{color:white}.htext .brand{font-family:'Fjalla One',arial,sans-serif;font-size:20px}.htext .tag{font-size:12px;opacity:.6;font-weight:300}
-.hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 60%,#2d4a7a 100%);color:white;padding:48px 32px 40px;text-align:center}
-.hero h1{font-family:'Fjalla One',arial,sans-serif;font-size:44px;margin-bottom:12px}
-.hero p{font-size:19px;opacity:.92;font-weight:400;max-width:560px;margin:0 auto}
-.steps-wrap{background:white;border-bottom:1px solid var(--border)}
-.steps{max-width:760px;margin:0 auto;padding:0 24px;display:flex}
+body{font-family:'Montserrat',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:16px;line-height:1.55}
+button,input,select,textarea{font-family:inherit}
+.hero{background:#1E3161;color:#F5F2EA;padding:48px 6vw 40px;text-align:center}
+.hero h1{font-family:'Montserrat',sans-serif;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800;margin:0 0 12px}
+.hero p{font-size:16px;font-weight:500;line-height:1.55;max-width:640px;margin:0 auto}
+.steps-wrap{background:#fff;border-bottom:2px solid #C7A24A}
+.steps{max-width:760px;margin:0 auto;padding:0 6vw;display:flex}
 .step{display:flex;align-items:center;gap:8px;padding:16px 0;flex:1;position:relative}
-.step:not(:last-child)::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:24px;height:1px;background:var(--border)}
-.step-num{width:34px;height:34px;border-radius:50%;background:var(--border);color:var(--muted);font-size:15px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s}
-.step.active .step-num{background:var(--navy);color:white}.step.done .step-num{background:var(--success);color:white}
-.step-label{font-size:15px;color:var(--muted)}.step.active .step-label{color:var(--text);font-weight:500}.step.done .step-label{color:var(--success)}
-main{max-width:640px;margin:0 auto;padding:32px 24px 64px}
+.step:not(:last-child)::after{content:'';position:absolute;right:8px;top:50%;transform:translateY(-50%);width:24px;height:2px;background:rgba(30,49,97,0.15)}
+.step-num{width:34px;height:34px;border-radius:50%;background:#F5F2EA;color:#1E3161;border:2px solid #1E3161;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step.active .step-num{background:var(--navy);color:#F5F2EA}
+.step.done .step-num{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.step-label{font-size:14px;font-weight:700;color:var(--muted)}
+.step.active .step-label{color:var(--navy)}
+.step.done .step-label{color:var(--navy)}
+main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
 .screen{display:none}.screen.active{display:block;animation:fadeIn .25s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.code-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:36px 32px;text-align:center;margin-bottom:16px}
-.code-icon{width:56px;height:56px;background:var(--sky-l);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px}
-.code-card h2{font-family:'Fjalla One',arial,sans-serif;font-size:24px;margin-bottom:8px}
-.code-card p{color:var(--muted);font-size:14px;margin-bottom:28px;max-width:340px;margin-left:auto;margin-right:auto}
-.code-input{width:100%;padding:14px 16px;font-size:22px;font-family:'Fjalla One',arial,sans-serif;letter-spacing:4px;text-align:center;text-transform:uppercase;border:2px solid var(--border);border-radius:var(--r-sm);background:var(--cream);color:var(--navy);outline:none;transition:border-color .2s;margin-bottom:6px}
-.code-input:focus{border-color:var(--sky);background:white}.code-input.error{border-color:var(--danger)}
-.error-msg{color:var(--danger);font-size:13px;margin-bottom:12px;min-height:18px}
-.sess-banner{background:var(--sky-l);border-radius:var(--r-sm);border:1px solid #C9D8EC;padding:16px 20px;margin-bottom:24px;display:flex;gap:16px;align-items:flex-start}
-.sess-dot{width:10px;height:10px;border-radius:50%;background:var(--sky);margin-top:6px;flex-shrink:0}
-.sess-banner .cname{font-weight:500;font-size:16px;color:var(--navy)}.sess-banner .cmeta{font-size:13px;color:#27467A;margin-top:2px}
-.sess-price{margin-left:auto;font-weight:500;color:var(--navy);font-size:17px;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.screen.active{animation:none}}
+.code-card{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);padding:32px 28px;text-align:center;margin-bottom:20px}
+.code-icon{width:56px;height:56px;background:#FBF6E4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px}
+.code-card h2{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800;line-height:1.25;margin:0 0 8px;color:var(--navy)}
+.code-card p{color:var(--text);font-size:15px;margin:0 auto 22px;max-width:420px;line-height:1.55}
+.code-input{width:100%;padding:14px 16px;font-size:22px;font-family:'Montserrat',sans-serif;font-weight:700;letter-spacing:4px;text-align:center;text-transform:uppercase;border:2px solid var(--border);border-radius:12px;background:#fff;color:var(--navy);outline:none;margin-bottom:6px;min-height:52px}
+.code-input:focus{border-color:var(--navy);outline:3px solid var(--gold);outline-offset:2px}
+.code-input.error{border-color:var(--danger)}
+.error-msg{color:var(--danger);font-size:13px;font-weight:600;margin-bottom:12px;min-height:18px}
+.sess-banner{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);border-left:5px solid var(--gold);padding:16px 18px;margin-bottom:24px;display:flex;gap:16px;align-items:flex-start}
+.sess-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);margin-top:6px;flex-shrink:0}
+.sess-banner .cname{font-weight:800;font-size:16px;color:var(--navy)}
+.sess-banner .cmeta{font-size:13px;font-weight:600;color:var(--muted);margin-top:2px}
+.sess-price{margin-left:auto;font-weight:800;color:var(--navy);font-size:17px;white-space:nowrap}
 .fsec{margin-bottom:28px}
-.fsec-title{font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.fsec-title{font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--navy);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--gold)}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fgrid .full{grid-column:1/-1}
-.field{display:flex;flex-direction:column;gap:5px}
-.field label{font-size:13px;font-weight:500}
-.field input,.field select{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'Source Sans Pro',arial,sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
-.field input:focus,.field select:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,143,196,.12)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:14px;font-weight:700}
+.field input,.field select,.field textarea{padding:12px 14px;border:2px solid var(--border);border-radius:12px;font-size:15px;font-family:inherit;color:var(--text);background:#fff;outline:none;min-height:44px}
+.field textarea{resize:vertical;min-height:96px}
+.field select{appearance:auto}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--navy);outline:3px solid var(--gold);outline-offset:2px}
 .field input.err,.field select.err{border-color:var(--danger)}
-.field textarea{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'Source Sans Pro',arial,sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s;resize:vertical}
-.field textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,143,196,.12)}
-.host-chk{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#f5f8fb;border-radius:var(--r-sm);border:1.5px solid var(--border);cursor:pointer;transition:border-color .2s}
-.host-chk:hover{border-color:var(--sky)}
-.host-chk input[type=checkbox]{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--sky);cursor:pointer}
-.chk-title{font-size:14px;font-weight:500}.chk-sub{font-size:12px;color:var(--muted);margin-top:2px}
-.pay-box{background:white;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px}
-.pay-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.pay-head .ptitle{font-weight:500;font-size:15px}
-.pay-total{font-family:'Fjalla One',arial,sans-serif;font-size:24px;color:var(--navy)}
+.host-chk{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#fff;border-radius:12px;border:2px solid var(--border);cursor:pointer;min-height:44px}
+.host-chk:hover{border-color:var(--navy)}
+.host-chk:focus-within{outline:3px solid var(--gold);outline-offset:2px}
+.host-chk input[type=checkbox]{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--navy);cursor:pointer}
+.chk-title{font-size:14px;font-weight:700}.chk-sub{font-size:13px;color:var(--muted);margin-top:2px;font-weight:500}
+.pay-box{background:#fff;border:1px solid rgba(30,49,97,0.08);border-radius:16px;overflow:hidden;margin-bottom:20px}
+.pay-head{padding:16px 20px;border-bottom:2px solid var(--gold);display:flex;align-items:center;justify-content:space-between}
+.pay-head .ptitle{font-weight:800;font-size:15px}
+.pay-total{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:800;color:var(--navy)}
 .pay-body{padding:20px}
-.prow{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;color:var(--muted)}
-.prow.total{border-top:1px solid var(--border);margin-top:8px;padding-top:10px;font-weight:500;color:var(--text);font-size:15px}
+.prow{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;color:var(--muted);font-weight:600}
+.prow.total{border-top:1px solid var(--border);margin-top:8px;padding-top:10px;font-weight:800;color:var(--text);font-size:15px}
 #paypal-button-container{margin-top:20px;min-height:50px}
-.host-free{background:var(--success-bg);border:1px solid #a8d8c5;border-radius:var(--r-sm);padding:14px 16px;font-size:14px;color:var(--success);display:flex;gap:10px;align-items:flex-start}
-.btn-p{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:background .2s}
-.btn-p:hover{background:var(--navy2)}
+.host-free{background:var(--success-bg);border:1px solid #b7dcc8;border-radius:12px;padding:14px 16px;font-size:14px;color:var(--success);display:flex;gap:10px;align-items:flex-start}
+.btn-p{width:100%;padding:14px 22px;background:var(--navy);color:#F5F2EA;border:2px solid var(--navy);border-radius:999px;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;min-height:48px}
+.btn-p:hover{background:var(--gold);color:var(--navy)}
+.btn-p:focus-visible,.btn-o:focus-visible,.public-more:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .btn-p:disabled{opacity:.6;cursor:not-allowed}
-.btn-o{background:transparent;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 20px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;color:var(--muted);cursor:pointer;transition:border-color .2s,color .2s}
-.btn-o:hover{border-color:var(--navy);color:var(--navy)}
-.ok-card{background:white;border-radius:var(--r);border:1px solid var(--border);padding:40px 32px;text-align:center}
-.ok-circle{width:64px;height:64px;background:var(--success-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px}
-.ok-card h2{font-family:'Fjalla One',arial,sans-serif;font-size:26px;margin-bottom:10px}
-.ok-card p{color:var(--muted);font-size:14px;max-width:380px;margin:0 auto 8px}
-.conf-box{background:var(--cream);border-radius:var(--r-sm);padding:16px 20px;margin:24px 0;text-align:left}
-.crow{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
-.crow .cl{color:var(--muted)}.crow .cv{font-weight:500}
-.help{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
-.help a{color:var(--sky);text-decoration:none}
-.public-sessions{background:white;border-radius:var(--r);border:1px solid var(--border);padding:22px 20px 16px;text-align:left}
-.public-sessions h2{font-family:'Fjalla One',arial,sans-serif;font-size:24px;margin-bottom:4px;text-align:center}
-.public-sessions-lead{color:var(--muted);font-size:13px;text-align:center;margin:0 0 14px}
-.public-month{font-size:11px;font-weight:600;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.btn-o{background:#fff;border:2px solid var(--navy);border-radius:999px;padding:10px 20px;font-family:inherit;font-size:14px;font-weight:800;color:var(--navy);cursor:pointer;min-height:44px}
+.btn-o:hover{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.ok-card{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);padding:36px 28px;text-align:center}
+.ok-circle{width:64px;height:64px;background:var(--success-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px}
+.ok-card h2{font-family:'Montserrat',sans-serif;font-size:26px;font-weight:800;margin:0 0 10px}
+.ok-card p{color:var(--text);font-size:15px;max-width:420px;margin:0 auto 8px;line-height:1.55}
+.conf-box{background:#F8F4EA;border-radius:12px;padding:16px 18px;margin:24px 0;text-align:left}
+.crow{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:4px 0}
+.crow .cl{color:var(--muted);font-weight:600}.crow .cv{font-weight:700}
+.help{text-align:center;margin-top:16px;font-size:14px;color:var(--text);line-height:1.5}
+.help a{color:var(--navy);font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.help a:hover{color:var(--navy2)}
+.public-sessions{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);padding:22px 20px 16px;text-align:left}
+.public-sessions h2{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800;margin:0 0 4px;text-align:center;color:var(--navy)}
+.public-sessions-lead{color:var(--text);font-size:14px;text-align:center;margin:0 0 14px;line-height:1.5}
+.public-month{font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--navy);margin:14px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--gold)}
 .public-month:first-child{margin-top:0}
-.public-card{position:relative;isolation:isolate;width:100%;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;background:#F5F6F7;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:8px;cursor:pointer;font-family:'Source Sans Pro',arial,sans-serif;font-size:15px;color:var(--text);transition:border-color .2s,background .2s}
-.public-card:hover{border-color:var(--sky);background:var(--sky-l)}
+.public-card{position:relative;isolation:isolate;width:100%;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;background:#fff;border:2px solid rgba(30,49,97,0.12);border-radius:16px;padding:12px 14px;margin-bottom:10px;cursor:pointer;font-family:inherit;font-size:15px;color:var(--text)}
+.public-card:hover{border-color:var(--navy);background:#FBF6E4}
 .public-card-hit{position:absolute;inset:0;z-index:1;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:inherit;background:transparent;cursor:pointer;font:inherit;color:inherit}
 .public-card-hit:focus{outline:none}
-.public-card:has(.public-card-hit:focus-visible){border-color:var(--sky);box-shadow:0 0 0 3px rgba(74,143,196,.12)}
+.public-card:has(.public-card-hit:focus-visible){border-color:var(--navy);outline:3px solid var(--gold);outline-offset:2px}
 .public-card .pmain{position:relative;z-index:2;pointer-events:none}
-.public-card .pname{font-weight:600;font-size:14.5px;color:var(--navy);line-height:1.3}
-.public-card .paudience{font-size:11.5px;color:var(--muted);margin-top:2px}
-.public-card .pmeta{font-size:12.5px;color:#27467A;margin-top:3px}
-.public-card .pplace{font-size:12.5px;color:var(--navy);margin-top:1px}
+.public-card .pname{font-weight:800;font-size:15px;color:var(--navy);line-height:1.3}
+.public-card .paudience{font-size:12px;color:var(--muted);margin-top:2px;font-weight:600}
+.public-card .pmeta{font-size:13px;color:var(--navy);margin-top:3px;font-weight:600}
+.public-card .pplace{font-size:13px;color:var(--navy);margin-top:1px;font-weight:600}
 .public-card .pside{position:relative;z-index:2;pointer-events:none;text-align:right;flex-shrink:0}
-.public-card .pprice{font-weight:600;color:var(--navy);font-size:15px;white-space:nowrap}
-.public-card .pseats{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap}
-.public-card .pseats.full,.public-card .pseats.few{color:#9a6800;font-weight:600}
-.public-card a.public-waitlist{display:block;pointer-events:auto;position:relative;z-index:3;color:#9a6800;font-weight:600;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-.public-card a.public-waitlist:hover{color:#7a5000}
-.public-card a.public-waitlist:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
-.public-card .pgo{display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:var(--sky);line-height:1.3;max-width:11.5em}
-.public-empty{font-size:13px;color:var(--muted);text-align:center;padding:8px 4px 12px;line-height:1.6}
-.public-more{width:100%;margin:4px 0 8px;padding:10px;background:white;border:1.5px dashed var(--border);border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;font-weight:500;color:var(--navy);cursor:pointer}
-.public-more:hover{border-color:var(--sky);background:#f4f9fc}
-.trust-box{background:#f4f8fb;border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:22px;font-size:13px;color:#3a4661;line-height:1.55}
-.trust-box .trust-title{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.public-card .pprice{font-weight:800;color:var(--navy);font-size:15px;white-space:nowrap}
+.public-card .pseats{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;font-weight:600}
+.public-card .pseats.full,.public-card .pseats.few{color:#7A5C00;font-weight:800}
+.public-card a.public-waitlist{display:block;pointer-events:auto;position:relative;z-index:3;color:#7A5C00;font-weight:800;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.public-card a.public-waitlist:hover{color:#5C4500}
+.public-card a.public-waitlist:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.public-card .pgo{display:inline-block;margin-top:6px;font-size:12px;font-weight:800;color:var(--navy);line-height:1.3;max-width:11.5em}
+.public-empty{font-size:14px;color:var(--text);text-align:center;padding:8px 4px 12px;line-height:1.6}
+.public-more{width:100%;margin:4px 0 8px;padding:12px;background:#fff;border:2px dashed rgba(30,49,97,0.35);border-radius:999px;font-family:inherit;font-size:14px;font-weight:800;color:var(--navy);cursor:pointer;min-height:44px}
+.public-more:hover{border-color:var(--navy);background:#FBF6E4}
+.trust-box{background:#fff;border:1px solid rgba(30,49,97,0.08);border-left:5px solid var(--gold);border-radius:16px;padding:16px 18px;margin-bottom:22px;font-size:14px;color:var(--text);line-height:1.55}
+.trust-box .trust-title{font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--navy);margin-bottom:8px}
 .trust-box p{margin:0 0 8px}.trust-box p:last-child{margin-bottom:0}
-.pay-amount-callout{background:var(--sky-l);border:1px solid #C9D8EC;border-radius:var(--r-sm);padding:12px 14px;text-align:center;font-size:14px;color:var(--navy);margin-bottom:12px}
-.pay-amount-callout strong{font-family:'Fjalla One',arial,sans-serif;font-size:22px}
-.waitlist-box{background:#fff7e6;border:1px solid #f0d090;border-radius:var(--r);padding:28px 24px;text-align:center}
-.waitlist-box h3{font-family:'Fjalla One',arial,sans-serif;font-size:20px;color:#7a5000;margin-bottom:8px}
-.waitlist-box p{font-size:13px;color:#9a6800;margin-bottom:16px;line-height:1.6}
+.pay-amount-callout{background:#FBF6E4;border:1px solid var(--gold-deep);border-radius:12px;padding:12px 14px;text-align:center;font-size:15px;color:var(--navy);margin-bottom:12px;font-weight:600}
+.pay-amount-callout strong{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800}
+.waitlist-box{background:#FBF6E4;border:1px solid var(--gold-deep);border-radius:16px;padding:28px 24px;text-align:center}
+.waitlist-box h3{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:800;color:#6E5310;margin:0 0 8px}
+.waitlist-box p{font-size:14px;color:#6E5310;margin:0 0 16px;line-height:1.6}
 .waitlist-form{text-align:left;max-width:360px;margin:0 auto}
 .waitlist-form .field{margin-bottom:12px}
-.notice-box{background:#fffbf0;border:1px solid #f0d88a;border-radius:var(--r-sm);padding:14px 16px;font-size:13px;color:#7a5c00;line-height:1.6}
-.perm-item{background:#F5F6F7;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:14px 16px}
-.perm-title{font-size:14px;font-weight:500;margin-bottom:4px}
-.perm-desc{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+.notice-box{background:#FBF6E4;border:1px solid var(--gold-deep);border-radius:12px;padding:14px 16px;font-size:14px;color:#6E5310;line-height:1.6}
+.perm-item{background:#fff;border:2px solid var(--border);border-radius:12px;padding:14px 16px}
+.perm-title{font-size:14px;font-weight:800;margin-bottom:4px}
+.perm-desc{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:10px;font-weight:500}
 .perm-radios{display:flex;flex-direction:column;gap:6px}
-.radio-lbl{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
-.radio-lbl input[type=radio]{accent-color:var(--sky);width:16px;height:16px;flex-shrink:0}
-.waiver-box{background:#F5F6F7;border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 18px;font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:14px;max-height:220px;overflow-y:auto}
+.radio-lbl{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer;min-height:32px}
+.radio-lbl input[type=radio]{accent-color:var(--navy);width:18px;height:18px;flex-shrink:0}
+.waiver-box{background:#F8F4EA;border:1px solid rgba(30,49,97,0.1);border-radius:12px;padding:16px 18px;font-size:13px;color:var(--text);line-height:1.7;margin-bottom:14px;max-height:220px;overflow-y:auto}
 .waiver-box p{margin-bottom:10px}.waiver-box p:last-child{margin-bottom:0}
 .waiver-box .policy-sep{margin-top:26px;padding-top:18px;border-top:1px solid var(--border)}
-.waiver-check{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#f5f8fb;border-radius:var(--r-sm);border:1.5px solid var(--border);cursor:pointer;transition:border-color .2s;margin-bottom:12px}
-.waiver-check:hover{border-color:var(--sky)}
-.waiver-check.err{border-color:var(--danger);background:#fdf0ee}
-.perm-item.err{border-color:var(--danger);background:#fdf0ee}
-.waiver-check input[type=checkbox]{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--sky);cursor:pointer}
-footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
+.waiver-check{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#fff;border-radius:12px;border:2px solid var(--border);cursor:pointer;margin-bottom:12px;min-height:44px}
+.waiver-check:hover{border-color:var(--navy)}
+.waiver-check:focus-within{outline:3px solid var(--gold);outline-offset:2px}
+.waiver-check.err{border-color:var(--danger);background:#FDF2F0}
+.perm-item.err{border-color:var(--danger);background:#FDF2F0}
+.waiver-check input[type=checkbox]{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--navy);cursor:pointer}
 @media(max-width:520px){
-  header{padding:14px 20px}.hero{padding:32px 20px 28px}.hero h1{font-size:34px}
-  main{padding:24px 16px 48px}.code-card{padding:28px 20px}
-  .fgrid{grid-template-columns:1fr}.fgrid .full{grid-column:1}.step-label{display:none}
+  .hero{padding:32px 5vw 28px}
+  .hero h1{font-size:28px}
+  main{padding:24px 5vw 48px}
+  .code-card{padding:24px 16px}
+  .fgrid{grid-template-columns:1fr}.fgrid .full{grid-column:1}
+  .step-label{display:none}
+  .step:not(:last-child)::after{display:none}
   .sess-banner{flex-wrap:wrap}
   .sess-price{margin-left:0;width:100%}
 }
@@ -451,14 +458,14 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       <div id="promo-entry">
         <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">Have a discount code?</label>
         <div style="display:flex;gap:8px">
-          <input type="text" id="promo-input" placeholder="Enter code" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter'){event.preventDefault();applyPromo();}" style="flex:1;padding:11px 12px;font-size:14px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);border-radius:var(--r-sm);background:white;color:var(--navy);outline:none;font-family:'Source Sans Pro',arial,sans-serif">
-          <button type="button" onclick="applyPromo()" style="padding:11px 18px;background:var(--navy);color:#fff;border:none;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">Apply</button>
+          <input type="text" id="promo-input" placeholder="Enter code" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter'){event.preventDefault();applyPromo();}" style="flex:1;padding:11px 12px;font-size:14px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);border-radius:var(--r-sm);background:white;color:var(--navy);outline:none;font-family:'Montserrat',sans-serif">
+          <button type="button" onclick="applyPromo()" style="padding:11px 18px;background:var(--navy);color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap">Apply</button>
         </div>
         <div id="promo-msg" style="font-size:12px;margin-top:6px;min-height:14px"></div>
       </div>
       <div id="promo-applied-banner" style="display:none;align-items:center;justify-content:space-between;gap:8px;background:#eaf6ef;border:1px solid #bfe3cd;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;color:#1d6b42">
         <span id="promo-applied-text">✓ &nbsp;Code <strong>MBGSCN</strong> applied — $10 off</span>
-        <button type="button" onclick="removePromo()" style="background:none;border:none;color:#1d6b42;font-size:12px;text-decoration:underline;cursor:pointer;font-family:'Source Sans Pro',arial,sans-serif">Remove</button>
+        <button type="button" onclick="removePromo()" style="background:none;border:none;color:#1d6b42;font-size:12px;text-decoration:underline;cursor:pointer;font-family:'Montserrat',sans-serif">Remove</button>
       </div>
     </div>
   </div>
@@ -474,7 +481,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       <span>OR</span>
       <div style="flex:1;height:1px;background:var(--border)"></div>
     </div>
-    <button id="venmo-btn" type="button" onclick="payWithVenmo()" style="width:100%;padding:15px;background:#3D95CE;color:#fff;border:none;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#2d7eb5'" onmouseout="this.style.background='#3D95CE'">
+    <button id="venmo-btn" type="button" onclick="payWithVenmo()" style="width:100%;padding:15px;background:#3D95CE;color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#2d7eb5'" onmouseout="this.style.background='#3D95CE'">
       <span style="font-size:18px;font-weight:800;letter-spacing:-0.5px">V</span> &nbsp;Pay with Venmo
     </button>
     <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">You'll be sent to @mindfulbeginnings on Venmo with the exact amount filled in</p>
@@ -483,9 +490,9 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       <span>OR</span>
       <div style="flex:1;height:1px;background:var(--border)"></div>
     </div>
-    <button id="zelle-btn" type="button" onclick="payWithZelle()" style="width:100%;padding:13px;background:#fff;color:#6D1ED4;border:2px solid #6D1ED4;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s" onmouseover="this.style.background='#f5edff'" onmouseout="this.style.background='#fff'">Pay with Zelle</button>
+    <button id="zelle-btn" type="button" onclick="payWithZelle()" style="width:100%;padding:13px;background:#fff;color:#6D1ED4;border:2px solid #6D1ED4;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:background .2s" onmouseover="this.style.background='#f5edff'" onmouseout="this.style.background='#fff'">Pay with Zelle</button>
     <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Pay directly from your bank — no fees. Send the exact amount shown above.</p>
-    <button id="already-paid-btn" type="button" onclick="alreadyPaid()" style="width:100%;padding:13px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;margin-top:14px" onmouseover="this.style.background='#eef2f8'" onmouseout="this.style.background='#fff'">I already paid for this</button>
+    <button id="already-paid-btn" type="button" onclick="alreadyPaid()" style="width:100%;padding:13px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:background .2s;margin-top:14px" onmouseover="this.style.background='#EFC75A'" onmouseout="this.style.background='#fff'">I already paid for this</button>
     <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Already paid (e.g. your earlier payment didn't record)? We'll verify it on our end.</p>
   </div>
   <div id="host-confirm-wrap" style="display:none;margin-top:8px"><button class="btn-p" id="host-confirm-btn" onclick="completeReg('host-free',null)">Confirm registration — no charge</button></div>
@@ -506,43 +513,43 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
       We hit a snag automatically saving your registration, but <strong>nothing is lost</strong>. Please email the details below (including the PayPal/Transaction ID) to <strong>lindsay@mindfulbeginnings.org</strong> and your spot will be confirmed right away. You will not be charged again.
     </div>
     <div class="conf-box" id="conf-box"></div>
-    <button id="cal-btn" onclick="downloadCalendar()" style="width:100%;padding:13px;background:var(--sky-l);color:#27467A;border:1px solid #C9D8EC;border-radius:var(--r-sm);font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:6px;transition:background .2s" onmouseover="this.style.background='#D8E3F2'" onmouseout="this.style.background='var(--sky-l)'">📅 Add to my calendar</button>
+    <button id="cal-btn" onclick="downloadCalendar()" style="width:100%;padding:13px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:6px;transition:background .2s" onmouseover="this.style.background='#EFC75A'" onmouseout="this.style.background='#fff'">📅 Add to my calendar</button>
     <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Using Apple Calendar or Outlook? <a id="cal-ics-link" href="#" style="color:var(--sky);font-weight:500">Download the .ics file</a></p>
     <p style="font-size:13px;color:var(--muted)">Questions? <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">Contact us</a></p>
   </div>
 </div>
 
 <!-- PAYPAL CHECKOUT MODAL -->
-<div id="paypal-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Source Sans Pro',arial,sans-serif">
+<div id="paypal-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Montserrat',sans-serif">
   <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div style="font-size:19px;font-weight:700;color:#1a1a1a">Pay with Card or PayPal</div>
       <button onclick="closePayPalModal()" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 0 0 12px;line-height:1">&#x2715;</button>
     </div>
     <p style="font-size:14px;color:#444;margin:0 0 18px;line-height:1.55">If card checkout did not load on this page, you can pay <strong id="paypal-amount-1">$185</strong> on our payment page. The amount charged will match the total shown here.</p>
-    <a id="paypal-deeplink" href="/pay.html" target="_blank" rel="noopener" style="display:block;width:100%;padding:14px;background:#0070ba;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px;text-decoration:none;text-align:center;box-sizing:border-box">Open payment page →</a>
-    <div style="background:var(--sky-l);border:1px solid #C9D8EC;border-radius:8px;padding:12px 14px;font-size:13px;color:#27467A;line-height:1.55;margin-bottom:14px">
+    <a id="paypal-deeplink" href="/pay.html" target="_blank" rel="noopener" style="display:block;width:100%;padding:14px;background:#0070ba;color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:14px;text-decoration:none;text-align:center;box-sizing:border-box">Open payment page →</a>
+    <div style="background:var(--sky-l);border:1px solid rgba(30,49,97,0.18);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--navy);line-height:1.55;margin-bottom:14px">
       <strong>Amount:</strong> <span id="paypal-amount-2">$185</span><br>
       <strong>For:</strong> <span id="paypal-memo" style="word-break:break-word"></span>
     </div>
     <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
       ✓ &nbsp;<strong>Your registration is already saved and your spot is reserved.</strong> Finish paying on PayPal whenever you can — Lindsay matches it to your registration (usually within 24 hours). You do not need to return to this page.
     </div>
-    <button onclick="confirmPayPalPayment()" style="width:100%;padding:13px;background:#1a2744;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've completed my PayPal payment</button>
-    <button onclick="closePayPalModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+    <button onclick="confirmPayPalPayment()" style="width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">I've completed my PayPal payment</button>
+    <button onclick="closePayPalModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
   </div>
 </div>
 
 <!-- VENMO PAYMENT INSTRUCTIONS MODAL -->
-<div id="venmo-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Source Sans Pro',arial,sans-serif">
+<div id="venmo-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Montserrat',sans-serif">
   <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div style="font-size:19px;font-weight:700;color:#1a1a1a">Pay with Venmo</div>
       <button onclick="closeVenmoModal()" style="background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 0 0 12px;line-height:1">&#x2715;</button>
     </div>
     <p style="font-size:14px;color:#444;margin:0 0 18px;line-height:1.55">Click the button below to send your <strong id="venmo-amount-1">$185</strong> payment. Your Venmo app (or the Venmo website) will open with the amount and memo pre-filled.</p>
-    <a id="venmo-deeplink" href="#" target="_blank" rel="noopener" style="display:block;width:100%;padding:14px;background:#3D95CE;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px;text-decoration:none;text-align:center;box-sizing:border-box">Open Venmo to pay @mindfulbeginnings →</a>
-    <div style="background:var(--sky-l);border:1px solid #C9D8EC;border-radius:8px;padding:12px 14px;font-size:13px;color:#27467A;line-height:1.55;margin-bottom:14px">
+    <a id="venmo-deeplink" href="#" target="_blank" rel="noopener" style="display:block;width:100%;padding:14px;background:#3D95CE;color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:14px;text-decoration:none;text-align:center;box-sizing:border-box">Open Venmo to pay @mindfulbeginnings →</a>
+    <div style="background:var(--sky-l);border:1px solid rgba(30,49,97,0.18);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--navy);line-height:1.55;margin-bottom:14px">
       <strong>Send to:</strong> <span style="font-family:monospace;background:#fff;padding:2px 6px;border-radius:4px">@mindfulbeginnings</span><br>
       <strong>Amount:</strong> <span id="venmo-amount-2">$185</span><br>
       <strong>Memo:</strong> <span id="venmo-memo" style="word-break:break-word"></span>
@@ -550,13 +557,13 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
     <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
       ✓ &nbsp;<strong>Your registration is already saved and your spot is reserved.</strong> Send the Venmo whenever you can — Lindsay matches it to your registration (usually within 24 hours). You do not need to return to this page.
     </div>
-    <button onclick="confirmVenmoPayment()" style="width:100%;padding:13px;background:#1a2744;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've sent the Venmo payment</button>
-    <button onclick="closeVenmoModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+    <button onclick="confirmVenmoPayment()" style="width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">I've sent the Venmo payment</button>
+    <button onclick="closeVenmoModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
   </div>
 </div>
 
 <!-- ZELLE PAYMENT INSTRUCTIONS MODAL -->
-<div id="zelle-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Source Sans Pro',arial,sans-serif">
+<div id="zelle-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Montserrat',sans-serif">
   <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div style="font-size:19px;font-weight:700;color:#1a1a1a">Pay with Zelle</div>
@@ -577,13 +584,13 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
     <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
       ✓ &nbsp;<strong>Your registration is already saved and your spot is reserved.</strong> Send the Zelle whenever you can — Lindsay matches it to your registration (usually within 24 hours). You do not need to return to this page.
     </div>
-    <button onclick="confirmZellePayment()" style="width:100%;padding:13px;background:#6D1ED4;color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">I've sent the Zelle payment</button>
-    <button onclick="closeZelleModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+    <button onclick="confirmZellePayment()" style="width:100%;padding:13px;background:#6D1ED4;color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">I've sent the Zelle payment</button>
+    <button onclick="closeZelleModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
   </div>
 </div>
 
 <!-- ALREADY-PAID CONFIRMATION MODAL -->
-<div id="already-paid-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Source Sans Pro',arial,sans-serif">
+<div id="already-paid-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;font-family:'Montserrat',sans-serif">
   <div style="background:#fff;border-radius:14px;padding:28px 26px;max-width:440px;width:100%;margin-top:40px;box-shadow:0 8px 32px rgba(0,0,0,0.25);box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div style="font-size:19px;font-weight:700;color:#1a2744">Confirm: already paid</div>
@@ -593,13 +600,19 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
     <div style="background:#eef2f8;border:1px solid #c9d6e8;border-radius:8px;padding:12px 14px;color:#1a2744;font-size:13px;line-height:1.55;margin-bottom:20px">
       ✓ &nbsp;You will <strong>not</strong> be charged now. We'll reserve your spot and confirm your existing payment on our end (usually within 24 hours). You'll get a registration confirmation email either way.
     </div>
-    <button onclick="confirmAlreadyPaid()" style="width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">Yes, I already paid — reserve my spot</button>
-    <button onclick="closeAlreadyPaidModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:8px;font-family:'Source Sans Pro',arial,sans-serif;font-size:13px;cursor:pointer">Cancel</button>
+    <button onclick="confirmAlreadyPaid()" style="width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">Yes, I already paid — reserve my spot</button>
+    <button onclick="closeAlreadyPaidModal()" style="width:100%;padding:11px;background:transparent;color:#666;border:1px solid #ddd;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:13px;cursor:pointer">Cancel</button>
   </div>
 </div>
 
 </main>
-<footer>© 2026 Mindful Beginnings · <a href="https://mindfulbeginnings.org" style="color:var(--sky);text-decoration:none">mindfulbeginnings.org</a></footer>
+<footer class="footer">
+<div class="footer-brand">Mindful Beginnings LLC, Bethesda, Maryland</div>
+<div class="footer-links">
+<a href="/cpr-certification">Group CPR certification</a>
+<a href="https://mindfulbeginnings.org/">mindfulbeginnings.org</a>
+</div>
+</footer>
 
 <script>
 // ─── SAFETY NET ──────────────────────────────────────────────
@@ -633,7 +646,7 @@ window.addEventListener('error',function(ev){
     b.id='mb-fatal-banner';
     b.setAttribute('role','alert');
     // In the page flow, at the top. A fixed bottom bar covers Continue / Reserve on a phone.
-    b.style.cssText='position:relative;background:#fff7e6;border-bottom:1px solid #f0d878;color:#7a5a00;font:14px/1.45 "Source Sans Pro",arial,sans-serif;padding:10px 48px 10px 16px;text-align:left';
+    b.style.cssText='position:relative;background:#fff7e6;border-bottom:1px solid #f0d878;color:#7a5a00;font:14px/1.45 "Montserrat",sans-serif;padding:10px 48px 10px 16px;text-align:left';
     var text=document.createElement('div');
     var strong=document.createElement('strong');
     strong.textContent='Something interrupted loading.';
@@ -1008,23 +1021,51 @@ function fmtSessDates(s,opts){
     .map(x=>{const d=new Date(x+'T12:00:00');return isNaN(d)?'':d.toLocaleDateString('en-US',o);})
     .filter(Boolean).join(' & ');
 }
-// Session columns fetched for registration. extra_dates is retried-without if the
-// database column hasn't been added yet, so the page keeps working either way.
-const SESSION_COLS='id,code,course,date,time,location,host_address,city,state,zip,host_taken,owner_taught,has_host,instructor_id,max_students_override,price_override,is_virtual,zoom_link,created_at,external_registration_url';
+// Session lookup goes through get_session_by_code. That function does not
+// return a street address or a Zoom link. Those arrive only after a
+// registration row exists, via get_session_logistics.
 async function fetchSessionByCode(code){
-  let res=await sb.from('sessions').select(SESSION_COLS+',extra_dates').eq('code',code);
-  // If the richer query fails for ANY reason (missing column, ungranted column /
-  // permission denied, etc.), retry with the core column list so one optional
-  // column can never take down the whole registration lookup. This is the fix
-  // for the Aug 2026 outage where extra_dates lacked an anon grant and every
-  // code showed "Code not found" to the public.
-  if(res&&res.error){
-    console.error('Session lookup (full columns) failed, retrying with core columns:',res.error);
-    res=await sb.from('sessions').select(SESSION_COLS).eq('code',code);
-  }
-  return res;
+  if(!sb)return{data:null,error:{message:'Registration is not connected.'}};
+  return sb.rpc('get_session_by_code',{p_code:code});
 }
 function extraDatesFromRow(r){return Array.isArray(r&&r.extra_dates)?r.extra_dates.filter(Boolean).slice().sort():[];}
+function registrationEmail(reg){
+  const contact=String(reg&&reg.contact||'');
+  const fromContact=contact.split('/')[0].replace(/^\s+|\s+$/g,'');
+  if(fromContact.indexOf('@')>0)return fromContact;
+  const el=document.getElementById('p-email');
+  return el?String(el.value||'').replace(/^\s+|\s+$/g,''):'';
+}
+function sessionFromCodeRow(r, extras){
+  const extra=extras||{};
+  return {
+    id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
+    location:r.location||'',hostAddress:'',
+    city:r.city||'',state:r.state||'',zip:r.zip||'',
+    contactName:'',hostPhone:'',
+    hostTaken:r.host_taken||false,ownerTaught:r.owner_taught||false,
+    hasHost:r.has_host!==false,instrPhone:extra.instrPhone||'',regCount:extra.regCount||0,
+    maxStudentsOverride:r.max_students_override||null,
+    priceOverride:r.price_override==null?null:Number(r.price_override),
+    createdAt:r.created_at||null,
+    isVirtual:r.is_virtual||false,zoomLink:'',
+    extraDates:extraDatesFromRow(r)
+  };
+}
+async function applySessionLogistics(session, reg){
+  if(!sb||!session||!reg||!reg.id)return;
+  const email=registrationEmail(reg);
+  if(!email)return;
+  try{
+    const res=await sb.rpc('get_session_logistics',{p_registration_id:reg.id,p_email:email});
+    if(!res||res.error){console.warn('Session logistics unavailable:',res&&res.error);return;}
+    const row=Array.isArray(res.data)?res.data[0]:res.data;
+    if(!row)return;
+    if(row.host_address)session.hostAddress=row.host_address;
+    if(row.zoom_link)session.zoomLink=row.zoom_link;
+    if(row.location)session.location=row.location;
+  }catch(e){console.warn('Session logistics failed:',e);}
+}
 
 // Keep a successful lookup in the URL so refresh / share still lands on that session.
 function rememberSessionCode(code){
@@ -1041,8 +1082,6 @@ function rememberSessionCode(code){
   // /js/public-sessions.js. Private/host (has_host), private (is_private),
   // and custom jobs (is_custom_job) never appear here. A session code still
   // opens that session, including a custom job.
-const PUBLIC_SESSION_COLS='id,code,course,date,time,city,location,is_virtual,price_override,max_students_override,created_at,is_cancelled,is_hold,is_custom_job,has_host,is_private,external_registration_url';
-const PUBLIC_SESSION_COLS_CORE='id,code,course,date,time,city,is_virtual,price_override,max_students_override,created_at,has_host,is_private';
 let publicSessionRows=[];
 let publicSessionCounts={};
 let publicShowAll=false;
@@ -1143,24 +1182,12 @@ function renderPublicSessions(){
 async function loadPublicSessions(){
   const box=document.getElementById('public-sessions-list');
   if(!box||!sb)return;
-  const helpers=window.MBPublicSessions;
-  const today=helpers?helpers.todayLocalISO():'';
   try{
-    // has_host, is_private, and is_custom_job are required so private/host
-    // sessions and custom jobs never appear publicly. Fail closed if those
-    // columns cannot be read. The same filters run again in public-sessions.js.
-    let res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('has_host',false).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
-    if(res&&res.error){
-      console.warn('Public session list (has_host filter) failed, retrying without eq:',res.error);
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
-    }
-    if(res&&res.error){
-      console.warn('Public session list (full columns) failed, retrying core columns:',res.error);
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('has_host',false).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
-    }
-    if(res&&res.error){
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
-    }
+    // One RPC. list_public_sessions already drops private, host, custom,
+    // hold, cancelled, past, and ops-code rows. It still returns
+    // external_registration_url so a partner https link can leave this page.
+    // If the call errors, stop. Do not fall back to reading the sessions table.
+    const res=await sb.rpc('list_public_sessions');
     if(res&&res.error){
       console.error('Public session list failed:',res.error);
       box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.</div>';
@@ -1294,19 +1321,7 @@ async function checkCode(){
     }catch(e){console.warn('Count RPC failed:',e);}
     // Phone of the instructor assigned to THIS session. The old any-id lookup is gone.
     const instrPhone=await sessionInstructorPhone(r);
-    currentSession={
-      id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
-      location:r.location||'',hostAddress:r.host_address||'',
-      city:r.city||'',state:r.state||'',zip:r.zip||'',
-      contactName:r.contact_name||'',hostPhone:r.host_phone||'',
-      hostTaken:r.host_taken||false,ownerTaught:r.owner_taught||false,
-      hasHost:r.has_host!==false,instrPhone,regCount,
-      maxStudentsOverride:r.max_students_override||null,
-      priceOverride:r.price_override==null?null:Number(r.price_override),
-      createdAt:r.created_at||null,
-      isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',
-      extraDates:extraDatesFromRow(r)
-    };
+    currentSession=sessionFromCodeRow(r,{instrPhone,regCount});
     err.textContent='';inp.classList.remove('error');
     rememberSessionCode(val);
     // Check capacity — uses per-session override if set, else course default
@@ -1363,7 +1378,7 @@ function setBanner(id){
     ?'Virtual class (Zoom)'
     :`${escapeHtml(s.location||'')}${!addrLine&&s.city?', '+escapeHtml(s.city):''}${!addrLine&&s.state?' '+escapeHtml(s.state):''}`;
   const metaAddr=s.isVirtual
-    ?(s.zoomLink?`<br><span style="font-size:12px;color:#27467A">🔗 Zoom link will be sent in your confirmation email</span>`:'')
+    ?(s.zoomLink?`<br><span style="font-size:12px;color:var(--navy)">🔗 Zoom link will be sent in your confirmation email</span>`:'')
     :(addrLine?'<br>'+escapeHtml(addrLine):'');
   const couple=seats>1;
   const priceCore=isDiscounted
@@ -1792,6 +1807,10 @@ async function goToPayment(){
     reservedReg=reg;
     reservedPrice=price;
     reservedDone=true;
+    // The seat exists now, so the confirmation email can include the street
+    // address or Zoom link. The code lookup itself never receives those.
+    await applySessionLogistics(currentSession, reg);
+    setBanner('banner-pay');
     // Email the family now so they always have a record and clear payment instructions,
     // even if they close the page before paying.
     try{sendConfirmationEmail(reg,currentSession,price);}catch(e){console.warn('Reserve email failed:',e);}
@@ -2382,6 +2401,7 @@ async function completeReg(method,txId){
     return;
   }
 
+  await applySessionLogistics(s, reg);
   showSuccessScreen(reg,s,price,method,false);
 }
 
@@ -2525,19 +2545,7 @@ async function startPayNow(code,name,amt,regId){
     }
     const r=rows[0];
     const instrPhone=await sessionInstructorPhone(r);
-    currentSession={
-      id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
-      location:r.location||'',hostAddress:r.host_address||'',
-      city:r.city||'',state:r.state||'',zip:r.zip||'',
-      contactName:'',hostPhone:'',
-      hostTaken:r.host_taken||false,ownerTaught:r.owner_taught||false,
-      hasHost:r.has_host!==false,instrPhone,regCount:0,
-      maxStudentsOverride:r.max_students_override||null,
-      priceOverride:r.price_override==null?null:Number(r.price_override),
-      createdAt:r.created_at||null,
-      isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',
-      extraDates:extraDatesFromRow(r)
-    };
+    currentSession=sessionFromCodeRow(r,{instrPhone,regCount:0});
     // If Lindsay passed an exact balance in the link, that overrides the session price so
     // the order summary and every payment button show the true amount owed.
     const amtNum=Number(amt);

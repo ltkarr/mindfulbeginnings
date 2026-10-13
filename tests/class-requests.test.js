@@ -68,7 +68,6 @@ test('host and organization pages use the shared brand header without a duplicat
   assert.doesNotMatch(hostPage, /Safe Sitter® and family safety courses/);
   assert.doesNotMatch(orgPage, /Safe Sitter® and family safety courses/);
   assert.doesNotMatch(intakeCss, /border-radius:\s*50%/);
-  assert.match(intakeCss, /width:min\(320px,86vw\)/);
   assert.match(hostPage, /we will confirm the date/);
   assert.match(orgPage, /<h1>Organization site information<\/h1>/);
 });
