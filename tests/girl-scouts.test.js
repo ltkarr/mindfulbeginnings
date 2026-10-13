@@ -38,6 +38,9 @@ test('girl scout workshops keep each level and use one request button', () => {
     assert.ok(src, 'card image');
     assert.equal(fs.existsSync(path.join(root, src.slice(1))), true, src);
   });
+  assert.match(page, /\.card img\{[^}]*object-fit:contain/);
+  assert.match(page, /\.card img\{[^}]*width:112px;height:112px/);
+  assert.doesNotMatch(page, /object-fit:\s*cover/);
 });
 
 test('clean /girl-scouts URL rewrites to the workshop page', () => {
