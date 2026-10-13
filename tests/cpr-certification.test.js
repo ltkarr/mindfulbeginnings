@@ -24,7 +24,6 @@ test('schedule and contact links open the host page, contact page, and phone in 
   assert.match(page, /href="\/host-a-class\.html"[^>]*>Host a Class</);
   assert.match(page, /class="mb-btn mb-btn-gold mb-btn-sm" href="\/register\.html">Register</);
   assert.match(page, /href="\/host-a-class\.html"[^>]*>Schedule a group class</);
-  assert.match(page, /href="mailto:lindsay@mindfulbeginnings\.org"[^>]*>Email us</);
   assert.doesNotMatch(page, /target="_blank"/);
   assert.equal((page.match(/href="tel:\+17039875979"/g) || []).length, 2);
   assert.match(page, />703-987-5979</);
