@@ -8,6 +8,12 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/site.css">
+<style>
+.cpr-hero{flex-direction:row;align-items:center;gap:40px}
+.cpr-hero-copy{display:flex;flex-direction:column;gap:16px;flex:1;min-width:0}
+.cpr-badge{width:240px;flex:none;height:auto}
+@media(max-width:720px){.cpr-hero{flex-direction:column;align-items:flex-start;gap:24px}.cpr-badge{width:200px}}
+</style>
 </head>
 <body>
 <header class="mb-header">
@@ -25,7 +31,8 @@
 </header>
 
 <section class="mb-hero">
-<div class="mb-hero-inner">
+<div class="mb-hero-inner cpr-hero">
+<div class="cpr-hero-copy">
 <div class="mb-eyebrow">American Red Cross CPR, AED and First Aid</div>
 <h1>CPR certification for your team, taught where you work.</h1>
 <p class="mb-lede">Need a certification card for your job or your staff? We bring the class, the manikins, and a licensed instructor to your office, school, or home. Made for workplaces, childcare teams, and scout leaders.</p>
@@ -33,6 +40,8 @@
 <a class="mb-btn mb-btn-gold" href="/host-a-class.html">Schedule a group class</a>
 <a class="mb-phone" href="tel:+17039875979">or call 703-987-5979</a>
 </div>
+</div>
+<img class="cpr-badge" src="/images/red-cross-authorized-provider.png" alt="American Red Cross Authorized Training Provider">
 </div>
 </section>
 
@@ -71,29 +80,6 @@
 </div>
 </section>
 
-<section class="mb-section-navy">
-<div class="mb-wrap">
-<h2>We come to you</h2>
-<div class="mb-steps">
-<div class="mb-step">
-<div class="mb-step-num">1</div>
-<h3>Tell us what you need</h3>
-<p>Your preferred dates and times, how many people, and which certification.</p>
-</div>
-<div class="mb-step">
-<div class="mb-step-num">2</div>
-<h3>We bring the class</h3>
-<p>A licensed Red Cross instructor arrives with manikins, AED trainers, and everything else. You provide the room.</p>
-</div>
-<div class="mb-step">
-<div class="mb-step-num">3</div>
-<h3>Your team is certified</h3>
-<p>Each person receives a digital Red Cross certificate to print, share, or send to an employer, valid for two years.</p>
-</div>
-</div>
-<p class="mb-narrow" style="margin-top:24px;font-weight:600">Mindful Beginnings is an American Red Cross licensed provider. Classes are led by registered nurses and certified educators, anywhere within 60 miles of Washington, DC.</p>
-</div>
-</section>
 
 <section class="mb-section mb-section-white" id="request">
 <div class="mb-wrap">
