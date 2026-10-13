@@ -116,7 +116,8 @@ test('booking, custom programs, and group CPR links stay on this site', () => {
   assert.match(page, /Request a custom program/);
   assert.match(page, /Mindful Beginnings partners with organizations from the ground up/);
   assert.match(page, /Past offerings include customizable Girl Scout badge workshops/);
-  assert.equal((page.match(/href="\/cpr-certification"/g) || []).length, 2);
+  assert.equal((page.match(/href="\/cpr-certification"/g) || []).length, 3);
+  assert.match(page, /<nav class="site-nav"[\s\S]*href="\/cpr-certification">CPR<\/a>/);
   assert.equal((page.match(/>Coming soon</g) || []).length, 0);
 });
 

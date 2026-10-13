@@ -109,9 +109,12 @@ test('register checkout uses dynamic PayPal Orders, not the hosted NCP button', 
 });
 
 test('header branding is multi-course, not Safe Sitter-only', () => {
-  assert.match(register, /Safe Sitter® and family safety courses/);
+  assert.match(register, /<a class="brand" href="https:\/\/mindfulbeginnings\.org\/">Mindful Beginnings<\/a>/);
+  assert.match(register, /href="\/classes-catalog">Classes</);
+  assert.match(register, /href="\/cpr-certification">CPR</);
+  assert.doesNotMatch(register, /<div class="tag">/);
+  assert.doesNotMatch(register, /Safe Sitter® Courses<\/div>/);
   assert.match(pay, /Safe Sitter® and family safety courses/);
-  assert.doesNotMatch(register, /<div class="tag">Safe Sitter® Courses<\/div>/);
   assert.doesNotMatch(pay, /<div class="tag">Safe Sitter® Courses<\/div>/);
 });
 

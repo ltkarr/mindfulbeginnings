@@ -5,16 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Host a private group course — Mindful Beginnings</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap">
+<link rel="stylesheet" href="/css/public.css">
 <link rel="stylesheet" href="/css/intake.css">
 </head>
 <body>
-<header>
-  <img src="/email-logo-white.png" alt="Mindful Beginnings">
+<header class="site-header">
+<a class="brand" href="https://mindfulbeginnings.org/">Mindful Beginnings</a>
+<nav class="site-nav" aria-label="Primary">
+<a href="/classes-catalog">Classes</a>
+<a href="/cpr-certification">CPR</a>
+<a href="https://mindfulbeginnings.org/host-a-class-1">Host a Class</a>
+<a href="https://mindfulbeginnings.org/girl-scouts">Girl Scouts</a>
+<a href="/about">About</a>
+<a href="https://mindfulbeginnings.org/reviews">Reviews</a>
+<a href="https://mindfulbeginnings.org/contact">Contact</a>
+<a href="https://register.mindfulbeginnings.org/register.html">Find a class</a>
+<a class="header-btn" href="/register.html">Register</a>
+</nav>
 </header>
 <div class="hero">
+  <div class="hero-inner">
   <h1>Host a private group</h1>
   <p>Our nurses and certified educators come to you. Tell us about your home and the course, and we will confirm the date. Home hosts get one free spot.</p>
+  </div>
 </div>
 <main>
   <form id="request-form" data-kind="host" novalidate>
@@ -123,7 +137,14 @@
     <p id="success-extra"></p>
   </div>
 </main>
-<footer>© 2026 Mindful Beginnings · <a href="/register.html">Register for a class</a> · <a href="https://mindfulbeginnings.org">mindfulbeginnings.org</a></footer>
+<footer class="footer">
+<div class="footer-brand">Mindful Beginnings LLC, Bethesda, Maryland</div>
+<div class="footer-links">
+<a href="/register.html">Register for a class</a>
+<a href="/cpr-certification">Group CPR certification</a>
+<a href="https://mindfulbeginnings.org/">mindfulbeginnings.org</a>
+</div>
+</footer>
 <script src="/js/class-request-form.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
