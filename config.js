@@ -143,7 +143,7 @@ const COURSES={
   // may raise the cap to 30 with the session-level max-students override.
   'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true,audience:'Grades 4–8'},
   // Girl Scouts — First Aid Badge Workshop: 60-minute in-person badge workshop.
-  // The $45 guide price is the full per-scout amount. A troop split (GS-H4782)
+  // The $45 guide price is the full per-participant amount. A troop split (GS-H4782)
   // sets the session family price to $15 and the organization flat fee to $30,
   // so families check out at $15 and the troop is invoiced $30 × the roster.
   // RN-only is the per-session checkbox, not this course type.
