@@ -13,7 +13,7 @@ test('group CPR page is static HTML with a title and description', () => {
   assert.match(page, /<title>Group CPR Certification \| Mindful Beginnings<\/title>/);
   assert.match(page, /name="description"/);
   assert.match(page, /name="viewport"/);
-  assert.match(page, /href="\/favicon\.ico"/);
+  assert.match(page, /href="\/favicon\.ico(\?v=\d+)?"/);
   assert.doesNotMatch(page, /react/i);
   assert.doesNotMatch(page, /<script(?![^>]*src="\/nav\.js")/i);
   assert.equal(page.includes('\u2014'), false);

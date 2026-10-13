@@ -74,7 +74,7 @@ test('about page is static HTML in the public page style', () => {
   assert.match(page, /<title>About the Team \| Mindful Beginnings<\/title>/);
   assert.match(page, /name="description"/);
   assert.match(page, /name="viewport"/);
-  assert.match(page, /href="\/favicon\.ico"/);
+  assert.match(page, /href="\/favicon\.ico(\?v=\d+)?"/);
   assert.match(page, /Montserrat/);
   assert.match(page, /#1E3161/);
   assert.match(page, /#F5F2EA/);
@@ -84,7 +84,8 @@ test('about page is static HTML in the public page style', () => {
 });
 
 test('hero uses the approved line and the mission block is gone', () => {
-  assert.match(page, /<h1>Safety and confidence for every age, taught by nurses and certified educators\.<\/h1>/);
+  assert.match(page, /<p class="mb-script-title">about<\/p>/);
+  assert.match(page, /<h1[^>]*>Safety and confidence for every age, taught by nurses and certified educators\.<\/h1>/);
   assert.doesNotMatch(page, /Lindsay: add/);
   assert.doesNotMatch(page, /class="mission"/);
   assert.doesNotMatch(page, />Mission</);

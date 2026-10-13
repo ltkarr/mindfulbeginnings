@@ -57,7 +57,7 @@ test('pages request a real favicon and the file exists', () => {
   assert.equal(fs.existsSync(path.join(root, 'favicon.ico')), true);
   assert.equal(fs.existsSync(path.join(root, 'email-logo.png')), true);
   for (const html of [register, pay, admin, instructor]) {
-    assert.match(html, /href="\/favicon\.ico"/);
+    assert.match(html, /href="\/favicon\.ico(\?v=\d+)?"/);
   }
 });
 

@@ -93,6 +93,7 @@ p:last-child{margin-bottom:0}
 .mb-hero-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 .mb-hero h1{color:var(--cream)}
 .mb-eyebrow{font-family:'Caveat',cursive;font-size:30px;font-weight:700;color:var(--btn-gold);line-height:1.1}
+.mb-script-title{font-family:'Caveat',cursive;font-weight:700;line-height:1.05;color:var(--btn-gold);margin:0;font-size:clamp(44px,6vw,68px)}
 .mb-lede{margin:0;font-size:17px;font-weight:500;max-width:720px;line-height:1.6}
 .mb-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:6px}
 .mb-phone{color:var(--cream);font-size:16px;font-weight:700;text-decoration:none;padding:12px 8px}
