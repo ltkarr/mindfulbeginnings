@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>About | Mindful Beginnings</title>
-<meta name="description" content="The Mindful Beginnings team.">
+<title>About the Team | Mindful Beginnings</title>
+<meta name="description" content="Meet the Mindful Beginnings team. Classes are taught by registered nurses and certified educators and were founded by a 20-year classroom teacher.">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap">
 <style>
@@ -15,16 +15,19 @@ a:hover{color:#0F1D3F}
 button{font-family:inherit}
 .wrap{font-family:'Montserrat',sans-serif;color:#1E3161;background:#F5F2EA;line-height:1.5}
 .site-header{background:#F5F2EA;padding:18px 6vw;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center}
-.brand{font-size:22px;font-weight:800;letter-spacing:0.02em;color:#1E3161;text-decoration:none}
-.header-btn{font-size:15px;font-weight:700;color:#1E3161;text-decoration:none;border:2px solid #1E3161;border-radius:999px;padding:8px 16px}
+.brand{font-size:20px;font-weight:800;letter-spacing:0.02em;color:#1E3161;text-decoration:none}
+.site-nav{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.site-nav a{font-size:14px;font-weight:700;color:#1E3161;text-decoration:none}
+.site-nav a[aria-current="page"]{text-decoration:underline;text-underline-offset:4px}
+.header-btn,.site-nav a.header-btn{font-size:14px;font-weight:800;color:#F5F2EA;background:#1E3161;text-decoration:none;border:2px solid #1E3161;border-radius:999px;padding:8px 14px}
 .hero{background:#1E3161;color:#F5F2EA;padding:36px 6vw 32px}
 .hero-inner,.close-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 .eyebrow{font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#EFC75A}
-h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
+h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 .team-block{padding:20px 6vw 0;margin:0}
 .team-section{padding:22px 0 6px}
 .team-section:last-child{padding-bottom:0}
-.team-section h2{margin:0 0 14px;font-size:22px;line-height:1.2;font-weight:800}
+.team-section h2{margin:0 0 14px;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 8px;align-items:start}
 .card{appearance:none;width:100%;margin:0;border:0;background:transparent;padding:6px 4px;color:inherit;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:12px}
 .card:hover .name{text-decoration:underline}
@@ -47,7 +50,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 .bio-shot .bio-photo{width:100%;height:100%;border-radius:0;object-fit:cover;display:block;margin:0;background:#fff}
 .bio-shot.is-zoom{background:#e6eaeb}
 .bio-shot.is-zoom .bio-photo{width:142%;height:142%;max-width:none;margin-left:-21%;margin-top:6%}
-.bio-name{margin:0;font-size:22px;line-height:1.2;font-weight:800}
+.bio-name{margin:0;font-size:20px;line-height:1.2;font-weight:800}
 .bio-role{margin:0;font-size:15px;font-weight:700}
 .bio-credentials{margin:0;font-size:14px;font-weight:600}
 .bio-copy{display:flex;flex-direction:column;gap:12px}
@@ -78,7 +81,16 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 
 <header class="site-header">
 <a class="brand" href="https://mindfulbeginnings.org/">Mindful Beginnings</a>
-<a class="header-btn" href="https://mindfulbeginnings.org/host-a-class-1">Book a class</a>
+<nav class="site-nav" aria-label="Primary">
+<a href="/classes-catalog">Classes</a>
+<a href="https://mindfulbeginnings.org/host-a-class-1">Host a Class</a>
+<a href="https://mindfulbeginnings.org/girl-scouts">Girl Scouts</a>
+<a href="/about" aria-current="page">About</a>
+<a href="https://mindfulbeginnings.org/reviews">Reviews</a>
+<a href="https://mindfulbeginnings.org/contact">Contact</a>
+<a href="https://register.mindfulbeginnings.org/register.html">Find a class</a>
+<a class="header-btn" href="/register.html">Register</a>
+</nav>
 </header>
 
 <section class="hero">
@@ -99,9 +111,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">M.Ed.</span>
 </button>
 <div class="bio" hidden>
-<p>Lindsay Karr is the founder and president of Mindful Beginnings, which provides essential safety training and caregiving education taught by registered nurses and certified educators. Programs teach critical skills including home-alone safety, responsible care, basic first aid, rescue techniques, and CPR. In addition to instructor-led courses, Lindsay’s team develops custom training materials and educational programming for organizations.</p>
-<p>Lindsay holds a degree in English Education from Boston University and a Master’s in Educational Psychology from the University of Virginia, and she has completed post-graduate coursework in school administration at Johns Hopkins University. With more than 20 years of experience teaching students of all ages, she currently supervises student teachers in the DC area.</p>
-<p>The idea for Mindful Beginnings emerged when Lindsay searched for a high-quality babysitting course for her oldest daughter. Local classes lacked flexibility and convenience, so she created a solution that brings training directly to students. She is passionate about helping people of all ages stay safe while learning to care for others responsibly.</p>
+<p>Lindsay Karr is the founder and president of Mindful Beginnings and a classroom teacher with more than 20 years of experience. She started the company after looking for a high-quality babysitting course for her oldest daughter, and she still supervises student teachers in the DC area. Classes cover home-alone safety, responsible care, basic first aid, rescue techniques, and CPR, and her team also builds custom training for organizations.</p>
 </div>
 </div>
 </div>
@@ -117,7 +127,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">BS</span>
 </button>
 <div class="bio" hidden>
-<p>Katy is a community leader, market research professional, and advocate with a diverse background spanning business administration, sales, marketing, training, and community outreach. She holds a B.S. in Business Administration from Indiana University of PA and has extensive experience engaging with families, schools, and community organizations. As a former Project Coordinator with the Jewish Council for the Aging, she supported a federally funded community outreach initiative serving seniors and individuals with disabilities. She has held leadership roles in local schools, including Past President of the Burning Tree Elementary School PTSA and Thomas W. Pyle Middle School PTSA. Currently a Qualitative Market Research Director, she leads in-depth interviews and focus groups, bringing strong listening, communication, and relationship-building skills to her work. She also serves as President of the Walt Whitman All Sports Booster Club, continuing her commitment to supporting students, families, and the broader community.</p>
+<p>Kathryn Greenberg is a community leader and market research professional who serves as Community Partnerships Liaison. She holds a B.S. in Business Administration from Indiana University of PA and previously coordinated outreach for seniors and people with disabilities. She has led PTSA and booster-club work in local schools and brings those family relationships to Mindful Beginnings.</p>
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Mary Parks">
@@ -128,7 +138,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">BA, BS</span>
 </button>
 <div class="bio" hidden>
-<p>Mary Parks brings more than a decade of elementary classroom experience to Mindful Beginnings. She spent years teaching third and fourth grade in Montgomery County Public Schools and began her career working with gifted and talented students in grades four through seven. She also coordinated a hands-on science program for elementary students, designing interactive STEM experiences in partnership with schools and parent organizations. Mary holds a Bachelor of Science in Elementary Education and a Bachelor of Arts in French from the College of Charleston. She is known for breaking big ideas into small, manageable steps and for building a room where every child feels comfortable asking questions, which is exactly what young students need when they are learning to stay safe on their own.</p>
+<p>Mary Parks brings more than a decade of elementary classroom experience to Mindful Beginnings. She taught third and fourth grade in Montgomery County Public Schools and began her career with gifted and talented students in grades four through seven. She also coordinated a hands-on science program for elementary students. She holds a Bachelor of Science in Elementary Education and a Bachelor of Arts in French from the College of Charleston.</p>
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Travis Edwards">
@@ -139,7 +149,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">MS</span>
 </button>
 <div class="bio" hidden>
-<p>Travis is an experienced educational leader and administrator with over 20 years of experience in K–12 and higher education settings. He holds a Bachelor's and Master’s in Physical Education, as well as a Sixth Year Certificate in Educational Leadership from Central Connecticut State University. Throughout his career, Travis has served as a Curriculum Coordinator leading instructional staff and developing health and wellness curricula. In addition to his K–12 work, Travis is an online graduate instructor and course developer, creating professional development courses for educators nationwide on athletic leadership, health, wellness, and instructional technology. An active youth sports director, board member, and coach, he brings a collaborative, student-centered approach to helping young learners build confidence, practical life skills, and a commitment to personal wellness.</p>
+<p>Travis Edwards is an educational leader with over 20 years of experience in K–12 and higher education. He holds a bachelor’s and master’s in physical education and a Sixth Year Certificate in Educational Leadership from Central Connecticut State University. He has led health and wellness curricula, taught graduate courses for educators, and coached youth sports.</p>
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Yesmina Battle">
@@ -150,7 +160,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">MAT</span>
 </button>
 <div class="bio" hidden>
-<p>Yesmina is a District of Columbia Public Schools elementary teacher with a Master of Arts in Teaching and over nine years of classroom experience working with children in pre-K through fourth grade. She is currently pursuing a doctorate in Curriculum, Instruction, and Policy. Yesmina has extensive experience leading youth programs, family engagement initiatives, and summer enrichment programming, and she brings a warm, student-centered approach to every course she teaches.</p>
+<p>Yesmina Battle is a District of Columbia Public Schools elementary teacher with a Master of Arts in Teaching and over nine years of classroom experience in pre-K through fourth grade. She is pursuing a doctorate in Curriculum, Instruction, and Policy. She has led youth programs, family engagement, and summer enrichment, and she brings a warm, student-centered approach to every course.</p>
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Kelsey Gaston">
@@ -161,7 +171,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">M.Ed.</span>
 </button>
 <div class="bio" hidden>
-<p>Kelsey is an educator with over 16 years of experience teaching middle and high school English Language Arts and Special Education. She holds a Master of Education in Special Education and has extensive experience in differentiated instruction, behavioral support, and curriculum design. A three-time Campus Teacher of the Year nominee and a published young adult author, Kelsey has also trained new educator candidates in classroom management and instructional strategies. In addition to her work at Mindful Beginnings, Kelsey supervises student teachers and teaches middle school English in MCPS. She brings an authentic, student-centered approach to every class, helping learners of all abilities.</p>
+<p>Kelsey Gaston is an educator with over 16 years of experience teaching middle and high school English Language Arts and Special Education. She holds a Master of Education in Special Education and has trained new educators in classroom management and instructional strategies. She also supervises student teachers and teaches middle school English in MCPS.</p>
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Jessica Katz">
@@ -172,7 +182,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">BS</span>
 </button>
 <div class="bio" hidden>
-<p>Jessica is a second-year medical student at Georgetown University School of Medicine with a Bachelor of Science in Physiological Science from the University of California, Los Angeles. Her clinical background spans dermatology and surgical care, community health outreach, and service as lead coordinator for an outpatient hospital and clinic caring for an underserved island population. A Georgetown Clinical Research Scholar and published co-author on multiple peer-reviewed papers, Jessica also has volunteered as a crisis counselor. Drawing on both personal experience and her medical education, she has developed a strong interest in health education and in making medical information clear and accessible.</p>
+<p>Jessica Katz is a second-year medical student at Georgetown University School of Medicine with a Bachelor of Science in Physiological Science from UCLA. Her clinical work includes dermatology, surgical care, community health outreach, and coordinating care for an underserved island community. She is a Georgetown Clinical Research Scholar and focuses on making health information clear for families.</p>
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Jennie Stroup">
@@ -183,7 +193,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">BA</span>
 </button>
 <div class="bio" hidden>
-<p>Jennie brings a strong background in community engagement, event management, and childcare experience to her role. She holds a Bachelor of Arts in Communication Studies and Business Administration from Colorado State University. Currently, Jennie leads volunteer recruitment for Voices for Children Montgomery (CASA) and serves as the PTA President for Belmont Elementary. Her diverse experience includes directing family events at Kentlands Mansion, coaching youth soccer, and working internationally as a live-in au pair in Madrid, Spain. Jennie utilizes her exceptional organizational skills to build highly structured, supportive learning environments.</p>
+<p>Jennie Stroup brings community engagement, event management, and childcare experience to the curriculum team. She holds a Bachelor of Arts in Communication Studies and Business Administration from Colorado State University. She leads volunteer recruitment for Voices for Children Montgomery (CASA), serves as PTA President for Belmont Elementary, and has worked as a live-in au pair in Madrid.</p>
 </div>
 </div>
 </div>
@@ -198,7 +208,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
-<p>Kim is a registered nurse with a Bachelor of Science in Nursing from the University of Maryland, Baltimore, where she graduated magna cum laude, and a Bachelor of Science in Psychology from the University of Michigan. Her career bridges healthcare and education, including serving as Head Nurse at the German International School Washington D.C., providing school nursing at Sheppard Pratt, caring for newborns and mothers at Adventist HealthCare Shady Grove Medical Center, and delivering health and nutrition education for MCPS Head Start and PreK programs. A former preschool lead teacher, Kim is especially skilled at making health and safety concepts accessible to young learners.</p>
+<p>Kim Varner is a registered nurse with a Bachelor of Science in Nursing from the University of Maryland, Baltimore, and a Bachelor of Science in Psychology from the University of Michigan. She has been Head Nurse at the German International School Washington D.C., a school nurse at Sheppard Pratt, and a newborn and mother nurse at Adventist HealthCare Shady Grove Medical Center. A former preschool lead teacher, she makes health and safety concepts clear for young learners.</p>
 </div>
 </div>
 </div>
@@ -213,7 +223,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">M.Ed.</span>
 </button>
 <div class="bio" hidden>
-<p>Brandi is a dedicated elementary school teacher with over two decades of experience in early literacy and classroom instruction within Washington, DC public and charter schools. She holds a Master’s in Early Literacy Instruction and a Bachelor’s in Elementary Education from SUNY Cortland. A trained Reading Recovery specialist, Brandi excels in small-group reading interventions, phonics, and social-emotional learning. Her expertise in behavior management and differentiated instruction ensures every child receives tailored support to thrive academically and socially.</p>
+<p>Brandi Beers is an elementary school teacher with over two decades of experience in early literacy in Washington, DC public and charter schools. She holds a master’s in early literacy instruction and a bachelor’s in elementary education from SUNY Cortland, and she is a trained Reading Recovery specialist. She uses behavior management and differentiated instruction so each child gets the support they need.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Marcie Berul">
@@ -223,7 +233,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">M.Ed.</span>
 </button>
 <div class="bio" hidden>
-<p>Marcie is a seasoned early childhood specialist and former preschool director with over 20 years of experience in early education and social-emotional development. She holds a Master’s in Early Childhood Education from Boston University and certifications as a Lead Teacher and Director II. A featured speaker at national education conferences, Marcie specializes in pre-literacy enrichment and social-emotional curricula like Kimochis and Zones of Regulation. She brings a thoughtful, inquiry-based approach to helping children navigate relationships and safety.</p>
+<p>Marcie Berul is an early childhood specialist and former preschool director with over 20 years of experience in early education and social-emotional development. She holds a master’s in early childhood education from Boston University and certifications as a Lead Teacher and Director II. She helps children practice relationships and safety through pre-literacy and social-emotional teaching.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Chyna Brodie">
@@ -233,7 +243,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">BA</span>
 </button>
 <div class="bio" hidden>
-<p>Chyna teaches for Swing Education, where she provides classroom instruction across multiple K-12 schools throughout the DC area. Chyna holds a Bachelor of Arts in Political Science with a minor in African American Studies from American University. Her experience with young people includes her work as a summer camp counselor, where she mentored groups of children and led daily activities. A proven leader who served two terms as Student Body President at American University, Chyna brings an energetic approach to every course she teaches.</p>
+<p>Chyna Brodie teaches for Swing Education across K-12 schools in the DC area. She holds a Bachelor of Arts in Political Science with a minor in African American Studies from American University. She has mentored children as a summer camp counselor and brings that energy to every course she teaches.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Miryam Buchler">
@@ -243,7 +253,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">MS</span>
 </button>
 <div class="bio" hidden>
-<p>Miryam is an early childhood specialist with nearly two decades of experience in special education, behavior therapy, and program leadership. She holds a Master of Science in General and Special Education from Touro University and a Bachelor of Arts in Early Childhood Education from Yeshiva University's Stern College for Women. Currently a special educator at SELA Hebrew Public Charter School, a National Blue Ribbon School in Washington, DC, she previously led early childhood programs at Washington Hebrew Congregation and the Mandel JCC. Trained in Orton Gillingham and applied behavior analysis, Miryam brings deep developmental expertise and a nurturing approach to every course she teaches.</p>
+<p>Miryam Buchler is an early childhood specialist with nearly two decades of experience in special education, behavior therapy, and program leadership. She holds a Master of Science in General and Special Education from Touro University and a Bachelor of Arts in Early Childhood Education from Yeshiva University’s Stern College for Women. She teaches special education at SELA Hebrew Public Charter School and brings a nurturing approach to every course.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Kelley Butler">
@@ -253,7 +263,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">BA</span>
 </button>
 <div class="bio" hidden>
-<p>Kelley is a dynamic community educator, mentor, and student advocate with extensive experience guiding youth through academic, physical, and personal growth. She holds a Bachelor’s degree from James Madison University and brings a rich background spanning fitness instruction, studio management, and K-12 academic tutoring. Certified in Red Cross CPR/First Aid, Kelley excels at creating joyful, inclusive environments where young learners build self-advocacy, confidence, and emotional regulation.</p>
+<p>Kelley Butler is certified in Red Cross CPR/First Aid and works as a community educator, mentor, and student advocate. She holds a bachelor’s degree from James Madison University and has guided youth through fitness instruction, studio management, and K-12 tutoring. She builds inclusive rooms where young learners practice confidence and emotional regulation.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Helena Carboy">
@@ -263,7 +273,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
-<p>Helena holds a Bachelor of Science in Nursing from The Catholic University of America's Conway School of Nursing. Her extensive clinical background includes pediatric care at Inova Fairfax, community health at Unity Health Care Clinic, and specialized training in psychiatric mental health and general surgery at MedStar Washington Hospital Center. In addition to her hospital rotations, Helena has served as a medical assistant for New York Cancer and Blood Specialists, caring for up to 50 patients per shift. Certified in Basic Life Support (BLS), she brings a positive, highly compassionate, and professional demeanor to her teaching.</p>
+<p>Helena Carboy is a registered nurse with a Bachelor of Science in Nursing from The Catholic University of America’s Conway School of Nursing. Her clinical background includes pediatric care at Inova Fairfax, community health at Unity Health Care Clinic, and training in psychiatric mental health and surgery at MedStar Washington Hospital Center. She is certified in Basic Life Support (BLS) and brings a compassionate approach to teaching.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Michelle Cha">
@@ -273,7 +283,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">RN, BSN, MS</span>
 </button>
 <div class="bio" hidden>
-<p>Michelle holds a Master of Science in Quality Improvement and Healthcare Management from Georgetown University and a Bachelor of Science in Nursing from Boston College. Since 2019, she has served as a Nurse Coordinator at Georgetown University's Centers for Blood Disorders, where she provides outpatient care to diverse patient populations, coordinates surgical and home infusion care for patients with rare diseases, and educates patients and families on treatment plans, medications, and safe follow-up care. Michelle regularly presents at patient education seminars and community health events, translating complex medical information into clear, compassionate guidance. Certified in Basic Life Support (BLS) and licensed as a Registered Nurse in both DC and Maryland, she brings warmth, expertise, and a passion for patient engagement to her teaching.</p>
+<p>Michelle Cha is a registered nurse with a Master of Science in Quality Improvement and Healthcare Management from Georgetown University and a Bachelor of Science in Nursing from Boston College. Since 2019 she has been a Nurse Coordinator at Georgetown University’s Centers for Blood Disorders, teaching patients and families about treatment, medications, and safe follow-up care. She is certified in Basic Life Support (BLS) and licensed in DC and Maryland.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Lilly Deerin">
@@ -283,7 +293,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">MSN, FNP-BC</span>
 </button>
 <div class="bio" hidden>
-<p>Lilly is a board-certified Family Nurse Practitioner with more than six years of nursing experience spanning critical care, outpatient primary care, and aesthetic dermatology. She earned her Master of Science in Nursing from George Washington University and her Bachelor of Science in Nursing from the University of Michigan. Her clinical background includes four years caring for critically ill patients in the Surgical ICU at MedStar Georgetown University Hospital, where she served as Charge RN and educated patients and families on treatment and recovery. Her advanced practice training includes family medicine, pediatrics, and women's health, with extensive experience providing well-child care, anticipatory guidance, and family education on nutrition, safety, and illness prevention. Certified in Basic Life Support and Advanced Cardiovascular Life Support, Lilly brings calm clinical expertise and a reassuring, patient-centered approach to every course she teaches.</p>
+<p>Lilly Deerin is a board-certified family nurse practitioner with more than six years of nursing experience in critical care, outpatient primary care, and aesthetic dermatology. She earned her Master of Science in Nursing from George Washington University and her Bachelor of Science in Nursing from the University of Michigan. She spent four years in the Surgical ICU at MedStar Georgetown University Hospital and is certified in Basic Life Support and Advanced Cardiovascular Life Support.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Monique DeFrees">
@@ -293,7 +303,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">M.Ed.</span>
 </button>
 <div class="bio" hidden>
-<p>Monique is an elementary school teacher in Montgomery County Public Schools with a Master of Education in Mathematics Curriculum and Instruction from the University of Maryland. She has nearly a decade of classroom experience teaching elementary students, plus years of work as a paraeducator, tutor, and longtime Girl Scout troop leader. Monique brings deep experience supporting children at every learning level, including English language learners and students with IEPs.</p>
+<p>Monique DeFrees is an elementary school teacher in Montgomery County Public Schools with a Master of Education in Mathematics Curriculum and Instruction from the University of Maryland. She has nearly a decade of classroom experience, plus years as a paraeducator, tutor, and Girl Scout troop leader. She supports children at every learning level, including English language learners and students with IEPs.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Ingrid Froehner">
@@ -303,7 +313,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">MA</span>
 </button>
 <div class="bio" hidden>
-<p>Ingrid is an experienced speech-language pathologist and multilingual communicator with a strong background supporting children’s developmental needs. She earned her Master’s in Speech Pathology from the University of Texas at Austin and a Bachelor’s in Communication Sciences and Disorders from the University of Maryland. Fluent in English and Spanish, Ingrid has extensive experience providing speech therapy, home-based pediatric evaluations, and school-based interpretation across diverse communities. She brings immense patience, empathy, and deep communication expertise to her teaching.</p>
+<p>Ingrid Froehner is a speech-language pathologist who supports children’s developmental needs. She earned her master’s in speech pathology from the University of Texas at Austin and her bachelor’s in communication sciences and disorders from the University of Maryland. Fluent in English and Spanish, she has provided speech therapy, home-based pediatric evaluations, and school-based interpretation.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Gaby Hodor">
@@ -312,7 +322,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="name">Gaby Hodor</span>
 </button>
 <div class="bio" hidden>
-<p>Gaby is pursuing a dual degree in Human Development and Animal Sciences at the University of Maryland. She has more than six years of experience teaching children, including her longstanding role as a horseback riding and horsemanship instructor for students ages 7 to 12, and as an after-school STEM program instructor in Montgomery County. Gaby is a recipient of the Andrea Goff Endowed Scholarship from UMD's College of Education, and she brings a patient, hands-on approach to helping young learners build confidence.</p>
+<p>Gaby Hodor is pursuing a dual degree in Human Development and Animal Sciences at the University of Maryland. She has more than six years of experience teaching children, including horseback riding for ages 7 to 12 and after-school STEM in Montgomery County. She uses a patient, hands-on approach to help young learners build confidence.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Bronwen Kennedy">
@@ -322,7 +332,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">BA</span>
 </button>
 <div class="bio" hidden>
-<p>Bronwen is an award-winning creative director, fine artist, and educator with over 20 years of experience in youth leadership and mentoring. She has run her own marketing agency, guest-lectured at the University of Maryland, and taught youth programs ranging from Girl Scouts and Sea Scouts to the Parent Encouragement Program. Red Cross CPR/First Aid certified and an Australian-American dual citizen, Bronwen brings a creative, practical, and international approach to helping children build confidence, independence, and essential safety skills.</p>
+<p>Bronwen Kennedy is Red Cross CPR/First Aid certified and an educator with over 20 years of experience in youth leadership and mentoring. She has run a marketing agency, guest-lectured at the University of Maryland, and taught programs from Girl Scouts and Sea Scouts to the Parent Encouragement Program. She helps children build confidence, independence, and safety skills.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Ashira Lavine">
@@ -332,7 +342,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">MA</span>
 </button>
 <div class="bio" hidden>
-<p>Ashira is a trauma-informed educator and founder of Mind Body Fusion, LLC, with over a decade of experience teaching mindfulness, nervous system regulation, and life skills to children and adults in the DC area. She holds a Master of Arts from the University of Maryland and a Bachelor of Science from Towson University. Her background bridges public service and holistic wellness, including work with the U.S. Department of Health and Human Services, federal law enforcement, and youth behavioral intervention. Ashira is a Registered Yoga Teacher (RYT-500), Certified Professional Breathworker, and licensed massage therapist. She brings a grounded, reassuring approach to her teaching, helping young learners build confidence and practical life skills.</p>
+<p>Ashira Lavine is a trauma-informed educator and founder of Mind Body Fusion, LLC, with over a decade of experience teaching mindfulness and life skills in the DC area. She holds a Master of Arts from the University of Maryland and a Bachelor of Science from Towson University, and she is a Registered Yoga Teacher (RYT-500). She helps young learners build confidence and practical skills with a grounded, reassuring approach.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Abigail Plaza">
@@ -342,7 +352,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
-<p>Abigail is a registered nurse with a Bachelor of Science in Nursing from The Catholic University of America. Her clinical background spans pediatrics, women's health, medical-surgical care, and post-anesthesia recovery at hospitals including INOVA Fairfax, Holy Cross, MedStar Washington Hospital Center, and Memorial Sloan Kettering Cancer Center. She brings a compassionate, family-centered approach to teaching the skills caregivers need to keep children safe.</p>
+<p>Abigail Plaza is a registered nurse with a Bachelor of Science in Nursing from The Catholic University of America. Her clinical background spans pediatrics, women’s health, medical-surgical care, and post-anesthesia recovery at hospitals including INOVA Fairfax, Holy Cross, MedStar Washington Hospital Center, and Memorial Sloan Kettering Cancer Center. She teaches the skills caregivers need to keep children safe.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Jasmine Rhodes">
@@ -352,7 +362,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
-<p>Jasmine is a pediatric registered nurse with more than six years of experience in neonatal and pediatric critical care at some of the region's top hospitals, including Children's National Hospital, Sibley Memorial Hospital, and Howard University Hospital. She earned her Bachelor of Science in Nursing from Trinity Washington University and is certified in Basic Life Support and the Neonatal Resuscitation Program. A recipient of the Distinguished Nurse award and an experienced preceptor and charge nurse, Jasmine has spent her career teaching families how to care for children safely, from newborn care and safe sleep practices to symptom management and emergency response.</p>
+<p>Jasmine Rhodes is a pediatric registered nurse with more than six years of experience in neonatal and pediatric critical care at Children’s National Hospital, Sibley Memorial Hospital, and Howard University Hospital. She earned her Bachelor of Science in Nursing from Trinity Washington University and is certified in Basic Life Support and the Neonatal Resuscitation Program. She has taught families newborn care, safe sleep, and emergency response.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Kiera Shanahan">
@@ -362,7 +372,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
-<p>Kiera is a neonatal intensive care nurse at Children's National Hospital with a Bachelor of Science in Nursing from The Catholic University of America. Her clinical experience includes pediatrics at INOVA Fairfax, community health, women's health, and adult medical-surgical care. Kiera is certified in CPR, BLS, AED, and the Neonatal Resuscitation Program, and she brings years of childcare experience to her teaching alongside her clinical expertise.</p>
+<p>Kiera Shanahan is a neonatal intensive care nurse at Children’s National Hospital and a registered nurse with a Bachelor of Science in Nursing from The Catholic University of America. Her clinical experience includes pediatrics at INOVA Fairfax, community health, women’s health, and adult medical-surgical care. She is certified in CPR, BLS, AED, and the Neonatal Resuscitation Program.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Kimberly Sinkford">
@@ -372,7 +382,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">BSN, RN</span>
 </button>
 <div class="bio" hidden>
-<p>Kim is a highly accomplished registered nurse and clinical leader with three decades of healthcare experience at MedStar Washington Hospital Center. She earned her Bachelor of Science in Nursing from George Mason University and holds active RN licenses in DC and Maryland alongside BLS certification. Having served as Nursing Director, Clinical Resource Manager, and Senior Nurse Talent Acquisition Partner, Kimberly combines deep clinical expertise in acute care and patient safety with a passionate, family-centered approach to healthcare education.</p>
+<p>Kimberly Sinkford is a registered nurse and clinical leader with three decades of healthcare experience at MedStar Washington Hospital Center. She earned her Bachelor of Science in Nursing from George Mason University and holds RN licenses in DC and Maryland, along with BLS certification. She has served as Nursing Director, Clinical Resource Manager, and Senior Nurse Talent Acquisition Partner.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Bela Shah Spooner">
@@ -382,7 +392,7 @@ h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
 <span class="credentials">MA</span>
 </button>
 <div class="bio" hidden>
-<p>Bela is a seasoned education leader, policy expert, and language educator with over 20 years of experience driving youth development and expanded learning initiatives. She holds a Master’s in Sociology and Education Policy from Columbia University's Teachers College and a Bachelor’s in Psychology with a minor in Spanish from the University of Pennsylvania. The founder of Bela’s Velas, she provides customized Spanish instruction to students of all ages. Bela brings deep expertise in youth advocacy and a warm, equity-centered approach to helping young learners build confidence and essential life skills.</p>
+<p>Bela Shah Spooner is an education leader and language educator with over 20 years of experience in youth development. She holds a master’s in sociology and education policy from Columbia University’s Teachers College and a bachelor’s in psychology from the University of Pennsylvania. The founder of Bela’s Velas, she teaches Spanish and helps young learners build confidence and life skills.</p>
 </div>
 </div>
 </div>

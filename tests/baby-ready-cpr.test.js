@@ -71,7 +71,11 @@ test('Baby Ready + CPR Certification is $275 per person on every price table', (
     assert.equal(cfg.getSessionBasePrice(COURSE, '2026-12-01', createdAt), 275);
     assert.equal(cfg.getSessionBasePrice(COURSE, '2027-06-01', createdAt), 275);
   }
-  assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-12-01', Date.now()), 195);
+  const catalogCutover = Date.parse('2026-10-14T04:00:00Z');
+  assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-12-01', catalogCutover - 1), 195);
+  assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-12-01', catalogCutover), 185);
+  assert.equal(cfg.getSessionBasePrice('Adult & Pediatric First Aid/CPR/AED Certification', '2026-12-01', catalogCutover - 1), 185);
+  assert.equal(cfg.getSessionBasePrice('Adult & Pediatric First Aid/CPR/AED Certification', '2026-12-01', catalogCutover), 125);
   assert.equal(cfg.getSessionBasePrice('Safe Sitter®', '2026-12-01', Date.now()), 225);
   for (const change of cfg.LATER_PRICE_CHANGES) {
     assert.equal(change.prices[COURSE], undefined);

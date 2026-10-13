@@ -21,8 +21,8 @@
     { key: 'mfbc-series', course: 'My First Babysitters Club', abbr: 'MFBC', price: 165, hours: '1 hour a week', audience: 'Younger sitters · multi-week', where: 'in person', host: false, org: true },
     { key: 'campus-ready', course: 'Campus Ready: Safety Skills for College Life', abbr: 'CR', price: 75, hours: '1 hour', audience: 'Ages 16+', where: 'in person', requiresRN: true, host: true, org: true },
     { key: 'ready-period', course: 'Ready. Period.', abbr: 'RP', price: 75, hours: '90 minutes', audience: 'Grades 5–8', where: 'in person', requiresRN: true, host: true, org: true },
-    { key: 'stay-ready', course: 'Stay Ready: Choking Rescue and CPR', abbr: 'SR', price: 85, hours: '90 minutes', audience: 'Grades 8+', where: 'in person', requiresRN: true, host: true, org: true },
-    { key: 'steady-ready', course: 'Steady and Ready', abbr: 'STR', price: 65, hours: '1.5 hours', audience: 'Ages 8+', where: 'in person', host: true, org: true },
+    { key: 'stay-ready', course: 'Stay Ready: Choking Rescue and CPR', abbr: 'SR', price: 85, hours: '75 minutes', audience: 'Grades 8+', where: 'in person', requiresRN: true, host: true, org: true },
+    { key: 'steady-ready', course: 'Steady and Ready', abbr: 'STR', price: 65, hours: '70 minutes', audience: 'Ages 8+', where: 'in person', host: true, org: true },
     { key: 'intro', course: 'Intro to Babysitting', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Grades 6–8', where: 'in person', host: true, org: true },
     { key: 'intro-virtual', course: 'Intro to Babysitting', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Grades 6–8', where: 'virtual', virtual: true, host: true, org: true },
     { key: 'all-kids-welcome', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '1 hour', audience: 'Experienced sitters', where: 'in person', host: true, org: true },
@@ -31,16 +31,16 @@
     // In person and virtual are separate choices, same as All Kids Welcome.
     { key: 'social-ready', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Grades 4–8', where: 'in person', host: true, org: true },
     { key: 'social-ready-virtual', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Grades 4–8', where: 'virtual', virtual: true, host: true, org: true },
-    { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 195, hours: '2.5 hours', audience: 'Expecting or new parents · $195 per person ($390 per couple)', where: 'in person', host: false, org: true },
+    { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 185, hours: '2.5 hours', audience: 'Expecting or new parents · $185 per person ($300 per couple)', where: 'in person', host: false, org: true },
     { key: 'baby-ready-cpr', course: 'Baby Ready + CPR Certification', abbr: 'BRCPR', price: 275, hours: '5 hours', audience: 'Expecting or new parents · $275 per person ($495 per couple)', where: 'in person', host: false, org: true },
     { key: 'season-ready', course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', abbr: 'SEAR', price: 25, hours: '60 minutes', audience: 'Student athletes', where: 'in person', requiresRN: true, host: false, org: true },
     // First Aid badge: $45 guide price, 60 minutes, RN only. A troop split is
     // entered on the session (family price + organization flat fee), not here.
     { key: 'gs-first-aid', course: 'Girl Scouts — First Aid Badge Workshop', abbr: 'GSFA', price: 45, hours: '1 hour', audience: 'Girl Scout troops', where: 'in person', requiresRN: true, host: false, org: true },
-    // New-session prices, same amounts as the Oct 9 list in config.js.
-    // These courses have no booked sessions, so the intake shows $295 and $185.
+    // New-session catalog prices. Babysitter's Training is $295 and bookable.
+    // Adult & Pediatric is $125 for sessions created from Oct 14 2026.
     { key: 'rc-babysitter', course: "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED", abbr: 'RCB', price: 295, hours: '7 hours', audience: 'Ages 11-14', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
-    { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 185, hours: '5.5 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 125, hours: '4 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet — I would like guidance' },
     { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course — we will follow up with pricing' }
   ];
@@ -595,7 +595,7 @@
   function billingSentence(n) {
     var b = n.billing || {};
     var price = n.course && n.course.price != null ? n.course.price : null;
-    if (b.mode === 'host_families') return 'Families pay the regular price. The home host receives one free registration.';
+    if (b.mode === 'host_families') return 'Families pay the regular price. Home hosts get one free spot.';
     if (b.mode === 'org_full_external') return 'Organization covers the full cost (' + dollars(price) + ' per participant) and handles registration. Invoice the organization. Family checkout is $0.';
     if (b.mode === 'org_full_link') return 'Organization covers the full cost (' + dollars(price) + ' per participant). Participants use the private Mindful Beginnings link at no charge. Invoice the organization.';
     if (b.mode === 'individual') return 'Participants pay individually on the private link' + (price != null ? ' (' + dollars(price) + ' each)' : '') + '.';

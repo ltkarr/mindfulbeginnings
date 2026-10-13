@@ -69,7 +69,7 @@ test('partner registration links open off-site and skip Mindful Beginnings payme
 
 test('Need help Contact us uses Lindsay mailto', () => {
   assert.match(register, /Need help finding a class\? <a href="mailto:lindsay@mindfulbeginnings\.org">Contact us<\/a>\./);
-  assert.doesNotMatch(register, /mindfulbeginnings\.org\/contact/);
+  assert.match(register, /href="https:\/\/mindfulbeginnings\.org\/contact">Contact<\/a>/);
 });
 
 test('course config still carries parent-facing audience lines', () => {

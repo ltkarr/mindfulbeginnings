@@ -80,7 +80,7 @@ test('host course choices on the page match the catalog, and organizations are s
     assert.match(hostPage, new RegExp(model.courseOptionLabel(course).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
   assert.match(hostPage, /organization\.html/);
-  assert.match(hostPage, /one free registration/i);
+  assert.match(hostPage, /Home hosts get one free spot/);
   assert.doesNotMatch(hostPage, /Organizations: please use this form/i);
   assert.match(register, /host\.html/);
   assert.match(register, /organization\.html/);
@@ -171,7 +171,7 @@ test('a home host maps to a private session with a free host seat and catalog pr
   assert.equal(plan.row.host_address, '123 Maple St');
   assert.equal(plan.row.requires_safe_sitter, true);
   const draft = model.buildDraft(n, plan.row);
-  assert.match(draft.body, /completely free/);
+  assert.match(draft.body, /Home hosts get one free spot/);
   assert.match(draft.body, /SS-261102/);
   assert.match(draft.body, /\$225 per participant/);
   assert.match(draft.body, /Park in the driveway/);

@@ -144,9 +144,11 @@ test('Baby Ready is $195 per person, $390 per couple, and consumes two people-se
   assert.equal(baby.adult, true);
   assert.equal(cfg.MAX_STUDENTS['Baby Ready'], 12);
   assert.equal(cfg.MAX_STUDENTS['Care Ready'], 16);
-  const person = cfg.getSessionBasePrice('Baby Ready', '2026-10-04', Date.now());
+  const beforeCatalog = Date.parse('2026-10-14T04:00:00Z') - 1;
+  const person = cfg.getSessionBasePrice('Baby Ready', '2026-10-04', beforeCatalog);
   assert.equal(person, 195);
   assert.equal(person * booking.seatsPerRegistration('Baby Ready'), 390);
+  assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-12-01', Date.parse('2026-10-14T04:00:00Z')), 185);
   assert.equal(cfg.getSessionBasePrice('Baby Ready', '2027-03-01', Date.parse('2026-01-01')), 195);
   assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-11-01', Date.parse('2026-08-27T04:00:00Z')), 195);
 });

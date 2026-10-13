@@ -40,6 +40,16 @@ test('new classes page prices start only for sessions created on/after Oct 9 202
   }
 });
 
+test('Oct 14 catalog prices apply only to sessions created from that midnight ET', () => {
+  const cfg = loadConfig();
+  const catalog = Date.parse('2026-10-14T04:00:00Z');
+  assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-12-01', catalog - 1), 195);
+  assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-12-01', catalog), 185);
+  assert.equal(cfg.getSessionBasePrice('Adult & Pediatric First Aid/CPR/AED Certification', '2026-12-01', catalog - 1), 185);
+  assert.equal(cfg.getSessionBasePrice('Adult & Pediatric First Aid/CPR/AED Certification', '2026-12-01', catalog), 125);
+  assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-12-01', NEWEST_EXISTING_SESSION), 195);
+});
+
 test('courses whose price did not change keep the same price after the cutover', () => {
   const cfg = loadConfig();
   const unchanged = {
