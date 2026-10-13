@@ -28,7 +28,7 @@ function roleFor(person) {
 
 function cards() {
   const out = [];
-  const re = /<article\b([^>]*)>([\s\S]*?)<\/article>/g;
+  const re = /<div class="person"([^>]*)>([\s\S]*?)<\/div>\s*<\/div>/g;
   let match;
   while ((match = re.exec(page))) {
     const attrs = match[1];
@@ -38,22 +38,25 @@ function cards() {
       return found ? decode(found[1]) : '';
     };
     const pick = (cls) => {
-      const found = body.match(new RegExp('<p class="' + cls + '">([\\s\\S]*?)</p>'));
+      const found = body.match(new RegExp('<span class="' + cls + '">([\\s\\S]*?)</span>'));
       return found ? decode(found[1]) : '';
     };
     const src = (body.match(/<img[^>]*\ssrc="([^"]*)"/) || [])[1] || '';
     const bios = [];
-    const bioBlock = (body.match(/<div class="bio">([\s\S]*?)<\/div>/) || [])[1] || '';
+    const bioMarker = '<div class="bio" hidden>';
+    const bioStart = body.indexOf(bioMarker);
+    const bioBlock = bioStart === -1 ? '' : body.slice(bioStart + bioMarker.length);
     const para = /<p>([\s\S]*?)<\/p>/g;
     let paragraph;
     while ((paragraph = para.exec(bioBlock))) bios.push(decode(paragraph[1]));
     out.push({
       section: attr('section'),
       name: attr('name'),
-      heading: decode((body.match(/<h3>([\s\S]*?)<\/h3>/) || [])[1] || ''),
+      heading: pick('name'),
       role: pick('role'),
       credentials: pick('credentials'),
-      hasCredentials: /<p class="credentials">/.test(body),
+      hasCredentials: /<span class="credentials">/.test(body),
+      button: /<button type="button" class="card"/.test(body),
       photo: decode(src),
       bio: bios
     });
@@ -70,7 +73,6 @@ test('about page is static HTML in the public page style', () => {
   assert.match(page, /#1E3161/);
   assert.match(page, /#F5F2EA/);
   assert.match(page, /#EFC75A/);
-  assert.doesNotMatch(page, /<script/i);
   assert.equal(page.includes('\u2014'), false);
   assert.equal(JSON.stringify(people).includes('\u2014'), false);
 });
@@ -99,6 +101,7 @@ test('team cards match the uploaded people, in section order, with exact bios', 
     assert.equal(card.heading, person.name);
     assert.equal(card.role, roleFor(person), 'role ' + person.name);
     assert.equal(card.photo, person.photo, 'photo ' + person.name);
+    assert.equal(card.button, true, 'button ' + person.name);
     assert.deepEqual(card.bio, person.bio, 'bio ' + person.name);
     if (person.credentials && person.credentials.trim()) {
       assert.equal(card.credentials, person.credentials.trim(), 'credentials ' + person.name);
@@ -108,14 +111,21 @@ test('team cards match the uploaded people, in section order, with exact bios', 
   });
 });
 
-test('bios start collapsed behind Expand all bios and can be shown', () => {
-  assert.match(page, />Expand all bios</);
-  assert.match(page, /id="expand-bios"/);
-  assert.match(page, /\.bio\{display:none/);
-  assert.match(page, /\.bios-toggle:checked ~ \.team-inner \.bio\{display:flex\}/);
-  assert.match(page, /\.bios-toggle:checked ~ \.team-inner \.grid\{grid-template-columns:1fr\}/);
-  assert.match(page, /\.team-section:last-child\{padding-bottom:0\}/);
-  assert.equal((page.match(/class="bio"/g) || []).length, 27);
+test('each person is a button that opens a bio dialog', () => {
+  assert.doesNotMatch(page, /Expand all bios/);
+  assert.doesNotMatch(page, /expand-bios/);
+  assert.equal((page.match(/class="bio" hidden/g) || []).length, 27);
+  assert.equal((page.match(/<button type="button" class="card"/g) || []).length, 27);
+  assert.match(page, /<dialog class="bio-dialog" id="bio-dialog"/);
+  assert.match(page, /<button type="button" class="bio-close">Close<\/button>/);
+  assert.match(page, /dialog\.showModal\(\)/);
+  assert.match(page, /if \(!inside\) dialog\.close\(\)/);
+  assert.match(page, /\.photo\{width:120px;height:120px;border-radius:50%/);
+  assert.match(page, /grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+  assert.match(page, /h1\{margin:0;font-size:clamp\(26px,3vw,34px\)/);
+  assert.match(page, /\.team-section h2\{margin:0 0 14px;font-size:22px/);
+  assert.match(page, /\.name\{font-size:15px/);
+  assert.match(page, /\.role\{font-size:13px/);
 });
 
 test('closing actions and footer sit together with no empty band', () => {
