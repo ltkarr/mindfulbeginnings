@@ -58,18 +58,19 @@ function orgBody(over) {
   }, over || {});
 }
 
-test('host and organization headers use the large white logo without a duplicate title', () => {
-  assert.equal(fs.existsSync(path.join(root, 'email-logo-white.png')), true);
-  assert.match(hostPage, /<img src="\/email-logo-white\.png" alt="Mindful Beginnings">/);
-  assert.match(orgPage, /<img src="\/email-logo-white\.png" alt="Mindful Beginnings">/);
+test('host and organization headers use the shared public navigation', () => {
+  assert.match(hostPage, /<a class="brand" href="https:\/\/mindfulbeginnings\.org\/">Mindful Beginnings<\/a>/);
+  assert.match(orgPage, /<a class="brand" href="https:\/\/mindfulbeginnings\.org\/">Mindful Beginnings<\/a>/);
+  assert.match(hostPage, /href="\/cpr-certification">CPR</);
+  assert.match(orgPage, /href="\/cpr-certification">CPR</);
   assert.doesNotMatch(hostPage, /class="tag"/);
   assert.doesNotMatch(orgPage, /class="tag"/);
-  assert.doesNotMatch(hostPage, /class="brand"/);
-  assert.doesNotMatch(orgPage, /class="brand"/);
-  assert.doesNotMatch(hostPage, /email-logo\.png/);
-  assert.doesNotMatch(orgPage, /email-logo\.png/);
-  assert.doesNotMatch(intakeCss, /border-radius:\s*50%/);
-  assert.match(intakeCss, /width:min\(320px,86vw\)/);
+  assert.doesNotMatch(hostPage, /email-logo/);
+  assert.doesNotMatch(orgPage, /email-logo/);
+  assert.match(intakeCss, /#1E3161/);
+  assert.match(intakeCss, /#F5F2EA/);
+  assert.match(intakeCss, /#EFC75A/);
+  assert.match(intakeCss, /Montserrat/);
   assert.match(hostPage, /we will confirm the date/);
   assert.match(orgPage, /<h1>Organization site information<\/h1>/);
 });
