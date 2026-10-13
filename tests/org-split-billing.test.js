@@ -189,9 +189,10 @@ test('the sessions table and the edit form show the family checkout and the org 
 test('public registration still charges the family price and does not read the organization share', () => {
   assert.match(register, /price_override/);
   assert.doesNotMatch(register, /org_portion|orgPortion/);
-  const lists = [...register.matchAll(/SESSION_COLS\w*='([^']+)'/g)].map((m) => m[1]);
-  assert.ok(lists.length >= 1);
-  lists.forEach((list) => assert.equal(list.split(',').includes('org_portion'), false));
+  assert.doesNotMatch(register, /from\('sessions'\)/);
+  const privacy = fs.readFileSync(path.join(__dirname, '../migrations/20261013_sessions_privacy_lockdown.sql'), 'utf8');
+  assert.doesNotMatch(privacy, /org_portion/);
+  assert.match(privacy, /price_override integer/);
 });
 
 test('migration adds the column for admin, withholds it from anon, and sets this troop to $25', () => {
