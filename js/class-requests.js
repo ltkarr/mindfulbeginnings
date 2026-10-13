@@ -12,6 +12,7 @@
   // what families are charged everywhere else.
   var COURSES = [
     { key: 'safe-sitter', course: 'Safe Sitter®', abbr: 'SS', price: 225, hours: '5 hours', audience: 'Grades 6–8', where: 'in person', requiresSS: true, host: true, org: true },
+    { key: 'safe-sitter-essentials', course: 'Safe Sitter® Babysitting Essentials', abbr: 'SSBE', price: 185, hours: '4 hours', audience: 'Grades 6–8', where: 'in person', requiresSS: true, host: true, org: true },
     { key: 'safe-at-home', course: 'Safe@Home', abbr: 'SAH', price: 85, hours: '90 minutes', audience: 'Grades 3–5', where: 'in person', host: true, org: true },
     { key: 'safe-at-home-virtual', course: 'Safe@Home — Virtual', abbr: 'SAHV', price: 40, hours: '60 minutes', audience: 'Grades 3–5', where: 'virtual', virtual: true, host: true, org: true },
     { key: 'care-ready', course: 'Care Ready', abbr: 'CRE', price: 175, hours: '2.5 hours', audience: 'Adult caregivers', where: 'in person', host: true, org: true },

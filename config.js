@@ -12,6 +12,8 @@
    Oct 13 2026 · Baby Ready is $195 per person on every session, including ones
                  created before Oct 9. A couple registration is two people and
                  costs $390. A session price override is still the checkout total.
+   Oct 13 2026 · Added Safe Sitter® Babysitting Essentials ($185, 4 hours).
+                 Safe Sitter®, the 5-hour course with the CPR module, stays $225.
    Oct  8 2026 · Added two American Red Cross courses (redCross + requiresLeadTeacher).
                  New-session prices, same Oct 9 list as the other classes-page prices:
                  Babysitter's Training $295 / 7 hours, Adult & Pediatric First Aid/CPR/AED
@@ -62,6 +64,10 @@ const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
      requiresLeadTeacher→ only Lead Teachers (Red Cross instructors) see these jobs */
 const COURSES={
   'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
+  // 4-hour babysitting course without the CPR module, $185 per person.
+  // Every price column is $185, and this name is not in LATER_PRICE_CHANGES,
+  // so it never picks up the $225 that belongs to Safe Sitter® (5 hours, CPR module).
+  'Safe Sitter® Babysitting Essentials':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:20.35,hours:4,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
   'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Grades 4–8'},
   'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16,audience:'Kids home alone'},
   // Program guide (Aug 2026): Safe@Home is $65 as a 90-minute single session,
@@ -250,6 +256,7 @@ function getPriceForSession(course,dateStr){
    max-students override, set in the admin, wins over these).               */
 const MAX_STUDENTS={
   'Safe Sitter®':16,
+  'Safe Sitter® Babysitting Essentials':16,
   'Intro to Babysitting':20,
   'Safe@Home':16,
   'Safe@Home — Virtual':16,

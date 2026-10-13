@@ -79,10 +79,64 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
   assert.equal(cfg.COURSES['Steady and Ready'].hours, 1.5);
   assert.equal(cfg.COURSES['Baby Ready'].hours, 2.5);
   assert.equal(cfg.COURSES['Baby Ready'].seatsPerRegistration, 2);
-  assert.equal(cfg.COURSES['Safe Sitter Essentials'], undefined);
-  assert.equal(cfg.COURSES['Safe Sitter® Babysitting Essentials'], undefined);
-  assert.doesNotMatch(configSrc, /Babysitting Essentials/);
-  assert.doesNotMatch(admin, /Babysitting Essentials/);
+
+  const ESS = 'Safe Sitter® Babysitting Essentials';
+  const ess = cfg.COURSES[ESS];
+  assert.equal(ess.hours, 4);
+  assert.equal(ess.maxStudents, 16);
+  assert.equal(ess.requiresSafeSitter, true);
+  assert.equal(ess.matCost, 20.35);
+  assert.equal(ess.price, 185);
+  assert.equal(ess.price2027, 185);
+  assert.equal(ess.priceNew, 185);
+  assert.equal(ess.priceNew2027, 185);
+  // $185 on every session, including ones created before the Aug 26 list
+  // that prices Safe Sitter® (the CPR-module course) at $225.
+  for (const createdAt of [1, BEFORE, EXISTING, CUTOVER, Date.now()]) {
+    assert.equal(cfg.getSessionBasePrice(ESS, '2026-12-01', createdAt), 185);
+    assert.equal(cfg.getSessionBasePrice(ESS, '2027-06-01', createdAt), 185);
+  }
+  assert.equal(cfg.getSessionBasePrice('Safe Sitter®', '2026-12-01', Date.now()), 225);
+  for (const chg of cfg.LATER_PRICE_CHANGES) assert.equal(chg.prices[ESS], undefined);
+  assert.match(admin, /<option>Safe Sitter® Babysitting Essentials<\/option>/);
+  assert.match(admin, /'Safe Sitter® Babysitting Essentials':\{price:185,price2027:185,priceNew:185,priceNew2027:185/);
+  assert.equal((register.match(/'Safe Sitter® Babysitting Essentials':185/g) || []).length, 4);
+  assert.match(register, /'Safe Sitter® Babysitting Essentials':16/);
+
+  const regSandbox = {
+    currentSession: { course: ESS, date: '2026-12-01', createdAt: Date.now(), priceOverride: null },
+    getSessionBasePrice: cfg.getSessionBasePrice,
+    seatsPerCourse() { return 1; },
+    Math, Number, isFinite
+  };
+  vm.createContext(regSandbox);
+  vm.runInContext(extractFn(register, 'getEffectivePrice'), regSandbox);
+  assert.equal(regSandbox.getEffectivePrice(), 185);
+  regSandbox.currentSession = { course: 'Safe Sitter®', date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
+  assert.equal(regSandbox.getEffectivePrice(), 225);
+
+  const adminSandbox = {
+    COURSES: cfg.COURSES,
+    LATER_PRICE_CHANGES: cfg.LATER_PRICE_CHANGES,
+    NEW_PRICING_EFFECTIVE: '2026-08-06T21:00:00Z',
+    Date, parseInt, isNaN, Number, String, Math, isFinite
+  };
+  vm.createContext(adminSandbox);
+  vm.runInContext([
+    extractFn(admin, 'laterPriceFor'),
+    extractFn(admin, 'sessionUsesNewPricing'),
+    extractFn(admin, 'getCoursePrice'),
+    extractFn(admin, 'registrationSeatCount'),
+    extractFn(admin, 'seatCountOrBabyReady'),
+    extractFn(admin, 'seatsCharged'),
+    extractFn(admin, 'sessionListPrice'),
+    extractFn(admin, 'regEffectivePrice')
+  ].join('\n'), adminSandbox);
+  const essSession = { course: ESS, date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
+  assert.equal(adminSandbox.sessionListPrice(essSession), 185);
+  assert.equal(adminSandbox.regEffectivePrice({ pricePaid: null }, essSession), 185);
+  assert.equal(adminSandbox.sessionListPrice({ course: 'Safe Sitter®', date: '2026-12-01', createdAt: Date.now(), priceOverride: null }), 225);
+  assert.equal(adminSandbox.sessionListPrice(Object.assign({}, essSession, { priceOverride: 100 })), 100);
 });
 
 test('admin and the register fallback carry the same Oct 9 Red Cross prices', () => {
@@ -212,4 +266,13 @@ test('the database blocks a non-Lead Teacher from a Red Cross session, claim, or
   assert.match(instructor, /instructor_lead_teacher/);
   assert.match(admin, /id="m-ilead"/);
   assert.match(admin, /LEAD_TEACHER_RATE=75/);
+});
+
+test('Essentials is capped at 16 and only a Safe Sitter instructor can claim it', () => {
+  const essSql = fs.readFileSync(path.join(root, 'migrations/20261013_safe_sitter_essentials.sql'), 'utf8');
+  assert.match(essSql, /when 'Safe Sitter® Babysitting Essentials' then 16/);
+  assert.match(essSql, /v_course in \(\s*'Safe Sitter®',\s*'Safe Sitter® Babysitting Essentials',\s*'Grandparents: Getting Started'/);
+  assert.match(essSql, /function public\.register_student/);
+  assert.match(essSql, /function public\.instructor_accept_job/);
+  assert.match(admin, /const requiresSS=!!\(COURSES\[course\]\|\|\{}\)\.requiresSafeSitter/);
 });

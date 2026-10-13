@@ -43,7 +43,8 @@ test('new classes page prices start only for sessions created on/after Oct 9 202
 test('courses whose price did not change keep the same price after the cutover', () => {
   const cfg = loadConfig();
   const unchanged = {
-    'Safe Sitter®': 225, 'Safe@Home': 85, 'Intro to Babysitting': 40,
+    'Safe Sitter®': 225, 'Safe Sitter® Babysitting Essentials': 185,
+    'Safe@Home': 85, 'Intro to Babysitting': 40,
     'Steady and Ready': 65, 'My First Babysitters Club — Single Session': 95,
     'Ready. Period.': 75, 'All Kids Welcome': 25,
     'Campus Ready: Safety Skills for College Life': 75,

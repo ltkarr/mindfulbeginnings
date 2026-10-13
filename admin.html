@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261013-baby-ready-195';
+window.MB_ADMIN_BUILD='20261013-ss-essentials';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -543,7 +543,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="filter-row">
         <select id="sf-course" onchange="renderSessions()">
           <option value="">All courses</option>
-          <option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option>
+          <option>Safe Sitter®</option><option>Safe Sitter® Babysitting Essentials</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option>
         </select>
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
@@ -1255,6 +1255,9 @@ window.addEventListener('focus',refreshData);
 //                             from re-pricing anything already on the calendar.
 const COURSES={
   'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true},
+  // 4-hour course without the CPR module. $185 on every price column, so it
+  // does not inherit the $225 later-price entry for Safe Sitter® (5 hours, CPR module).
+  'Safe Sitter® Babysitting Essentials':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:20.35,hours:4,maxStudents:16,requiresSafeSitter:true},
   'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20},
   'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16},
   // Program guide (Aug 2026): Safe@Home is $65 as a 90-minute single session, $125 as a
@@ -1527,7 +1530,7 @@ function recurBadge(s){return s.isRecurring?`<span style="background:#e3eef7;col
    job was created with and never updated — which is how CJ-0914 ended up on a
    club that starts September 17 and CJ-0916-2 on one that starts the 18th. */
 const COURSE_ABBR={
-  'Safe Sitter®':'SS','Intro to Babysitting':'IB','Safe@Home':'SAH',
+  'Safe Sitter®':'SS','Safe Sitter® Babysitting Essentials':'SSBE','Intro to Babysitting':'IB','Safe@Home':'SAH',
   'Safe@Home — Virtual':'SAHV','Safe@Home — Series':'SAHS',
   'Grandparents: Getting Started':'GP',
   // CRE, not CR — CR is Campus Ready. Initials of "Care Ready" would also be CR.
@@ -1552,7 +1555,7 @@ const COURSE_ABBR={
 // Elementary — 10 week series"), so match the program out of the words.
 const TITLE_ABBR=[
   [/red cross babysitter/i,'RCB'],[/adult\s*&\s*pediatric|pediatric first aid\/cpr/i,'RCA'],
-  [/first\s*babysitter/i,'MFBC'],[/safe\s*sitter/i,'SS'],
+  [/first\s*babysitter/i,'MFBC'],[/babysitting essentials/i,'SSBE'],[/safe\s*sitter/i,'SS'],
   [/safe\s*@?\s*home/i,'SAH'],[/intro to babysit/i,'IB'],
   [/grandparent/i,'GP'],[/baby\s*ready/i,'BR'],[/care\s*ready/i,'CRE'],[/all kids welcome/i,'AKW'],
   [/choking|cpr|stay ready/i,'SR'],[/campus ready/i,'CR'],
@@ -6709,7 +6712,7 @@ function openAddSession(){
   showModal(`<div class="modal-head"><h3>Add new session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body"><div class="form-grid">
     <div class="fg full"><label>Course *</label>
-      <select id="m-course"><option>Safe Sitter®</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option></select>
+      <select id="m-course"><option>Safe Sitter®</option><option>Safe Sitter® Babysitting Essentials</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>All Kids Welcome</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Ready. Period.</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option></select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div>
       <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="m-rnonly" onchange="updateRnNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
@@ -7409,6 +7412,7 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>Course</label>
       <select id="m-course">
         <option ${s.course==='Safe Sitter®'?'selected':''}>Safe Sitter®</option>
+        <option ${s.course==='Safe Sitter® Babysitting Essentials'?'selected':''}>Safe Sitter® Babysitting Essentials</option>
         <option ${s.course==='Intro to Babysitting'?'selected':''}>Intro to Babysitting</option>
         <option ${s.course==='Safe@Home'?'selected':''}>Safe@Home</option>
         <option ${s.course==='Safe@Home — Virtual'?'selected':''}>Safe@Home — Virtual</option>
@@ -7429,7 +7433,7 @@ ${lockboxFieldHtml(s)}
         <option ${s.course==='Girl Scout Badge Class'?'selected':''}>Girl Scout Badge Class</option>
         <option ${s.course==="Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED"?'selected':''}>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option>
         <option ${s.course==='Adult & Pediatric First Aid/CPR/AED Certification'?'selected':''}>Adult &amp; Pediatric First Aid/CPR/AED Certification</option>
-        ${['Safe Sitter®','Intro to Babysitting','Safe@Home','Safe@Home — Virtual','Safe@Home — Series','Grandparents: Getting Started','Care Ready','Baby Ready','All Kids Welcome','Stay Ready: Choking Rescue and CPR','Campus Ready: Safety Skills for College Life','Steady and Ready','My First Babysitters Club','My First Babysitters Club — Single Session','Ready. Period.','Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes','Social Ready','Girl Scouts — First Aid Badge Workshop','Girl Scout Badge Class',"Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED",'Adult & Pediatric First Aid/CPR/AED Certification'].includes(s.course)?'':`<option selected>${escapeHtml(s.course||'')}</option>`}
+        ${['Safe Sitter®','Safe Sitter® Babysitting Essentials','Intro to Babysitting','Safe@Home','Safe@Home — Virtual','Safe@Home — Series','Grandparents: Getting Started','Care Ready','Baby Ready','All Kids Welcome','Stay Ready: Choking Rescue and CPR','Campus Ready: Safety Skills for College Life','Steady and Ready','My First Babysitters Club','My First Babysitters Club — Single Session','Ready. Period.','Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes','Social Ready','Girl Scouts — First Aid Badge Workshop','Girl Scout Badge Class',"Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED",'Adult & Pediatric First Aid/CPR/AED Certification'].includes(s.course)?'':`<option selected>${escapeHtml(s.course||'')}</option>`}
       </select>
       <div id="m-rn-notice" style="display:none;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:8px 12px;font-size:15.5px;margin-top:6px"></div>
     </div>
@@ -7672,6 +7676,7 @@ async function saveSession(editId){
   const instructorInfo='';
   const feeReceived=readFeeReceived('m-fee-received', editId?(sessions.find(x=>x.id===editId)||{}).feeReceived:null);
   const requiresRN=!!((document.getElementById('m-rnonly')||{}).checked||(COURSES[course]||{}).requiresRN);
+  const requiresSS=!!(COURSES[course]||{}).requiresSafeSitter;
   // Duplicate check runs while the modal is still open, so backing out leaves
   // everything she typed exactly where it was.
   if(!confirmNotDuplicate({course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,isVirtual,isCancelled:false},editId||null))return;
@@ -7681,9 +7686,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS};
     sessions.push(s);
   }
   const matChoice=sessionMaterialsFromForm(editId);
@@ -12055,6 +12060,7 @@ function coIsOverdue(c){return!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returned
 // manikins. AV and adult counts stay as written here. Handbooks stay per student.
 const MAT_NEEDS={
   'Safe Sitter®':{infant:1,child:1,av:1},
+  'Safe Sitter® Babysitting Essentials':{infant:1,child:1,av:1},
   'Grandparents: Getting Started':{infant:1,child:1,av:1},
   'Campus Ready: Safety Skills for College Life':{adult:1,av:1},
   'Stay Ready: Choking Rescue and CPR':{infant:1,child:1,adult:1,av:1},
@@ -12087,6 +12093,7 @@ function matKitDueDate(s){
 // One copy per student. Registered headcount wins; otherwise the class capacity.
 const MAT_BOOKS={
   'Safe Sitter®':['ssHandbook','ssNotebook'],
+  'Safe Sitter® Babysitting Essentials':['ssHandbook','ssNotebook'],
   'Safe@Home':['sahHandbook'],
   'Safe@Home — Series':['sahHandbook'],
   'Grandparents: Getting Started':['gpHandbook'],
