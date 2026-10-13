@@ -50,6 +50,22 @@
         { "type": "host", "value": "instructorportal.mindfulbeginnings.org" }
       ],
       "destination": "/instructor.html"
+    },
+    {
+      "source": "/cpr-certification",
+      "destination": "/cpr-certification.html"
+    },
+    {
+      "source": "/cpr-certification/",
+      "destination": "/cpr-certification.html"
+    },
+    {
+      "source": "/classes-catalog",
+      "destination": "/classes-catalog.html"
+    },
+    {
+      "source": "/classes-catalog/",
+      "destination": "/classes-catalog.html"
     }
   ],
   "headers": [
