@@ -69,7 +69,7 @@ test('partner registration links open off-site and skip Mindful Beginnings payme
 
 test('Need help Contact us uses Lindsay mailto', () => {
   assert.match(register, /Need help finding a class\? <a href="mailto:lindsay@mindfulbeginnings\.org">Contact us<\/a>\./);
-  assert.match(register, /href="https:\/\/mindfulbeginnings\.org\/contact">Contact<\/a>/);
+  assert.match(register, /href="\/contact\.html">Contact<\/a>/);
 });
 
 test('course config still carries parent-facing audience lines', () => {
@@ -97,8 +97,12 @@ test('register checkout uses dynamic PayPal Orders, not the hosted NCP button', 
 });
 
 test('header branding is multi-course, not Safe Sitter-only', () => {
-  assert.match(register, /Safe Sitter® and family safety courses/);
-  assert.match(pay, /Safe Sitter® and family safety courses/);
+  assert.equal(register.includes('<img class="mb-logo"'), true);
+  assert.equal(register.includes('src="/images/logo.png"'), true);
+  assert.equal(pay.includes('<img class="mb-logo"'), true);
+  assert.equal(pay.includes('src="/images/logo.png"'), true);
+  assert.match(register, /<span class="mb-wordmark">Mindful Beginnings<\/span>/);
+  assert.match(pay, /<span class="mb-wordmark">Mindful Beginnings<\/span>/);
   assert.doesNotMatch(register, /<div class="tag">Safe Sitter® Courses<\/div>/);
   assert.doesNotMatch(pay, /<div class="tag">Safe Sitter® Courses<\/div>/);
 });

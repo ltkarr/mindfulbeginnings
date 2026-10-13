@@ -71,7 +71,7 @@ const EXPECTED = [
   ['parents-caregivers', 'baby-ready', 'Baby Ready™', 'Parents, nannies, au pairs, and grandparents · 2.5-hour · In person · $185 per participant or $300 per couple', 'A hands-on newborn care class taught by a registered nurse, covering feeding, diapering, bathing, safe sleep, soothing, and infant choking rescue and CPR skills practice on manikins.', false, false],
   ['parents-caregivers', 'adult-cpr', 'Adult & Pediatric First Aid/CPR/AED Certification', 'Parents, nannies, au pairs, and grandparents · 4-hour · In person · $125', 'A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Participants earn a 2-year American Red Cross certification.', false, false],
   ['parents-caregivers', 'grandparents', 'Grandparents: Getting Started by Safe Sitter®', 'Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185', 'A workshop equipping grandparents with current standards, updated guidelines, and practical tips for caring for their grandchildren.', false, false],
-  ['parents-caregivers', 'care-ready', 'Care Ready™', 'Parents, nannies, au pairs, and grandparents · 2.5-hour · In person · $175', 'A course that gives nannies and au pairs the practical safety and caregiving skills families count on.', false, false],
+  ['parents-caregivers', 'care-ready', 'Care Ready™', 'Parents, nannies, au pairs, and grandparents · 2.5-hour · In person · $185', 'A course that gives nannies and au pairs the practical safety and caregiving skills families count on.', false, false],
   ['parents-caregivers', 'stay-ready', 'Stay Ready™', 'Parents, nannies, au pairs, and grandparents · 75-minute · In person · $85', 'A hands-on workshop that reviews choking rescue, CPR, seizure awareness and response, and emergency response.', false, false]
 ];
 
@@ -80,7 +80,7 @@ test('classes catalog matches the public class list', () => {
   assert.match(page, /name="viewport"/);
   assert.match(page, /Prices are per participant\. Home hosts get one free spot\./);
   assert.match(page, /Founded by a 20-year classroom teacher • Taught by registered nurses and certified educators • Safe Sitter® and American Red Cross courses/);
-  assert.match(page, /href="https:\/\/register\.mindfulbeginnings\.org\/register\.html">Find a class</);
+  assert.match(page, /class="mb-btn mb-btn-gold mb-btn-sm" href="\/register\.html">Register</);
   assert.equal(page.includes('\u2014'), false);
   const found = cards();
   assert.equal(found.length, EXPECTED.length);
@@ -116,7 +116,7 @@ test('booking, custom programs, and group CPR links stay on this site', () => {
   assert.match(page, /Request a custom program/);
   assert.match(page, /Mindful Beginnings partners with organizations from the ground up/);
   assert.match(page, /Past offerings include customizable Girl Scout badge workshops/);
-  assert.equal((page.match(/href="\/cpr-certification"/g) || []).length, 2);
+  assert.equal((page.match(/href="\/cpr-certification"/g) || []).length, 3);
   assert.equal((page.match(/>Coming soon</g) || []).length, 0);
 });
 
