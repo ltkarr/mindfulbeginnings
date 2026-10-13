@@ -20,6 +20,7 @@
    ──────────────────────────────────────────────────────────────────────── */
 const COURSES={
   "Safe Sitter®":{hours:5,maxStudents:16,requiresSafeSitter:true},
+  "Safe Sitter® Babysitting Essentials":{hours:4,maxStudents:16,requiresSafeSitter:true},
   "Intro to Babysitting":{hours:1,maxStudents:20},
   "Safe@Home":{hours:1.5,maxStudents:16},
   "Safe@Home — Series":{hours:1,maxStudents:16},

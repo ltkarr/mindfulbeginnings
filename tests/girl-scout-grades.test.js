@@ -58,6 +58,7 @@ test('Girl Scout badge workshops offer Kindergarten through 8th, and grade stays
 test('other courses keep their existing grade lists', () => {
   const api = loadGrades();
   assert.deepEqual(labels(api.registrationGradeOptions('Safe Sitter®')), ['6th grade', '7th grade', '8th grade']);
+  assert.deepEqual(labels(api.registrationGradeOptions('Safe Sitter® Babysitting Essentials')), ['6th grade', '7th grade', '8th grade']);
   assert.deepEqual(labels(api.registrationGradeOptions('Safe@Home')), ['3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade']);
   assert.deepEqual(labels(api.registrationGradeOptions('All Kids Welcome')), ['3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade']);
   assert.deepEqual(labels(api.registrationGradeOptions('Intro to Babysitting')), ['4th grade', '5th grade', '6th grade', '7th grade', '8th grade']);
