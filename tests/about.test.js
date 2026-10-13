@@ -110,6 +110,8 @@ test('bios start collapsed behind Expand all bios and can be shown', () => {
   assert.match(page, /id="expand-bios"/);
   assert.match(page, /\.bio\{display:none/);
   assert.match(page, /\.bios-toggle:checked ~ \.team-inner \.bio\{display:flex\}/);
+  assert.match(page, /\.bios-toggle:checked ~ \.team-inner \.grid\{grid-template-columns:1fr\}/);
+  assert.match(page, /\.team-section:last-child\{padding-bottom:0\}/);
   assert.equal((page.match(/class="bio"/g) || []).length, 27);
 });
 
