@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261013-org-participants';
+window.MB_ADMIN_BUILD='20261013-org-seat-count';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -2739,6 +2739,30 @@ function toggleExtraDates(ev,id){
 function sessionMaxStudents(s){
   if(s&&s.maxStudentsOverride&&Number(s.maxStudentsOverride)>0)return Number(s.maxStudentsOverride);
   return(COURSES[s.course]||{maxStudents:8}).maxStudents;
+}
+// Participants the organization already committed to, on an org-billed session.
+// Blank, zero, and a session with no bill-to name do not reserve seats.
+function orgCommittedParticipants(s){
+  if(!s||!String(s.billToOrg||'').trim())return 0;
+  if(s.billedHeadcount==null||s.billedHeadcount==='')return 0;
+  const n=Number(s.billedHeadcount);
+  if(!isFinite(n)||n<=0)return 0;
+  return Math.floor(n);
+}
+// Live registrations, in people. extraRows is a registration not saved yet
+// (re-enroll). Baby Ready counts two people per registration row.
+function registeredSeatCount(s, extraRows){
+  if(!s)return 0;
+  const per=(typeof seatsPerRegistration==='function')?seatsPerRegistration(s.course):1;
+  const extra=Number(extraRows);
+  const rows=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length+(isFinite(extra)&&extra>0?extra:0);
+  return rows*per;
+}
+// Seats taken for the list and for remaining capacity. A committed roster of 4
+// shows as 4 even before anyone registers. Once those people register they are
+// not added again: the count is the larger of the two, not the sum.
+function sessionOccupiedSeats(s, extraRows){
+  return Math.max(registeredSeatCount(s, extraRows), orgCommittedParticipants(s));
 }
 // ── ACTIVE / INACTIVE INSTRUCTORS ───────────────────────────
 // An inactive instructor is one who is no longer on the roster — someone who never
@@ -6092,7 +6116,7 @@ function renderSessions(){
       const mgr=bg=>`<td class="mgr-cell" style="text-align:right;background:${bg}"><button type="button" class="btn sm" aria-haspopup="menu" aria-expanded="false" aria-label="Manage session" onclick="openSessionMenu(event,'${s.id}')" onkeydown="sessionMenuButtonKey(event,'${s.id}')">Manage \u25be</button></td>`;
       const where=locCell(s.isVirtual?'Virtual':s.location);
       if(s.isHold){
-        const enrolled=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course);
+        const enrolled=sessionOccupiedSeats(s);
         const wlHold=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
         const whenFull=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
         const timeNote=(s.time||'').trim();
@@ -6152,7 +6176,7 @@ function renderSessions(){
         <td><div class="cell-stack">${courseCell(pills)}</div></td>
         <td><div class="cell-stack">${where}</div></td>
         <td><div class="cell-stack"><span class="sess-wrap" title="${escapeHtml(instr)}">${escapeHtml(instr)}</span></div></td>
-        <td><div class="cell-stack"><span class="sess-wrap">${registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course)} / ${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''}</span></div></td>
+        <td><div class="cell-stack"><span class="sess-wrap">${sessionOccupiedSeats(s)} / ${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''}</span></div></td>
         <td><div class="cell-stack">${revenueCell(s,f)}</div></td>
         <td>${isPast?`<div class="cell-stack"><span>${wrapDots}</span><span class="pay-note" style="color:${wrapAllDone?'var(--success)':'var(--muted)'}">${wrapAllDone?'Done':wrapDone+'/'+wrapTotal}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
         ${mgr('white')}</tr>`;
@@ -8016,7 +8040,7 @@ function renderRegs(){
   const pf=document.getElementById('rf-status').value;
   const q=(document.getElementById('rf-search').value||'').toLowerCase();
   const selEl=document.getElementById('rf-session');const cur=selEl.value;
-  selEl.innerHTML='<option value="">All sessions</option>'+sessions.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(s=>{const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course);const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'});const hold=s.isHold?' · on hold':'';return`<option value="${s.id}">${s.course} — ${d}${hold} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
+  selEl.innerHTML='<option value="">All sessions</option>'+sessions.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(s=>{const cnt=sessionOccupiedSeats(s);const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'});const hold=s.isHold?' · on hold':'';return`<option value="${s.id}">${s.course} — ${d}${hold} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
   selEl.value=cur;
   let list=registrations.filter(r=>{
     if(sf&&r.sessionId!==sf)return false;
@@ -8596,12 +8620,12 @@ function reEnrollReg(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
   const s=sessions.find(x=>x.id===r.sessionId);
   const prev=prevStatusFromNote(r);
-  const per=s?seatsPerRegistration(s.course):1;
-  const filled=s?registrations.filter(x=>x.sessionId===s.id&&isLiveReg(x)).length*per:0;
+  const filled=s?sessionOccupiedSeats(s):0;
+  const after=s?sessionOccupiedSeats(s,1):0;
   const cap=s?sessionMaxStudents(s):0;
   const warns=[];
   if(s&&s.isCancelled)warns.push('This session is cancelled, so the class is not running. Move the student to a different session on the Edit screen instead.');
-  if(s&&cap&&filled+per>cap)warns.push('This session is already full at '+filled+' of '+cap+'. Re-enrolling puts it at '+(filled+per)+' — or bring them back on the waitlist instead.');
+  if(s&&cap&&after>cap)warns.push('This session is already full at '+filled+' of '+cap+'. Re-enrolling puts it at '+after+' — or bring them back on the waitlist instead.');
   const opt=(v,label)=>`<option value="${v}" ${prev===v?'selected':''}>${label}</option>`;
   showModal(`<div class="modal-head"><h3>Re-enroll ${escapeHtml(r.studentName||'student')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">
