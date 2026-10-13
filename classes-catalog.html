@@ -38,9 +38,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 .age-block h2{margin:0 0 18px;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800}
 .grid{display:grid;grid-template-columns:1fr;gap:24px;align-items:stretch}
 .card{background:#fff;border:1px solid rgba(30,49,97,0.08);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:100%;box-sizing:border-box}
-.card-visual{background:#1E3161;position:relative;flex:0 0 auto;display:flex;align-items:flex-end;box-sizing:border-box;height:72px;padding:12px 16px 14px}
+.card-visual{background:#1E3161;position:relative;flex:0 0 auto;display:flex;align-items:flex-end;box-sizing:border-box;min-height:88px;padding:12px 16px 14px}
 .card-visual:after{content:"";position:absolute;left:16px;bottom:0;width:44px;height:5px;background:#EFC75A;border-radius:4px 4px 0 0}
-.card-visual h3{margin:0;position:relative;z-index:1;color:#fff;font-family:'Montserrat',sans-serif;font-size:16px;line-height:1.25;font-weight:700}
+.card-visual h3{margin:0;position:relative;z-index:1;color:#fff;font-family:'Montserrat',sans-serif;font-size:20px;line-height:1.25;font-weight:700}
 .card-body{padding:16px 16px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
 .meta{margin:0;font-size:14px;font-weight:700;line-height:1.45}
 .desc{margin:0;font-size:16px;line-height:1.55}
@@ -54,7 +54,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 
 
 @media (max-width:360px){
-  .card-visual h3{font-size:15px}
+  .card-visual h3{font-size:18px}
 }
 @media (min-width:760px){
   .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
