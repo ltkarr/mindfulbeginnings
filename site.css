@@ -56,7 +56,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 
 /* ---------- shared footer ---------- */
 .mb-footer{background:var(--navy);color:var(--cream);padding:28px 6vw}
-.mb-footer-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+.mb-footer-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:8px;position:relative}
 .mb-footer-name{margin:0;font-weight:700;font-size:15px}
 .mb-footer-nav{display:flex;flex-wrap:wrap;gap:6px 16px}
 .mb-footer-nav a{color:var(--cream);font-size:13px;font-weight:600;text-decoration:none;opacity:.92}
@@ -173,10 +173,10 @@ p:last-child{margin-bottom:0}
   .mb-section{padding:40px 6vw}
 }
 
-.mb-social{display:inline-flex;gap:12px;margin-left:10px;vertical-align:middle}
+.mb-social{position:absolute;right:0;bottom:0;display:inline-flex;gap:14px}
 .mb-social a{color:var(--cream)}
 .mb-social a:hover{color:var(--btn-gold)}
-.mb-social svg{width:18px;height:18px;display:block}
+.mb-social svg{width:30px;height:30px;display:block}
 
 .mb-cta-band{padding:72px 6vw}
 .mb-cta-band .mb-actions{margin-top:22px}
