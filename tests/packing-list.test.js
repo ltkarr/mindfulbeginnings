@@ -287,3 +287,43 @@ test('the packing tab is added without removing the other screens', () => {
   assert.match(admin, /\.pack-row\{display:grid/);
   assert.doesNotMatch(printCss, /body:not\(\.pack-printing\) \.sidebar\{display:none/);
 });
+
+test('each session shows registered participants, and a multi-session list shows a total', () => {
+  const sessions = [
+    sess({ id: 'baby', date: '2026-10-18', instructorId: 'bk', course: 'Baby Ready' }),
+    sess({ id: 'kids', date: '2026-10-19', instructorId: 'hc', course: 'Safe Sitter®' }),
+    sess({ id: 'solo', date: '2026-10-20', instructorId: 'bk', course: 'Care Ready' })
+  ];
+  const regs = [
+    { sessionId: 'baby', payStatus: 'paid', studentName: 'Alex Rivera' },
+    { sessionId: 'baby', payStatus: 'host', studentName: 'Sam Host', notes: '[Partner: Riley Host]' },
+    { sessionId: 'baby', payStatus: 'waitlist', studentName: 'Pat Wait' },
+    { sessionId: 'baby', payStatus: 'cancelled', studentName: 'Casey Gone' },
+    { sessionId: 'kids', payStatus: 'paid', studentName: 'Emma Smith' },
+    { sessionId: 'kids', payStatus: 'host', studentName: 'Host Kid' },
+    { sessionId: 'kids', payStatus: 'comp', studentName: 'Comp Kid' },
+    { sessionId: 'kids', payStatus: 'free', studentName: 'Free Kid' },
+    { sessionId: 'kids', payStatus: 'cancelled', studentName: 'No Show' },
+    { sessionId: 'kids', payStatus: 'refunded', studentName: 'Refunded Kid' },
+    { sessionId: 'solo', payStatus: 'unpaid', studentName: 'One Person' }
+  ];
+  const built = sandbox.packingBuildModel(sessions, instructors, {}, TODAY, 60, regs);
+  const byId = Object.fromEntries(built.rows.map((r) => [r.id, r]));
+  assert.equal(byId.baby.registered, 4);
+  assert.equal(byId.kids.registered, 4);
+  assert.equal(byId.solo.registered, 1);
+  assert.equal(sandbox.packingRegisteredTotal(built), 9);
+  const screen = sandbox.packingGroupsHtml(built);
+  const pdf = sandbox.packingPrintHtml(built, new Date('2026-10-11T15:00:00.000Z'));
+  assert.match(screen, /class="pack-count">4 participants registered/);
+  assert.match(screen, /class="pack-count">1 participant registered/);
+  assert.match(screen, /class="pack-total">Total: 9 participants registered/);
+  assert.match(pdf, /<th>Registered<\/th>/);
+  assert.match(pdf, />4 participants registered</);
+  assert.match(pdf, /class="pack-pdf-total">Total: 9 participants registered/);
+  const one = sandbox.packingBuildModel([sessions[2]], instructors, {}, TODAY, 60, regs);
+  assert.equal(sandbox.packingTotalPhrase(one), '');
+  assert.doesNotMatch(sandbox.packingGroupsHtml(one), /Total:/);
+  assert.doesNotMatch(sandbox.packingPrintHtml(one, new Date('2026-10-11T15:00:00.000Z')), /Total:/);
+  assert.match(sandbox.packingGroupsHtml(one), /1 participant registered/);
+});
