@@ -31,29 +31,12 @@
       "permanent": true
     },
     {
-      "source": "/host-a-class-1",
-      "destination": "/host-a-class",
-      "permanent": true
-    },
-    {
-      "source": "/host-a-class-1/",
-      "destination": "/host-a-class",
-      "permanent": true
-    },
-    {
-      "source": "/classes",
-      "destination": "/classes-catalog",
-      "permanent": true
-    },
-    {
-      "source": "/classes/",
-      "destination": "/classes-catalog",
-      "permanent": true
-    },
-    {
-      "source": "/index.html",
-      "destination": "/",
-      "permanent": true
+      "source": "/",
+      "missing": [
+        { "type": "host", "value": "instructorportal.mindfulbeginnings.org" }
+      ],
+      "destination": "/register.html",
+      "permanent": false
     }
   ],
   "rewrites": [
@@ -91,38 +74,6 @@
     {
       "source": "/about/",
       "destination": "/about.html"
-    },
-    {
-      "source": "/host-a-class",
-      "destination": "/host-a-class.html"
-    },
-    {
-      "source": "/host-a-class/",
-      "destination": "/host-a-class.html"
-    },
-    {
-      "source": "/girl-scouts",
-      "destination": "/girl-scouts.html"
-    },
-    {
-      "source": "/girl-scouts/",
-      "destination": "/girl-scouts.html"
-    },
-    {
-      "source": "/reviews",
-      "destination": "/reviews.html"
-    },
-    {
-      "source": "/reviews/",
-      "destination": "/reviews.html"
-    },
-    {
-      "source": "/contact",
-      "destination": "/contact.html"
-    },
-    {
-      "source": "/contact/",
-      "destination": "/contact.html"
     }
   ],
   "headers": [
@@ -194,18 +145,6 @@
     },
     {
       "source": "/js/class-request-form.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/css/site.css",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/js/contact-form.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, must-revalidate" }
       ]

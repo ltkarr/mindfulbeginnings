@@ -58,16 +58,15 @@ function orgBody(over) {
   }, over || {});
 }
 
-test('host and organization pages use the shared public header', () => {
-  assert.equal(fs.existsSync(path.join(root, 'email-logo-white.png')), true);
-  assert.match(hostPage, /class="mb-header"/);
-  assert.match(orgPage, /class="mb-header"/);
-  assert.match(hostPage, /src="\/email-logo\.png" alt="Mindful Beginnings"/);
-  assert.match(orgPage, /src="\/email-logo\.png" alt="Mindful Beginnings"/);
+test('host and organization headers use the shared public navigation', () => {
+  assert.match(hostPage, /<a class="brand" href="https:\/\/mindfulbeginnings\.org\/">Mindful Beginnings<\/a>/);
+  assert.match(orgPage, /<a class="brand" href="https:\/\/mindfulbeginnings\.org\/">Mindful Beginnings<\/a>/);
+  assert.match(hostPage, /href="\/cpr-certification">CPR</);
+  assert.match(orgPage, /href="\/cpr-certification">CPR</);
   assert.doesNotMatch(hostPage, /class="tag"/);
   assert.doesNotMatch(orgPage, /class="tag"/);
-  assert.doesNotMatch(hostPage, /class="brand"/);
-  assert.doesNotMatch(orgPage, /class="brand"/);
+  assert.doesNotMatch(hostPage, /email-logo/);
+  assert.doesNotMatch(orgPage, /email-logo/);
   assert.match(intakeCss, /#1E3161/);
   assert.match(intakeCss, /#F5F2EA/);
   assert.match(intakeCss, /#EFC75A/);
@@ -137,10 +136,8 @@ test('organization course choices match the catalog, including Girl Scout badge 
   assert.match(orgPage, />https:\/\/mindfulbeginnings\.org\/girl-scouts</);
   assert.doesNotMatch(orgPage, /gsnc/);
   assert.doesNotMatch(hostPage, /gsnc/);
-  const hostForm = hostPage.slice(0, hostPage.indexOf('<footer class="mb-footer">'));
-  const orgForm = orgPage.slice(0, orgPage.indexOf('<footer class="mb-footer">'));
-  assert.doesNotMatch(hostForm, /lindsay/i);
-  assert.doesNotMatch(orgForm, /lindsay/i);
+  assert.doesNotMatch(hostPage, /lindsay/i);
+  assert.doesNotMatch(orgPage, /lindsay/i);
   assert.doesNotMatch(hostPage, /changes later/i);
   assert.doesNotMatch(orgPage, /changes later/i);
   const formScript = fs.readFileSync(path.join(root, 'js/class-request-form.js'), 'utf8');

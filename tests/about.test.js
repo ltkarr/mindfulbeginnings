@@ -162,9 +162,9 @@ test('each person is a button that opens a bio dialog', () => {
 });
 
 test('closing actions and footer sit together with no empty band', () => {
-  assert.match(page, /<a class="gold-btn" href="\/host-a-class">Book a class<\/a>/);
-  assert.match(page, /<a class="contact-link" href="\/contact">Contact<\/a>/);
-  assert.match(page, /<section class="close">[\s\S]*Book a class[\s\S]*Contact[\s\S]*<\/section>\s*<footer class="mb-footer">/);
+  assert.match(page, /<a class="gold-btn" href="https:\/\/mindfulbeginnings\.org\/host-a-class-1">Book a class<\/a>/);
+  assert.match(page, /<a class="contact-link" href="https:\/\/mindfulbeginnings\.org\/contact">Contact<\/a>/);
+  assert.match(page, /<section class="close">[\s\S]*Book a class[\s\S]*Contact[\s\S]*<\/section>\s*<footer class="footer">/);
   assert.doesNotMatch(page, /margin-top:\s*auto/);
   assert.doesNotMatch(page, /min-height:\s*100vh/);
   const closeIndex = page.indexOf('<section class="close">');

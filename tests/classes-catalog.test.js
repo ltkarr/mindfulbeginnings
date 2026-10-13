@@ -80,7 +80,7 @@ test('classes catalog matches the public class list', () => {
   assert.match(page, /name="viewport"/);
   assert.match(page, /Prices are per participant\. Home hosts get one free spot\./);
   assert.match(page, /Founded by a 20-year classroom teacher • Taught by registered nurses and certified educators • Safe Sitter® and American Red Cross courses/);
-  assert.match(page, /class="mb-register" href="\/register\.html">Register</);
+  assert.match(page, /href="https:\/\/register\.mindfulbeginnings\.org\/register\.html">Find a class</);
   assert.equal(page.includes('\u2014'), false);
   const found = cards();
   assert.equal(found.length, EXPECTED.length);
@@ -116,8 +116,8 @@ test('booking, custom programs, and group CPR links stay on this site', () => {
   assert.match(page, /Request a custom program/);
   assert.match(page, /Mindful Beginnings partners with organizations from the ground up/);
   assert.match(page, /Past offerings include customizable Girl Scout badge workshops/);
-  assert.equal((page.match(/href="\/cpr-certification"/g) || []).length, 2);
-  assert.match(page, /<nav class="mb-nav"[\s\S]*href="\/cpr-certification">CPR for groups<\/a>/);
+  assert.equal((page.match(/href="\/cpr-certification"/g) || []).length, 3);
+  assert.match(page, /<nav class="site-nav"[\s\S]*href="\/cpr-certification">CPR<\/a>/);
   assert.equal((page.match(/>Coming soon</g) || []).length, 0);
 });
 

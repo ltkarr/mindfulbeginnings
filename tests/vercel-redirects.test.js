@@ -68,14 +68,17 @@ test('PayPal API routes on vercel.app are not redirected', () => {
 
 const INSTRUCTOR_HOST = 'instructorportal.mindfulbeginnings.org';
 
-test('the public home page is served at / and is not redirected to register.html', () => {
+test('root redirect to register.html does not fire on the instructor portal host', () => {
   const rule = (cfg.redirects || []).find(
     (r) => r.source === '/' && r.destination === '/register.html'
   );
-  assert.equal(rule, undefined);
-  const fs = require('fs');
-  const path = require('path');
-  assert.equal(fs.existsSync(path.join(__dirname, '../index.html')), true);
+  assert.ok(rule, 'expected the / -> /register.html redirect to still exist');
+  assert.ok(
+    (rule.missing || []).some(
+      (cond) => cond.type === 'host' && cond.value === INSTRUCTOR_HOST
+    ),
+    'the / -> /register.html redirect must exclude the instructor portal host'
+  );
 });
 
 test('instructor portal host rewrites / to instructor.html', () => {

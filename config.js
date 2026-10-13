@@ -49,12 +49,7 @@
    Do not point new parent links at *.vercel.app — that hostname permanently
    redirects here (see vercel.json). Keep this value identical to
    PUBLIC_ORIGIN in js/confirmation-email.js and REG_PAGE's origin in
-   admin.html.
-   The public website (home, host, Girl Scouts, contact, catalog) is served
-   from this same project. When mindfulbeginnings.org is pointed at the
-   project later, leave that host serving these pages. Do not redirect the
-   apex to another domain. Update PUBLIC_ORIGIN and the canonical tags in
-   the marketing pages together at that cutover.                           */
+   admin.html.                                                            */
 const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
 
 

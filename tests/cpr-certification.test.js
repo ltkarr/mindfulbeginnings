@@ -20,16 +20,18 @@ test('group CPR page is static HTML with a title and description', () => {
 });
 
 test('schedule and contact links open the host page, contact page, and phone in the same tab', () => {
-  assert.match(page, /href="\/host-a-class"[^>]*>Host a Class</);
-  assert.match(page, /class="mb-register" href="\/register\.html">Register</);
-  assert.match(page, /href="\/host-a-class"[^>]*>Schedule a group class</);
-  assert.match(page, /href="\/host-a-class"[^>]*>Schedule your group class</);
-  assert.match(page, /href="\/contact"[^>]*>lindsay@<wbr>mindfulbeginnings\.org</);
-  assert.match(page, /href="mailto:lindsay@mindfulbeginnings\.org">lindsay@mindfulbeginnings\.org</);
+  assert.equal((page.match(/href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"/g) || []).length, 3);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Host a Class</);
+  assert.match(page, /href="https:\/\/register\.mindfulbeginnings\.org\/register\.html"[^>]*>Find a class</);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Schedule a group class</);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Schedule your group class</);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/contact"[^>]*>lindsay@<wbr>mindfulbeginnings\.org</);
+  assert.doesNotMatch(page, /mailto:/);
   assert.doesNotMatch(page, /target="_blank"/);
   assert.equal((page.match(/href="tel:703-987-5979"/g) || []).length, 2);
   assert.match(page, />703-987-5979</);
-  assert.match(page, /href="\/">/);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/"/);
+  assert.match(page, />mindfulbeginnings\.org</);
 });
 
 test('clean /cpr-certification URL rewrites to the static page', () => {
