@@ -69,7 +69,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-copy{margin:6px 0 0;font-size:12px;opacity:.7}
 .mb-partners{background:var(--cream);padding:44px 6vw}
 .mb-partners-inner{max-width:1080px;margin:0 auto;text-align:center}
-.mb-partners-title{margin:0 0 10px;font-family:'Caveat',cursive;font-size:clamp(38px,5vw,56px);line-height:1;font-weight:700;color:var(--gold);letter-spacing:0.01em}
+.mb-partners-title{margin:0 0 10px;font-family:'Caveat',cursive;font-size:30px;line-height:1.1;font-weight:700;color:var(--btn-gold)}
 .mb-partners-logos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:24px 32px;justify-items:center;align-items:center;margin-top:18px}
 .mb-partners-logos img{max-height:110px;max-width:100%;width:auto;height:auto}
 
@@ -93,7 +93,7 @@ p:last-child{margin-bottom:0}
 .mb-hero-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 .mb-hero h1{color:var(--cream)}
 .mb-eyebrow{font-family:'Caveat',cursive;font-size:30px;font-weight:700;color:var(--btn-gold);line-height:1.1}
-.mb-script-title{font-family:'Caveat',cursive;font-weight:700;line-height:1.05;color:var(--btn-gold);margin:0;font-size:clamp(44px,6vw,68px)}
+.mb-script-title{font-family:'Caveat',cursive;font-weight:700;line-height:1.1;color:var(--btn-gold);margin:0;font-size:30px}
 .mb-lede{margin:0;font-size:17px;font-weight:500;max-width:720px;line-height:1.6}
 .mb-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:6px}
 .mb-phone{color:var(--cream);font-size:16px;font-weight:700;text-decoration:none;padding:12px 8px}
