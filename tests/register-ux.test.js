@@ -48,9 +48,21 @@ test('public cards show price; private/host sessions are excluded from the list'
   assert.match(register, /class="pprice"/);
   assert.match(register, /sessionPriceLabel/);
   assert.match(register, /isPrivateHostSession|has_host/);
-  assert.match(register, /\.eq\('has_host',false\)/);
-  assert.match(register, /\.eq\('is_custom_job',false\)/);
+  assert.match(register, /list_public_sessions/);
+  assert.match(register, /filterPublicSessions/);
+  assert.doesNotMatch(register, /\.eq\('has_host',false\)/);
+  assert.doesNotMatch(register, /\.from\('sessions'\)/);
   assert.match(config, /audience:'Grades 6–8'/);
+});
+
+test('register.html does not read the sessions table directly', () => {
+  assert.doesNotMatch(register, /from\('sessions'\)/);
+  assert.doesNotMatch(register, /from\("sessions"\)/);
+  assert.match(register, /sb\.rpc\('list_public_sessions'\)/);
+  assert.match(register, /sb\.rpc\('get_session_by_code'/);
+  assert.match(register, /sb\.rpc\('get_session_logistics'/);
+  assert.match(register, /hostAddress:''/);
+  assert.match(register, /zoomLink:''/);
 });
 
 test('partner registration links open off-site and skip Mindful Beginnings payment', () => {
@@ -64,7 +76,7 @@ test('partner registration links open off-site and skip Mindful Beginnings payme
   assert.match(click, /data-external/);
   assert.ok(click.indexOf('openExternalRegistration') < click.indexOf('selectPublicSession'), 'external cards return before the MB registration flow');
   const lookup = register.slice(register.indexOf('async function checkCode'), register.indexOf('async function checkCode') + 4000);
-  assert.ok(lookup.indexOf('externalRegistrationUrl') < lookup.indexOf('currentSession={'), 'a partner link must leave checkCode before payment state is set');
+  assert.ok(lookup.indexOf('externalRegistrationUrl') < lookup.indexOf('currentSession=sessionFromCodeRow'), 'a partner link must leave checkCode before payment state is set');
 });
 
 test('Need help Contact us uses Lindsay mailto', () => {

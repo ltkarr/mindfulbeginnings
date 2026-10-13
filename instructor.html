@@ -1301,38 +1301,20 @@ async function submitNewPin(){
 // snapshot — new job posts never appeared until they fully signed out and back
 // in. loadData() is now reusable and re-run automatically (see refreshData).
 async function loadData(){
-  // Columns the job board needs. Deliberately EXCLUDES host_address, host_phone,
-  // contact_name, wifi_info, zoom_link, and admin_private_notes: this table is read
-  // with the anon key, so anything listed here is effectively public. Site details
-  // are fetched per-job through the instructor_session_private RPC once a job is
-  // accepted. admin_private_notes is not granted to anon and must never be selected.
-  const SESSION_COLS_FULL='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,is_cancelled,cancel_reason,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,extra_days,closures,instructor_info,requires_rn';
-  // Fallback tier: drops only the newest columns (extra_days / closures / instructor_info),
-  // so a database that has not run the latest SQL still gets everything else.
-  const SESSION_COLS_MID='id,code,course,date,time,location,city,state,zip,owner_taught,host_taken,has_host,instructor_id,second_instructor_id,instr_pay_override,max_students_override,is_custom_job,is_virtual,is_hold,is_cancelled,cancel_reason,allow_waitlist,extra_dates,is_recurring,recur_pattern,recur_end_date,requires_rn';
+  // The job board no longer reads sessions with the anon key. instructor_list_sessions
+  // checks the same PIN as instructor_login and returns the board columns only.
+  // Site details are fetched per-job through the instructor_session_private RPC once a
+  // job is accepted. host_address and zoom_link stay on that RPC.
+  // admin_private_notes is not granted to anon and must never be selected.
   let[s,j,r]=await Promise.all([
-    sb.from('sessions').select(SESSION_COLS_FULL),
+    (me&&me.pin)
+      ? sb.rpc('instructor_list_sessions',{p_pin:me.pin})
+      : Promise.resolve({data:null,error:{message:'Sign in required before loading sessions'}}),
     sb.from('job_data').select('session_id,instructor_id,waitlist'),
     sb.rpc('get_all_registration_counts')
   ]);
-  // FALLBACK: if the sessions query failed (a newer column missing from the
-  // database, OR the portal's role not yet granted read access to a newer
-  // column — Postgres denies the WHOLE query if any one requested column is
-  // off-limits), retry with only the original core columns. sessionFromDB
-  // defaults any absent field (allow_waitlist→true, is_hold→false), so the
-  // boards still render instead of blanking the entire portal.
-  if(s.error){
-    console.warn('sessions load failed with full column list, retrying without the newest columns:',s.error);
-    s=await sb.from('sessions').select(SESSION_COLS_MID);
-  }
-  let rnColLost=false;
-  if(s.error){
-    console.error('sessions load failed again, retrying with core columns only:',s.error);
-    rnColLost=true;
-    s=await sb.from('sessions').select('id,code,course,date,time,location,city,owner_taught,host_taken,instructor_id,instr_pay_override,is_custom_job,is_virtual');
-  }
   // Surface load failures instead of letting them masquerade as an empty job board.
-  if(s.error)console.error('sessions load failed (check RLS / column names):',s.error);
+  if(s.error)console.error('sessions load failed (instructor_list_sessions):',s.error);
   if(j.error)console.error('job_data load failed (check RLS / column names):',j.error);
   if(r.error)console.error('registration counts failed:',r.error);
   // Remember failures so the job boards can show a real error card instead of
@@ -1343,35 +1325,14 @@ async function loadData(){
     counts:r.error?(r.error.message||'registration counts failed'):null
   };
   // On a refresh, a failed fetch should not wipe a previously-good board.
-  if(!s.error)allSessions=(s.data||[]).map(sessionFromDB);
-  // ── CRITICAL FLAGS ─────────────────────────────────────────
-  // requires_rn, requires_safe_sitter, is_cancelled and cancel_reason decide who may
-  // SEE a job and whether it is still happening. Getting them wrong is not cosmetic:
-  // losing requires_rn shows RN-only jobs to everyone, and losing is_cancelled leaves
-  // cancelled classes sitting on instructors' boards as though they were still on.
-  //
-  // The tiered fallback above can drop all four at once, because Postgres refuses the
-  // ENTIRE query when the anon role lacks a grant on any single requested column. So
-  // these four are ALSO fetched here, in their own small query, and merged over
-  // whatever the main query returned. A narrow query fails only if one of these four
-  // is genuinely missing — and it degrades one column at a time instead of all of them.
-  const flagTiers=[
-    'id,requires_rn,requires_safe_sitter,is_cancelled,cancel_reason',
-    'id,requires_rn,is_cancelled,cancel_reason',
-    'id,requires_rn,is_cancelled',
-    'id,is_cancelled',
-    'id,requires_rn'
-  ];
-  let flagRows=null,flagCols='',flagErr=null;
-  for(const cols of flagTiers){
-    try{
-      const{data,error}=await sb.from('sessions').select(cols);
-      if(!error){flagRows=data||[];flagCols=cols;flagErr=null;break;}
-      flagErr=error;
-    }catch(e){flagErr=e;}
-  }
-  if(flagRows){
-    const map={};flagRows.forEach(x=>{map[x.id]=x;});
+  // requires_rn, requires_safe_sitter, is_cancelled, and cancel_reason come back
+  // on the same payload. They decide who may see a job and whether it is still
+  // happening, so they are merged here instead of queried from the table again.
+  if(!s.error){
+    const rows=s.data||[];
+    allSessions=rows.map(sessionFromDB);
+    const map={};
+    rows.forEach(row=>{if(row&&row.id!=null)map[row.id]=row;});
     allSessions.forEach(x=>{
       const f=map[x.id];if(!f)return;
       if('requires_rn' in f)x.requiresRN=!!f.requires_rn;
@@ -1379,19 +1340,17 @@ async function loadData(){
       if('is_cancelled' in f)x.isCancelled=!!f.is_cancelled;
       if('cancel_reason' in f)x.cancelReason=f.cancel_reason||'';
     });
-    RN_RESTRICTION_KNOWN=/requires_rn/.test(flagCols);
-    CANCEL_STATE_KNOWN=/is_cancelled/.test(flagCols);
+    const sample=rows.length?rows[0]:null;
+    RN_RESTRICTION_KNOWN=!sample||Object.prototype.hasOwnProperty.call(sample,'requires_rn');
+    CANCEL_STATE_KNOWN=!sample||Object.prototype.hasOwnProperty.call(sample,'is_cancelled');
     if(!RN_RESTRICTION_KNOWN||!CANCEL_STATE_KNOWN){
-      console.warn('Portal is running on a reduced flag set ('+flagCols+'). Missing columns need: grant select (<column>) on public.sessions to anon;');
+      console.warn('instructor_list_sessions did not return the restriction columns.');
+      loadErrors.flags='restriction/cancellation columns missing from instructor_list_sessions';
     }
   }else{
     RN_RESTRICTION_KNOWN=false;CANCEL_STATE_KNOWN=false;
-    console.error('Could not read requires_rn / is_cancelled at all. Run in Supabase:\n'+
-      'grant select (requires_rn) on public.sessions to anon;\n'+
-      'grant select (requires_safe_sitter) on public.sessions to anon;\n'+
-      'grant select (is_cancelled) on public.sessions to anon;\n'+
-      'grant select (cancel_reason) on public.sessions to anon;',flagErr);
-    loadErrors.flags=(flagErr&&flagErr.message)||'restriction/cancellation columns unavailable';
+    console.error('Could not read sessions through instructor_list_sessions.',s.error);
+    loadErrors.flags=(s.error&&s.error.message)||'restriction/cancellation columns unavailable';
   }
   if(!j.error){jobDataCache={};(j.data||[]).forEach(row=>{jobDataCache[row.session_id]=jobFromDB(row);});}
   if(me&&me.pin){

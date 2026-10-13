@@ -113,12 +113,13 @@ test('instructor, public, and reminder surfaces never select the private column'
   mentioned.forEach(line => {
     assert.match(line.trim(), /^\/\//, 'instructor.html may mention the column only in a comment: ' + line.trim());
   });
-  const lists = [
-    ...instructor.matchAll(/SESSION_COLS\w*='([^']+)'/g),
-    ...instructor.matchAll(/sessions'\)\.select\('([^']+)'\)/g)
-  ].map(m => m[1]);
-  assert.ok(lists.length >= 3);
-  lists.forEach(list => assert.equal(list.split(',').includes('admin_private_notes'), false));
+  assert.doesNotMatch(instructor, /\.from\('sessions'\)/);
+  assert.match(instructor, /instructor_list_sessions/);
+  const privacy = fs.readFileSync(path.join(root, 'migrations/20261013_sessions_privacy_lockdown.sql'), 'utf8');
+  const start = privacy.indexOf('function public.instructor_list_sessions');
+  const selectAt = privacy.indexOf('select id, code, course', start);
+  const end = privacy.indexOf('from public.sessions', selectAt);
+  assert.equal(privacy.slice(selectAt, end).includes('admin_private_notes'), false);
 });
 
 test('instructor reminder email keeps using the public notes field only', () => {

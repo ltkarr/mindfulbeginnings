@@ -1008,23 +1008,51 @@ function fmtSessDates(s,opts){
     .map(x=>{const d=new Date(x+'T12:00:00');return isNaN(d)?'':d.toLocaleDateString('en-US',o);})
     .filter(Boolean).join(' & ');
 }
-// Session columns fetched for registration. extra_dates is retried-without if the
-// database column hasn't been added yet, so the page keeps working either way.
-const SESSION_COLS='id,code,course,date,time,location,host_address,city,state,zip,host_taken,owner_taught,has_host,instructor_id,max_students_override,price_override,is_virtual,zoom_link,created_at,external_registration_url';
+// Session lookup goes through get_session_by_code. That function does not
+// return a street address or a Zoom link. Those arrive only after a
+// registration row exists, via get_session_logistics.
 async function fetchSessionByCode(code){
-  let res=await sb.from('sessions').select(SESSION_COLS+',extra_dates').eq('code',code);
-  // If the richer query fails for ANY reason (missing column, ungranted column /
-  // permission denied, etc.), retry with the core column list so one optional
-  // column can never take down the whole registration lookup. This is the fix
-  // for the Aug 2026 outage where extra_dates lacked an anon grant and every
-  // code showed "Code not found" to the public.
-  if(res&&res.error){
-    console.error('Session lookup (full columns) failed, retrying with core columns:',res.error);
-    res=await sb.from('sessions').select(SESSION_COLS).eq('code',code);
-  }
-  return res;
+  if(!sb)return{data:null,error:{message:'Registration is not connected.'}};
+  return sb.rpc('get_session_by_code',{p_code:code});
 }
 function extraDatesFromRow(r){return Array.isArray(r&&r.extra_dates)?r.extra_dates.filter(Boolean).slice().sort():[];}
+function registrationEmail(reg){
+  const contact=String(reg&&reg.contact||'');
+  const fromContact=contact.split('/')[0].replace(/^\s+|\s+$/g,'');
+  if(fromContact.indexOf('@')>0)return fromContact;
+  const el=document.getElementById('p-email');
+  return el?String(el.value||'').replace(/^\s+|\s+$/g,''):'';
+}
+function sessionFromCodeRow(r, extras){
+  const extra=extras||{};
+  return {
+    id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
+    location:r.location||'',hostAddress:'',
+    city:r.city||'',state:r.state||'',zip:r.zip||'',
+    contactName:'',hostPhone:'',
+    hostTaken:r.host_taken||false,ownerTaught:r.owner_taught||false,
+    hasHost:r.has_host!==false,instrPhone:extra.instrPhone||'',regCount:extra.regCount||0,
+    maxStudentsOverride:r.max_students_override||null,
+    priceOverride:r.price_override==null?null:Number(r.price_override),
+    createdAt:r.created_at||null,
+    isVirtual:r.is_virtual||false,zoomLink:'',
+    extraDates:extraDatesFromRow(r)
+  };
+}
+async function applySessionLogistics(session, reg){
+  if(!sb||!session||!reg||!reg.id)return;
+  const email=registrationEmail(reg);
+  if(!email)return;
+  try{
+    const res=await sb.rpc('get_session_logistics',{p_registration_id:reg.id,p_email:email});
+    if(!res||res.error){console.warn('Session logistics unavailable:',res&&res.error);return;}
+    const row=Array.isArray(res.data)?res.data[0]:res.data;
+    if(!row)return;
+    if(row.host_address)session.hostAddress=row.host_address;
+    if(row.zoom_link)session.zoomLink=row.zoom_link;
+    if(row.location)session.location=row.location;
+  }catch(e){console.warn('Session logistics failed:',e);}
+}
 
 // Keep a successful lookup in the URL so refresh / share still lands on that session.
 function rememberSessionCode(code){
@@ -1041,8 +1069,6 @@ function rememberSessionCode(code){
   // /js/public-sessions.js. Private/host (has_host), private (is_private),
   // and custom jobs (is_custom_job) never appear here. A session code still
   // opens that session, including a custom job.
-const PUBLIC_SESSION_COLS='id,code,course,date,time,city,location,is_virtual,price_override,max_students_override,created_at,is_cancelled,is_hold,is_custom_job,has_host,is_private,external_registration_url';
-const PUBLIC_SESSION_COLS_CORE='id,code,course,date,time,city,is_virtual,price_override,max_students_override,created_at,has_host,is_private';
 let publicSessionRows=[];
 let publicSessionCounts={};
 let publicShowAll=false;
@@ -1143,24 +1169,12 @@ function renderPublicSessions(){
 async function loadPublicSessions(){
   const box=document.getElementById('public-sessions-list');
   if(!box||!sb)return;
-  const helpers=window.MBPublicSessions;
-  const today=helpers?helpers.todayLocalISO():'';
   try{
-    // has_host, is_private, and is_custom_job are required so private/host
-    // sessions and custom jobs never appear publicly. Fail closed if those
-    // columns cannot be read. The same filters run again in public-sessions.js.
-    let res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('has_host',false).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
-    if(res&&res.error){
-      console.warn('Public session list (has_host filter) failed, retrying without eq:',res.error);
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
-    }
-    if(res&&res.error){
-      console.warn('Public session list (full columns) failed, retrying core columns:',res.error);
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('has_host',false).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
-    }
-    if(res&&res.error){
-      res=await sb.from('sessions').select(PUBLIC_SESSION_COLS_CORE).eq('is_private',false).eq('is_custom_job',false).gte('date',today).order('date',{ascending:true}).limit(200);
-    }
+    // One RPC. list_public_sessions already drops private, host, custom,
+    // hold, cancelled, past, and ops-code rows. It still returns
+    // external_registration_url so a partner https link can leave this page.
+    // If the call errors, stop. Do not fall back to reading the sessions table.
+    const res=await sb.rpc('list_public_sessions');
     if(res&&res.error){
       console.error('Public session list failed:',res.error);
       box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.</div>';
@@ -1294,19 +1308,7 @@ async function checkCode(){
     }catch(e){console.warn('Count RPC failed:',e);}
     // Phone of the instructor assigned to THIS session. The old any-id lookup is gone.
     const instrPhone=await sessionInstructorPhone(r);
-    currentSession={
-      id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
-      location:r.location||'',hostAddress:r.host_address||'',
-      city:r.city||'',state:r.state||'',zip:r.zip||'',
-      contactName:r.contact_name||'',hostPhone:r.host_phone||'',
-      hostTaken:r.host_taken||false,ownerTaught:r.owner_taught||false,
-      hasHost:r.has_host!==false,instrPhone,regCount,
-      maxStudentsOverride:r.max_students_override||null,
-      priceOverride:r.price_override==null?null:Number(r.price_override),
-      createdAt:r.created_at||null,
-      isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',
-      extraDates:extraDatesFromRow(r)
-    };
+    currentSession=sessionFromCodeRow(r,{instrPhone,regCount});
     err.textContent='';inp.classList.remove('error');
     rememberSessionCode(val);
     // Check capacity — uses per-session override if set, else course default
@@ -1792,6 +1794,10 @@ async function goToPayment(){
     reservedReg=reg;
     reservedPrice=price;
     reservedDone=true;
+    // The seat exists now, so the confirmation email can include the street
+    // address or Zoom link. The code lookup itself never receives those.
+    await applySessionLogistics(currentSession, reg);
+    setBanner('banner-pay');
     // Email the family now so they always have a record and clear payment instructions,
     // even if they close the page before paying.
     try{sendConfirmationEmail(reg,currentSession,price);}catch(e){console.warn('Reserve email failed:',e);}
@@ -2382,6 +2388,7 @@ async function completeReg(method,txId){
     return;
   }
 
+  await applySessionLogistics(s, reg);
   showSuccessScreen(reg,s,price,method,false);
 }
 
@@ -2525,19 +2532,7 @@ async function startPayNow(code,name,amt,regId){
     }
     const r=rows[0];
     const instrPhone=await sessionInstructorPhone(r);
-    currentSession={
-      id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
-      location:r.location||'',hostAddress:r.host_address||'',
-      city:r.city||'',state:r.state||'',zip:r.zip||'',
-      contactName:'',hostPhone:'',
-      hostTaken:r.host_taken||false,ownerTaught:r.owner_taught||false,
-      hasHost:r.has_host!==false,instrPhone,regCount:0,
-      maxStudentsOverride:r.max_students_override||null,
-      priceOverride:r.price_override==null?null:Number(r.price_override),
-      createdAt:r.created_at||null,
-      isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',
-      extraDates:extraDatesFromRow(r)
-    };
+    currentSession=sessionFromCodeRow(r,{instrPhone,regCount:0});
     // If Lindsay passed an exact balance in the link, that overrides the session price so
     // the order summary and every payment button show the true amount owed.
     const amtNum=Number(amt);

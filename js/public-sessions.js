@@ -19,7 +19,7 @@
   // Ops / private / partner codes used in admin for custom jobs and events.
   // Kept even though is_custom_job usually covers these, so a mis-flagged row
   // still stays off the public list.
-  var OPS_CODE_PREFIXES = ['CJ-', 'RUA-', 'SUN-', 'TWU-'];
+  var OPS_CODE_PREFIXES = ['CJ-', 'RUA-', 'SUN-', 'TWU-', 'GS-', 'GSFA-'];
   var OPS_COURSE_RE = /represent|welcome event|\btrinity\b/i;
 
   // Default upcoming window and "show more" page size. No user-facing filters.
