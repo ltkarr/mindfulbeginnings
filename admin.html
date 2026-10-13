@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261013-simple-admin';
+window.MB_ADMIN_BUILD='20261013-materials-checklist';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -495,6 +495,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div id="class-request-banner"></div>
       <div class="metrics" id="dash-metrics"></div>
+      <div id="dash-mat-check" style="margin-bottom:16px"></div>
       <div id="dash-upcoming" style="margin-bottom:16px"></div>
       <div id="instructor-milestones" style="margin-bottom:16px"></div>
       <div id="reminder-alerts" style="margin-bottom:16px"></div>
@@ -1086,14 +1087,22 @@ function instructorToDB(i){
   return row;
 }
 function jobFromDB(r){
-  return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,materialsSentAt:r.materials_sent_at||null,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',repNotified:r.rep_notified||false,parentLetterSent:r.parent_letter_sent||false,instrFollowupSent:r.instr_followup_sent||false,instrReminderSent:r.instr_reminder_sent||false,hostReminderSent:r.host_reminder_sent||false,classReminderSent:r.class_reminder_sent||false,evalSentToHost:r.eval_sent_to_host||false,referralBonus:r.referral_bonus||0,secondInstrPaid:r.second_instr_paid||false,secondInstrPayDate:r.second_instr_pay_date||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee),secondInstrPaidFee:r.second_instr_paid_fee==null?null:Number(r.second_instr_paid_fee)};
+  return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,materialsSentAt:r.materials_sent_at||null,materialsOutAt:r.materials_out_at||null,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',repNotified:r.rep_notified||false,badgeSummarySent:!!r.badge_summary_sent,redCrossReported:!!r.red_cross_reported,parentLetterSent:r.parent_letter_sent||false,instrFollowupSent:r.instr_followup_sent||false,instrReminderSent:r.instr_reminder_sent||false,hostReminderSent:r.host_reminder_sent||false,classReminderSent:r.class_reminder_sent||false,evalSentToHost:r.eval_sent_to_host||false,referralBonus:r.referral_bonus||0,secondInstrPaid:r.second_instr_paid||false,secondInstrPayDate:r.second_instr_pay_date||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee),secondInstrPaidFee:r.second_instr_paid_fee==null?null:Number(r.second_instr_paid_fee)};
 }
 let MATERIALS_SENT_AT_COL=true;
+let MATERIALS_OUT_AT_COL=true;
+let BADGE_SUMMARY_COL=true;
+let RED_CROSS_REPORTED_COL=true;
 function jobToDB(sessId,j){
   const row={session_id:sessId,instructor_id:j.instructorId||null,waitlist:j.waitlist||[],materials_method:j.materialsMethod||null,materials_sent:j.materialsSent||false,eval_received:j.evalReceived||false,pay_status:j.payStatus||null,pay_date:j.payDate||null,notes:j.notes||'',rep_notified:j.repNotified||false,parent_letter_sent:j.parentLetterSent||false,instr_followup_sent:j.instrFollowupSent||false,instr_reminder_sent:j.instrReminderSent||false,host_reminder_sent:j.hostReminderSent||false,class_reminder_sent:j.classReminderSent||false,eval_sent_to_host:j.evalSentToHost||false,referral_bonus:j.referralBonus||0,second_instr_paid:j.secondInstrPaid||false,second_instr_pay_date:j.secondInstrPayDate||null,paid_fee:j.paidFee==null?null:Number(j.paidFee),second_instr_paid_fee:j.secondInstrPaidFee==null?null:Number(j.secondInstrPaidFee)};
   // Same checkbox as materials_sent. The time is omitted until
   // migrations/materials_lockbox.sql has been run, so the check-off still saves.
   if(MATERIALS_SENT_AT_COL)row.materials_sent_at=j.materialsSent?(j.materialsSentAt||null):null;
+  // Put-out time and the class-type wrap-up boxes. Omitted until
+  // migrations/20261013_materials_checklist.sql has been run.
+  if(typeof MATERIALS_OUT_AT_COL==='undefined'||MATERIALS_OUT_AT_COL)row.materials_out_at=j.materialsSent?(j.materialsOutAt||null):null;
+  if(typeof BADGE_SUMMARY_COL==='undefined'||BADGE_SUMMARY_COL)row.badge_summary_sent=!!j.badgeSummarySent;
+  if(typeof RED_CROSS_REPORTED_COL==='undefined'||RED_CROSS_REPORTED_COL)row.red_cross_reported=!!j.redCrossReported;
   return row;
 }
 // Equipment inventory (reusable teaching kits: manikins, AV kits) and their checkouts.
@@ -1960,6 +1969,21 @@ async function upsertJobData(sessId){
     if(MATERIALS_SENT_AT_COL&&/materials_sent_at/i.test(raw)){
       MATERIALS_SENT_AT_COL=false;
       showToast('⚠️ The check-off will save, but the checked time needs a database column. Run migrations/materials_lockbox.sql in the Supabase SQL editor.');
+      return upsertJobData(sessId);
+    }
+    if(MATERIALS_OUT_AT_COL&&/materials_out_at/i.test(raw)){
+      MATERIALS_OUT_AT_COL=false;
+      showToast('⚠️ The check-off will save, but the put-out time needs a database column. Run migrations/20261013_materials_checklist.sql in the Supabase SQL editor.');
+      return upsertJobData(sessId);
+    }
+    if(BADGE_SUMMARY_COL&&/badge_summary_sent/i.test(raw)){
+      BADGE_SUMMARY_COL=false;
+      showToast('⚠️ Wrap-up will save, but the badge summary check needs a database column. Run migrations/20261013_materials_checklist.sql in the Supabase SQL editor.');
+      return upsertJobData(sessId);
+    }
+    if(RED_CROSS_REPORTED_COL&&/red_cross_reported/i.test(raw)){
+      RED_CROSS_REPORTED_COL=false;
+      showToast('⚠️ Wrap-up will save, but the Red Cross check needs a database column. Run migrations/20261013_materials_checklist.sql in the Supabase SQL editor.');
       return upsertJobData(sessId);
     }
     console.error('Failed to save job data (database rejected):',res.error,'\nPayload:',payload);
@@ -5733,6 +5757,7 @@ function renderDashboard(){
     <div class="metric" title="Paid, pending, and unpaid registrations for classes dated ${y}. Host seats, the waitlist, and cancelled registrations are not included. Reports counts host seats and, on All time, every year."><div class="m-label">Registrations this year</div><div class="m-val">${totRegs}</div><div class="m-sub">Paid, pending, and unpaid for classes in ${y}. Host seats, waitlist, and cancelled are not included.</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'All of these are paid.'}</div></div>
     <div class="metric" title="Classes still ahead. Holds and cancelled classes are not included."><div class="m-label">Upcoming sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled&&sessionEndDate(s)>=fmtYMD(now)).length}</div></div>
   `;
+  renderDashMatChecklist(now);
   renderUpcomingExpenses(now);
   // Build a continuous 6-month window anchored on the current month: 3 months
   // back through 2 months ahead. This keeps the current month and next month
@@ -5985,8 +6010,7 @@ function renderSessions(){
       if(s.isCancelled)return false;
       const isPast=new Date(sessionEndDate(s)+'T12:00:00')<now;
       const jdi=jobDataCache[s.id]||{};
-      const instrPaid=isInstructorPaymentDone(s,jdi);
-      const wrapAllDone=[jdi.repNotified,jdi.parentLetterSent,instrPaid,jdi.instrFollowupSent,jdi.evalSentToHost].filter(Boolean).length===5;
+      const wrapAllDone=wrapProgress(s,jdi).wrapAllDone;
       const isCompleted=isPast&&wrapAllDone;
       if(scope==='completed'&&!isCompleted)return false;
       if(scope==='upcoming'&&isCompleted)return false;
@@ -6034,11 +6058,11 @@ function renderSessions(){
       const isPast=new Date(sessionEndDate(s)+'T12:00:00')<new Date();
       // Wrap-up "instructor paid" step: complete when ALL applicable instructors are paid
       // (owner-taught counts as auto-paid, plus second instructor if one is assigned).
-      const instrPaid=isInstructorPaymentDone(s,jdi);
-      const wrapDone=[jdi.repNotified,jdi.parentLetterSent,instrPaid,jdi.instrFollowupSent,jdi.evalSentToHost].filter(Boolean).length;
-      const wrapTotal=5;
-      const wrapAllDone=wrapDone===wrapTotal;
-      const wrapDots=isPast?[jdi.repNotified,jdi.parentLetterSent,instrPaid,jdi.instrFollowupSent,jdi.evalSentToHost].map(v=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${v?'var(--success)':'#dde4ee'};margin-right:2px"></span>`).join(''):'';
+      const wrap=wrapProgress(s,jdi);
+      const wrapDone=wrap.wrapDone;
+      const wrapTotal=wrap.wrapTotal;
+      const wrapAllDone=wrap.wrapAllDone;
+      const wrapDots=isPast?wrap.flags.map(v=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${v?'var(--success)':'#dde4ee'};margin-right:2px"></span>`).join(''):'';
       // Cancelled sessions stay on the list (roster and payments are still needed for
       // refunds). The badge is one short stacked pill; the reason sits on its own line.
       const reasonLine=s.isCancelled&&s.cancelReason?`<span class="sess-sub" title="${escapeHtml(s.cancelReason)}">${escapeHtml(s.cancelReason)}</span>`:'';
@@ -6129,6 +6153,12 @@ function materialsCheckedStamp(jd){
   if(isNaN(dt.getTime()))return 'Checked';
   return 'Checked '+dt.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 }
+function materialsPutOutPhrase(raw){
+  if(!raw)return '';
+  const dt=new Date(raw);
+  if(isNaN(dt.getTime()))return '';
+  return 'Materials put out on '+dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
 function paintLockboxRow(sessId){
   const box=document.getElementById('sess-lockbox');
   if(!box||box.getAttribute('data-sess')!==sessId)return;
@@ -6136,17 +6166,25 @@ function paintLockboxRow(sessId){
   box.checked=!!jd.materialsSent;
   const when=document.getElementById('lockbox-when');
   if(when)when.textContent=jd.materialsSent?(materialsCheckedStamp(jd)||'Checked'):'Not checked yet';
+  const put=document.getElementById('lockbox-putout');
+  if(put){
+    const phrase=jd.materialsSent?materialsPutOutPhrase(jd.materialsOutAt):'';
+    put.textContent=phrase;
+    put.style.display=phrase?'block':'none';
+  }
 }
 function lockboxFieldHtml(s){
   if(!s||!s.id)return '';
   const jd=(typeof jobDataCache!=='undefined'&&jobDataCache&&jobDataCache[s.id])||{};
   const stamp=materialsCheckedStamp(jd);
+  const putOut=jd.materialsSent?materialsPutOutPhrase(jd.materialsOutAt):'';
   return `<div class="lockbox" id="lockbox-panel">
     <label class="lockbox-label">
       <input type="checkbox" id="sess-lockbox" data-sess="${s.id}" ${jd.materialsSent?'checked':''} onchange="toggleMaterialsLockbox('${s.id}',this.checked)">
       <span>Materials in lock box</span>
     </label>
     <div class="lockbox-when" id="lockbox-when">${stamp?escapeHtml(stamp):'Not checked yet'}</div>
+    <div class="lockbox-when" id="lockbox-putout" style="${putOut?'':'display:none'}">${putOut?escapeHtml(putOut):''}</div>
     <div class="lockbox-hint">Same check-off as the dashboard (${preClassMaterialsLabel(s)}).</div>
   </div>`;
 }
@@ -9525,13 +9563,17 @@ function assignInstructor(sessId,instrId){
   upsertJobData(sessId);
   syncCheckoutInstructors();
 }
-// One saved flag for the dashboard checklist and the session screen.
-// materialsSent is job_data.materials_sent. materialsSentAt is the checked time.
+// One saved flag for the dashboard checklist, the packing list, and the session screen.
+// materialsSent is job_data.materials_sent. materialsSentAt and materialsOutAt
+// are the checked time. Unchecking clears both.
 function setMaterialsSent(sessId,checked){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   const jd=jobDataCache[sessId];
-  jd.materialsSent=!!checked;
-  jd.materialsSentAt=checked?new Date().toISOString():null;
+  const on=!!checked;
+  const stamp=on?new Date().toISOString():null;
+  jd.materialsSent=on;
+  jd.materialsSentAt=stamp;
+  jd.materialsOutAt=stamp;
   paintLockboxRow(sessId);
   return upsertJobData(sessId);
 }
@@ -9786,6 +9828,7 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
       groupName:group.name,
       materialsSent:!!jd.materialsSent,
       materialsSentAt:jd.materialsSentAt||null,
+      materialsOutAt:jd.materialsOutAt||null,
       registered:registered,
       bring:packingBringLine(s, registered),
       manikins:(typeof sessionUsesManikins==='function')?!!sessionUsesManikins(s):false
@@ -9827,13 +9870,14 @@ function packingRowHtml(r){
   const time=r.time?escapeHtml(r.time):'<span class="pack-muted">Time not set</span>';
   const flag=r.packTogether?'<div class="pack-flag">Pack together</div>':'';
   const id=escapeHtml(r.id);
+  const putOut=(r.materialsSent&&r.materialsOutAt)?materialsPutOutPhrase(r.materialsOutAt):'';
   return '<article class="pack-row'+(r.packTogether?' is-pack':'')+'">'+
     '<div class="pack-date"><div class="pack-dow">'+escapeHtml(parts.dow)+'</div><div class="pack-day">'+escapeHtml(parts.day)+'</div></div>'+
     '<div class="pack-time">'+time+'</div>'+
     '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div>'+packingKitHtml(r)+'</div>'+
     '<div class="pack-place">'+escapeHtml(r.place)+'</div>'+
     '<div class="pack-mat"><label class="pack-lock"><input type="checkbox" data-sess="'+id+'"'+(r.materialsSent?' checked':'')+' onchange="toggleMaterialsFromPacking(this)"> <span>Materials in lock box</span></label>'+
-    '<div class="pack-stamp">'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</div>'+flag+'</div></article>';
+    '<div class="pack-stamp">'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</div>'+(putOut?'<div class="pack-stamp">'+escapeHtml(putOut)+'</div>':'')+flag+'</div></article>';
 }
 function packingGroupsHtml(model){
   if(!model.groups.length)return '<div class="card"><p class="pack-empty">No in-person classes in '+escapeHtml(packingRangeLabel(model.days).toLowerCase())+'.</p></div>';
@@ -9860,7 +9904,8 @@ function packingPrintHtml(model, generatedAt){
   const sections=model.groups.length?model.groups.map(function(g){
     const body=g.rows.map(function(r){
       const flag=r.packTogether?'<div class="pack-pdf-flag">Pack together</div>':'';
-      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+packingKitHtml(r)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</td></tr>';
+      const putOut=(r.materialsSent&&r.materialsOutAt)?materialsPutOutPhrase(r.materialsOutAt):'';
+      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+packingKitHtml(r)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+(putOut?'<div>'+escapeHtml(putOut)+'</div>':'')+'</td></tr>';
     }).join('');
     return '<section class="pack-pdf-section"><h2>'+escapeHtml(g.name)+'</h2><table class="pack-pdf-table"><colgroup><col style="width:18%"><col style="width:12%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:18%"></colgroup><thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Place</th><th>Registered</th><th>Materials in lock box</th></tr></thead><tbody>'+body+'</tbody></table></section>';
   }).join(''):'<p class="pack-pdf-empty">No in-person classes in this range.</p>';
@@ -9897,7 +9942,58 @@ function toggleMaterialsFromPacking(box){
   const s=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x.id===sessId;});
   const what=s&&s.isCustomJob?'Materials for the instructor':'Handbooks & supplies';
   showToast(checked?what+' marked in the lock box':what+' marked not in the lock box');
+  if(typeof renderDashboard==='function')renderDashboard();
   renderPackingList();
+}
+// Upcoming in-person classes that still need a kit put out. Checked rows
+// drop off. The Bring line is the same helper the packing list uses.
+function materialsChecklistRows(list, today){
+  const start=today instanceof Date?fmtYMD(today):String(today||'');
+  const regs=typeof registrations!=='undefined'?registrations:[];
+  const people=typeof instructors!=='undefined'?instructors:[];
+  const jobs=typeof jobDataCache!=='undefined'?jobDataCache:{};
+  return (list||[]).filter(function(s){
+    if(!packingInRange(s, start, 14))return false;
+    const jd=(jobs&&s.id&&jobs[s.id])||{};
+    if(jd.materialsSent)return false;
+    const registered=packingRegisteredCount(s, regs);
+    const bring=packingBringLine(s, registered);
+    const manikins=typeof sessionUsesManikins==='function'&&sessionUsesManikins(s);
+    return !!(bring||manikins);
+  }).sort(function(a,b){
+    return String(a.date).localeCompare(String(b.date))||packingTimeKey(a.time).localeCompare(packingTimeKey(b.time))||String(a.course||'').localeCompare(String(b.course||''))||String(a.id).localeCompare(String(b.id));
+  }).map(function(s){
+    const registered=packingRegisteredCount(s, regs);
+    const group=packingInstructorGroup(s, people, jobs);
+    return {
+      id:s.id,
+      course:String(s.course||'').trim()||'Class',
+      date:s.date,
+      instructor:group.name,
+      bring:packingBringLine(s, registered),
+      manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)
+    };
+  });
+}
+function renderDashMatChecklist(now){
+  const el=document.getElementById('dash-mat-check');
+  if(!el)return;
+  const rows=materialsChecklistRows(typeof sessions==='undefined'?[]:sessions, now instanceof Date?now:new Date());
+  if(!rows.length){el.innerHTML='';return;}
+  const body=rows.map(function(r){
+    const when=packingDayParts(r.date).full;
+    const kit=packingKitHtml(r);
+    const id=String(r.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);cursor:pointer">'
+      +'<input type="checkbox" aria-label="Materials in lock box" onchange="toggleMaterialsFromDash(\''+id+'\',this.checked)" style="margin-top:4px;width:16px;height:16px;accent-color:var(--success);cursor:pointer">'
+      +'<span style="min-width:0;font-size:15px;line-height:1.45"><span style="font-weight:650">'+escapeHtml(r.course)+'</span>'
+      +' <span style="color:var(--muted)">'+escapeHtml(when)+'</span>'
+      +'<span style="display:block;color:var(--muted)">'+escapeHtml(r.instructor)+'</span>'
+      +kit+'</span></label>';
+  }).join('');
+  el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Materials checklist</div>'
+    +'<div style="font-size:15px;color:var(--muted);line-height:1.45;margin:-2px 0 4px">In-person classes in the next 2 weeks. The box is the same as Materials in lock box.</div>'
+    +body+'</div>';
 }
 // Same-page print, not a new window: iPhone Safari blocks pop-up PDFs, and the
 // print dialog can save a PDF on both iPhone and a computer. The pack-printing
@@ -9937,6 +10033,40 @@ function toggleReminderFlag(sessId,field,checked){
   upsertJobData(sessId);
 }
 // ─── WRAP-UP CHECKLIST ───────────────────────────────────────
+// Which outside report this class needs. A troop class that also teaches
+// Safe Sitter gets both. Other Mindful Beginnings modules get none.
+// Saved checks stay on the row when a box is hidden.
+function wrapReportTasks(s){
+  const tasks=[];
+  if(!s)return tasks;
+  const course=String(s.course||'');
+  const norm=course.toLowerCase().replace(/®/g,'').replace(/[^a-z0-9@]+/g,' ').replace(/\s+/g,' ').trim();
+  const safeSitter=course==='Safe Sitter®'||course==='Safe Sitter® Babysitting Essentials'
+    ||((/\bsafesitter\b/.test(norm)||/\bsafe sitter\b/.test(norm))&&!/\bsafe sitter instructors?\b/.test(norm));
+  const code=String(s.code||'').trim().toUpperCase();
+  const org=String(s.billToOrg||'');
+  const girlScout=/girl scout/i.test(course)||/girl scout/i.test(org)
+    ||/^GS-/.test(code)
+    ||/\btroop\b/i.test(course)||/\btroop\b/i.test(org)
+    ||(typeof isGirlScoutBadgeCourseName==='function'&&isGirlScoutBadgeCourseName(course));
+  const redCross=typeof courseRequiresLeadTeacher==='function'&&courseRequiresLeadTeacher(course);
+  if(safeSitter)tasks.push({field:'repNotified',label:'Sent course completion to Safe Sitter rep'});
+  if(girlScout)tasks.push({field:'badgeSummarySent',label:'Sent badge summary to host'});
+  if(redCross)tasks.push({field:'redCrossReported',label:'Reported completions to Red Cross'});
+  return tasks;
+}
+function wrapProgress(s,jdi){
+  jdi=jdi||{};
+  const paid=typeof isInstructorPaymentDone==='function'&&isInstructorPaymentDone(s,jdi);
+  const flags=wrapReportTasks(s).map(function(t){return !!jdi[t.field];}).concat([
+    !!jdi.parentLetterSent,
+    !!paid,
+    !!jdi.instrFollowupSent,
+    !!jdi.evalSentToHost
+  ]);
+  const wrapDone=flags.filter(Boolean).length;
+  return {flags:flags,wrapDone:wrapDone,wrapTotal:flags.length,wrapAllDone:wrapDone===flags.length};
+}
 function openWrapup(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
@@ -9954,7 +10084,7 @@ function openWrapup(sessId){
   <div class="modal-body">
     <div style="font-size:16px;color:var(--muted);margin-bottom:8px">${s.course} &nbsp;·&nbsp; ${d}</div>
     <div style="background:var(--cream);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px">${sessionProfitSummaryHtml(s)}</div>
-    ${chk('wu-rep',jdi.repNotified,false,`toggleWrapField('${sessId}','repNotified',this.checked)`)}<span style="font-weight:500;font-size:16px">Sent course completion to SafeSitter rep</span></label></div>
+    ${wrapReportTasks(s).map(function(t){return chk('wu-'+t.field,!!jdi[t.field],false,"toggleWrapField('"+sessId+"','"+t.field+"',this.checked)")+'<span style="font-weight:500;font-size:16px">'+escapeHtml(t.label)+'</span></label></div>';}).join('')}
     ${chk('wu-letter',jdi.parentLetterSent,false,`toggleWrapField('${sessId}','parentLetterSent',this.checked)`)}<span style="font-weight:500;font-size:16px">Sent post-course letter to families</span><div style="font-size:14px;color:var(--muted);margin-top:3px">After class. ${emails.length} email address${emails.length!==1?'es':''} from registrations${emailList}</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button class="btn sm primary" onclick="openPostCourseEmail('${sessId}')">📧 Post-course email — after class</button><span style="font-size:14px;color:var(--warn)">📎 Remember to attach the PDF</span></div></label></div>
     ${(()=>{
       // Build the list of instructor-payment rows. We show one row per applicable slot:
