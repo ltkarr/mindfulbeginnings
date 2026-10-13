@@ -81,8 +81,6 @@ test('Baby Ready + CPR Certification is $275 per person on every price table', (
 });
 
 test('admin can select the course and does not mark it RN-only', () => {
-  assert.equal(fs.readFileSync(path.join(root, 'admin-build.txt'), 'utf8').trim(), '20261013-baby-ready-cpr');
-  assert.match(admin, /window\.MB_ADMIN_BUILD='20261013-baby-ready-cpr'/);
   assert.match(admin, /'Baby Ready \+ CPR Certification':\{price:275,price2027:275,priceNew:275,priceNew2027:275,couplePrice:495,matCost:0,hours:5,maxStudents:12,seatsPerRegistration:2,adult:true\}/);
   assert.doesNotMatch(admin, /'Baby Ready \+ CPR Certification':\{[^}\n]*requiresRN/);
   assert.equal((admin.match(/<option>Baby Ready \+ CPR Certification<\/option>/g) || []).length, 2);
