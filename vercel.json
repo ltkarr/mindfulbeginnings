@@ -74,6 +74,22 @@
     {
       "source": "/about/",
       "destination": "/about.html"
+    },
+    {
+      "source": "/host",
+      "destination": "/host.html"
+    },
+    {
+      "source": "/host/",
+      "destination": "/host.html"
+    },
+    {
+      "source": "/girl-scouts",
+      "destination": "/girl-scouts.html"
+    },
+    {
+      "source": "/girl-scouts/",
+      "destination": "/girl-scouts.html"
     }
   ],
   "headers": [

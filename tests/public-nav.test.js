@@ -14,7 +14,8 @@ const pages = {
   'about.html': '/about',
   'register.html': '/register.html',
   'organization.html': '',
-  'host.html': ''
+  'host.html': '',
+  'girl-scouts.html': '/girl-scouts'
 };
 
 function normalize(nav) {
@@ -35,7 +36,7 @@ test('shared nav partial is the catalog nav plus a CPR link, with no em dash', (
     '/classes-catalog',
     '/cpr-certification',
     'https://mindfulbeginnings.org/host-a-class-1',
-    'https://mindfulbeginnings.org/girl-scouts',
+    '/girl-scouts',
     '/about',
     'https://mindfulbeginnings.org/reviews',
     'https://mindfulbeginnings.org/contact',

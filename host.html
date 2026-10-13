@@ -8,6 +8,30 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap">
 <link rel="stylesheet" href="/css/public.css">
 <link rel="stylesheet" href="/css/intake.css">
+<style>
+.host-band{padding:48px 6vw 8px}
+.host-paths{padding:36px 6vw 8px}
+.host-wrap{max-width:1080px;margin:0 auto}
+.step-grid,.path-grid{display:grid;grid-template-columns:1fr;gap:24px;align-items:stretch}
+.step-card,.path-card{background:#fff;border:1px solid rgba(30,49,97,0.08);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:100%;box-sizing:border-box}
+.step-card img{display:block;width:100%;height:180px;object-fit:cover;background:#1E3161}
+.step-body,.path-body{padding:16px 16px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
+.step-body h2,.path-body h3{margin:0;font-size:18px;line-height:1.25;font-weight:800;color:#1E3161}
+.host-paths h2{margin:0 0 18px;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800}
+.step-body p,.path-body p,.path-note{margin:0;font-size:16px;line-height:1.55}
+.path-note{margin-top:18px;max-width:720px}
+.path-note a{font-weight:700;color:#1E3161}
+.path-btn{margin-top:auto;align-self:flex-start;background:#1E3161;color:#F5F2EA;font-size:15px;font-weight:800;text-decoration:none;border-radius:999px;padding:11px 16px}
+.path-btn:hover{background:#EFC75A;color:#1E3161}
+.path-btn:focus-visible{outline:3px solid #EFC75A;outline-offset:3px}
+@media (max-width:720px){
+  .host-band,.host-paths{padding-left:5vw;padding-right:5vw}
+}
+@media (min-width:760px){
+  .step-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .path-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
 </head>
 <body>
 <header class="site-header">
@@ -16,7 +40,7 @@
 <a href="/classes-catalog">Classes</a>
 <a href="/cpr-certification">CPR</a>
 <a href="https://mindfulbeginnings.org/host-a-class-1">Host a Class</a>
-<a href="https://mindfulbeginnings.org/girl-scouts">Girl Scouts</a>
+<a href="/girl-scouts">Girl Scouts</a>
 <a href="/about">About</a>
 <a href="https://mindfulbeginnings.org/reviews">Reviews</a>
 <a href="https://mindfulbeginnings.org/contact">Contact</a>
@@ -27,9 +51,58 @@
 <div class="hero">
   <div class="hero-inner">
   <h1>Host a private group</h1>
-  <p>Our nurses and certified educators come to you. Tell us about your home and the course, and we will confirm the date. Home hosts get one free spot.</p>
+  <p>Nurses and certified educators come to you. Tell us about your home and the course, and we will confirm the date. Home hosts get one free spot.</p>
   </div>
 </div>
+<section class="host-band" aria-label="How hosting works">
+  <div class="host-wrap">
+    <div class="step-grid">
+      <article class="step-card">
+        <img src="/images/host/group-cards.jpg" alt="Group of young girls sitting on couches holding cards." width="1200" height="600">
+        <div class="step-body">
+          <h2>Tell us about your group.</h2>
+          <p>Who is coming, how many, and when and where you would like to meet. We recommend 6-8 participants in a session.</p>
+        </div>
+      </article>
+      <article class="step-card">
+        <img src="/images/host/living-room-class.jpg" alt="A woman teaching a group of people in a living room setting." width="1200" height="600">
+        <div class="step-body">
+          <h2>We match the course and instructor.</h2>
+          <p>We recommend the best fit for your group's ages and goals.</p>
+        </div>
+      </article>
+      <article class="step-card">
+        <img src="/images/host/babysitting-practice.jpg" alt="An instructor guiding girls through a babysitting practice with a doll." width="1200" height="600">
+        <div class="step-body">
+          <h2>We teach at your location.</h2>
+          <p>We bring the materials, equipment, supplies, and the instructor.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+<section class="host-paths" aria-labelledby="choose-path">
+  <div class="host-wrap">
+    <h2 id="choose-path">Choose your path</h2>
+    <div class="path-grid">
+      <article class="path-card">
+        <div class="path-body">
+          <h3>Private home</h3>
+          <p>Friends, neighbors, or family at your home. Prices are per participant. Home hosts get one free spot.</p>
+          <a class="path-btn" href="#request-form">Host at my home</a>
+        </div>
+      </article>
+      <article class="path-card">
+        <div class="path-body">
+          <h3>Organization</h3>
+          <p>A school, troop, congregation, or other group. The form collects the day-of contact, room, billing, and schedule. The organization can cover the full cost, cover a portion, or have participants pay on a private link.</p>
+          <a class="path-btn" href="/organization.html">Host for my organization</a>
+        </div>
+      </article>
+    </div>
+    <p class="path-note">Outside a private home, this includes schools and PTAs, houses of worship, <a href="/girl-scouts">Girl Scout troops</a>, homeschool groups, workplaces, camps, and community groups. Workplaces can also see <a href="/cpr-certification">group CPR certification</a>.</p>
+  </div>
+</section>
 <main>
   <form id="request-form" data-kind="host" novalidate>
     <div id="form-error" class="alert" hidden tabindex="-1"></div>
