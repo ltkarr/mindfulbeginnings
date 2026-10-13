@@ -21,7 +21,8 @@ test('group CPR page is static HTML with a title and description', () => {
 
 test('schedule and contact links open the host page, contact page, and phone in the same tab', () => {
   assert.equal((page.match(/href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"/g) || []).length, 3);
-  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Request a class</);
+  assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Host a Class</);
+  assert.match(page, /href="https:\/\/register\.mindfulbeginnings\.org\/register\.html"[^>]*>Find a class</);
   assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Schedule a group class</);
   assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/host-a-class-1"[^>]*>Schedule your group class</);
   assert.match(page, /href="https:\/\/mindfulbeginnings\.org\/contact"[^>]*>lindsay@<wbr>mindfulbeginnings\.org</);

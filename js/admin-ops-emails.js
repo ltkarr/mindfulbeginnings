@@ -250,7 +250,7 @@
       if (mealRaw) lines.push(mealRaw);
       if (info.hasHostSpot !== false) {
         lines.push('');
-        lines.push('As our host, your child\'s registration is completely free when that policy applies. Please register using the link above and check the box that says "I am the host for this session." Your spot will be marked as complimentary!');
+        lines.push('Home hosts get one free spot. Please register using the link above and check the box that says "I am the host for this session." Your spot will be marked as complimentary.');
       }
       lines.push('');
       lines.push('Please don\'t hesitate to reach out with any questions. I am always happy to help and want this to be a wonderful experience for everyone!');

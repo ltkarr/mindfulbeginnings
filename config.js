@@ -9,9 +9,15 @@
    Oct  8 2026 · Classes page prices for NEW sessions (LATER_PRICE_CHANGES, from Oct 9):
                  Social Ready $45, Stay Ready $85, Grandparents $195, Care Ready $195,
                  Baby Ready $195. Existing sessions keep their current prices.
-   Oct 13 2026 · Baby Ready is $195 per person on every session, including ones
-                 created before Oct 9. A couple registration is two people and
+   Oct 13 2026 · Baby Ready is $195 per person on sessions created before
+                 Oct 14 2026 midnight ET, including ones created before Oct 9.
+                 A couple registration on those sessions is two people and
                  costs $390. A session price override is still the checkout total.
+   Oct 14 2026 · New sessions created from midnight ET: Adult & Pediatric
+                 First Aid/CPR/AED Certification $125 (4 hours, bookable) and
+                 Baby Ready $185 per person ($300 per couple, 2.5 hours).
+                 Red Cross Babysitter's Training stays $295 and is offered now.
+                 Stored session and registration prices are not rewritten.
    Oct 13 2026 · Added Safe Sitter® Babysitting Essentials ($185, 4 hours).
                  Safe Sitter®, the 5-hour course with the CPR module, stays $225.
    Oct 13 2026 · Added Baby Ready + CPR Certification. $275 per person.
@@ -21,9 +27,8 @@
    Oct  8 2026 · Added two American Red Cross courses (redCross + requiresLeadTeacher).
                  New-session prices, same Oct 9 list as the other classes-page prices:
                  Babysitter's Training $295 / 7 hours, Adult & Pediatric First Aid/CPR/AED
-                 $125 / 5.5 hours. No booked session of either course exists, so the
-                 catalog columns match those amounts. No existing course price,
-                 length, audience, or billing unit was changed.
+                 $185 / 4 hours. The 4-hour length is the published class. This file
+                 does not rewrite a price already stored on a session or registration.
    ════════════════════════════════════════════════════════════════════════
 
    Loaded by register.html and instructor.html. This file is the single
@@ -87,23 +92,27 @@ const COURSES={
   // Any instructor may teach it; it uses CPR manikins, so the registration form
   // treats it as an adult course (no grade, no parent/guardian fields).
   'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,adult:true,audience:'Nannies & au pairs'},
-  // Baby Ready: $195 per person. Capacity is in people (12, the top of the
-  // ~6–12 people per nurse range). seatsPerRegistration 2 means each booking
-  // is a couple and holds two seats, so the registration total is $390.
-  // Adult course — no grade, no parent. Length matches Care Ready (2.5 hours)
-  // until a published length replaces it. Any instructor may teach it.
-  'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · $195 per person'},
+  // Baby Ready: published length is 2.5 hours. Capacity is in people (12).
+  // seatsPerRegistration 2 means each booking is a couple and holds two seats.
+  // Sessions created before Oct 14 2026 midnight ET stay $195 per person
+  // ($390 per couple). Sessions created on/after that moment charge $185
+  // per person and $300 per couple. Price columns stay $195 so a session
+  // with no creation time does not jump to $185. This file does not rewrite
+  // a price already stored on a session or registration.
+  'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting or new parents'},
   // Baby Ready plus Pediatric First Aid/CPR certification. $275 per person.
   // couplePrice is the checkout total for one couple registration (2 people),
   // $495, which is less than 2 × $275. Not RN-only. Capacity is people, and
   // each registration holds 2 seats, same as Baby Ready.
   'Baby Ready + CPR Certification':{price:275,price2027:275,priceNew:275,priceNew2027:275,couplePrice:495,matCost:0,hours:5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · $275 per person ($495 per couple)'},
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters · Grades 3–9'},
-  'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true,audience:'Grades 7–12'},
+  // 75 minutes. hours is 1.25 so instructor pay matches the published length.
+  'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.25,maxStudents:12,requiresRN:true,audience:'Grades 7–12'},
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'11th–12th grade & college'},
   // Steady and Ready stays $65 on purpose — the Aug 2026 program guide printed
   // $50, which Lindsay confirmed is a typo in the guide, not a price change.
-  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1.5,maxStudents:8,audience:'Family safety workshop'},
+  // Published length is 70 minutes (70/60 hours).
+  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:70/60,maxStudents:8,audience:'Family safety workshop'},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug
   // 2026 program guide confirmed $165 for the 8-week series.
   // Material allowance is $30/student — an 8-week series consumes far more supplies
@@ -152,12 +161,13 @@ const COURSES={
   // $295 is the new-session price (LATER_PRICE_CHANGES, from Oct 9 2026).
   // The catalog columns match it because no session of this course exists yet.
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11-14'},
-  // Listed three times on the classes page (ages 11-14, high school juniors
-  // and seniors, and parents / nannies / grandparents). Every card is $125
-  // for the same 5.5-hour course, so this is one course, not three prices.
-  // The $195 figures next to those cards belong to Baby Ready and Grandparents.
-  // $125 is the new-session price (LATER_PRICE_CHANGES, from Oct 9 2026).
-  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:5.5,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'}
+  // Same 4-hour course on the classes page (ages 11-14, high school, and
+  // parents). Lead Teachers only (redCross + requiresLeadTeacher). The
+  // Oct 9 list is $185. Sessions created from Oct 14 2026 midnight ET
+  // charge $125. Price columns stay $185 so a session with no creation
+  // time does not jump to $125. This file does not rewrite a price stored
+  // on a session or registration.
+  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'}
 };
 
 
@@ -180,6 +190,17 @@ const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
    config.js, register.html, and admin.html.
 */
 const LATER_PRICE_CHANGES=[
+  // CATALOG PRICES, Oct 14 2026. Only sessions CREATED from midnight ET on
+  // Oct 14 2026 charge these. Anything created earlier keeps its price,
+  // including Adult & Pediatric at $185 and Baby Ready at $195 per person
+  // ($390 per couple). A stored price override and a stored registration
+  // amount are never rewritten. Baby Ready's $300 couple total applies only
+  // when the per-person rate for that session is $185.
+  {from:'2026-10-14T04:00:00Z',   // midnight ET, night of Oct 13 2026
+   prices:{
+     'Baby Ready':185,
+     'Adult & Pediatric First Aid/CPR/AED Certification':125
+   }},
   // CLASSES PAGE PRICES, Oct 2026. Taken from mindfulbeginnings.org/classes
   // (prices per participant). Only sessions CREATED from midnight ET on
   // Oct 9 2026 onward charge these. Every session already in the database

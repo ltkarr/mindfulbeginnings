@@ -65,7 +65,7 @@ function cards() {
 }
 
 test('about page is static HTML in the public page style', () => {
-  assert.match(page, /<title>About \| Mindful Beginnings<\/title>/);
+  assert.match(page, /<title>About the Team \| Mindful Beginnings<\/title>/);
   assert.match(page, /name="description"/);
   assert.match(page, /name="viewport"/);
   assert.match(page, /href="\/favicon\.ico"/);
@@ -122,8 +122,8 @@ test('each person is a button that opens a bio dialog', () => {
   assert.match(page, /if \(!inside\) dialog\.close\(\)/);
   assert.match(page, /\.photo\{width:120px;height:120px;border-radius:50%/);
   assert.match(page, /grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
-  assert.match(page, /h1\{margin:0;font-size:clamp\(26px,3vw,34px\)/);
-  assert.match(page, /\.team-section h2\{margin:0 0 14px;font-size:22px/);
+  assert.match(page, /h1\{margin:0;font-size:clamp\(26px,3vw,32px\)/);
+  assert.match(page, /\.team-section h2\{margin:0 0 14px;font-size:clamp\(20px,2\.2vw,26px\)/);
   assert.match(page, /\.name\{font-size:15px/);
   assert.match(page, /\.role\{font-size:13px/);
 });

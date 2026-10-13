@@ -36,7 +36,7 @@
     'Safe@Home — Series': 'Kids home alone · multi-week',
     'Grandparents: Getting Started': 'Grandparents & caregivers',
     'Care Ready': 'Nannies & au pairs',
-    'Baby Ready': 'Expecting parents · $195 per person',
+    'Baby Ready': 'Expecting or new parents',
     'Baby Ready + CPR Certification': 'Expecting parents · $275 per person ($495 per couple)',
     'All Kids Welcome': 'Experienced sitters · Grades 3–9',
     'Stay Ready: Choking Rescue and CPR': 'Grades 7–12',

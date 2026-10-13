@@ -1290,21 +1290,24 @@ const COURSES={
   // Care Ready (new Sep 2026): 2.5-hour course for nannies and au pairs, $185.
   // Any instructor may teach it; uses CPR manikins; adult registration form.
   'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,adult:true},
-  // Baby Ready: $195 per person. maxStudents is people (12). Each registration
-  // holds 2 seats (seatsPerRegistration), so one couple registration is $390.
-  // Adult form, no grade. 2.5 hours matches Care Ready until a published length
-  // replaces it.
+  // Baby Ready: published length is 2.5 hours. maxStudents is people (12).
+  // Each registration holds 2 seats. Sessions created before Oct 14 2026
+  // midnight ET stay $195 per person ($390 per couple). Sessions created
+  // on/after that moment charge $185 per person and $300 per couple.
+  // Price columns stay $195 so a session with no creation time does not
+  // jump to $185. Do not rewrite a price already stored on a session or
+  // registration. Adult form, no grade.
   'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true},
   // 5-hour Baby Ready plus Pediatric First Aid/CPR certification. $275 per
   // person. couplePrice $495 is the checkout total for the couple (2 people),
   // not 2 × $275. Not RN-only. Same couple counting as Baby Ready.
   'Baby Ready + CPR Certification':{price:275,price2027:275,priceNew:275,priceNew2027:275,couplePrice:495,matCost:0,hours:5,maxStudents:12,seatsPerRegistration:2,adult:true},
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true},
-  'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true},
+  'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.25,maxStudents:12,requiresRN:true},
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true},
   // Steady and Ready stays $65 on purpose — the Aug 2026 program guide printed $50, which
   // Lindsay confirmed is a typo in the guide, not a price change.
-  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1.5,maxStudents:8},
+  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:70/60,maxStudents:8},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug 2026 program
   // guide confirmed $165 for the 8-week series, so future sessions charge $165.
   // Material allowance is $30/student — an 8-week series consumes far more supplies than a
@@ -1346,10 +1349,11 @@ const COURSES={
   // not on the classes page; 12 matches the other hands-on CPR workshops.
   // $295 is also on the Oct 9 new-session price list. No booked session exists.
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true},
-  // Same 5.5-hour course is listed three times on the classes page, always $125.
-  // The $195 cards next to it are Baby Ready and Grandparents, not this course.
-  // $125 is also on the Oct 9 new-session price list. No booked session exists.
-  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:5.5,maxStudents:12,redCross:true,requiresLeadTeacher:true}
+  // Same 4-hour course is listed three times on the classes page.
+  // Lead Teachers only. Oct 9 sessions stay $185. Sessions created from
+  // Oct 14 2026 midnight ET charge $125. Price columns stay $185 so a
+  // session with no creation time does not jump to $125.
+  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true}
 };
 // ─── STUDENT MATERIAL RATES ──────────────────────────────────
 // COURSES[...].matCost is the per-participant handbook and supply allowance.
@@ -1381,6 +1385,17 @@ function sessionUsesNewPricing(createdAt){
 // A couple registration is two people, $390.
 // Keep this list identical in admin.html, register.html, and config.js.
 const LATER_PRICE_CHANGES=[
+  // CATALOG PRICES, Oct 14 2026. Only sessions CREATED from midnight ET on
+  // Oct 14 2026 charge these. Anything created earlier keeps its price,
+  // including Adult & Pediatric at $185 and Baby Ready at $195 per person
+  // ($390 per couple). A stored price override and a stored registration
+  // amount are never rewritten. Baby Ready's $300 couple total applies only
+  // when the per-person rate for that session is $185.
+  {from:'2026-10-14T04:00:00Z',   // midnight ET, night of Oct 13 2026
+   prices:{
+     'Baby Ready':185,
+     'Adult & Pediatric First Aid/CPR/AED Certification':125
+   }},
   // CLASSES PAGE PRICES, Oct 2026. Taken from mindfulbeginnings.org/classes
   // (prices per participant). Only sessions CREATED from midnight ET on
   // Oct 9 2026 onward charge these. Every session already in the database
@@ -1475,7 +1490,10 @@ function seatsCharged(course){
 // Couple package total, when a course charges less than per-person × seats.
 // Baby Ready has no package price, so a couple stays $195 × 2 = $390.
 // Baby Ready + CPR Certification is $495 for the couple, not $275 × 2.
-function couplePackagePrice(course){
+function couplePackagePrice(course, unit){
+  // $300 per couple applies only when this session's per-person rate is the
+  // Oct 14 catalog price ($185). Earlier Baby Ready sessions stay $195 × 2.
+  if(String(course||'')==='Baby Ready'&&Number(unit)===185)return 300;
   const c=(typeof COURSES!=='undefined'&&COURSES&&COURSES[course])||null;
   if(c&&c.couplePrice!=null&&c.couplePrice!=='')return Number(c.couplePrice);
   if(String(course||'')==='Baby Ready + CPR Certification')return 495;
@@ -1484,7 +1502,7 @@ function couplePackagePrice(course){
 function registrationCheckoutTotal(course, unit, seats){
   const per=(isFinite(Number(seats))&&Number(seats)>=1)?Math.floor(Number(seats)):1;
   if(per>1){
-    const pack=couplePackagePrice(course);
+    const pack=couplePackagePrice(course, unit);
     if(pack!=null)return pack;
   }
   return (Number(unit)||0)*per;
