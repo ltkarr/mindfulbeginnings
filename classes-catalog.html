@@ -38,13 +38,15 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 .age-block h2{margin:0 0 18px;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800}
 .grid{display:grid;grid-template-columns:1fr;gap:24px;align-items:stretch}
 .card{background:#fff;border:1px solid rgba(30,49,97,0.08);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;min-height:100%;box-sizing:border-box}
+a.card{text-decoration:none;color:inherit;transition:transform .15s ease,box-shadow .15s ease}
+a.card:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(30,49,97,0.14)}
+a.card:hover .card-visual h3{text-decoration:underline}
 .card-visual{background:#1E3161;position:relative;flex:0 0 auto;display:flex;align-items:flex-end;box-sizing:border-box;min-height:88px;padding:12px 16px 14px}
 .card-visual:after{content:"";position:absolute;left:16px;bottom:0;width:44px;height:5px;background:#EFC75A;border-radius:4px 4px 0 0}
 .card-visual h3{margin:0;position:relative;z-index:1;color:#fff;font-family:'Montserrat',sans-serif;font-size:20px;line-height:1.25;font-weight:700}
 .card-body{padding:16px 16px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
 .meta{margin:0;font-size:14px;font-weight:700;line-height:1.45}
 .desc{margin:0;font-size:16px;line-height:1.55}
-.book{margin-top:auto;align-self:flex-start;background:#1E3161;color:#F5F2EA;font-size:15px;padding:11px 16px}
 .band{background:#1E3161;color:#F5F2EA;padding:48px 6vw}
 .band h2,.custom h2{margin:0;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800}
 .band p,.custom p{margin:0;font-size:16px;max-width:720px;line-height:1.55}
@@ -101,49 +103,45 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>Ages 8-10</h2>
 <div class="grid">
 
-<article class="card" data-group="ages-8-10" data-key="safe-at-home">
+<a class="card" href="/host.html" data-group="ages-8-10" data-key="safe-at-home">
 <div class="card-visual">
 <h3>Safe@Home by Safe Sitter®</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 8-10 · 90-minute · In-person or virtual · $85</p>
 <p class="desc">A class that prepares kids to stay home alone safely and know what to do if something goes wrong.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-8-10" data-key="steady-ready">
+<a class="card" href="/host.html" data-group="ages-8-10" data-key="steady-ready">
 <div class="card-visual">
 <h3>Steady and Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 8-10 · 70-minute · In person · $65</p>
 <p class="desc">A home safety class for kids and teens building independence, taught at a pace that fits how they learn.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-8-10" data-key="mfbc">
+<a class="card" href="/host.html" data-group="ages-8-10" data-key="mfbc">
 <div class="card-visual">
 <h3>My First Babysitter's Club</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 8-10 · 2.5-hour · In person · $95</p>
 <p class="desc">A hands-on workshop introducing young students to the fun and responsibility of becoming a parent's helper. Includes a take-home activity tote bag!</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-8-10" data-key="social-ready">
+<a class="card" href="/host.html" data-group="ages-8-10" data-key="social-ready">
 <div class="card-visual">
 <h3>Social Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 8-10 · 60-minute · In-person or virtual · $45</p>
 <p class="desc">An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
 </div>
 </section>
@@ -152,49 +150,45 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>Ages 10-12</h2>
 <div class="grid">
 
-<article class="card" data-group="ages-10-12" data-key="intro">
+<a class="card" href="/host.html" data-group="ages-10-12" data-key="intro">
 <div class="card-visual">
 <h3>Introduction to Safe Babysitting by Safe Sitter®</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 10-12 · 60-minute · In-person or virtual · $40</p>
 <p class="desc">An introduction to the basics of caring for younger children.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-10-12" data-key="ready-period">
+<a class="card" href="/host.html" data-group="ages-10-12" data-key="ready-period">
 <div class="card-visual">
 <h3>Ready. Period.™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 10-12 · 90-minute · In-person or virtual · $75</p>
 <p class="desc">A hands-on workshop for girls that pairs a period pouch craft with nurse-led teaching about puberty and body care.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-10-12" data-key="steady-ready">
+<a class="card" href="/host.html" data-group="ages-10-12" data-key="steady-ready">
 <div class="card-visual">
 <h3>Steady and Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 10-12 · 70-minute · In-person or virtual · $65</p>
 <p class="desc">A home safety class for kids and teens building independence, taught at a pace that fits how they learn.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-10-12" data-key="social-ready">
+<a class="card" href="/host.html" data-group="ages-10-12" data-key="social-ready">
 <div class="card-visual">
 <h3>Social Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 10-12 · 60-minute · In-person or virtual · $45</p>
 <p class="desc">An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
 </div>
 </section>
@@ -203,82 +197,75 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>Ages 11-14</h2>
 <div class="grid">
 
-<article class="card" data-group="ages-11-14" data-key="essentials">
+<a class="card" href="/host.html" data-group="ages-11-14" data-key="essentials">
 <div class="card-visual">
 <h3>Safe Sitter® Babysitting Essentials</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 11-14 · 4-hour · In person · $185</p>
 <p class="desc">This babysitting course teaches tweens safety, child care basics, behavior management, and how to rescue a choking child. Students practice with hands-on role-play and leave with a Safe Sitter® completion card and their own handbook.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-11-14" data-key="sitter-cpr">
+<a class="card" href="/host.html" data-group="ages-11-14" data-key="sitter-cpr">
 <div class="card-visual">
 <h3>Safe Sitter® Babysitting with CPR module</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 11-14 · 5-hour · In person · $225</p>
 <p class="desc">A course that builds the skills and confidence to babysit safely, from infant care to handling emergencies. Includes a hands-on CPR module (not an official certification).</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-11-14" data-key="rc-babysitter">
+<a class="card" href="/host.html" data-group="ages-11-14" data-key="rc-babysitter">
 <div class="card-visual">
 <h3>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 11-14 · 7-hour · In person · $295</p>
 <p class="desc">Teens learn child care, safety, and leadership skills, practice infant and child CPR on manikins, and earn American Red Cross Babysitter's Training and Pediatric First Aid/CPR/AED certifications.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-11-14" data-key="stay-ready">
+<a class="card" href="/host.html" data-group="ages-11-14" data-key="stay-ready">
 <div class="card-visual">
 <h3>Stay Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 11-14 · 75-minute · In person · $85</p>
 <p class="desc">A hands-on workshop that reviews choking rescue, CPR, seizure awareness and response, and emergency response.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-11-14" data-key="all-kids">
+<a class="card" href="/host.html" data-group="ages-11-14" data-key="all-kids">
 <div class="card-visual">
 <h3>All Kids Welcome™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 11-14 · 60-minute · In-person or virtual · $25</p>
 <p class="desc">A class that teaches young caregivers how to care confidently for children with diverse needs.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-11-14" data-key="social-ready">
+<a class="card" href="/host.html" data-group="ages-11-14" data-key="social-ready">
 <div class="card-visual">
 <h3>Social Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 11-14 · 60-minute · In-person or virtual · $45</p>
 <p class="desc">An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="ages-11-14" data-key="adult-cpr">
+<a class="card" href="/host.html" data-group="ages-11-14" data-key="adult-cpr">
 <div class="card-visual">
 <h3>Adult &amp; Pediatric First Aid/CPR/AED Certification</h3>
 </div>
 <div class="card-body">
 <p class="meta">Ages 11-14 · 4-hour · In person · $125</p>
 <p class="desc">A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Participants earn a 2-year American Red Cross certification.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
 </div>
 </section>
@@ -287,27 +274,25 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>Student Athletes</h2>
 <div class="grid">
 
-<article class="card" data-group="student-athletes" data-key="season-ready">
+<a class="card" href="/host.html" data-group="student-athletes" data-key="season-ready">
 <div class="card-visual">
 <h3>Season Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Student athletes · 60-minute · In person · $25</p>
 <p class="desc">A hands-on workshop for student athletes on fueling, recovery, injury awareness, and emergency response.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="student-athletes" data-key="stay-ready">
+<a class="card" href="/host.html" data-group="student-athletes" data-key="stay-ready">
 <div class="card-visual">
 <h3>Stay Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Student athletes · 75-minute · In person · $85</p>
 <p class="desc">A hands-on workshop that reviews choking rescue, CPR, seizure awareness and response, and emergency response.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
 </div>
 </section>
@@ -316,38 +301,35 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>High School Juniors and Seniors</h2>
 <div class="grid">
 
-<article class="card" data-group="high-school" data-key="campus-ready">
+<a class="card" href="/host.html" data-group="high-school" data-key="campus-ready">
 <div class="card-visual">
 <h3>Campus Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">High school juniors and seniors · 60-minute · In person · $75</p>
 <p class="desc">A class taught by registered nurses that prepares students to stay safe and help a friend in an emergency during college life.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="high-school" data-key="stay-ready">
+<a class="card" href="/host.html" data-group="high-school" data-key="stay-ready">
 <div class="card-visual">
 <h3>Stay Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">High school juniors and seniors · 75-minute · In person · $85</p>
 <p class="desc">A hands-on workshop that reviews choking rescue, CPR, seizure awareness and response, and emergency response.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="high-school" data-key="adult-cpr">
+<a class="card" href="/host.html" data-group="high-school" data-key="adult-cpr">
 <div class="card-visual">
 <h3>Adult &amp; Pediatric First Aid/CPR/AED Certification</h3>
 </div>
 <div class="card-body">
 <p class="meta">High school juniors and seniors · 4-hour · In person · $125</p>
 <p class="desc">A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Participants earn a 2-year American Red Cross certification.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
 </div>
 </section>
@@ -356,60 +338,55 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>Parents/Nannies/Au Pairs/Grandparents</h2>
 <div class="grid">
 
-<article class="card" data-group="parents-caregivers" data-key="baby-ready">
+<a class="card" href="/host.html" data-group="parents-caregivers" data-key="baby-ready">
 <div class="card-visual">
 <h3>Baby Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Parents, nannies, au pairs, and grandparents · 2.5-hour · In person · $185 per participant or $300 per couple</p>
 <p class="desc">A hands-on newborn care class taught by a registered nurse, covering feeding, diapering, bathing, safe sleep, soothing, and infant choking rescue and CPR skills practice on manikins.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="parents-caregivers" data-key="adult-cpr">
+<a class="card" href="/host.html" data-group="parents-caregivers" data-key="adult-cpr">
 <div class="card-visual">
 <h3>Adult &amp; Pediatric First Aid/CPR/AED Certification</h3>
 </div>
 <div class="card-body">
 <p class="meta">Parents, nannies, au pairs, and grandparents · 4-hour · In person · $125</p>
 <p class="desc">A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Participants earn a 2-year American Red Cross certification.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="parents-caregivers" data-key="grandparents">
+<a class="card" href="/host.html" data-group="parents-caregivers" data-key="grandparents">
 <div class="card-visual">
 <h3>Grandparents: Getting Started by Safe Sitter®</h3>
 </div>
 <div class="card-body">
 <p class="meta">Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185</p>
 <p class="desc">A workshop equipping grandparents with current standards, updated guidelines, and practical tips for caring for their grandchildren.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="parents-caregivers" data-key="care-ready">
+<a class="card" href="/host.html" data-group="parents-caregivers" data-key="care-ready">
 <div class="card-visual">
 <h3>Care Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Parents, nannies, au pairs, and grandparents · 2.5-hour · In person · $185</p>
 <p class="desc">A course that gives nannies and au pairs the practical safety and caregiving skills families count on.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
-<article class="card" data-group="parents-caregivers" data-key="stay-ready">
+<a class="card" href="/host.html" data-group="parents-caregivers" data-key="stay-ready">
 <div class="card-visual">
 <h3>Stay Ready™</h3>
 </div>
 <div class="card-body">
 <p class="meta">Parents, nannies, au pairs, and grandparents · 75-minute · In person · $85</p>
 <p class="desc">A hands-on workshop that reviews choking rescue, CPR, seizure awareness and response, and emergency response.</p>
-<a class="book" href="/host.html">Book this class</a>
 </div>
-</article>
+</a>
 
 </div>
 </section>
