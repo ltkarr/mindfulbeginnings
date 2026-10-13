@@ -7,12 +7,26 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=Fjalla+One&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/intake.css">
+<link rel="stylesheet" href="/css/site.css">
 </head>
 <body>
-<header>
-  <img src="/email-logo-white.png" alt="Mindful Beginnings">
+<a class="mb-skip" href="#mb-content">Skip to content</a>
+<header class="mb-header">
+<a class="mb-brand" href="/"><img class="mb-logo" src="/email-logo.png" alt="Mindful Beginnings" width="220" height="52"></a>
+<details class="mb-nav-details">
+<summary class="mb-menu"><span class="mb-burger" aria-hidden="true"></span><span class="mb-menu-label">Menu</span></summary>
+<nav class="mb-nav" aria-label="Primary">
+<a href="/classes-catalog">Classes</a>
+<a href="/host-a-class" aria-current="page">Host a Class</a>
+<a href="/girl-scouts">Girl Scouts</a>
+<a href="/about">About</a>
+<a href="/contact">Contact</a>
+<a href="/cpr-certification">CPR for groups</a>
+<a class="mb-register" href="/register.html">Register</a>
+</nav>
+</details>
 </header>
-<div class="hero">
+<div id="mb-content" class="hero">
   <h1>Host a private group</h1>
   <p>Our nurses and certified educators come to you. Tell us about your home and the course, and we will confirm the date. Home hosts get one free spot.</p>
 </div>
@@ -123,7 +137,17 @@
     <p id="success-extra"></p>
   </div>
 </main>
-<footer>© 2026 Mindful Beginnings · <a href="/register.html">Register for a class</a> · <a href="https://mindfulbeginnings.org">mindfulbeginnings.org</a></footer>
+<footer class="mb-footer">
+<div class="mb-footer-id">Mindful Beginnings LLC · Bethesda, MD · within 60 miles of DC</div>
+<div class="mb-footer-contact">
+<a href="tel:+17039875979">703-987-5979</a>
+<a href="mailto:lindsay@mindfulbeginnings.org">lindsay@mindfulbeginnings.org</a>
+</div>
+<div class="mb-footer-social">
+<a href="https://www.facebook.com/share/1GnY6MQ5cy/?mibextid=wwXIfr">Facebook</a>
+<a href="https://www.instagram.com/mindfulbeginningsllc">Instagram</a>
+</div>
+</footer>
 <script src="/js/class-request-form.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {

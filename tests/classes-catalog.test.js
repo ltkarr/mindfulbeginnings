@@ -80,7 +80,7 @@ test('classes catalog matches the public class list', () => {
   assert.match(page, /name="viewport"/);
   assert.match(page, /Prices are per participant\. Home hosts get one free spot\./);
   assert.match(page, /Founded by a 20-year classroom teacher • Taught by registered nurses and certified educators • Safe Sitter® and American Red Cross courses/);
-  assert.match(page, /href="https:\/\/register\.mindfulbeginnings\.org\/register\.html">Find a class</);
+  assert.match(page, /class="mb-register" href="\/register\.html">Register</);
   assert.equal(page.includes('\u2014'), false);
   const found = cards();
   assert.equal(found.length, EXPECTED.length);

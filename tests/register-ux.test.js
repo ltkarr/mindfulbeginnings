@@ -29,7 +29,7 @@ test('step 1 lists private/host code entry first, then public sessions, with no 
   assert.match(register, /id="public-show-more"/);
   assert.match(register, /function loadPublicSessions/);
   assert.match(register, /public-sessions\.js/);
-  assert.match(register, /Find a class/);
+  assert.match(register, /class="mb-register" href="\/register\.html" aria-current="page">Register</);
   assert.doesNotMatch(register, /id="pf-course"/);
   assert.doesNotMatch(register, /id="pf-when"/);
   assert.doesNotMatch(register, /id="pf-city"/);
@@ -69,7 +69,7 @@ test('partner registration links open off-site and skip Mindful Beginnings payme
 
 test('Need help Contact us uses Lindsay mailto', () => {
   assert.match(register, /Need help finding a class\? <a href="mailto:lindsay@mindfulbeginnings\.org">Contact us<\/a>\./);
-  assert.match(register, /href="https:\/\/mindfulbeginnings\.org\/contact">Contact<\/a>/);
+  assert.match(register, /href="\/contact">Contact<\/a>/);
 });
 
 test('course config still carries parent-facing audience lines', () => {
@@ -97,10 +97,14 @@ test('register checkout uses dynamic PayPal Orders, not the hosted NCP button', 
 });
 
 test('header branding is multi-course, not Safe Sitter-only', () => {
-  assert.match(register, /Safe Sitter® and family safety courses/);
-  assert.match(pay, /Safe Sitter® and family safety courses/);
-  assert.doesNotMatch(register, /<div class="tag">Safe Sitter® Courses<\/div>/);
-  assert.doesNotMatch(pay, /<div class="tag">Safe Sitter® Courses<\/div>/);
+  [register, pay].forEach(function (page) {
+    assert.match(page, /class="mb-header"/);
+    assert.match(page, /alt="Mindful Beginnings"/);
+    assert.match(page, /href="\/classes-catalog">Classes<\/a>/);
+    assert.match(page, /href="\/girl-scouts">Girl Scouts<\/a>/);
+    assert.match(page, /href="\/cpr-certification">CPR for groups<\/a>/);
+    assert.doesNotMatch(page, /<div class="tag">Safe Sitter® Courses<\/div>/);
+  });
 });
 
 test('full public sessions show WAITLIST ONLY as a mailto, not inside the register button', () => {
