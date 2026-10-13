@@ -172,3 +172,8 @@ p:last-child{margin-bottom:0}
   .mb-hero{padding:40px 6vw 44px}
   .mb-section{padding:40px 6vw}
 }
+
+.mb-social{display:inline-flex;gap:12px;margin-left:10px;vertical-align:middle}
+.mb-social a{color:var(--cream)}
+.mb-social a:hover{color:var(--btn-gold)}
+.mb-social svg{width:18px;height:18px;display:block}
