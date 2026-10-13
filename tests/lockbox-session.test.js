@@ -122,7 +122,7 @@ test('edit session groups the same fields into Basics, Instructor and pay, Host 
   assert.match(edit, /id="m-price-override"/);
   assert.match(edit, /orgBillingFieldsHtml\(s\)/);
   assert.match(edit, /id="m-hold"/);
-  assert.match(edit, /sessionMaterialsPanelHtml\(\)/);
+  assert.doesNotMatch(edit, /sessionMaterialsPanelHtml\(\)/);
   assert.match(edit, /id="m-rn-row"/);
   assert.match(edit, /id="m-rn-reveal"/);
   assert.match(edit, /revealTeachLimit\('m-rn-row','m-rn-reveal','sess-instr-fold'\)/);

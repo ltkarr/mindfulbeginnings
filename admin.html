@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261013-manikin-batteries';
+window.MB_ADMIN_BUILD='20261013-simple-admin';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -395,7 +395,12 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .pack-time,.pack-place,.pack-course{line-height:1.4}
 .pack-course{font-weight:650}
 .pack-count{margin-top:2px;font-size:14px;font-weight:650;color:#1d6b45;line-height:1.35}
-.pack-kit{margin-top:2px;font-size:14px;font-weight:500;line-height:1.35}
+.pack-kit,.pack-bring{margin-top:2px;font-size:14px;font-weight:500;line-height:1.35}
+.more-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;max-width:720px}
+.more-link{display:block;width:100%;text-align:left;background:white;border:0.5px solid var(--border);border-radius:var(--r);padding:18px 20px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text)}
+.more-link:hover{border-color:var(--sky);background:#f7fbfe}
+.more-link-title{display:block;font-size:18px;font-weight:650}
+.more-link-sub{display:block;margin-top:4px;font-size:15px;color:var(--muted);font-weight:400;line-height:1.4}
 .pack-total{margin:0 0 14px;font-size:17px;font-weight:650;color:#1d6b45;line-height:1.4}
 .pack-pdf-total{margin:8px 0 0;font-size:14px;font-weight:650;color:#1d6b45;line-height:1.4}
 .pack-lock{display:flex;align-items:flex-start;gap:8px;margin:0;font-weight:650;line-height:1.35;cursor:pointer}
@@ -473,10 +478,8 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="nav-item" title="Registrations" onclick="showScreen('registrations',this)"><span class="nav-icon">◻</span> <span class="nav-label">Registrations</span></div>
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
       <div class="nav-item" title="Instructors" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> <span class="nav-label">Instructors</span></div>
-      <div class="nav-item" title="Liaisons" onclick="showScreen('partners',this)"><span class="nav-icon">◎</span> <span class="nav-label">Liaisons</span></div>
-      <div class="nav-item" id="nav-orgpartners" title="Community partnerships" onclick="showScreen('orgpartners',this)"><span class="nav-icon">⬢</span> <span class="nav-label">Partnerships</span></div>
-      <div class="nav-item" id="nav-materials" title="Equipment" onclick="showScreen('materials',this)"><span class="nav-icon">▣</span> <span class="nav-label">Equipment</span></div>
-      <div class="nav-item" title="Reports" onclick="showScreen('reports',this)"><span class="nav-icon">▦</span> <span class="nav-label">Reports</span></div>
+      <div class="nav-item" id="nav-more" title="More" onclick="showScreen('more',this)"><span class="nav-icon">⋯</span> <span class="nav-label">More</span></div>
+      <div id="nav-orgpartners" hidden></div>
     </div>
     <div class="sidebar-footer">
       <button class="rail-btn" id="rail-btn" title="Narrow the menu" onclick="toggleRail()"><span class="rail-ico">⇤</span> <span class="nav-label">Narrow the menu</span></button>
@@ -493,8 +496,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div id="class-request-banner"></div>
       <div class="metrics" id="dash-metrics"></div>
       <div id="dash-upcoming" style="margin-bottom:16px"></div>
-      <div id="dash-materials" style="margin-bottom:16px"></div>
-      <div id="org-billing" style="margin-bottom:16px"></div>
       <div id="instructor-milestones" style="margin-bottom:16px"></div>
       <div id="reminder-alerts" style="margin-bottom:16px"></div>
       <div class="card">
@@ -514,11 +515,8 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div class="filter-row">
         <select id="cr-filter" onchange="renderClassRequests()">
-          <option value="open">Needs attention</option>
-          <option value="received">Just received</option>
+          <option value="open" selected>Open</option>
           <option value="done">Done</option>
-          <option value="archived">Archived</option>
-          <option value="all">All</option>
         </select>
       </div>
       <div id="class-requests-root"></div>
@@ -535,7 +533,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
               <option value="cancelled">Cancelled sessions</option>
               <option value="all">All sessions</option>
             </select>
-            <button class="btn" onclick="printSessionReport()">Print report</button>
           </div>
           <button class="btn primary" onclick="openAddSession()">+ New session</button>
           <button class="btn" onclick="openAddCustomJob()" style="background:#f5f0e8;border-color:#c8a96e;color:#7a5c1e">+ Custom job</button>
@@ -644,9 +641,19 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="instructors-table"></table></div></div>
     </div>
 
+    <div class="screen" id="screen-more">
+      <div class="page-header">
+        <div><div class="page-title">More</div><div class="page-sub">Pages you do not need every day.</div></div>
+      </div>
+      <div class="more-links">
+        <button type="button" class="more-link" onclick="showScreen('partners',document.getElementById('nav-more'))"><span class="more-link-title">Liaisons</span><span class="more-link-sub">People paid on commission, and their statements.</span></button>
+        <button type="button" class="more-link" onclick="showScreen('reports',document.getElementById('nav-more'))"><span class="more-link-title">Reports</span><span class="more-link-sub">How families find you, referrals, donations, and discount codes.</span></button>
+      </div>
+    </div>
+
     <div class="screen" id="screen-partners">
       <div class="page-header">
-        <div><div class="page-title">Liaisons</div><div class="page-sub">Liaisons paid on commission. <span title="Organizations on a revenue share live under Partnerships. That tab stays hidden until an organization is added. Use Add organization to create the first one.">?</span></div></div>
+        <div><div class="page-title">Liaisons</div><div class="page-sub">Liaisons paid on commission. <span title="Organizations on a revenue share stay off the menu. Use Add organization when you need the first one.">?</span></div></div>
         <div class="btn-row">
           <button class="btn" onclick="revealOrgPartners()">Add organization</button>
           <button class="btn" onclick="publishPartnerPortalsNow()" title="Liaisons see these numbers when they sign in to the portal">Update liaison portals</button>
@@ -1235,8 +1242,9 @@ function rerenderActiveScreen(){
   else if(name==='codes')renderCodes();
   else if(name==='instructors')renderInstructors();
   else if(name==='partners')renderPartners();
-  else if(name==='jobs')renderJobs();
-  else if(name==='materials')renderMaterials();
+  else if(name==='orgpartners'&&typeof renderOrgPartners==='function')renderOrgPartners();
+  else if(name==='jobs'&&typeof renderJobs==='function')renderJobs();
+  else if(name==='materials'&&typeof renderMaterials==='function')renderMaterials();
   else if(name==='reports')renderReports();
   else if(name==='packing')renderPackingList();
 }
@@ -1873,10 +1881,6 @@ async function loadData(){
     }
     sessions=(s.data||[]).map(sessionFromDB);
     registrations=(r.data||[]).map(regFromDB);
-    // Row counts, so a short load is visible instead of quietly wrong totals.
-    console.log('Loaded rows →','sessions:',(s.data||[]).length,'| registrations:',(r.data||[]).length,
-      '| job_data:',(j.data||[]).length,'| instructors:',(i.data||[]).length,
-      '| expenses:',(e.data||[]).length,'| invoices:',(inv.data||[]).length);
     instructors=(i.data||[]).map(instructorFromDB);
     sortInstructors();
     jobDataCache={};
@@ -3770,13 +3774,10 @@ function defaultOrgPeriod(){return currentCalendarMonth();}
 // ─── SCREEN ─────────────────────────────────────────────────
 function syncOrgPartnersNav(){
   const nav=document.getElementById('nav-orgpartners');
-  if(!nav)return;
-  nav.style.display=(orgPartnersTableReady&&!(orgPartners&&orgPartners.length))?'none':'';
+  if(nav)nav.hidden=true;
 }
 function revealOrgPartners(){
-  const nav=document.getElementById('nav-orgpartners');
-  if(nav)nav.style.display='';
-  showScreen('orgpartners',nav);
+  showScreen('orgpartners',document.getElementById('nav-more'));
   openAddOrgPartner();
 }
 function renderOrgPartners(){
@@ -4741,9 +4742,9 @@ function showScreen(name,el){
   if(name==='codes')renderCodes();
   if(name==='instructors')renderInstructors();
   if(name==='partners')renderPartners();
-  if(name==='orgpartners')renderOrgPartners();
-  if(name==='jobs')renderJobs();
-  if(name==='materials')renderMaterials();
+  if(name==='orgpartners'&&typeof renderOrgPartners==='function')renderOrgPartners();
+  if(name==='jobs'&&typeof renderJobs==='function')renderJobs();
+  if(name==='materials'&&typeof renderMaterials==='function')renderMaterials();
   if(name==='reports')renderReports();
   if(name==='packing')renderPackingList();
 }
@@ -5864,9 +5865,6 @@ function renderDashboard(){
       </div>`;
     }
   }
-  // ── Organization billing ("did I bill them yet?") ──
-  renderOrgBilling();
-  renderDashMaterials();
 }
 
 
@@ -6250,13 +6248,6 @@ function openSessionMenu(ev,sessId){
   if(isPast){
     items.push({label:'🎯 Wrap-up',act:`openWrapup('${sessId}')`});
   }
-  // Reserve manikins / AV kits for this session on the Materials tab. If a checkout
-  // is already recorded for this session, show that (✓) and open it for editing
-  // instead — so you can always tell which classes already have materials handled.
-  const exCo=matCheckouts.find(x=>x.sessionId===sessId);
-  if(exCo&&coNoEquipment(exCo))items.push({label:'📦 No equipment needed ✓ — view in Materials',act:`showScreen('materials',document.getElementById('nav-materials'))`});
-  else if(exCo)items.push({label:coUsesExisting(exCo)?'📦 Covered ✓ (using kit they already have) — view':'📦 Equipment reserved ✓ — view / edit',act:`showScreen('materials',document.getElementById('nav-materials'));openEditCheckout('${exCo.id}')`});
-  else items.push({label:'📦 Check out equipment',act:`showScreen('materials',document.getElementById('nav-materials'));openCheckout('${sessId}')`});
   if(s.isCancelled){
     items.push({label:'📧 Re-open cancellation emails',act:`openCancellationEmails('${sessId}')`});
     items.push({label:'↩️ Un-cancel session',act:`uncancelSession('${sessId}')`});
@@ -6612,12 +6603,12 @@ function renderEditDates(){
   el.innerHTML=_editDays.length?_editDays.map((d,i)=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
       <span style="font-size:15px;color:var(--muted);white-space:nowrap">Day ${i+2}</span>
-      <input type="date" value="${d.date||''}" onchange="_editDays[${i}].date=this.value;if(document.getElementById('m-mat-body'))renderSessionMaterials()" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+      <input type="date" value="${d.date||''}" onchange="_editDays[${i}].date=this.value;if(document.getElementById('m-mat-body')&&typeof renderSessionMaterials==='function')renderSessionMaterials()" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
       <input type="text" value="${(d.time||'').replace(/"/g,'&quot;')}" placeholder="e.g. 4:00 PM – 6:30 PM" oninput="_editDays[${i}].time=this.value" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white">
       <button type="button" class="btn sm" onclick="removeEditDate(${i})" title="Remove this day">✕</button>
     </div>`).join(''):'<div style="font-size:14px;color:var(--muted)">This class meets once. Use “+ Add another day” for courses that meet on more than one day (e.g. Safe Sitter split over two afternoons).</div>';
   renderSeriesWarning();
-  if(document.getElementById('m-mat-body'))renderSessionMaterials();
+  if(document.getElementById('m-mat-body')&&typeof renderSessionMaterials==='function')renderSessionMaterials();
 }
 function addEditDate(){
   // Pre-fill the new day's time with the main class time — multi-day courses
@@ -6800,7 +6791,6 @@ function openAddSession(){
       <label id="m-instr2-label">Second instructor <span style="font-weight:400;color:var(--muted)">(optional — for large classes needing two instructors)</span></label>
       <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option></select>
     </div>
-    ${sessionMaterialsPanelHtml()}
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="m-waitlist" checked style="width:16px;height:16px;cursor:pointer">
@@ -6891,7 +6881,6 @@ function openAddSession(){
   updateRnNotice();
   refreshSessionInstrMarks();
   toggleInstrSelect('no');
-  wireSessionMaterials(null);
 }
 
 // ─── CUSTOM JOB ──────────────────────────────────────────────
@@ -7559,7 +7548,6 @@ ${lockboxFieldHtml(s)}
       <div style="font-size:14px;color:var(--muted);margin-top:6px">Instructors see these on the job board so they know exactly which weeks are off before accepting.</div>
     </div>
     <div class="fg full"><label>Session code</label><input type="text" id="m-code" value="${s.code}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
-    ${sessionMaterialsPanelHtml()}
     <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="m-waitlist" ${s.allowWaitlist!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
@@ -7605,7 +7593,6 @@ ${lockboxFieldHtml(s)}
   updateRnNotice();
   refreshSessionInstrMarks();
   renderSeriesWarning();
-  wireSessionMaterials(id);
 }
 
 // Set while a save is in flight, so a second click cannot create a second row.
@@ -9517,39 +9504,6 @@ async function openInstructorProfile(id){
 }
 
 // ─── JOBS & MATERIALS ────────────────────────────────────────
-function jobStatus(s,jd){
-  const sessDate=new Date(s.date+'T12:00:00');
-  const payDone=isInstructorPaymentDone(s,jd);
-  // Instructor board only shows jobs dated today or later; an unclaimed job with a
-  // past date shows as "Open" here forever but is invisible to instructors. Flag it.
-  const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
-  const openStatus=()=>sessDate<startOfToday
-    ?{key:'open',label:'⚠ Open — past date, hidden from instructors',cls:'sp-eval'}
-    :{key:'open',label:'Open',cls:'sp-open'};
-  // Custom jobs: no materials, no host evaluation — just open → assigned → ready to pay → paid.
-  if(s.isCustomJob){
-    if(!jd.instructorId)return openStatus();
-    if(jd.payStatus==='paid')return{key:'paid',label:'Paid',cls:'sp-paid'};
-    if(sessDate<new Date())return{key:'pay-ready',label:'Ready to pay',cls:'sp-payready'};
-    return{key:'assigned',label:'Assigned',cls:'sp-assigned'};
-  }
-  if(s.ownerTaught){
-    // Owner taught: no primary hire. Done once eval is in and any co-instructor is paid.
-    if(jd.evalReceived&&payDone)return{key:'paid',label:'Paid',cls:'sp-paid'};
-    if(jd.evalReceived)return{key:'pay-ready',label:'Ready to pay',cls:'sp-payready'};
-    if(sessDate<new Date())return{key:'eval-pending',label:'Eval pending',cls:'sp-eval'};
-    if(!jd.materialsSent)return{key:'mat',label:'Handbooks pending',cls:'sp-mat'};
-    return{key:'assigned',label:'Ready',cls:'sp-assigned'};
-  }
-  if(!jd.instructorId)return openStatus();
-  // Fully paid only when the primary AND any second instructor are both paid.
-  if(jd.payStatus==='paid'&&payDone)return{key:'paid',label:'Paid',cls:'sp-paid'};
-  if(jd.evalReceived)return{key:'pay-ready',label:'Ready to pay',cls:'sp-payready'};
-  if(sessDate<new Date()&&!jd.evalReceived)return{key:'eval-pending',label:'Eval pending',cls:'sp-eval'};
-  if(!jd.materialsSent)return{key:'mat',label:'Handbooks pending',cls:'sp-mat'};
-  return{key:'assigned',label:'Assigned',cls:'sp-assigned'};
-}
-
 function renderJobs(){
   // The Jobs & materials screen was removed. Callers still refresh through this.
 }
@@ -9565,15 +9519,11 @@ function assignInstructor(sessId,instrId){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   jobDataCache[sessId].instructorId=instrId||null;
   if(instrId)jobDataCache[sessId].waitlist=(jobDataCache[sessId].waitlist||[]).filter(id=>id!==instrId);
-  renderJobs();
+  if(typeof renderJobs==='function')renderJobs();
   const s=sessions.find(x=>x.id===sessId);
   if(s){s.instructorId=instrId||null;dbWrite(sb.from('sessions').update({instructor_id:instrId||null}).eq('id',sessId),'Instructor assignment');}
   upsertJobData(sessId);
   syncCheckoutInstructors();
-}
-function setMaterialsMethod(sessId,method){
-  if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
-  jobDataCache[sessId].materialsMethod=method;renderJobs();upsertJobData(sessId);
 }
 // One saved flag for the dashboard checklist and the session screen.
 // materialsSent is job_data.materials_sent. materialsSentAt is the checked time.
@@ -9584,10 +9534,6 @@ function setMaterialsSent(sessId,checked){
   jd.materialsSentAt=checked?new Date().toISOString():null;
   paintLockboxRow(sessId);
   return upsertJobData(sessId);
-}
-function toggleMaterials(sessId,checked){
-  setMaterialsSent(sessId,checked);
-  renderJobs();
 }
 // Dashboard checklist and the session "Materials in lock box" box both call this.
 function toggleMaterialsFromDash(sessId,checked){
@@ -9750,6 +9696,77 @@ function packingBusyDays(rows){
     return {date:d, total:by[d].length, courses:courses};
   });
 }
+const PACK_BRING_ORDER=[
+  ['ssHandbook','Safe Sitter handbook','Safe Sitter handbooks'],
+  ['sahHandbook','Safe@Home handbook','Safe@Home handbooks'],
+  ['gpHandbook','Grandparents handbook','Grandparents handbooks'],
+  ['itbHandbook','Intro to Babysitting handbook','Intro to Babysitting handbooks'],
+  ['ssNotebook','Safe Sitter notebook','Safe Sitter notebooks'],
+  ['av','AV kit','AV kits'],
+  ['infant','infant manikin','infant manikins'],
+  ['child','child manikin','child manikins'],
+  ['adult','adult manikin','adult manikins']
+];
+function packingBringPhrase(counts){
+  const parts=[];
+  const seen={};
+  PACK_BRING_ORDER.forEach(function(row){
+    const n=Number(counts&&counts[row[0]])||0;
+    if(!(n>0))return;
+    seen[row[0]]=true;
+    parts.push(n+' '+(n===1?row[1]:row[2]));
+  });
+  if(counts)Object.keys(counts).forEach(function(k){
+    if(seen[k])return;
+    const n=Number(counts[k])||0;
+    if(n>0)parts.push(n+' '+k);
+  });
+  return parts.length?('Bring: '+parts.join(', ')):'';
+}
+function packingBringCounts(s, registered){
+  const count=Math.max(0,Number(registered)||0);
+  const counts={};
+  function add(kind,n){
+    const q=Number(n)||0;
+    if(kind&&q>0)counts[kind]=q;
+  }
+  try{
+    if(typeof matPlanForSession==='function'){
+      const plan=matPlanForSession({
+        course:s&&s.course,
+        isVirtual:!!(s&&s.isVirtual),
+        date:(s&&s.date)||'',
+        extraDates:(s&&s.extraDates)||[],
+        sessionId:s&&s.id,
+        rosterCount:count,
+        headcount:count
+      });
+      if(!plan||plan.skip)return counts;
+      (plan.books||[]).forEach(function(b){if(b)add(b.kind,b.need);});
+      (plan.lines||[]).forEach(function(l){if(l&&!l.consumable)add(l.kind,l.need);});
+      return counts;
+    }
+  }catch(err){}
+  try{
+    if(typeof sessionBookNeeds==='function'){
+      const books=sessionBookNeeds(s,count);
+      if(books)Object.keys(books).forEach(function(k){add(k,books[k]);});
+    }
+    if(typeof sessionMatNeeds==='function'){
+      const needs=sessionMatNeeds(s,count);
+      if(needs)Object.keys(needs).forEach(function(k){add(k,needs[k]);});
+    }
+  }catch(err){}
+  return counts;
+}
+function packingBringLine(s, registered){
+  return packingBringPhrase(packingBringCounts(s, registered));
+}
+function packingKitHtml(r){
+  const bring=r&&r.bring?'<div class="pack-bring">'+escapeHtml(r.bring)+'</div>':'';
+  const kit=r&&r.manikins?'<div class="pack-kit">Batteries + screwdriver</div>':'';
+  return bring+kit;
+}
 function packingBuildModel(sessionList, instructorList, jobData, today, days, regList){
   const span=packingRangeDaysValue(days);
   const start=String(today||'');
@@ -9758,6 +9775,7 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
   const rows=(sessionList||[]).filter(function(s){return packingInRange(s, start, span);}).map(function(s){
     const group=packingInstructorGroup(s, instructorList, jobData);
     const jd=(jobData&&s.id&&jobData[s.id])||{};
+    const registered=packingRegisteredCount(s, regs);
     return {
       id:s.id,
       date:s.date,
@@ -9768,7 +9786,8 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
       groupName:group.name,
       materialsSent:!!jd.materialsSent,
       materialsSentAt:jd.materialsSentAt||null,
-      registered:packingRegisteredCount(s, regs),
+      registered:registered,
+      bring:packingBringLine(s, registered),
       manikins:(typeof sessionUsesManikins==='function')?!!sessionUsesManikins(s):false
     };
   }).sort(function(a,b){
@@ -9811,7 +9830,7 @@ function packingRowHtml(r){
   return '<article class="pack-row'+(r.packTogether?' is-pack':'')+'">'+
     '<div class="pack-date"><div class="pack-dow">'+escapeHtml(parts.dow)+'</div><div class="pack-day">'+escapeHtml(parts.day)+'</div></div>'+
     '<div class="pack-time">'+time+'</div>'+
-    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div>'+(r.manikins?'<div class="pack-kit">Batteries + screwdriver</div>':'')+'</div>'+
+    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div>'+packingKitHtml(r)+'</div>'+
     '<div class="pack-place">'+escapeHtml(r.place)+'</div>'+
     '<div class="pack-mat"><label class="pack-lock"><input type="checkbox" data-sess="'+id+'"'+(r.materialsSent?' checked':'')+' onchange="toggleMaterialsFromPacking(this)"> <span>Materials in lock box</span></label>'+
     '<div class="pack-stamp">'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</div>'+flag+'</div></article>';
@@ -9841,7 +9860,7 @@ function packingPrintHtml(model, generatedAt){
   const sections=model.groups.length?model.groups.map(function(g){
     const body=g.rows.map(function(r){
       const flag=r.packTogether?'<div class="pack-pdf-flag">Pack together</div>':'';
-      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+(r.manikins?'<div class="pack-kit">Batteries + screwdriver</div>':'')+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</td></tr>';
+      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+packingKitHtml(r)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</td></tr>';
     }).join('');
     return '<section class="pack-pdf-section"><h2>'+escapeHtml(g.name)+'</h2><table class="pack-pdf-table"><colgroup><col style="width:18%"><col style="width:12%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:18%"></colgroup><thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Place</th><th>Registered</th><th>Materials in lock box</th></tr></thead><tbody>'+body+'</tbody></table></section>';
   }).join(''):'<p class="pack-pdf-empty">No in-person classes in this range.</p>';
@@ -9917,43 +9936,6 @@ function toggleReminderFlag(sessId,field,checked){
   renderDashboard();
   upsertJobData(sessId);
 }
-function toggleEval(sessId,checked){
-  if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
-  jobDataCache[sessId].evalReceived=checked;renderJobs();upsertJobData(sessId);
-}
-function markPaid(sessId){
-  const jdi=jobDataCache[sessId];if(!jdi)return;
-  const s=sessions.find(x=>x.id===sessId);
-  if(!jdi.instructorId){alert('Assign an instructor before marking as paid.');return;}
-  // Custom jobs (5Ks, fairs, volunteer events) have no host evaluation requirement.
-  if(!(s&&s.isCustomJob)&&!jdi.evalReceived){alert('Evaluation must be received before marking as paid.');return;}
-  jdi.payStatus='paid';
-  jdi.payDate=fmtYMD(new Date());
-  // Freeze the fee actually paid so a future hourly-rate change never rewrites this record.
-  jdi.paidFee=instrBaseFee(s,instructors.find(x=>x.id===jdi.instructorId));
-  renderJobs();showToast('Marked as paid!');upsertJobData(sessId);
-}
-function toggleSecondInstrPaid(sessId){
-  if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
-  const jdi=jobDataCache[sessId];
-  const s=sessions.find(x=>x.id===sessId);
-  jdi.secondInstrPaid=!jdi.secondInstrPaid;
-  jdi.secondInstrPayDate=jdi.secondInstrPaid?fmtYMD(new Date()):null;
-  // Freeze on pay, release on undo.
-  jdi.secondInstrPaidFee=jdi.secondInstrPaid?instrBaseFee(s,instructors.find(x=>x.id===s.secondInstructorId)):null;
-  renderJobs();renderInstructors();showToast(jdi.secondInstrPaid?'Second instructor marked paid!':'Marked unpaid');upsertJobData(sessId);
-}
-function saveJobNote(sessId,note){
-  if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
-  jobDataCache[sessId].notes=note;upsertJobData(sessId);
-}
-function setReferralBonus(sessId,val){
-  if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
-  const amt=Math.max(0,parseInt(val)||0);
-  jobDataCache[sessId].referralBonus=amt;
-  renderJobs();upsertJobData(sessId);
-}
-
 // ─── WRAP-UP CHECKLIST ───────────────────────────────────────
 function openWrapup(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
@@ -13016,6 +12998,7 @@ function wireSessionMaterials(sessionId){
   _matSeedReuse=!!(existing&&coUsesExisting(existing));
   _matSeedQtys={};
   if(existing)(existing.items||[]).forEach(function(it){if(it&&it.equipmentId&&!matItemIsConsumable(it))_matSeedQtys[it.equipmentId]=Number(it.qty)||0;});
+  if(typeof renderSessionMaterials!=='function')return;
   ['m-course','m-date','m-owner','m-instr','m-virtual','m-maxoverride'].forEach(function(id){
     const el=document.getElementById(id);
     if(el)el.addEventListener('change',renderSessionMaterials);
@@ -13321,7 +13304,7 @@ function renderMaterials(){
   renderMatHolders();
   renderMatCards();
   renderMatTable();
-  renderDashMaterials();
+  if(typeof renderDashMaterials==='function')renderDashMaterials();
 }
 
 // Every class an instructor is teaching between two dates. Matches on the name shown

@@ -56,7 +56,7 @@
     var c = checks(row);
     var status = statusOf(row);
     if (filter === 'archived') return c.archived;
-    if (filter === 'done') return c.done && !c.archived;
+    if (filter === 'done') return !!(c.done || c.archived);
     if (filter === 'received') return status === 'received' && !c.archived;
     if (filter === 'all') return true;
     return !c.done && !c.archived;

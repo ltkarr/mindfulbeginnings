@@ -260,10 +260,10 @@ test('create-session form reserves materials and the dashboard lists materials c
   assert.match(admin, /already has this equipment out for other sessions/);
   const add = admin.slice(admin.indexOf('function openAddSession'), admin.indexOf('function openEditSession'));
   const edit = admin.slice(admin.indexOf('function openEditSession'), admin.indexOf('function saveSession'));
-  assert.match(add, /sessionMaterialsPanelHtml\(\)/);
-  assert.match(add, /wireSessionMaterials\(null\)/);
-  assert.match(edit, /sessionMaterialsPanelHtml\(\)/);
-  assert.match(edit, /wireSessionMaterials\(id\)/);
+  assert.doesNotMatch(add, /sessionMaterialsPanelHtml\(\)/);
+  assert.doesNotMatch(add, /wireSessionMaterials\(null\)/);
+  assert.doesNotMatch(edit, /sessionMaterialsPanelHtml\(\)/);
+  assert.doesNotMatch(edit, /wireSessionMaterials\(id\)/);
   const save = admin.slice(admin.indexOf('function saveSession'), admin.indexOf('function deleteSession'));
   assert.match(save, /sessionMaterialsFromForm\(editId\)/);
   assert.match(save, /applySessionMaterials\(s\.id,matChoice\)/);
@@ -286,7 +286,7 @@ test('create-session form reserves materials and the dashboard lists materials c
   assert.doesNotMatch(dash, /markReturned/);
   assert.doesNotMatch(dash, /openCheckout/);
   assert.match(admin, /function markReturned/);
-  assert.match(admin, /id="dash-materials"/);
+  assert.doesNotMatch(admin, /id="dash-materials"/);
   assert.match(admin, /function openCheckIn/);
   assert.match(admin, /function saveCheckIn/);
   const sql = fs.readFileSync(path.join(root, 'migrations/infant_cpr_manikins_plus3.sql'), 'utf8');
