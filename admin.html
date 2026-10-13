@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261013-packing-count';
+window.MB_ADMIN_BUILD='20261013-milestone-acks-packing';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -1836,6 +1836,8 @@ async function loadData(){
     console.error('Failed to load data:',e);
     showToast('⚠️ Could not connect to database. Check your Supabase config.');
   }
+  // Merge milestone dismissals before the dashboard paints its alerts.
+  await ensureMilestoneAcks(true);
 }
 
 // Shared write-checker. supabase-js does NOT throw when the database rejects a write —
@@ -5269,13 +5271,136 @@ function classesPendingBy(instrId){
   }).length;
 }
 // Milestones fire at 5, 10, 15, 20 classes taught (and every 5 after that).
-// Dismissals are remembered in this browser via localStorage; the alert
-// re-appears automatically when the instructor reaches the next milestone.
+// Dismissals are stored in Supabase (milestone_acks) and cached in this
+// browser under mb_milestones_acked. The cache and the database are merged
+// by taking the higher milestone per instructor. A later milestone is a
+// higher number, so it shows again until it is dismissed.
+const MILESTONE_ACK_KEY='mb_milestones_acked';
+let milestoneAcksChecked=false;
+let milestoneAcksTableReady=false;
+let milestoneAcksInflight=null;
+let milestoneAcksRenderWait=false;
+let milestoneAckWrite=Promise.resolve();
+
+function milestoneAckNumber(v){
+  const n=Number(v);
+  return isFinite(n)&&n>0?n:0;
+}
+function readMilestoneAcks(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(MILESTONE_ACK_KEY)||'{}');
+    if(!raw||typeof raw!=='object')return {};
+    return raw;
+  }catch(e){return {};}
+}
+function writeMilestoneAcks(acked){
+  try{localStorage.setItem(MILESTONE_ACK_KEY,JSON.stringify(acked));}catch(e){}
+}
+// Writes are queued so a refresh merge cannot overwrite a newer dismiss
+// with an older milestone. The value stored is the max of this request,
+// the local cache, and the row already in the database.
+function enqueueMilestoneWrite(rows){
+  const job=milestoneAckWrite.then(function(){return persistMilestoneAcks(rows);},function(){return persistMilestoneAcks(rows);});
+  milestoneAckWrite=job.then(function(){},function(){});
+  return job;
+}
+async function persistMilestoneAcks(rows){
+  try{
+    if(!sb||!milestoneAcksTableReady||!rows||!rows.length)return;
+    const ids=[];
+    const requested={};
+    rows.forEach(function(r){
+      const id=r&&r.instructor_id!=null?String(r.instructor_id):'';
+      if(!id)return;
+      requested[id]=Math.max(milestoneAckNumber(requested[id]),milestoneAckNumber(r.milestone));
+      if(ids.indexOf(id)<0)ids.push(id);
+    });
+    if(!ids.length)return;
+    const res=await sb.from('milestone_acks').select('instructor_id,milestone').in('instructor_id',ids);
+    if(!res||res.error){
+      console.error('Milestone dismiss failed:',res&&res.error);
+      showToast('⚠️ Milestone dismiss did not save: '+(((res&&res.error&&res.error.message)||'database error').slice(0,90))+'. Refresh to see true state.');
+      return;
+    }
+    const dbMap={};
+    (res.data||[]).forEach(function(row){
+      if(!row||row.instructor_id==null)return;
+      dbMap[String(row.instructor_id)]=milestoneAckNumber(row.milestone);
+    });
+    const local=readMilestoneAcks();
+    const payload=[];
+    let raised=false;
+    ids.forEach(function(id){
+      const next=Math.max(milestoneAckNumber(requested[id]),milestoneAckNumber(local[id]),milestoneAckNumber(dbMap[id]));
+      if(next>milestoneAckNumber(local[id])){
+        local[id]=next;
+        raised=true;
+      }
+      if(next>milestoneAckNumber(dbMap[id])){
+        payload.push({instructor_id:id,milestone:next,acked_at:new Date().toISOString()});
+      }
+    });
+    if(raised)writeMilestoneAcks(local);
+    if(payload.length){
+      await dbWrite(sb.from('milestone_acks').upsert(payload,{onConflict:'instructor_id'}),'Milestone dismiss');
+    }
+    if(raised&&milestoneAcksChecked)renderDashboard();
+  }catch(e){
+    console.error('Milestone dismiss failed:',e);
+    showToast('⚠️ Milestone dismiss did not save: '+((e&&e.message||'database error').slice(0,90))+'. Refresh to see true state.');
+  }
+}
+// Load dismissals, keep the higher milestone from the database or this
+// browser, and push any higher local dismissals up to the database.
+async function loadMilestoneAcks(){
+  try{
+    if(!sb)return;
+    const res=await sb.from('milestone_acks').select('instructor_id,milestone');
+    if(!res||res.error){
+      console.warn('Milestone acks table not loaded (run migrations/milestone_acks.sql):',res&&res.error);
+      return;
+    }
+    milestoneAcksTableReady=true;
+    const dbMap={};
+    (res.data||[]).forEach(function(row){
+      if(!row||row.instructor_id==null)return;
+      dbMap[String(row.instructor_id)]=milestoneAckNumber(row.milestone);
+    });
+    const local=readMilestoneAcks();
+    const ids={};
+    Object.keys(local).forEach(function(id){ids[id]=true;});
+    Object.keys(dbMap).forEach(function(id){ids[id]=true;});
+    const merged={};
+    const pushes=[];
+    Object.keys(ids).forEach(function(id){
+      const fromLocal=milestoneAckNumber(local[id]);
+      const fromDb=milestoneAckNumber(dbMap[id]);
+      const next=Math.max(fromLocal,fromDb);
+      if(next>0)merged[id]=next;
+      if(fromLocal>fromDb)pushes.push({instructor_id:id,milestone:next});
+    });
+    writeMilestoneAcks(merged);
+    if(pushes.length)await enqueueMilestoneWrite(pushes);
+  }catch(e){
+    console.warn('Milestone acks not loaded:',e);
+  }finally{
+    milestoneAcksChecked=true;
+  }
+}
+function ensureMilestoneAcks(force){
+  if(!force&&milestoneAcksChecked)return Promise.resolve();
+  if(milestoneAcksInflight)return milestoneAcksInflight;
+  milestoneAcksInflight=loadMilestoneAcks().finally(function(){milestoneAcksInflight=null;});
+  return milestoneAcksInflight;
+}
 function ackMilestone(instrId,milestone){
-  let acked={};
-  try{acked=JSON.parse(localStorage.getItem('mb_milestones_acked')||'{}');}catch(e){}
-  acked[instrId]=Math.max(acked[instrId]||0,milestone);
-  localStorage.setItem('mb_milestones_acked',JSON.stringify(acked));
+  const acked=readMilestoneAcks();
+  const next=Math.max(milestoneAckNumber(acked[instrId]),milestoneAckNumber(milestone));
+  if(next>0){
+    acked[instrId]=next;
+    writeMilestoneAcks(acked);
+    if(milestoneAcksTableReady)enqueueMilestoneWrite([{instructor_id:instrId,milestone:next}]);
+  }
   renderDashboard();
 }
 // Tasks that make up one class's pre-class checklist. Host and instructor
@@ -5554,11 +5679,20 @@ function renderDashboard(){
   // ── Instructor milestone alerts ──
   // Celebrates each instructor the first time their lifetime taught-class count
   // reaches 5, 10, 15, 20 (and every 5 beyond). Shows on the dashboard until
-  // dismissed; a later milestone re-triggers the alert.
+  // dismissed; a later milestone re-triggers the alert. Database acks are
+  // loaded and merged with this browser before the alerts are drawn.
   const mileEl=document.getElementById('instructor-milestones');
-  if(mileEl){
-    let acked={};
-    try{acked=JSON.parse(localStorage.getItem('mb_milestones_acked')||'{}');}catch(e){}
+  if(mileEl&&!milestoneAcksChecked){
+    mileEl.innerHTML='';
+    if(!milestoneAcksRenderWait){
+      milestoneAcksRenderWait=true;
+      ensureMilestoneAcks(false).then(function(){
+        milestoneAcksRenderWait=false;
+        renderDashboard();
+      });
+    }
+  }else if(mileEl){
+    const acked=readMilestoneAcks();
     const hits=[];
     instructors.filter(instrActive).forEach(i=>{
       const taught=classesTaughtBy(i.id);
