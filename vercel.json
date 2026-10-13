@@ -66,6 +66,14 @@
     {
       "source": "/classes-catalog/",
       "destination": "/classes-catalog.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/about/",
+      "destination": "/about.html"
     }
   ],
   "headers": [
