@@ -67,8 +67,8 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-copy{margin:6px 0 0;font-size:12px;opacity:.7}
 .mb-partners{background:var(--cream);padding:44px 6vw}
 .mb-partners-inner{max-width:1080px;margin:0 auto;text-align:center}
-.mb-partners-logos{display:flex;flex-wrap:wrap;gap:28px 44px;justify-content:center;align-items:center;margin-top:18px}
-.mb-partners-logos img{max-height:88px;max-width:280px;width:auto;height:auto}
+.mb-partners-logos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:24px 32px;justify-items:center;align-items:center;margin-top:18px}
+.mb-partners-logos img{max-height:76px;max-width:100%;width:auto;height:auto}
 
 /* ---------- layout helpers ---------- */
 .mb-wrap{max-width:1080px;margin:0 auto;padding:0 6vw}
@@ -102,7 +102,7 @@ p:last-child{margin-bottom:0}
   overflow:hidden;display:flex;flex-direction:column;
 }
 .mb-card-band{background:var(--navy);padding:14px 18px}
-.mb-card-band h3{color:var(--white);font-size:17px;margin:0}
+.mb-card-band h3{color:var(--white);font-size:22px;margin:0}
 .mb-card-body{padding:18px;display:flex;flex-direction:column;gap:10px;flex:1}
 .mb-card-price{margin:0;font-size:15px;font-weight:800}
 .mb-card-text{margin:0;font-size:15px}
@@ -118,6 +118,7 @@ p:last-child{margin-bottom:0}
 /* ---------- two-column path cards ---------- */
 .mb-paths{display:grid;grid-template-columns:1fr;gap:24px}
 .mb-path{background:var(--white);border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:12px}
+.mb-path .mb-actions{margin-top:auto;padding-top:18px}
 .mb-path p{font-size:15px}
 
 /* ---------- forms ---------- */
@@ -165,6 +166,7 @@ p:last-child{margin-bottom:0}
   .mb-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media (max-width:560px){
+  .mb-partners-logos{grid-template-columns:repeat(2,minmax(0,1fr))}
   .mb-header{padding:12px 5vw}
   .mb-wordmark{font-size:17px}
   .mb-hero{padding:40px 6vw 44px}
