@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261013-baby-ready-cpr';
+window.MB_ADMIN_BUILD='20261013-manikin-batteries';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -395,6 +395,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .pack-time,.pack-place,.pack-course{line-height:1.4}
 .pack-course{font-weight:650}
 .pack-count{margin-top:2px;font-size:14px;font-weight:650;color:#1d6b45;line-height:1.35}
+.pack-kit{margin-top:2px;font-size:14px;font-weight:500;line-height:1.35}
 .pack-total{margin:0 0 14px;font-size:17px;font-weight:650;color:#1d6b45;line-height:1.4}
 .pack-pdf-total{margin:8px 0 0;font-size:14px;font-weight:650;color:#1d6b45;line-height:1.4}
 .pack-lock{display:flex;align-items:flex-start;gap:8px;margin:0;font-weight:650;line-height:1.35;cursor:pointer}
@@ -9767,7 +9768,8 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
       groupName:group.name,
       materialsSent:!!jd.materialsSent,
       materialsSentAt:jd.materialsSentAt||null,
-      registered:packingRegisteredCount(s, regs)
+      registered:packingRegisteredCount(s, regs),
+      manikins:(typeof sessionUsesManikins==='function')?!!sessionUsesManikins(s):false
     };
   }).sort(function(a,b){
     return a.date.localeCompare(b.date)||packingTimeKey(a.time).localeCompare(packingTimeKey(b.time))||a.course.localeCompare(b.course)||String(a.id).localeCompare(String(b.id));
@@ -9809,7 +9811,7 @@ function packingRowHtml(r){
   return '<article class="pack-row'+(r.packTogether?' is-pack':'')+'">'+
     '<div class="pack-date"><div class="pack-dow">'+escapeHtml(parts.dow)+'</div><div class="pack-day">'+escapeHtml(parts.day)+'</div></div>'+
     '<div class="pack-time">'+time+'</div>'+
-    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div></div>'+
+    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div>'+(r.manikins?'<div class="pack-kit">Batteries + screwdriver</div>':'')+'</div>'+
     '<div class="pack-place">'+escapeHtml(r.place)+'</div>'+
     '<div class="pack-mat"><label class="pack-lock"><input type="checkbox" data-sess="'+id+'"'+(r.materialsSent?' checked':'')+' onchange="toggleMaterialsFromPacking(this)"> <span>Materials in lock box</span></label>'+
     '<div class="pack-stamp">'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</div>'+flag+'</div></article>';
@@ -9839,7 +9841,7 @@ function packingPrintHtml(model, generatedAt){
   const sections=model.groups.length?model.groups.map(function(g){
     const body=g.rows.map(function(r){
       const flag=r.packTogether?'<div class="pack-pdf-flag">Pack together</div>':'';
-      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</td></tr>';
+      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+(r.manikins?'<div class="pack-kit">Batteries + screwdriver</div>':'')+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</td></tr>';
     }).join('');
     return '<section class="pack-pdf-section"><h2>'+escapeHtml(g.name)+'</h2><table class="pack-pdf-table"><colgroup><col style="width:18%"><col style="width:12%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:18%"></colgroup><thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Place</th><th>Registered</th><th>Materials in lock box</th></tr></thead><tbody>'+body+'</tbody></table></section>';
   }).join(''):'<p class="pack-pdf-empty">No in-person classes in this range.</p>';
@@ -12176,6 +12178,24 @@ function matCourseNeeds(course){
   if(key&&Object.prototype.hasOwnProperty.call(MAT_NEEDS,key))return MAT_NEEDS[key];
   return undefined;
 }
+// Infant, child, and adult kit lines are manikins. AV-only courses are not.
+// Care Ready and Baby Ready practice on manikins but are not in the kit table.
+function needsIncludeManikin(needs){
+  if(!needs)return false;
+  return !!(Number(needs.infant)>0||Number(needs.child)>0||Number(needs.adult)>0);
+}
+function courseUsesManikins(course){
+  if(needsIncludeManikin(matCourseNeeds(course)))return true;
+  const n=matNormTitle(course);
+  return n==='care ready'||n==='baby ready';
+}
+function sessionUsesManikins(s){
+  if(!s||s.isVirtual)return false;
+  if(s.id&&typeof matCheckouts!=='undefined'&&typeof coNoEquipment==='function'){
+    if((matCheckouts||[]).some(function(c){return c&&c.sessionId===s.id&&!c.returnedDate&&coNoEquipment(c);}))return false;
+  }
+  return courseUsesManikins(s.course);
+}
 // Registered students only. Capacity is not a roster, so an empty class of 16
 // still plans the 1+1 baseline until kids are actually signed up.
 function matRegisteredHeadcount(s){
@@ -12707,7 +12727,9 @@ function dashMatCues(list){
   return rows;
 }
 function matNeedsLabel(needs){
-  return Object.entries(needs).map(([k,q])=>{const eq=matEqOfKind(k);return q+'× '+(eq?eq.name:k.toUpperCase());}).join(', ');
+  const bits=Object.entries(needs||{}).map(([k,q])=>{const eq=matEqOfKind(k);return q+'× '+(eq?eq.name:k.toUpperCase());});
+  if(needsIncludeManikin(needs))bits.push('Batteries + screwdriver');
+  return bits.join(', ');
 }
 // What's still missing for a session, counting every checkout tied to it
 // (plus optional extraItems, e.g. the ones being typed in the modal right now).
@@ -13042,7 +13064,8 @@ function renderSessionMaterials(){
   if(plan.skip){
     const books=matCourseBooks(draft.course);
     const why=draft.isVirtual?'This session is virtual, so nothing is checked out.':(books&&books.length?'No durable kit for this course. Handbooks are counted from the roster once students are registered.':(matCourseNeeds(draft.course)===null?'This course uses its own materials. Nothing is checked out.':'This course has no kit to reserve.'));
-    body.innerHTML='<div style="font-size:15px;color:var(--muted)">'+escapeHtml(why)+'</div>';
+    const battery=(!draft.isVirtual&&courseUsesManikins(draft.course))?' Pack Batteries + screwdriver.':'';
+    body.innerHTML='<div style="font-size:15px;color:var(--muted)">'+escapeHtml(why+battery)+'</div>';
     window._matPlan=plan;
     return;
   }
@@ -13055,7 +13078,8 @@ function renderSessionMaterials(){
     if(!l.eqId)return '<div style="font-size:15px;padding:4px 0">'+escapeHtml(l.name)+' is not on the equipment list yet.</div>';
     return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border)"><div style="flex:1;font-size:16px;font-weight:500">'+escapeHtml(l.name)+'</div><div id="m-mat-free-'+l.eqId+'" style="font-size:14px;color:var(--muted);white-space:nowrap"></div><input type="number" id="m-mat-qty-'+l.eqId+'" data-need="'+l.need+'" min="0" max="99" step="1" value="'+l.requested+'" oninput="paintSessionMaterialsStatus()" style="width:64px;padding:7px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:\'DM Sans\',sans-serif;outline:none"></div>';
   }).join('');
-  body.innerHTML='<div class="fg" style="margin:0 0 8px"><label>Who has the materials</label><input type="text" id="m-mat-who" value="'+escapeHtml(draft.personForField)+'" placeholder="Instructor name" oninput="matWhoTyped()" style="width:100%"></div>'+rows+'<div id="m-mat-status" style="margin-top:8px"></div>';
+  const batteryLine=(!draft.isVirtual&&courseUsesManikins(draft.course))?'<div class="pack-kit" style="padding:6px 0;font-size:16px">Batteries + screwdriver</div>':'';
+  body.innerHTML='<div class="fg" style="margin:0 0 8px"><label>Who has the materials</label><input type="text" id="m-mat-who" value="'+escapeHtml(draft.personForField)+'" placeholder="Instructor name" oninput="matWhoTyped()" style="width:100%"></div>'+rows+batteryLine+'<div id="m-mat-status" style="margin-top:8px"></div>';
   _matSeedPerson='';
   _matSeedQtys=null;
   if(_matReuseTouched)_matSeedReuse=!!draft.reuse;
@@ -13739,6 +13763,7 @@ function coNeedsHint(s){
     else if(matCourseBooks(s.course)&&!needs)msg=`<div class="alert info" style="margin:0">🎒 &nbsp;<span>${escapeHtml(s.course)} has no durable kit. Handbooks are counted from the roster.</span></div>`;
     const keep=matKeepSentence(matPlanForSession({course:s.course,isVirtual:!!s.isVirtual,date:s.date||'',extraDates:s.extraDates||[],person:(document.getElementById('m-co-who')&&document.getElementById('m-co-who').value||'').trim(),sessionId:s.id,headcount:sessionHeadcount(s),excludeCheckoutId:window._coEditId||null,reuse:false}));
     if(keep)msg+=`<div class="alert info" style="margin:${msg?'6px':'0'} 0 0"><strong>${escapeHtml(keep)}</strong></div>`;
+    if(!s.isVirtual&&courseUsesManikins(s.course)&&!needsIncludeManikin(needs))msg+=`<div class="alert info" style="margin:${msg?'6px':'0'} 0 0">Pack <strong>Batteries + screwdriver</strong> with the manikins.</div>`;
   }
   if(window._coDueNote)msg+=`<div class="alert info" style="margin:${msg?'6px':'0'} 0 0">📅 &nbsp;<span>${escapeHtml(window._coDueNote)}</span></div>`;
   el.innerHTML=msg;
