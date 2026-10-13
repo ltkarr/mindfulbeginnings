@@ -6,7 +6,7 @@
 <title>Safety and babysitting classes, DC area | Mindful Beginnings</title>
 <meta name="description" content="Home alone, babysitting, first aid and CPR classes for kids, teens and caregivers, taught by nurses and educators. We come to you within 60 miles of DC.">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Montserrat:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/site.css">
 <style>
 .mb-grid-3 .mb-card-band{min-height:110px;display:flex;align-items:center}
@@ -20,7 +20,8 @@
 <body>
 <header class="mb-header">
 <a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark">Mindful Beginnings</span></a>
-<nav class="mb-nav" aria-label="Primary">
+<button class="mb-nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+<nav class="mb-nav" id="primary-nav" aria-label="Primary">
 <a href="/about">About</a>
 <a href="/classes-catalog">Classes</a>
 <a href="/host-a-class.html">Host a Class</a>
@@ -37,7 +38,7 @@
 <p class="mb-lede">Hands-on home alone, babysitting, first aid, CPR and choking rescue classes, taught by registered nurses and certified educators. We bring everything to your home, school, troop, congregation or workplace, anywhere within 60 miles of Washington, DC.</p>
 <div class="mb-actions">
 <a class="mb-btn mb-btn-gold" href="/classes-catalog">Find a class</a>
-<a class="mb-btn mb-btn-gold" href="/host-a-class.html">Host a class for your group</a>
+<a class="mb-btn mb-btn-navy" href="/host-a-class.html">Host a class for your group</a>
 </div>
 </div>
 </section>
@@ -170,7 +171,7 @@
 <section class="mb-section mb-section-cream">
 <div class="mb-wrap">
 <h2>We come to you</h2>
-<p class="mb-narrow">Mindful Beginnings is based in Bethesda, Maryland, and brings hands-on safety and caregiving workshops to your location anywhere within 60 miles of Washington, DC. Founder Lindsay Karr, M.Ed., is an educator with more than 20 years of experience teaching students of all ages. She started Mindful Beginnings in 2026 after searching for a flexible, high-quality babysitting course for her oldest daughter and not finding one. Classes are taught by registered nurses and certified educators.</p>
+<p class="mb-narrow">Mindful Beginnings brings hands-on safety and caregiving workshops to your location anywhere within 60 miles of Washington, DC. Founded by educator Lindsay Karr, M.Ed., all classes are taught by registered nurses and certified educators.</p>
 <div class="mb-actions" style="margin-top:16px">
 <a class="mb-btn mb-btn-navy" href="/about">Meet our team</a>
 </div>
@@ -208,5 +209,6 @@
 <p class="mb-footer-copy">&copy; 2026 Mindful Beginnings LLC. All rights reserved.</p>
 </div>
 </footer>
+<script src="/nav.js" defer></script>
 </body>
 </html>

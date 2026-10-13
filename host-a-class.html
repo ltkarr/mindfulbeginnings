@@ -6,13 +6,14 @@
 <title>Host a safety or babysitting class | Mindful Beginnings</title>
 <meta name="description" content="Gather a group at your home, school, troop or workplace and we bring the class, instructor and supplies. Home hosts get one free registration.">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Montserrat:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/site.css">
 </head>
 <body>
 <header class="mb-header">
 <a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark">Mindful Beginnings</span></a>
-<nav class="mb-nav" aria-label="Primary">
+<button class="mb-nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+<nav class="mb-nav" id="primary-nav" aria-label="Primary">
 <a href="/">Home</a>
 <a href="/about">About</a>
 <a href="/classes-catalog">Classes</a>
@@ -110,5 +111,6 @@
 <p class="mb-footer-copy">&copy; 2026 Mindful Beginnings LLC. All rights reserved.</p>
 </div>
 </footer>
+<script src="/nav.js" defer></script>
 </body>
 </html>

@@ -6,7 +6,7 @@
 <title>About the Team | Mindful Beginnings</title>
 <meta name="description" content="Meet the Mindful Beginnings team. Classes are taught by registered nurses and certified educators and was founded by a 20-year classroom teacher.">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Montserrat:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/site.css">
 <style>
 *{box-sizing:border-box}
@@ -24,11 +24,11 @@ button{font-family:inherit}
 .hero{background:#1E3161;color:#F5F2EA;padding:36px 6vw 32px}
 .hero-inner,.close-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 .eyebrow{font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#EFC75A}
-h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
+h1{margin:0;font-size:clamp(28px,3.4vw,38px);line-height:1.15;font-weight:600}
 .team-block{padding:20px 6vw 0;margin:0}
 .team-section{padding:22px 0 6px}
 .team-section:last-child{padding-bottom:0}
-.team-section h2{margin:0 0 14px;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800}
+.team-section h2{margin:0 0 14px;font-size:clamp(22px,2.4vw,28px);line-height:1.2;font-weight:600}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 8px;align-items:start}
 .card{appearance:none;width:100%;margin:0;border:0;background:transparent;padding:6px 4px;color:inherit;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:12px}
 .card:hover .name{text-decoration:underline}
@@ -82,7 +82,8 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 
 <header class="mb-header">
 <a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark">Mindful Beginnings</span></a>
-<nav class="mb-nav" aria-label="Primary">
+<button class="mb-nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+<nav class="mb-nav" id="primary-nav" aria-label="Primary">
 <a href="/">Home</a>
 <a href="/about" aria-current="page">About</a>
 <a href="/classes-catalog">Classes</a>
@@ -401,6 +402,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 
 <section class="close">
 <div class="close-inner">
+<h2 style="color:#F5F2EA;margin:0 0 4px">Ready to book your class?</h2>
 <div class="actions">
 <a class="gold-btn" href="/host-a-class.html">Book a class</a>
 <a class="contact-link" href="/contact.html">Contact</a>
@@ -505,5 +507,6 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 
 
 </div>
+<script src="/nav.js" defer></script>
 </body>
 </html>

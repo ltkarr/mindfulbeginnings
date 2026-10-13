@@ -121,7 +121,8 @@ label.fld{display:block;font-size:13px;color:var(--muted);font-weight:500;margin
 
 <header class="mb-header">
 <a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark">Mindful Beginnings</span></a>
-<nav class="mb-nav" aria-label="Primary">
+<button class="mb-nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+<nav class="mb-nav" id="primary-nav" aria-label="Primary">
 <a href="/">Home</a>
 <a href="/about">About</a>
 <a href="/classes-catalog">Classes</a>
@@ -432,5 +433,6 @@ function toast(msg){
 // Close modal on Escape.
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeZelle(); });
 </script>
+<script src="/nav.js" defer></script>
 </body>
 </html>
