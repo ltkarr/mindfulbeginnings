@@ -58,6 +58,14 @@
     {
       "source": "/cpr-certification/",
       "destination": "/cpr-certification.html"
+    },
+    {
+      "source": "/classes-catalog",
+      "destination": "/classes-catalog.html"
+    },
+    {
+      "source": "/classes-catalog/",
+      "destination": "/classes-catalog.html"
     }
   ],
   "headers": [
