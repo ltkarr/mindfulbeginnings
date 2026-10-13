@@ -8,28 +8,6 @@
   ],
   "redirects": [
     {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "mindfulbeginnings.org"
-        }
-      ],
-      "destination": "/index.html",
-      "permanent": false
-    },
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.mindfulbeginnings.org"
-        }
-      ],
-      "destination": "/index.html",
-      "permanent": false
-    },
-    {
       "source": "/instructor.html",
       "has": [
         {
