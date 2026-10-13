@@ -243,7 +243,7 @@
       lines.push('Date: ' + dateLong);
       lines.push('Time: ' + time);
       lines.push('Address: ' + address);
-      lines.push('Cost: ' + cost + ' per participant');
+      lines.push('Cost: ' + (/per (person|couple|participant|student)/i.test(cost) ? cost : (cost + ' per participant')));
       lines.push('Registration link: ' + regLink);
       lines.push('Session code: ' + code);
       lines.push('Instructor: ' + instrLine);

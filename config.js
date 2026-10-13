@@ -9,6 +9,9 @@
    Oct  8 2026 · Classes page prices for NEW sessions (LATER_PRICE_CHANGES, from Oct 9):
                  Social Ready $45, Stay Ready $85, Grandparents $195, Care Ready $195,
                  Baby Ready $195. Existing sessions keep their current prices.
+   Oct 13 2026 · Baby Ready is $195 per person on every session, including ones
+                 created before Oct 9. A couple registration is two people and
+                 costs $390. A session price override is still the checkout total.
    Oct  8 2026 · Added two American Red Cross courses (redCross + requiresLeadTeacher).
                  New-session prices, same Oct 9 list as the other classes-page prices:
                  Babysitter's Training $295 / 7 hours, Adult & Pediatric First Aid/CPR/AED
@@ -74,12 +77,12 @@ const COURSES={
   // Any instructor may teach it; it uses CPR manikins, so the registration form
   // treats it as an adult course (no grade, no parent/guardian fields).
   'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,adult:true,audience:'Nannies & au pairs'},
-  // Baby Ready: one payment of $225 covers a couple. Capacity is in people
-  // (12, the top of the ~6–12 people per nurse range). seatsPerRegistration 2
-  // means each booking holds two seats. Adult course — no grade, no parent.
-  // Length matches Care Ready (2.5 hours) until a published length replaces it.
-  // Any instructor may teach it, same as Care Ready.
-  'Baby Ready':{price:225,price2027:225,priceNew:225,priceNew2027:225,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · per couple'},
+  // Baby Ready: $195 per person. Capacity is in people (12, the top of the
+  // ~6–12 people per nurse range). seatsPerRegistration 2 means each booking
+  // is a couple and holds two seats, so the registration total is $390.
+  // Adult course — no grade, no parent. Length matches Care Ready (2.5 hours)
+  // until a published length replaces it. Any instructor may teach it.
+  'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · $195 per person'},
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters · Grades 3–9'},
   'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true,audience:'Grades 7–12'},
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'11th–12th grade & college'},
@@ -156,7 +159,10 @@ const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
    nothing already taught ever re-prices. Only courses whose price actually
    changed need to be listed. To raise a price again later, add a new entry at
    the TOP of this list with a future date — do not edit an old one.
-   Keep this list identical in config.js, register.html, and admin.html.
+   Oct 13 2026 exception: Baby Ready on the Aug 26 list was $225, which treated
+   that figure as a couple total. $195 is per person, so that entry is $195.
+   A couple registration is two people, $390. Keep this list identical in
+   config.js, register.html, and admin.html.
 */
 const LATER_PRICE_CHANGES=[
   // CLASSES PAGE PRICES, Oct 2026. Taken from mindfulbeginnings.org/classes
@@ -189,7 +195,7 @@ const LATER_PRICE_CHANGES=[
      'My First Babysitters Club':165,
      'Grandparents: Getting Started':185,
      'Care Ready':185,
-     'Baby Ready':225,
+     'Baby Ready':195,
      'All Kids Welcome':25,
      'Intro to Babysitting':40,
      'Steady and Ready':65,

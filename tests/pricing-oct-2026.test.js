@@ -25,8 +25,7 @@ const CHANGES = {
   'Social Ready': [35, 45],
   'Stay Ready: Choking Rescue and CPR': [75, 85],
   'Grandparents: Getting Started': [185, 185],
-  'Care Ready': [185, 175],
-  'Baby Ready': [225, 195]
+  'Care Ready': [185, 175]
 };
 
 test('new classes page prices start only for sessions created on/after Oct 9 2026 midnight ET', () => {
@@ -48,7 +47,8 @@ test('courses whose price did not change keep the same price after the cutover',
     'Steady and Ready': 65, 'My First Babysitters Club — Single Session': 95,
     'Ready. Period.': 75, 'All Kids Welcome': 25,
     'Campus Ready: Safety Skills for College Life': 75,
-    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 25
+    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 25,
+    'Baby Ready': 195
   };
   for (const [course, price] of Object.entries(unchanged)) {
     assert.equal(cfg.getSessionBasePrice(course, '2026-12-01', BEFORE), price, course);

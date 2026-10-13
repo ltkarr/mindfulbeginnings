@@ -200,7 +200,7 @@ footer{text-align:center;padding:24px;font-size:12px;color:var(--muted);border-t
 
   <div class="screen" id="screen-info">
   <div class="sess-banner" id="banner-info"></div>
-  <div id="couple-notice" class="notice-box" style="display:none;margin-bottom:16px"><strong>One registration, two adults.</strong> The price is per couple and holds two seats. Enter both names so both adults appear on the class roster.</div>
+  <div id="couple-notice" class="notice-box" style="display:none;margin-bottom:16px"><strong>One registration, two adults.</strong> The price is $195 per person. A couple registration is two people and costs $390. Enter both names so both adults appear on the class roster.</div>
   <div id="virtual-class-notice" class="notice-box" style="display:none;margin-bottom:16px"></div>
   <div class="trust-box" id="trust-box">
     <div class="trust-title">Before you continue</div>
@@ -663,15 +663,17 @@ const sb = createClient ? createClient(
 // NEW_PRICING_EFFECTIVE identical to the value in admin.html.
 if(typeof getSessionBasePrice==='undefined'){
   // Prices for sessions that existed BEFORE the Aug 2026 program-guide update.
-  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
-  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
+  const OLD_PRICES_2026={'Safe Sitter®':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'Care Ready':185,'Baby Ready':195,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
+  const OLD_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':195,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
   // Program-guide prices for sessions created on/after the cutover. (Steady and Ready
   // stays $65 — the guide's $50 is a confirmed typo. 2027 keeps the planned step-ups.)
-  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
-  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
+  const NEW_PRICES_2026={'Safe Sitter®':225,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'Care Ready':185,'Baby Ready':195,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
+  const NEW_PRICES_2027={'Safe Sitter®':225,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':195,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
   const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
   // Prices raised after the Aug 6 cutover — applied only to sessions CREATED on/after
-  // each `from` moment, so nothing already scheduled re-prices. Keep identical to the
+  // each `from` moment, so nothing already scheduled re-prices. Oct 13 2026
+  // exception: Baby Ready on the Aug 26 list is $195 per person, not $225 per
+  // couple. A couple registration is two people, $390. Keep identical to the
   // LATER_PRICE_CHANGES list in config.js and admin.html.
   const LATER_PRICE_CHANGES=[
     // CLASSES PAGE PRICES, Oct 2026. Taken from mindfulbeginnings.org/classes
@@ -699,7 +701,7 @@ if(typeof getSessionBasePrice==='undefined'){
        'Safe@Home — Virtual':40,
        'Safe@Home — Series':125,
        'My First Babysitters Club':165,
-       'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':225,
+       'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':195,
        'All Kids Welcome':25,
        'Intro to Babysitting':40,
        'Steady and Ready':65,
@@ -921,11 +923,16 @@ function couplePartnerName(){
   return (f.value.trim()+' '+l.value.trim()).trim();
 }
 
-// Returns the actual price a participant pays for the current session. Uses the per-session price override if set, otherwise the course default. Floored at $0.
+// Checkout total for the current session. A price override is that total.
+// The course default is per person, so a Baby Ready couple (2 seats) is
+// $195 × 2 = $390. Floored at $0.
 function getEffectivePrice(){
   if(!currentSession)return 0;
   if(currentSession.priceOverride!=null)return Math.max(0,Number(currentSession.priceOverride));
-  return getSessionBasePrice(currentSession.course, currentSession.date, currentSession.createdAt)||0;
+  const unit=getSessionBasePrice(currentSession.course, currentSession.date, currentSession.createdAt)||0;
+  const per=Number(seatsPerCourse(currentSession.course));
+  const seats=(isFinite(per)&&per>=1)?Math.floor(per):1;
+  return unit*seats;
 }
 
 // ── PROMO / DISCOUNT CODE ────────────────────────────────────
@@ -1042,8 +1049,14 @@ function renderPublicSessions(){
     const when=[fmtPublicDate(r.date),r.time?String(r.time).trim():''].filter(Boolean).join(' · ');
     const place=helpers.sessionCardPlace(r);
     const per=(helpers.seatsPerRegistration?helpers.seatsPerRegistration(r.course):seatsPerCourse(r.course));
-    let priceLabel=helpers.sessionPriceLabel(helpers.sessionPrice(r,priceFn));
-    if(per>1&&priceLabel&&priceLabel!=='Free')priceLabel=priceLabel+' / couple';
+    const unitPrice=helpers.sessionPrice(r,priceFn);
+    const hasOverride=(r.price_override!=null&&r.price_override!=='')||(r.priceOverride!=null&&r.priceOverride!=='');
+    const shown=(!hasOverride&&per>1&&unitPrice!=null&&!isNaN(Number(unitPrice)))?Number(unitPrice)*per:unitPrice;
+    let priceLabel=helpers.sessionPriceLabel(shown);
+    if(per>1&&priceLabel&&priceLabel!=='Free'){
+      priceLabel=priceLabel+' / couple';
+      if(!hasOverride&&unitPrice!=null)priceLabel=priceLabel+' · $'+unitPrice+' per person';
+    }
     const audience=helpers.courseAudience(r.course);
     const count=publicSessionCounts&&r.id!=null?publicSessionCounts[r.id]:null;
     const left=count==null?null:helpers.seatsLeft(r,count,caps);
@@ -1289,9 +1302,12 @@ function registrationGradeOptions(course){
 }
 function setBanner(id){
   const s=currentSession;
-  const basePrice=getSessionBasePrice(s.course, s.date, s.createdAt)||0;
+  const unitPrice=getSessionBasePrice(s.course, s.date, s.createdAt)||0;
+  const per=Number(seatsPerCourse(s.course));
+  const seats=(isFinite(per)&&per>=1)?Math.floor(per):1;
+  const defaultTotal=unitPrice*seats;
   const price=getEffectivePrice();
-  const isDiscounted=price<basePrice;
+  const isDiscounted=price<defaultTotal;
   const d=fmtSessDates(s,{weekday:'short',month:'long',day:'numeric',year:'numeric'});
   const addrLine=[s.hostAddress,s.city,s.state?(s.state+(s.zip?' '+s.zip:'')):''].filter(Boolean).join(', ');
   const locationLine=s.isVirtual
@@ -1300,11 +1316,15 @@ function setBanner(id){
   const metaAddr=s.isVirtual
     ?(s.zoomLink?`<br><span style="font-size:12px;color:#27467A">🔗 Zoom link will be sent in your confirmation email</span>`:'')
     :(addrLine?'<br>'+escapeHtml(addrLine):'');
-  const couple=seatsPerCourse(s.course)>1;
+  const couple=seats>1;
   const priceCore=isDiscounted
-    ?`<span style="text-decoration:line-through;color:#9aa5b8;font-weight:400;font-size:14px;margin-right:6px">$${basePrice}</span>$${price}`
+    ?`<span style="text-decoration:line-through;color:#9aa5b8;font-weight:400;font-size:14px;margin-right:6px">$${defaultTotal}</span>$${price}`
     :`$${price}`;
-  const priceHTML=couple?priceCore+' <span style="font-size:13px;font-weight:500">per couple</span>':priceCore;
+  const priceHTML=couple
+    ?(s.priceOverride!=null
+        ?priceCore+' <span style="font-size:13px;font-weight:500">per couple</span>'
+        :priceCore+' <span style="font-size:13px;font-weight:500">per couple · $'+unitPrice+' per person</span>')
+    :priceCore;
   document.getElementById(id).innerHTML=`<div class="sess-dot"></div><div><div class="cname">${escapeHtml(s.course)}</div><div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div></div><div class="sess-price">${priceHTML}</div>`;
   // Show prerequisite notice for All Kids Welcome and Stay Ready
   let prereqNotice=document.getElementById('akw-prereq-notice');
@@ -1333,7 +1353,15 @@ function setBanner(id){
   // grade field and the parent/guardian framing entirely.
   const isAdult=isAdultCourseName(s.course);
   const coupleNotice=document.getElementById('couple-notice');
-  if(coupleNotice)coupleNotice.style.display=couple?'':'none';
+  if(coupleNotice){
+    coupleNotice.style.display=couple?'':'none';
+    if(couple){
+      const priceLine=s.priceOverride!=null
+        ?'The registration price is $'+price+' and holds two seats.'
+        :'The price is $'+unitPrice+' per person. A couple registration is two people and costs $'+defaultTotal+'.';
+      coupleNotice.innerHTML='<strong>One registration, two adults.</strong> '+priceLine+' Enter both names so both adults appear on the class roster.';
+    }
+  }
   ['partner-first-field','partner-last-field'].forEach(function(fid){
     const el=document.getElementById(fid);
     if(el)el.style.display=couple?'':'none';
@@ -1630,7 +1658,7 @@ async function goToPayment(){
   // no-charge: skip every payment button and use the "confirm your spot" flow instead.
   freeSession=!isHost&&!compMode&&!auctionMode&&getEffectivePrice()<=0;
   const noCharge=isHost||compMode||auctionMode||freeSession;
-  document.getElementById('pay-course-lbl').textContent=currentSession.course+(seatsPerCourse(currentSession.course)>1?' (per couple, two seats)':'')+(isHost?' (host — complimentary)':(compMode?' (already paid)':(auctionMode?' (auction prize — no charge)':'')));
+  document.getElementById('pay-course-lbl').textContent=currentSession.course+(seatsPerCourse(currentSession.course)>1?' (couple registration, two people)':'')+(isHost?' (host — complimentary)':(compMode?' (already paid)':(auctionMode?' (auction prize — no charge)':'')));
   document.getElementById('host-free-msg').style.display=noCharge?'flex':'none';
   document.getElementById('host-confirm-wrap').style.display=noCharge?'block':'none';
   // The promo box only makes sense when the family is actually paying (not host/comp).

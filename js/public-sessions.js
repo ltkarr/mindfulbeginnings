@@ -35,7 +35,7 @@
     'Safe@Home — Series': 'Kids home alone · multi-week',
     'Grandparents: Getting Started': 'Grandparents & caregivers',
     'Care Ready': 'Nannies & au pairs',
-    'Baby Ready': 'Expecting parents · per couple',
+    'Baby Ready': 'Expecting parents · $195 per person',
     'All Kids Welcome': 'Experienced sitters · Grades 3–9',
     'Stay Ready: Choking Rescue and CPR': 'Grades 7–12',
     'Campus Ready: Safety Skills for College Life': '11th–12th grade & college',
