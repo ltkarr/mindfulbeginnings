@@ -97,6 +97,19 @@ test('classes catalog matches the public class list', () => {
   });
 });
 
+test('each class name sits in the navy band', () => {
+  const cards = page.match(/<article\b[\s\S]*?<\/article>/g) || [];
+  assert.equal(cards.length, EXPECTED.length);
+  cards.forEach((card) => {
+    assert.match(card, /<div class="card-visual">\s*<h3>[\s\S]*?<\/h3>\s*<\/div>/);
+    assert.equal(/<div class="card-body">[\s\S]*<h3>/.test(card), false);
+  });
+  assert.match(page, /\.card-visual h3\{[^}]*color:#fff/);
+  assert.match(page, /\.card-visual h3\{[^}]*font-family:'Montserrat'/);
+  assert.match(page, /\.card-visual h3\{[^}]*font-weight:700/);
+  assert.equal(/\.card-visual\{[^}]*aspect-ratio/.test(page), false);
+});
+
 test('booking, custom programs, and group CPR links stay on this site', () => {
   assert.equal((page.match(/href="\/host\.html"/g) || []).length, 26);
   assert.match(page, /href="\/organization\.html"/);
