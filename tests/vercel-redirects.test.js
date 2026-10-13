@@ -73,11 +73,12 @@ test('root redirect to register.html does not fire on the instructor portal host
     (r) => r.source === '/' && r.destination === '/register.html'
   );
   assert.ok(rule, 'expected the / -> /register.html redirect to still exist');
+  const hosts = (rule.has || [])
+    .filter((cond) => cond.type === 'host')
+    .map((cond) => cond.value);
   assert.ok(
-    (rule.missing || []).some(
-      (cond) => cond.type === 'host' && cond.value === INSTRUCTOR_HOST
-    ),
-    'the / -> /register.html redirect must exclude the instructor portal host'
+    hosts.includes('register.mindfulbeginnings.org') && !hosts.includes(INSTRUCTOR_HOST),
+    'the / -> /register.html redirect must fire only on the register host, never the instructor portal host'
   );
 });
 

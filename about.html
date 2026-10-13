@@ -6,7 +6,8 @@
 <title>About the Team | Mindful Beginnings</title>
 <meta name="description" content="Meet the Mindful Beginnings team. Classes are taught by registered nurses and certified educators and were founded by a 20-year classroom teacher.">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/site.css">
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#F5F2EA}
@@ -14,12 +15,12 @@ a{color:#1E3161}
 a:hover{color:#0F1D3F}
 button{font-family:inherit}
 .wrap{font-family:'Montserrat',sans-serif;color:#1E3161;background:#F5F2EA;line-height:1.5}
-.site-header{background:#F5F2EA;padding:18px 6vw;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center}
-.brand{font-size:20px;font-weight:800;letter-spacing:0.02em;color:#1E3161;text-decoration:none}
-.site-nav{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
-.site-nav a{font-size:14px;font-weight:700;color:#1E3161;text-decoration:none}
-.site-nav a[aria-current="page"]{text-decoration:underline;text-underline-offset:4px}
-.header-btn,.site-nav a.header-btn{font-size:14px;font-weight:800;color:#F5F2EA;background:#1E3161;text-decoration:none;border:2px solid #1E3161;border-radius:999px;padding:8px 14px}
+
+
+
+
+
+
 .hero{background:#1E3161;color:#F5F2EA;padding:36px 6vw 32px}
 .hero-inner,.close-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 .eyebrow{font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#EFC75A}
@@ -61,9 +62,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 .contact-link{color:#F5F2EA;font-size:16px;font-weight:700;text-decoration:none;padding:12px 8px}
 .contact-link:hover{color:#EFC75A}
 .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.footer{border-top:2px solid #C7A24A;padding:22px 6vw;margin:0;font-size:15px;display:flex;flex-wrap:wrap;gap:12px 22px;justify-content:space-between;align-items:center;background:#F5F2EA}
-.footer a{font-weight:700;text-decoration:none}
-.footer-links{display:flex;flex-wrap:wrap;gap:10px 18px}
+
+
+
 @media (max-width:420px){
   .photo{width:110px;height:110px}
   .shot{width:110px;height:110px}
@@ -79,17 +80,17 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <body>
 <div class="wrap">
 
-<header class="site-header">
-<a class="brand" href="https://mindfulbeginnings.org/">Mindful Beginnings</a>
-<nav class="site-nav" aria-label="Primary">
-<a href="/classes-catalog">Classes</a>
-<a href="https://mindfulbeginnings.org/host-a-class-1">Host a Class</a>
-<a href="https://mindfulbeginnings.org/girl-scouts">Girl Scouts</a>
+<header class="mb-header">
+<a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark">Mindful Beginnings</span></a>
+<nav class="mb-nav" aria-label="Primary">
+<a href="/">Home</a>
 <a href="/about" aria-current="page">About</a>
-<a href="https://mindfulbeginnings.org/reviews">Reviews</a>
-<a href="https://mindfulbeginnings.org/contact">Contact</a>
-<a href="https://register.mindfulbeginnings.org/register.html">Find a class</a>
-<a class="header-btn" href="/register.html">Register</a>
+<a href="/classes-catalog">Classes</a>
+<a href="/host-a-class.html">Host a Class</a>
+<a href="/girl-scouts.html">Girl Scouts</a>
+<a href="/cpr-certification">CPR Certification</a>
+<a href="/contact.html">Contact</a>
+<a class="mb-btn mb-btn-gold mb-btn-sm" href="/register.html">Register</a>
 </nav>
 </header>
 
@@ -106,7 +107,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <div class="grid">
 <div class="person" data-section="Founder &amp; President" data-name="Lindsay Karr">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Founder &amp; President">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_4725.PNG/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/09-img_4725.png" alt="" width="120" height="120">
 <span class="name">Lindsay Karr</span>
 <span class="credentials">M.Ed.</span>
 </button>
@@ -121,7 +122,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <div class="grid">
 <div class="person" data-section="Program Team" data-name="Kathryn Greenberg">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Community Partnerships Liaison">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Katy.jpg/:/cr=t:0%25,l:2.16%25,w:95.67%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" src="/images/team/19-katy.jpg" alt="" width="120" height="120">
 <span class="name">Kathryn Greenberg</span>
 <span class="role">Community Partnerships Liaison</span>
 <span class="credentials">BS</span>
@@ -132,7 +133,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Program Team" data-name="Mary Parks">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Community Partnerships Liaison">
-<img class="photo" style="object-position:center top" src="https://register.mindfulbeginnings.org/team/mary-parks.jpg" alt="" width="120" height="120">
+<img class="photo" style="object-position:center top" src="/images/team/27-mary-parks.jpg" alt="" width="120" height="120">
 <span class="name">Mary Parks</span>
 <span class="role">Community Partnerships Liaison</span>
 <span class="credentials">BA, BS</span>
@@ -143,7 +144,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Program Team" data-name="Travis Edwards">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Community Partnerships Liaison">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/7ADC44E5-04C0-42FE-994C-CF0076E81A29.PNG/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/01-7adc44e5-04c0-42fe-994c-cf0076e81a29.png" alt="" width="120" height="120">
 <span class="name">Travis Edwards</span>
 <span class="role">Community Partnerships Liaison</span>
 <span class="credentials">MS</span>
@@ -154,7 +155,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Program Team" data-name="Yesmina Battle">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Curriculum Specialist">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Dreamwave-Photo%20(11).png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/03-dreamwave-photo-11.png" alt="" width="120" height="120">
 <span class="name">Yesmina Battle</span>
 <span class="role">Curriculum Specialist</span>
 <span class="credentials">MAT</span>
@@ -165,7 +166,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Program Team" data-name="Kelsey Gaston">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Curriculum Specialist">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/KG.jpg/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/17-kg.jpg" alt="" width="120" height="120">
 <span class="name">Kelsey Gaston</span>
 <span class="role">Curriculum Specialist</span>
 <span class="credentials">M.Ed.</span>
@@ -176,7 +177,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Program Team" data-name="Jessica Katz">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Curriculum Specialist">
-<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Headshot.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" style="object-position:center top" src="/images/team/08-headshot.jpeg" alt="" width="120" height="120">
 <span class="name">Jessica Katz</span>
 <span class="role">Curriculum Specialist</span>
 <span class="credentials">BS</span>
@@ -187,7 +188,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Program Team" data-name="Jennie Stroup">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Curriculum Specialist">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/jennie.png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/24-jennie.png" alt="" width="120" height="120">
 <span class="name">Jennie Stroup</span>
 <span class="role">Curriculum Specialist</span>
 <span class="credentials">BA</span>
@@ -203,7 +204,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <div class="grid">
 <div class="person" data-section="Lead Instructors" data-name="Kim Varner">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Lead Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_5201.jpeg/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/11-img_5201.jpeg" alt="" width="120" height="120">
 <span class="name">Kim Varner</span>
 <span class="credentials">RN, BSN</span>
 </button>
@@ -218,7 +219,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <div class="grid">
 <div class="person" data-section="Instructors" data-name="Brandi Beers">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Brandi%20Beers%20.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" src="/images/team/02-brandi-beers-.png" alt="" width="120" height="120">
 <span class="name">Brandi Beers</span>
 <span class="credentials">M.Ed.</span>
 </button>
@@ -228,7 +229,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Marcie Berul">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" style="object-position:center 93%" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_6940.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:99.13%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" style="object-position:center 93%" src="/images/team/14-img_6940.jpeg" alt="" width="120" height="120">
 <span class="name">Marcie Berul</span>
 <span class="credentials">M.Ed.</span>
 </button>
@@ -238,7 +239,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Chyna Brodie">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<span class="shot is-zoom"><img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/blob-385e9b6.png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120"></span>
+<span class="shot is-zoom"><img class="photo" src="/images/team/22-blob-385e9b6.png" alt="" width="120" height="120"></span>
 <span class="name">Chyna Brodie</span>
 <span class="credentials">BA</span>
 </button>
@@ -248,7 +249,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Miryam Buchler">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_6168.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" style="object-position:center top" src="/images/team/13-img_6168.jpeg" alt="" width="120" height="120">
 <span class="name">Miryam Buchler</span>
 <span class="credentials">MS</span>
 </button>
@@ -258,7 +259,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Kelley Butler">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/butler.jpg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" style="object-position:center top" src="/images/team/23-butler.jpg" alt="" width="120" height="120">
 <span class="name">Kelley Butler</span>
 <span class="credentials">BA</span>
 </button>
@@ -268,7 +269,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Helena Carboy">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Dreamwave-Photo%2013.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" src="/images/team/06-dreamwave-photo-13.png" alt="" width="120" height="120">
 <span class="name">Helena Carboy</span>
 <span class="credentials">RN, BSN</span>
 </button>
@@ -278,7 +279,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Michelle Cha">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Dreamwave-Photo%20(16).png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/04-dreamwave-photo-16.png" alt="" width="120" height="120">
 <span class="name">Michelle Cha</span>
 <span class="credentials">RN, BSN, MS</span>
 </button>
@@ -288,7 +289,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Lilly Deerin">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Dreamwave-Photo%20(17).png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/05-dreamwave-photo-17.png" alt="" width="120" height="120">
 <span class="name">Lilly Deerin</span>
 <span class="credentials">MSN, FNP-BC</span>
 </button>
@@ -298,7 +299,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Monique DeFrees">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_4816.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/10-img_4816.png" alt="" width="120" height="120">
 <span class="name">Monique DeFrees</span>
 <span class="credentials">M.Ed.</span>
 </button>
@@ -308,7 +309,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Ingrid Froehner">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_7003.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" src="/images/team/15-img_7003.png" alt="" width="120" height="120">
 <span class="name">Ingrid Froehner</span>
 <span class="credentials">MA</span>
 </button>
@@ -318,7 +319,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Gaby Hodor">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/GH.png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/07-gh.png" alt="" width="120" height="120">
 <span class="name">Gaby Hodor</span>
 </button>
 <div class="bio" hidden>
@@ -327,7 +328,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Bronwen Kennedy">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Kennedy.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" style="object-position:center top" src="/images/team/20-kennedy.png" alt="" width="120" height="120">
 <span class="name">Bronwen Kennedy</span>
 <span class="credentials">BA</span>
 </button>
@@ -337,7 +338,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Ashira Lavine">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/mindfulbeginningsheadshot2.jpg/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" style="object-position:center top" src="/images/team/26-mindfulbeginningsheadshot2.jpg" alt="" width="120" height="120">
 <span class="name">Ashira Lavine</span>
 <span class="credentials">MA</span>
 </button>
@@ -347,7 +348,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Abigail Plaza">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Untitled%20design%20(2).png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/21-untitled-design-2.png" alt="" width="120" height="120">
 <span class="name">Abigail Plaza</span>
 <span class="credentials">RN, BSN</span>
 </button>
@@ -357,7 +358,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Jasmine Rhodes">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_5539.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" style="object-position:center top" src="/images/team/12-img_5539.jpeg" alt="" width="120" height="120">
 <span class="name">Jasmine Rhodes</span>
 <span class="credentials">RN, BSN</span>
 </button>
@@ -367,7 +368,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Kiera Shanahan">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/KS.png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<img class="photo" src="/images/team/18-ks.png" alt="" width="120" height="120">
 <span class="name">Kiera Shanahan</span>
 <span class="credentials">RN, BSN</span>
 </button>
@@ -377,7 +378,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Kimberly Sinkford">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" style="object-position:center 19%" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/k.sinkford%20headshot.jpg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" style="object-position:center 19%" src="/images/team/25-k.sinkford-headshot.jpg" alt="" width="120" height="120">
 <span class="name">Kimberly Sinkford</span>
 <span class="credentials">BSN, RN</span>
 </button>
@@ -387,7 +388,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Bela Shah Spooner">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" style="object-position:center 28%" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_7374.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<img class="photo" style="object-position:center 28%" src="/images/team/16-img_7374.png" alt="" width="120" height="120">
 <span class="name">Bela Shah Spooner</span>
 <span class="credentials">MA</span>
 </button>
@@ -408,12 +409,23 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </section>
 
-<footer class="footer">
-<div style="font-weight:700">Mindful Beginnings LLC, Bethesda, Maryland</div>
-<div class="footer-links">
+<footer class="mb-footer">
+<div class="mb-footer-inner">
+<p class="mb-footer-name">Serving the DC metro area</p>
+<nav class="mb-footer-nav" aria-label="Footer">
+
+<a href="/">Home</a>
+<a href="/about">About</a>
 <a href="/classes-catalog">Classes</a>
-<a href="/cpr-certification">Group CPR certification</a>
-<a href="https://mindfulbeginnings.org/">mindfulbeginnings.org</a>
+<a href="/host-a-class.html">Host a Class</a>
+<a href="/girl-scouts.html">Girl Scouts</a>
+<a href="/cpr-certification">CPR Certification</a>
+<a href="/contact.html">Contact</a>
+<a href="/register.html">Register</a>
+
+</nav>
+<p class="mb-footer-line"><a href="tel:+17039875979">703-987-5979</a> &middot; <a href="mailto:lindsay@mindfulbeginnings.org">lindsay@mindfulbeginnings.org</a> <span class="mb-social"><a href="https://www.facebook.com/share/1GnY6MQ5cy/?mibextid=wwXIfr" aria-label="Follow on Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5h1.3V4.9c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8V11H8v3h2.5v7h3z"/></svg></a><a href="https://www.instagram.com/mindfulbeginningsllc" aria-label="Follow on Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.2" cy="6.8" r="1.4" fill="currentColor"/></svg></a></span></p>
+<p class="mb-footer-copy">&copy; 2026 Mindful Beginnings LLC. All rights reserved.</p>
 </div>
 </footer>
 
