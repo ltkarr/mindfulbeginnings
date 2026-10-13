@@ -64,14 +64,14 @@
     },
     {
       "source": "/",
-      "missing": [
+      "destination": "/register.html",
+      "permanent": false,
+      "has": [
         {
           "type": "host",
-          "value": "instructorportal.mindfulbeginnings.org"
+          "value": "register.mindfulbeginnings.org"
         }
-      ],
-      "destination": "/register.html",
-      "permanent": false
+      ]
     }
   ],
   "rewrites": [
