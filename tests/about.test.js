@@ -75,12 +75,15 @@ test('about page is static HTML in the public page style', () => {
   assert.equal(JSON.stringify(people).includes('\u2014'), false);
 });
 
-test('hero and mission use Lindsay placeholders and nothing else', () => {
-  assert.match(page, /<h1>\[Lindsay: add a one-line intro here\]<\/h1>/);
-  assert.match(page, /<p class="mission-copy">\[Lindsay: add your mission here\]<\/p>/);
+test('hero uses the approved line and the mission block is gone', () => {
+  assert.match(page, /<h1>Safety and confidence for every age, taught by nurses and certified educators\.<\/h1>/);
+  assert.doesNotMatch(page, /Lindsay: add/);
+  assert.doesNotMatch(page, /class="mission"/);
+  assert.doesNotMatch(page, />Mission</);
   const hero = page.slice(page.indexOf('<section class="hero">'), page.indexOf('</section>') + 10);
+  const afterHero = page.slice(page.indexOf('</section>') + 10, page.indexOf('<div class="team-block">'));
+  assert.equal(afterHero.trim(), '');
   assert.equal(hero.includes('\u2014'), false);
-  assert.doesNotMatch(hero, /\d{2,}/);
 });
 
 test('team cards match the uploaded people, in section order, with exact bios', () => {
@@ -88,7 +91,7 @@ test('team cards match the uploaded people, in section order, with exact bios', 
   const found = cards();
   assert.equal(found.length, people.length);
   const headings = [...page.matchAll(/<h2>([\s\S]*?)<\/h2>/g)].map((hit) => decode(hit[1]));
-  assert.deepEqual(headings, ['Mission', 'Founder & President', 'Program Team', 'Lead Instructors', 'Instructors']);
+  assert.deepEqual(headings, ['Founder & President', 'Program Team', 'Lead Instructors', 'Instructors']);
   people.forEach((person, i) => {
     const card = found[i];
     assert.equal(card.section, person.section, 'section ' + person.name);
