@@ -28,6 +28,7 @@ const COURSES={
   "Grandparents: Getting Started":{hours:3,maxStudents:16,requiresSafeSitter:true,adult:true},
   "Care Ready":{hours:2.5,maxStudents:16,adult:true},
   "Baby Ready":{hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true},
+  "Baby Ready + CPR Certification":{hours:5,maxStudents:12,seatsPerRegistration:2,adult:true},
   "All Kids Welcome":{hours:1.5,maxStudents:20,instrFlatFee:75,virtual:true},
   "Stay Ready: Choking Rescue and CPR":{hours:1.5,maxStudents:12,requiresRN:true},
   "Campus Ready: Safety Skills for College Life":{hours:1,maxStudents:12,instrFlatFee:100,requiresRN:true},

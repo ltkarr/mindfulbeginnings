@@ -663,12 +663,12 @@ const sb = createClient ? createClient(
 // NEW_PRICING_EFFECTIVE identical to the value in admin.html.
 if(typeof getSessionBasePrice==='undefined'){
   // Prices for sessions that existed BEFORE the Aug 2026 program-guide update.
-  const OLD_PRICES_2026={'Safe Sitter®':185,'Safe Sitter® Babysitting Essentials':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'Care Ready':185,'Baby Ready':195,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
-  const OLD_PRICES_2027={'Safe Sitter®':225,'Safe Sitter® Babysitting Essentials':185,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':195,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
+  const OLD_PRICES_2026={'Safe Sitter®':185,'Safe Sitter® Babysitting Essentials':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':150,'Care Ready':185,'Baby Ready':195,'Baby Ready + CPR Certification':275,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':40,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
+  const OLD_PRICES_2027={'Safe Sitter®':225,'Safe Sitter® Babysitting Essentials':185,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':195,'Baby Ready + CPR Certification':275,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':50,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
   // Program-guide prices for sessions created on/after the cutover. (Steady and Ready
   // stays $65 — the guide's $50 is a confirmed typo. 2027 keeps the planned step-ups.)
-  const NEW_PRICES_2026={'Safe Sitter®':225,'Safe Sitter® Babysitting Essentials':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'Care Ready':185,'Baby Ready':195,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
-  const NEW_PRICES_2027={'Safe Sitter®':225,'Safe Sitter® Babysitting Essentials':185,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':195,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
+  const NEW_PRICES_2026={'Safe Sitter®':225,'Safe Sitter® Babysitting Essentials':185,'Intro to Babysitting':40,'Safe@Home':65,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':155,'Care Ready':185,'Baby Ready':195,'Baby Ready + CPR Certification':275,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
+  const NEW_PRICES_2027={'Safe Sitter®':225,'Safe Sitter® Babysitting Essentials':185,'Intro to Babysitting':50,'Safe@Home':85,'Safe@Home — Virtual':40,'Safe@Home — Series':125,'Grandparents: Getting Started':185,'Care Ready':185,'Baby Ready':195,'Baby Ready + CPR Certification':275,'All Kids Welcome':25,'Stay Ready: Choking Rescue and CPR':75,'Campus Ready: Safety Skills for College Life':75,'Steady and Ready':65,'My First Babysitters Club':165,'My First Babysitters Club — Single Session':95,'Ready. Period.':75,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':25,'Social Ready':35,'Girl Scouts — First Aid Badge Workshop':45,'Girl Scout Badge Class':45,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,'Adult & Pediatric First Aid/CPR/AED Certification':185};
   const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
   // Prices raised after the Aug 6 cutover — applied only to sessions CREATED on/after
   // each `from` moment, so nothing already scheduled re-prices. Oct 13 2026
@@ -731,7 +731,7 @@ if(typeof getSessionBasePrice==='undefined'){
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':15,'Girl Scout Badge Class':15,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12};
+  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'Baby Ready + CPR Certification':12,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':15,'Girl Scout Badge Class':15,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -892,13 +892,13 @@ function isAdultCourseName(course){
   const name=String(course||'');
   const booking=bookingApi();
   if(booking)return booking.isAdultCourse(name, typeof COURSES!=='undefined'?COURSES:null);
-  return name==='Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready';
+  return name==='Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready'||name==='Baby Ready + CPR Certification';
 }
 function seatsPerCourse(course){
   const name=String(course||'');
   const booking=bookingApi();
   if(booking)return booking.seatsPerRegistration(name, typeof COURSES!=='undefined'?COURSES:null);
-  return name==='Baby Ready'?2:1;
+  return name==='Baby Ready'||name==='Baby Ready + CPR Certification'?2:1;
 }
 function registrationFits(peopleCap, regCount, course){
   const booking=bookingApi();
@@ -923,16 +923,35 @@ function couplePartnerName(){
   return (f.value.trim()+' '+l.value.trim()).trim();
 }
 
+// Couple package total, when one registration of two people costs less than
+// the per-person rate times two. Baby Ready has no package price ($195 × 2).
+// Baby Ready + CPR Certification is $495 for the couple, not $275 × 2.
+function couplePackagePrice(course){
+  const c=(typeof COURSES!=='undefined'&&COURSES&&COURSES[course])||null;
+  if(c&&c.couplePrice!=null&&c.couplePrice!=='')return Number(c.couplePrice);
+  if(String(course||'')==='Baby Ready + CPR Certification')return 495;
+  return null;
+}
+function registrationCheckoutTotal(course, unit, seats){
+  const per=(isFinite(Number(seats))&&Number(seats)>=1)?Math.floor(Number(seats)):1;
+  if(per>1){
+    const pack=couplePackagePrice(course);
+    if(pack!=null)return Math.max(0,pack);
+  }
+  return Math.max(0,(Number(unit)||0)*per);
+}
 // Checkout total for the current session. A price override is that total.
 // The course default is per person, so a Baby Ready couple (2 seats) is
-// $195 × 2 = $390. Floored at $0.
+// $195 × 2 = $390. Baby Ready + CPR Certification is $495 per couple.
+// Floored at $0.
 function getEffectivePrice(){
   if(!currentSession)return 0;
   if(currentSession.priceOverride!=null)return Math.max(0,Number(currentSession.priceOverride));
   const unit=getSessionBasePrice(currentSession.course, currentSession.date, currentSession.createdAt)||0;
   const per=Number(seatsPerCourse(currentSession.course));
   const seats=(isFinite(per)&&per>=1)?Math.floor(per):1;
-  return unit*seats;
+  if(typeof registrationCheckoutTotal==='function')return registrationCheckoutTotal(currentSession.course, unit, seats);
+  return Math.max(0,(Number(unit)||0)*seats);
 }
 
 // ── PROMO / DISCOUNT CODE ────────────────────────────────────
@@ -1051,7 +1070,7 @@ function renderPublicSessions(){
     const per=(helpers.seatsPerRegistration?helpers.seatsPerRegistration(r.course):seatsPerCourse(r.course));
     const unitPrice=helpers.sessionPrice(r,priceFn);
     const hasOverride=(r.price_override!=null&&r.price_override!=='')||(r.priceOverride!=null&&r.priceOverride!=='');
-    const shown=(!hasOverride&&per>1&&unitPrice!=null&&!isNaN(Number(unitPrice)))?Number(unitPrice)*per:unitPrice;
+    const shown=(!hasOverride&&per>1&&unitPrice!=null&&!isNaN(Number(unitPrice)))?((typeof registrationCheckoutTotal==='function')?registrationCheckoutTotal(r.course, Number(unitPrice), per):Number(unitPrice)*per):unitPrice;
     let priceLabel=helpers.sessionPriceLabel(shown);
     if(per>1&&priceLabel&&priceLabel!=='Free'){
       priceLabel=priceLabel+' / couple';
@@ -1305,7 +1324,7 @@ function setBanner(id){
   const unitPrice=getSessionBasePrice(s.course, s.date, s.createdAt)||0;
   const per=Number(seatsPerCourse(s.course));
   const seats=(isFinite(per)&&per>=1)?Math.floor(per):1;
-  const defaultTotal=unitPrice*seats;
+  const defaultTotal=(typeof registrationCheckoutTotal==='function')?registrationCheckoutTotal(s.course, unitPrice, seats):unitPrice*seats;
   const price=getEffectivePrice();
   const isDiscounted=price<defaultTotal;
   const d=fmtSessDates(s,{weekday:'short',month:'long',day:'numeric',year:'numeric'});
@@ -1349,6 +1368,7 @@ function setBanner(id){
   const isGP=s.course==='Grandparents: Getting Started';
   const isCareReady=s.course==='Care Ready';
   const isBabyReady=s.course==='Baby Ready';
+  const isBabyReadyCpr=s.course==='Baby Ready + CPR Certification';
   // Adult courses: the registrant is the participant, so the form drops the
   // grade field and the parent/guardian framing entirely.
   const isAdult=isAdultCourseName(s.course);
@@ -1440,6 +1460,8 @@ function setBanner(id){
         ?'<strong>📋 Please note:</strong> This workshop is taught by a registered nurse and includes hands-on practice of hands-only CPR on a manikin and practice with an AED trainer. <strong>This workshop is educational only and does not certify the participant in CPR, AED use, or first aid.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
         :isCampusReady
         ?'<strong>📋 Please note:</strong> This class is taught by a registered nurse and includes hands-on practice of CPR and rescue skills on manikins. <strong>This course is educational only and does not certify the participant in CPR, first aid, or naloxone (Narcan) administration.</strong> It is designed to build the confidence and basic skills to help a friend in an emergency.'
+        :isBabyReadyCpr
+        ?'<strong>📋 Please note:</strong> This course includes hands-on Pediatric First Aid and CPR. Participants who complete it receive a certification card.'
         :isCareReady||isBabyReady
         ?'<strong>📋 Please note:</strong> This course includes hands-on practice of CPR and rescue skills on manikins. <strong>This course is educational only and does not provide CPR certification.</strong>'
         :isStayReady
@@ -1456,7 +1478,7 @@ function setBanner(id){
     const cprPermItem=permSec.querySelector('.perm-item');
     if(cprPermItem)cprPermItem.style.display=isNoCPR?'none':'';
     permSec.querySelector('.perm-title').textContent=isGP?'CPR manikin practice':'CPR manikin practice';
-    permSec.querySelectorAll('.perm-desc')[0].textContent=(isGP||isCareReady||isBabyReady)
+    permSec.querySelectorAll('.perm-desc')[0].textContent=(isGP||isCareReady||isBabyReady||isBabyReadyCpr)
       ?'This course includes hands-on practice of rescue skills on CPR manikins. Do you give permission to participate?'
       :isSeasonReady
         ?'This workshop includes hands-on practice of hands-only CPR on a manikin. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikin?'
@@ -1469,7 +1491,7 @@ function setBanner(id){
         :'Safe Sitter® includes practice of rescue skills on CPR manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?');
     permSec.querySelectorAll('.radio-lbl')[0].childNodes[1].textContent=' Yes, I give permission';
     permSec.querySelectorAll('.radio-lbl')[1].childNodes[1].textContent=' No, I do not give permission';
-    permSec.querySelectorAll('.perm-desc')[1].textContent=(isGP||isCareReady||isBabyReady)
+    permSec.querySelectorAll('.perm-desc')[1].textContent=(isGP||isCareReady||isBabyReady||isBabyReadyCpr)
       ?'In the event of a health emergency, do you authorize the instructor to seek emergency care on your behalf?'
       :isCampusReady
         ?'In the event of a health emergency during the class, do you authorize the instructor to seek emergency care for the participant?'

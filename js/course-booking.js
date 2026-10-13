@@ -14,7 +14,8 @@
   var ADULT_COURSES = {
     'Grandparents: Getting Started': true,
     'Care Ready': true,
-    'Baby Ready': true
+    'Baby Ready': true,
+    'Baby Ready + CPR Certification': true
   };
 
   function courseConfig(course, courses) {
@@ -35,7 +36,7 @@
     var cfg = courseConfig(name, courses);
     var n = cfg && Number(cfg.seatsPerRegistration);
     if (isFinite(n) && n >= 1) return Math.floor(n);
-    if (name === 'Baby Ready') return 2;
+    if (name === 'Baby Ready' || name === 'Baby Ready + CPR Certification') return 2;
     return 1;
   }
 

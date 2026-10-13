@@ -37,6 +37,7 @@
     'Grandparents: Getting Started': 'Grandparents & caregivers',
     'Care Ready': 'Nannies & au pairs',
     'Baby Ready': 'Expecting parents · $195 per person',
+    'Baby Ready + CPR Certification': 'Expecting parents · $275 per person ($495 per couple)',
     'All Kids Welcome': 'Experienced sitters · Grades 3–9',
     'Stay Ready: Choking Rescue and CPR': 'Grades 7–12',
     'Campus Ready: Safety Skills for College Life': '11th–12th grade & college',
@@ -194,7 +195,7 @@
     if (root.MBCourseBooking && typeof root.MBCourseBooking.seatsPerRegistration === 'function') {
       return root.MBCourseBooking.seatsPerRegistration(course);
     }
-    if (course === 'Baby Ready') return 2;
+    if (course === 'Baby Ready' || course === 'Baby Ready + CPR Certification') return 2;
     return 1;
   }
 
