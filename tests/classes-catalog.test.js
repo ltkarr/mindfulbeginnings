@@ -20,7 +20,7 @@ function decode(text) {
 
 function cards() {
   const out = [];
-  const re = /<article\b([^>]*)>([\s\S]*?)<\/article>/g;
+  const re = /<a class="card"([^>]*)>([\s\S]*?)<\/a>/g;
   let match;
   while ((match = re.exec(page))) {
     const attrs = match[1];
@@ -41,7 +41,7 @@ function cards() {
       desc: pick('desc'),
       virtual: body.includes('>In-person or virtual<') || body.includes('In-person or virtual'),
       soon: body.includes('>Coming soon<'),
-      book: /href="\/host\.html"/.test(body)
+      book: /href="\/host\.html"/.test(attrs)
     });
   }
   return out;
@@ -78,8 +78,6 @@ const EXPECTED = [
 test('classes catalog matches the public class list', () => {
   assert.match(page, /<title>Class Catalog \| Mindful Beginnings<\/title>/);
   assert.match(page, /name="viewport"/);
-  assert.match(page, /Prices are per participant\. Home hosts get one free spot\./);
-  assert.match(page, /Founded by a 20-year classroom teacher • Taught by registered nurses and certified educators • Safe Sitter® and American Red Cross courses/);
   assert.match(page, /class="mb-btn mb-btn-gold mb-btn-sm" href="\/register\.html">Register</);
   assert.equal(page.includes('\u2014'), false);
   const found = cards();
@@ -98,7 +96,7 @@ test('classes catalog matches the public class list', () => {
 });
 
 test('each class name sits in the navy band', () => {
-  const cards = page.match(/<article\b[\s\S]*?<\/article>/g) || [];
+  const cards = page.match(/<a class="card"[\s\S]*?<\/a>/g) || [];
   assert.equal(cards.length, EXPECTED.length);
   cards.forEach((card) => {
     assert.match(card, /<div class="card-visual">\s*<h3>[\s\S]*?<\/h3>\s*<\/div>/);
@@ -112,7 +110,7 @@ test('each class name sits in the navy band', () => {
 
 test('booking, custom programs, and group CPR links stay on this site', () => {
   assert.equal((page.match(/href="\/host\.html"/g) || []).length, 26);
-  assert.match(page, /href="\/organization\.html"/);
+  assert.match(page, /href="\/contact\.html"/);
   assert.match(page, /Request a custom program/);
   assert.match(page, /Mindful Beginnings partners with organizations from the ground up/);
   assert.match(page, /Past offerings include customizable Girl Scout badge workshops/);

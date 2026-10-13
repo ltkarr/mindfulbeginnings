@@ -24,7 +24,7 @@ const pages = {
 };
 
 function navOf(html, file) {
-  const found = [...html.matchAll(/<nav class="mb-nav" aria-label="Primary">[\s\S]*?<\/nav>/g)];
+  const found = [...html.matchAll(/<nav class="mb-nav"[^>]*aria-label="Primary">[\s\S]*?<\/nav>/g)];
   assert.equal(found.length, 1, file + ' should have exactly one primary nav');
   return found[0][0];
 }

@@ -131,8 +131,8 @@ test('each person is a button that opens a bio dialog', () => {
   assert.match(page, /if \(!inside\) dialog\.close\(\)/);
   assert.match(page, /\.photo\{width:120px;height:120px;border-radius:50%/);
   assert.match(page, /grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
-  assert.match(page, /h1\{margin:0;font-size:clamp\(26px,3vw,32px\)/);
-  assert.match(page, /\.team-section h2\{margin:0 0 14px;font-size:clamp\(20px,2\.2vw,26px\)/);
+  assert.match(page, /h1\{margin:0;font-size:clamp\(28px,3.4vw,38px\)/);
+  assert.match(page, /\.team-section h2\{margin:0 0 14px;font-size:clamp\(22px,2.4vw,28px\)/);
   assert.match(page, /\.name\{font-size:15px/);
   assert.match(page, /\.role\{font-size:13px/);
   assert.match(page, /button\.getAttribute\('data-role'\)/);
@@ -162,8 +162,8 @@ test('each person is a button that opens a bio dialog', () => {
 });
 
 test('closing actions and footer sit together with no empty band', () => {
-  assert.match(page, /<a class="gold-btn" href="https:\/\/mindfulbeginnings\.org\/host-a-class-1">Book a class<\/a>/);
-  assert.match(page, /<a class="contact-link" href="https:\/\/mindfulbeginnings\.org\/contact">Contact<\/a>/);
+  assert.match(page, /<a class="gold-btn" href="\/host-a-class.html">Book a class<\/a>/);
+  assert.match(page, /<a class="contact-link" href="\/contact.html">Contact<\/a>/);
   assert.match(page, /<section class="close">[\s\S]*Book a class[\s\S]*Contact[\s\S]*<\/section>\s*<footer class="mb-footer">/);
   assert.doesNotMatch(page, /margin-top:\s*auto/);
   assert.doesNotMatch(page, /min-height:\s*100vh/);
