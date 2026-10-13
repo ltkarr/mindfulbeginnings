@@ -59,7 +59,7 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
   // A session already in the database keeps the price it has today.
   assert.equal(cfg.getSessionBasePrice('Social Ready', '2026-11-01', EXISTING), 35);
   assert.equal(cfg.getSessionBasePrice('Social Ready', '2026-11-01', CUTOVER), 45);
-  assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-11-01', EXISTING), 225);
+  assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-11-01', EXISTING), 195);
   assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-11-01', CUTOVER), 195);
   assert.equal(cfg.getSessionBasePrice('Safe Sitter®', '2026-12-01', EXISTING), 225);
   assert.equal(cfg.getSessionBasePrice('Safe Sitter®', '2026-12-01', CUTOVER), 225);

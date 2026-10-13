@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261013-milestone-acks-packing';
+window.MB_ADMIN_BUILD='20261013-baby-ready-195';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -1269,10 +1269,11 @@ const COURSES={
   // Care Ready (new Sep 2026): 2.5-hour course for nannies and au pairs, $185.
   // Any instructor may teach it; uses CPR manikins; adult registration form.
   'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,adult:true},
-  // Baby Ready: $225 once per couple. maxStudents is people (12). Each
-  // registration holds 2 seats (seatsPerRegistration). Adult form, no grade.
-  // 2.5 hours matches Care Ready until a published length replaces it.
-  'Baby Ready':{price:225,price2027:225,priceNew:225,priceNew2027:225,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true},
+  // Baby Ready: $195 per person. maxStudents is people (12). Each registration
+  // holds 2 seats (seatsPerRegistration), so one couple registration is $390.
+  // Adult form, no grade. 2.5 hours matches Care Ready until a published length
+  // replaces it.
+  'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true},
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true},
   'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true},
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true},
@@ -1350,6 +1351,9 @@ function sessionUsesNewPricing(createdAt){
 // nothing already taught ever re-prices. Only courses whose price actually
 // changed need to be listed. To raise a price again later, add a new entry at
 // the TOP of this list with a future date — do not edit an old one.
+// Oct 13 2026 exception: Baby Ready on the Aug 26 list was $225, which treated
+// that figure as a couple total. $195 is per person, so that entry is $195.
+// A couple registration is two people, $390.
 // Keep this list identical in admin.html, register.html, and config.js.
 const LATER_PRICE_CHANGES=[
   // CLASSES PAGE PRICES, Oct 2026. Taken from mindfulbeginnings.org/classes
@@ -1380,7 +1384,7 @@ const LATER_PRICE_CHANGES=[
      'My First Babysitters Club':165,
      'Grandparents: Getting Started':185,
      'Care Ready':185,
-     'Baby Ready':225,
+     'Baby Ready':195,
      'All Kids Welcome':25,
      'Intro to Babysitting':40,
      'Steady and Ready':65,
@@ -1404,6 +1408,14 @@ function laterPriceFor(course,createdAt){
   }
   return null;
 }
+// Blank family-price field. One seat shows the per-person rate. A couple
+// course shows both the per-person rate and the registration total.
+function courseCheckoutDefaultLabel(course, dateStr, createdAt){
+  const unit=getCoursePrice(course, dateStr, createdAt);
+  const seats=registrationSeatCount(course);
+  if(seats>1)return unit+' per person ($'+(unit*seats)+' per couple)';
+  return String(unit);
+}
 // Returns the correct per-participant price for a course given the session's date string
 // (YYYY-MM-DD) and the session's creation timestamp (which decides which price table).
 function getCoursePrice(course, dateStr, createdAt){
@@ -1413,16 +1425,41 @@ function getCoursePrice(course, dateStr, createdAt){
   if(sessionUsesNewPricing(createdAt))return year>=2027?(c.priceNew2027??c.priceNew??c.price2027??c.price):(c.priceNew??c.price);
   return year>=2027?(c.price2027||c.price):c.price;
 }
-// What a single participant is charged. A per-student custom price (r.pricePaid)
-// wins over the session's price override, which in turn wins over the course default.
+// People one registration holds. Baby Ready is 2. Other courses are 1.
+// seatsPerRegistration is defined later in this file and is hoisted. A sandbox
+// that extracts only a price function falls back to the same Baby Ready rule.
+function registrationSeatCount(course){
+  let per=1;
+  if(typeof seatsPerRegistration==='function')per=seatsPerRegistration(course);
+  else if(String(course||'')==='Baby Ready')per=2;
+  const n=Number(per);
+  return (isFinite(n)&&n>=1)?Math.floor(n):1;
+}
+function seatCountOrBabyReady(course){
+  if(typeof registrationSeatCount==='function')return registrationSeatCount(course);
+  return String(course||'')==='Baby Ready'?2:1;
+}
+// Seat count safe to call from a function a test extracts on its own.
+function seatsCharged(course){
+  if(typeof seatCountOrBabyReady==='function')return seatCountOrBabyReady(course);
+  return String(course||'')==='Baby Ready'?2:1;
+}
+// What one registration is charged. A stored pricePaid is the amount already
+// charged for that row. A session price override is the checkout total.
+// Neither is multiplied. The course default is per person, so a Baby Ready
+// couple registration (2 seats) is $195 × 2 = $390.
 function regEffectivePrice(r, s){
   if(r&&r.pricePaid!=null)return Number(r.pricePaid);
   if(!s)return 0;
-  return s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
+  if(s.priceOverride!=null)return Number(s.priceOverride);
+  const per=(typeof seatsCharged==='function')?seatsCharged(s.course):(String(s.course||'')==='Baby Ready'?2:1);
+  return getCoursePrice(s.course,s.date,s.createdAt)*per;
 }
 function sessionListPrice(s){
   if(!s)return 0;
-  return s.priceOverride!=null?Number(s.priceOverride):getCoursePrice(s.course,s.date,s.createdAt);
+  if(s.priceOverride!=null)return Number(s.priceOverride);
+  const per=(typeof seatsCharged==='function')?seatsCharged(s.course):(String(s.course||'')==='Baby Ready'?2:1);
+  return getCoursePrice(s.course,s.date,s.createdAt)*per;
 }
 // True only when price_paid differs from the session's advertised price (promo, scholarship, etc.).
 function isCustomStudentPrice(r,s){
@@ -1680,22 +1717,30 @@ function updateOrgSplitPreview(){
   const courseEl=document.getElementById('m-course');
   const dateVal=(document.getElementById('m-date')||{}).value||'';
   const priceRaw=document.getElementById('m-price-override')?.value;
-  const base=courseEl?getCoursePrice(courseEl.value,dateVal,_pricingCtxCreatedAt??Date.now()):0;
-  const family=priceRaw===''||priceRaw==null?base:Number(priceRaw)||0;
+  const unit=courseEl?getCoursePrice(courseEl.value,dateVal,_pricingCtxCreatedAt??Date.now()):0;
+  const seats=courseEl?registrationSeatCount(courseEl.value):1;
+  const usingDefault=priceRaw===''||priceRaw==null;
+  const family=usingDefault?unit:(Number(priceRaw)||0);
+  const checkout=usingDefault?unit*seats:family;
+  const checkoutLabel=(usingDefault&&seats>1)
+    ?(fmt(unit)+' per person ('+fmt(checkout)+' per couple registration)')
+    :(fmt(checkout)+' per girl');
   const countRaw=document.getElementById('m-billcount')?.value;
   const portionRaw=document.getElementById('m-org-portion')?.value;
-  const registered=_orgSplitSessionId?registrations.filter(r=>r.sessionId===_orgSplitSessionId&&isLiveReg(r)).length:0;
+  const registeredRows=_orgSplitSessionId?registrations.filter(r=>r.sessionId===_orgSplitSessionId&&isLiveReg(r)).length:0;
+  const registered=registeredRows*seats;
   const hasRoster=countRaw!==''&&countRaw!=null;
   const girls=hasRoster?(Number(countRaw)||0):registered;
   const girlLabel=girls===1?'girl':'girls';
   const who=escapeHtml(org);
+  const billRate=usingDefault?unit:family;
   if(portionRaw===''||portionRaw==null){
     out.style.color='inherit';
     if(!hasRoster){
       out.innerHTML='<div style="font-weight:600">Org invoice total: —</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">Enter how many girls are on the invoice. Leave “Organization flat fee per girl” blank only when '+who+' pays the full family price.</div>';
       return;
     }
-    out.innerHTML='<div style="font-weight:600">Org invoice total: '+fmt(girls*family)+'</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">'+who+' is billed the full family price ('+fmt(family)+' × '+girls+' '+girlLabel+'). Enter an organization flat fee per girl when families pay less and the organization pays the rest. That fee is not added to checkout.</div>';
+    out.innerHTML='<div style="font-weight:600">Org invoice total: '+fmt(girls*billRate)+'</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">'+who+' is billed the full family price ('+fmt(billRate)+' × '+girls+' '+girlLabel+'). Enter an organization flat fee per girl when families pay less and the organization pays the rest. That fee is not added to checkout.</div>';
     return;
   }
   const portion=Math.max(0,Number(portionRaw)||0);
@@ -1703,7 +1748,7 @@ function updateOrgSplitPreview(){
   const blankNote=!hasRoster?'<div style="font-size:14px;color:#b86a00;font-weight:500;margin-top:6px">Girl count is blank, so this invoice follows who has registered'+( _orgSplitSessionId?' ('+registered+' so far)':'')+'. Enter the roster (for example 6) if the organization committed to a set number of girls.</div>':'';
   const registeredNote=hasRoster&&_orgSplitSessionId?'<div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">'+registered+' registered so far. The invoice uses the girl count above, not class capacity.</div>':'';
   out.style.color='inherit';
-  out.innerHTML='<div style="font-weight:600">Family checkout: '+fmt(family)+' per girl</div><div style="font-size:14px;color:var(--muted);font-weight:400">Charged at registration. The organization fee is not included.</div><div style="font-weight:700;font-size:18px;color:#1d6b45;margin-top:8px">Org invoice total: '+fmt(bill)+'</div><div style="font-size:14px;color:#1d6b45;font-weight:500">Flat fee '+fmt(portion)+' × '+girls+' '+girlLabel+' billed to '+who+'. Not mixed into family checkout. Not cash received yet.</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:6px">Session revenue = family payments after card fees + this invoice. It is not the family price times the roster.</div>'+registeredNote+blankNote;
+  out.innerHTML='<div style="font-weight:600">Family checkout: '+checkoutLabel+'</div><div style="font-size:14px;color:var(--muted);font-weight:400">Charged at registration. The organization fee is not included.</div><div style="font-weight:700;font-size:18px;color:#1d6b45;margin-top:8px">Org invoice total: '+fmt(bill)+'</div><div style="font-size:14px;color:#1d6b45;font-weight:500">Flat fee '+fmt(portion)+' × '+girls+' '+girlLabel+' billed to '+who+'. Not mixed into family checkout. Not cash received yet.</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:6px">Session revenue = family payments after card fees + this invoice. It is not the family price times the roster.</div>'+registeredNote+blankNote;
 }
 
 // ─── PAGED TABLE LOADS ───────────────────────────────────────
@@ -2149,7 +2194,12 @@ function orgRevenueHeadcount(s){
   if(orgPortionAmount(s)==null)return 0;
   // Registered girls only. A host seat is free and is not a girl the organization
   // is subsidizing. Waitlist and cancelled are already outside isLiveReg.
-  return (registrations||[]).filter(r=>r.sessionId===s.id&&isLiveReg(r)&&r.payStatus!=='host').length;
+  // A live registration row is one booking. Baby Ready holds two people, and
+  // the organization fee is per person, so count seats rather than rows.
+  // An explicit billed headcount is already a people count and is not doubled.
+  const rows=(registrations||[]).filter(r=>r.sessionId===s.id&&isLiveReg(r)&&r.payStatus!=='host').length;
+  const per=(typeof seatsCharged==='function')?seatsCharged(s.course):(String(s.course||'')==='Baby Ready'?2:1);
+  return rows*per;
 }
 function orgBillAmount(s){
   return orgRevenueHeadcount(s)*orgBillRate(s);
@@ -2185,7 +2235,11 @@ function sessionRevenueNotes(s,f){
     const orgLabel=orgOrJobFeeReceived(s)?`Org fee ${fmt(orgAmt)} — received`:`Org invoice ${fmt(orgAmt)} — not cash yet`;
     return collected+`<span class="pay-note" style="color:#1d6b45;font-weight:650" title="${escapeHtml(title)}">${orgLabel}</span><span class="pay-note" title="${escapeHtml(title)}">${fmt(portion)} flat fee × ${girls} ${girlsWord}${rosterSet?'':' · roster blank'}</span><span class="pay-note" title="${escapeHtml(title)}">Family ${fmt(family)}/girl at checkout</span>`;
   }
-  if(s.priceOverride!=null)return `<span class="pay-note" style="color:var(--warn)" title="$${s.priceOverride} per student">$${s.priceOverride}/student</span>`;
+  if(s.priceOverride!=null){
+    const per=(typeof seatsCharged==='function')?seatsCharged(s.course):(String(s.course||'')==='Baby Ready'?2:1);
+    const word=per>1?'couple':'student';
+    return `<span class="pay-note" style="color:var(--warn)" title="$${s.priceOverride} per ${word}">$${s.priceOverride}/${word}</span>`;
+  }
   return '';
 }
 
@@ -7283,11 +7337,15 @@ function updatePricePreview(){
   const out=document.getElementById('m-price-preview');
   if(!courseEl||!priceEl||!out){updateOrgSplitPreview();return;}
   const dateVal=(document.getElementById('m-date')||{}).value||'';
-  const base=getCoursePrice(courseEl.value,dateVal,_pricingCtxCreatedAt??Date.now());
+  const unit=getCoursePrice(courseEl.value,dateVal,_pricingCtxCreatedAt??Date.now());
+  const seats=registrationSeatCount(courseEl.value);
+  const base=unit*seats;
   const raw=priceEl.value;
   if(raw===''){
     out.style.color='var(--muted)';
-    out.textContent='Using course default of $'+base;
+    out.textContent=seats>1
+      ?'Using course default of $'+unit+' per person ($'+base+' per couple registration)'
+      :'Using course default of $'+unit;
     updateOrgSplitPreview();
     return;
   }
@@ -7297,7 +7355,7 @@ function updatePricePreview(){
     out.textContent='✓ Free class — families register at no charge, with no payment step.';
   }else if(v===base){
     out.style.color='var(--muted)';
-    out.textContent='Same as default — you can leave this blank';
+    out.textContent=seats>1?'Same as the $'+base+' couple default — you can leave this blank':'Same as default — you can leave this blank';
   }else if(v<base){
     out.style.color='var(--success)';
     out.textContent='✓ Discounted from $'+base+' default';
@@ -7425,10 +7483,10 @@ ${lockboxFieldHtml(s)}
     <div class="fg"><label>Contact Phone / Email</label><input type="text" id="m-hphone" value="${s.hostPhone||''}"></div>
     <div class="fg full"><label>Host registration</label>
       <select id="m-hashost"><option value="yes" ${s.hasHost!==false?'selected':''}>Allow host registration (private home)</option><option value="no" ${s.hasHost===false?'selected':''}>No host — public venue</option></select></div>
-    <div class="fg full"><label>Family price at registration <span style="font-weight:400;color:var(--muted)">(charged at checkout only — not the organization bill. Leave blank to use the course default of $${getCoursePrice(s.course,s.date,s.createdAt)})</span></label>
+    <div class="fg full"><label>Family price at registration <span style="font-weight:400;color:var(--muted)">(charged at checkout only — not the organization bill. Leave blank to use the course default of $${courseCheckoutDefaultLabel(s.course,s.date,s.createdAt)})</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
-        <input type="number" id="m-price-override" value="${s.priceOverride!=null?s.priceOverride:''}" placeholder="Default: ${getCoursePrice(s.course,s.date,s.createdAt)}" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="m-price-override" value="${s.priceOverride!=null?s.priceOverride:''}" placeholder="Default: ${courseCheckoutDefaultLabel(s.course,s.date,s.createdAt)}" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
         <span id="m-price-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
@@ -8744,12 +8802,13 @@ function renderCodes(){
     const link=REG_PAGE+'?code='+s.code;
     const cnt=registrations.filter(r=>r.sessionId===s.id&&countsTowardSeats(r)).length;
     const price=sessionListPrice(s);
+    const feeText=registrationSeatCount(s.course)>1?registrationFeePhrase(s):('$'+price+' per student');
     return`<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
         <div>
           <div style="font-weight:500;font-size:18px">${s.course}</div>
           <div style="color:var(--muted);font-size:16px;margin-top:3px">${d} · ${s.time||''} · ${s.location||''}${s.city?', '+s.city:''}${s.state?' '+s.state:''}${s.isRecurring?' · <span style="color:#1a5c8a;font-weight:500">↻ '+recurLabel(s)+'</span>':''}</div>
-          <div style="color:var(--muted);font-size:15px;margin-top:2px">${cnt} registered · $${price} per student</div>
+          <div style="color:var(--muted);font-size:15px;margin-top:2px">${cnt} registered · ${feeText}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
           <span class="code-badge" onclick="copyCode('${s.code}')" title="Click to copy code">📋 ${s.code}</span>
@@ -8775,18 +8834,29 @@ function copySessionLink(sessId){
 function copySessionTextById(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  copyText(s.code,s.course,d,s.time||'',s.location||'',sessionListPrice(s));
+  copyText(s.code,s.course,d,s.time||'',s.location||'',sessionListPrice(s),registrationFeePhrase(s));
 }
 function copySessionText(btn){
   const s=sessions.find(x=>x.id===(btn&&btn.getAttribute('data-sid')));
   if(!s)return;
   const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  copyText(s.code,s.course,d,s.time||'',s.location||'',sessionListPrice(s));
+  copyText(s.code,s.course,d,s.time||'',s.location||'',sessionListPrice(s),registrationFeePhrase(s));
 }
 function copyCode(code){navigator.clipboard.writeText(code).then(()=>showToast('Code copied: '+code)).catch(()=>showToast(code));}
 function copyLink(link){navigator.clipboard.writeText(link).then(()=>showToast('Link copied!')).catch(()=>showToast('Link: '+link));}
-function copyText(code,course,date,time,loc,price){
-  const msg=`Hi! Here's the registration link for the upcoming ${course} course on ${date}${time?' at '+time:''}${loc?' at '+loc:''}.\n\nRegister here: ${REG_PAGE}?code=${code}\n\nYour session code is: ${code}\n\nCourse fee: $${price} per student. Please let me know if you have any questions!`;
+function registrationFeePhrase(s){
+  const total=sessionListPrice(s);
+  const seats=registrationSeatCount(s&&s.course);
+  if(seats>1){
+    if(s&&s.priceOverride!=null)return '$'+total+' per couple';
+    const unit=getCoursePrice(s.course,s.date,s.createdAt);
+    return '$'+unit+' per person ($'+total+' per couple)';
+  }
+  return '$'+total+' per student';
+}
+function copyText(code,course,date,time,loc,price,feePhrase){
+  const fee=feePhrase?('Course fee: '+feePhrase+'.'):('Course fee: $'+price+' per student.');
+  const msg=`Hi! Here's the registration link for the upcoming ${course} course on ${date}${time?' at '+time:''}${loc?' at '+loc:''}.\n\nRegister here: ${REG_PAGE}?code=${code}\n\nYour session code is: ${code}\n\n${fee} Please let me know if you have any questions!`;
   navigator.clipboard.writeText(msg).then(()=>showToast('Message copied! Paste into your text or email.')).catch(()=>alert(msg));
 }
 
@@ -10532,7 +10602,18 @@ function opsEmailInfo(s){
     if(label)mealChunks.push(label);
   });
   let price='';
-  try{const n=sessionListPrice(s);if(n||n===0)price=fmt(n);}catch(e){price='';}
+  try{
+    const per=(typeof seatsCharged==='function')?seatsCharged(s.course):1;
+    if(per>1&&s.priceOverride==null){
+      const unit=getCoursePrice(s.course,s.date,s.createdAt);
+      price=fmt(unit)+' per person ('+fmt(unit*per)+' per couple)';
+    }else if(per>1){
+      price=fmt(sessionListPrice(s))+' per couple';
+    }else{
+      const n=sessionListPrice(s);
+      if(n||n===0)price=fmt(n);
+    }
+  }catch(e){price='';}
   const dateLong=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'To be confirmed';
   const dateShort=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date';
   return {
@@ -10563,7 +10644,11 @@ function familyForwardMoney(s){
   const org=String((s&&s.billToOrg)||'').trim();
   const portion=orgPortionAmount(s);
   const girls=orgRevenueHeadcount(s);
-  const family=familyPrice(s);
+  // familyPrice is the per-person rate. Checkout charges that rate times the
+  // seats one registration holds, unless a price override already is the total.
+  const familyUnit=familyPrice(s);
+  const per=(typeof seatsCharged==='function')?seatsCharged(s&&s.course):(String((s&&s.course)||'')==='Baby Ready'?2:1);
+  const family=(s&&s.priceOverride!=null)?familyUnit:familyUnit*per;
   const who=org||'the organization';
   if(s&&s.isCustomJob&&portion==null){
     const flat=s.priceOverride!=null?fmt(Number(s.priceOverride)):'';
