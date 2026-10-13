@@ -293,6 +293,35 @@ test('About escapes note text instead of rendering it as HTML', () => {
   assert.match(html, /&lt;b&gt;secret&lt;\/b&gt;/);
 });
 
+test('public code lookup does not return the street address or Zoom link that About still shows to admin', () => {
+  const sql = fs.readFileSync(path.join(root, 'migrations/20261013_sessions_privacy_lockdown.sql'), 'utf8');
+  const start = sql.indexOf('function public.get_session_by_code');
+  const end = sql.indexOf('function public.get_session_logistics');
+  const lookup = sql.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(lookup, /case when s\.has_host then null else s\.location end/);
+  assert.doesNotMatch(lookup, /host_address/);
+  assert.doesNotMatch(lookup, /zoom_link/);
+  assert.match(sql, /id text/);
+  assert.match(sql, /created_at bigint/);
+  assert.match(sql, /price_override integer/);
+  assert.match(sql, /instructor_id text/);
+  assert.match(sql, /where i\.pin = p_pin/);
+  const api = loadAbout();
+  const html = api.sessionAboutBodyHtml({
+    id: 's1',
+    code: 'GS-H4782',
+    course: 'Girl Scout Badge Class',
+    location: 'Troop meeting',
+    hostAddress: '123 Maple St',
+    city: 'Bethesda',
+    state: 'MD',
+    zip: '20814',
+    date: '2026-12-08'
+  });
+  assert.match(html, /123 Maple St, Bethesda, MD 20814/);
+});
+
 test('custom job notes are a multi-line textarea on add and edit', () => {
   const add = admin.slice(admin.indexOf('function openAddCustomJob'), admin.indexOf('function fillCjInstrSelect'));
   const edit = admin.slice(admin.indexOf('function openEditCustomJob'), admin.indexOf('function toggleCustomHoldMode'));

@@ -27,6 +27,7 @@ const {
   uniqueCities,
   externalRegistrationUrl,
   externalRegistrationLabel,
+  OPS_CODE_PREFIXES,
   DEFAULT_VISIBLE,
   DEFAULT_WINDOW_DAYS
 } = require('../js/public-sessions');
@@ -175,8 +176,9 @@ test('private/host sessions are excluded from the public list', () => {
 });
 
 test('ops code prefixes stay off the public list even if flags are missing', () => {
-  ['CJ-0916', 'RUA-261017', 'SUN-260927', 'TWU-260916'].forEach((code) => {
-    assert.equal(isPublicSession(row({ code, is_custom_job: false, is_cancelled: false }), TODAY), false, code);
+  assert.deepEqual(OPS_CODE_PREFIXES, ['CJ-', 'RUA-', 'SUN-', 'TWU-', 'GS-', 'GSFA-']);
+  ['CJ-0916', 'RUA-261017', 'SUN-260927', 'TWU-260916', 'GS-H4782', 'GSFA-270303'].forEach((code) => {
+    assert.equal(isPublicSession(row({ code, is_custom_job: false, is_cancelled: false, is_private: false, has_host: false }), TODAY), false, code);
   });
 });
 

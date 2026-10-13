@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261013-materials-checklist';
+window.MB_ADMIN_BUILD='20261013-org-seat-count';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -859,13 +859,13 @@ let EXTERNAL_URL_COL=true;
 // the session still saves.
 let ADMIN_PRIVATE_NOTES_COL=true;
 const PRIVATE_NOTES_SQL_TOAST='⚠️ Saved, but WITHOUT private notes — run migrations/admin_private_notes.sql in the Supabase SQL editor, then re-save this session.';
-// Per-girl amount an organization pays on top of (or instead of repeating) the
+// Per-participant amount an organization pays on top of (or instead of repeating) the
 // family checkout price. Anon is not granted this column — public registration
 // keeps charging price_override and never needs the troop's share.
 // See migrations/org_portion.sql. Set false automatically if that SQL has not
 // been run yet, so the rest of the session still saves.
 let ORG_PORTION_COL=true;
-const ORG_PORTION_SQL_TOAST='⚠️ Saved, but WITHOUT the organization-per-girl amount — run migrations/org_portion.sql in the Supabase SQL editor, then re-save this session.';
+const ORG_PORTION_SQL_TOAST='⚠️ Saved, but WITHOUT the organization per-participant amount — run migrations/org_portion.sql in the Supabase SQL editor, then re-save this session.';
 // Whether the organization invoice or custom-job fee on this session has been
 // received. Null means not marked. Family registrations keep their own pay status.
 // See migrations/fee_received.sql. Anon is not granted the column.
@@ -1338,7 +1338,7 @@ const COURSES={
   // RN-only is the per-session "RN instructors only" checkbox, not the course
   // type. A troop split does not change the guide price: Family price at
   // registration is what each family pays (GS-H4782 is $15) and Organization
-  // flat fee per girl is what the troop is invoiced ($30 × the roster).
+  // flat fee per participant is what the troop is invoiced ($30 × the roster).
   'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15},
   // Girl Scout Badge Class is its own job type. It is not a Safe Sitter® class.
   // Same guide price and cap as the First Aid workshop. Tick "RN instructors
@@ -1730,7 +1730,7 @@ function toggleOrgHeadcount(){
   updateOrgSplitPreview();
 }
 // The session open in the add/edit modal, so the split preview can say how
-// many girls have actually registered. Null while adding a new session.
+// many participants have actually registered. Null while adding a new session.
 let _orgSplitSessionId=null;
 function orgBillingFieldsHtml(s){
   s=s||{};
@@ -1739,11 +1739,11 @@ function orgBillingFieldsHtml(s){
   const portion=s.orgPortion!=null?s.orgPortion:'';
   return `<div class="fg full" style="background:#eef5f0;border:1px solid #cfe3d6;border-radius:var(--r-sm);padding:12px 14px">
       <label style="margin-bottom:2px">Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — a separate invoice, not added to family checkout)</span></label>
-      <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Name the organization. If families also register and pay their own price, enter the organization’s flat fee per girl. Leave that fee blank only when the organization pays the full family price (for example Beth El). A troop that pays $30 per scout while each family pays $15 at checkout uses Family price at registration 15, Girls on the org invoice for the roster, and Organization flat fee per girl 30.</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Name the organization. If families also register and pay their own price, enter the organization’s flat fee per participant. Leave that fee blank only when the organization pays the full family price (for example Beth El). A troop that pays $30 per participant while each family pays $15 at checkout uses Family price at registration 15, Participants on the org invoice for the roster, and Organization flat fee per participant 30.</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
         <div style="flex:1;min-width:200px"><label style="font-size:14px;margin-bottom:4px;display:block">Organization name</label><input type="text" id="m-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. GS Troop 42086 or Congregation Beth El" oninput="toggleOrgHeadcount()" style="width:100%"></div>
-        <div id="m-billcount-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Girls on the org invoice</label><input type="number" id="m-billcount" value="${count}" min="0" step="1" placeholder="e.g. 6" oninput="updateOrgSplitPreview()" style="width:130px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:240px">Roster the flat fee covers. Not class capacity. Enter 6 if the troop committed to 6 girls, even before they all register.</div></div>
-        <div id="m-orgportion-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Organization flat fee per girl</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;color:var(--muted)">$</span><input type="number" id="m-org-portion" value="${portion}" min="0" step="0.01" placeholder="25" oninput="updateOrgSplitPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"></div><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:240px">Billed on the organization invoice only. Families are not charged this at checkout.</div></div>
+        <div id="m-billcount-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Participants on the org invoice</label><input type="number" id="m-billcount" value="${count}" min="0" step="1" placeholder="e.g. 6" oninput="updateOrgSplitPreview()" style="width:130px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:240px">Roster the flat fee covers. Not class capacity. Enter 6 if the troop committed to 6 participants, even before they all register.</div></div>
+        <div id="m-orgportion-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Organization flat fee per participant</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;color:var(--muted)">$</span><input type="number" id="m-org-portion" value="${portion}" min="0" step="0.01" placeholder="25" oninput="updateOrgSplitPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"></div><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:240px">Billed on the organization invoice only. Families are not charged this at checkout.</div></div>
       </div>
       <div id="m-org-split-preview" style="font-size:15px;margin-top:12px;line-height:1.45"></div>
       ${feeReceivedBoxHtml(s,'m-fee-received')}
@@ -1756,7 +1756,7 @@ function orgBillingFieldsHtml(s){
 // Custom jobs bill one flat organization total and do not take family
 // registrations. A troop/family split belongs on New session.
 function customJobSplitHintHtml(){
-  return `<div style="font-size:14px;color:#7a5c1e;margin-top:8px;line-height:1.45">If each family also pays their own price at registration, do not use a custom job. Use <strong>New session</strong>, choose the course (Girl Scouts — First Aid Badge Workshop for this badge), check <strong>Place a hold</strong> when the date is still TBD, and enter Family price at registration plus Organization flat fee per girl.</div>`;
+  return `<div style="font-size:14px;color:#7a5c1e;margin-top:8px;line-height:1.45">If each family also pays their own price at registration, do not use a custom job. Use <strong>New session</strong>, choose the course (Girl Scouts — First Aid Badge Workshop for this badge), check <strong>Place a hold</strong> when the date is still TBD, and enter Family price at registration plus Organization flat fee per participant.</div>`;
 }
 function feeReceivedBoxHtml(s, inputId){
   const on=!!(s&&orgOrJobFeeReceived(s));
@@ -1789,29 +1789,29 @@ function updateOrgSplitPreview(){
   const checkout=usingDefault?((typeof registrationCheckoutTotal==='function')?registrationCheckoutTotal(courseEl.value, unit, seats):unit*seats):family;
   const checkoutLabel=(usingDefault&&seats>1)
     ?(fmt(unit)+' per person ('+fmt(checkout)+' per couple registration)')
-    :(fmt(checkout)+' per girl');
+    :(fmt(checkout)+' per participant');
   const countRaw=document.getElementById('m-billcount')?.value;
   const portionRaw=document.getElementById('m-org-portion')?.value;
   const registeredRows=_orgSplitSessionId?registrations.filter(r=>r.sessionId===_orgSplitSessionId&&isLiveReg(r)).length:0;
   const registered=registeredRows*seats;
   const hasRoster=countRaw!==''&&countRaw!=null;
   const girls=hasRoster?(Number(countRaw)||0):registered;
-  const girlLabel=girls===1?'girl':'girls';
+  const girlLabel=girls===1?'participant':'participants';
   const who=escapeHtml(org);
   const billRate=usingDefault?unit:family;
   if(portionRaw===''||portionRaw==null){
     out.style.color='inherit';
     if(!hasRoster){
-      out.innerHTML='<div style="font-weight:600">Org invoice total: —</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">Enter how many girls are on the invoice. Leave “Organization flat fee per girl” blank only when '+who+' pays the full family price.</div>';
+      out.innerHTML='<div style="font-weight:600">Org invoice total: —</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">Enter how many participants are on the invoice. Leave “Organization flat fee per participant” blank only when '+who+' pays the full family price.</div>';
       return;
     }
-    out.innerHTML='<div style="font-weight:600">Org invoice total: '+fmt(girls*billRate)+'</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">'+who+' is billed the full family price ('+fmt(billRate)+' × '+girls+' '+girlLabel+'). Enter an organization flat fee per girl when families pay less and the organization pays the rest. That fee is not added to checkout.</div>';
+    out.innerHTML='<div style="font-weight:600">Org invoice total: '+fmt(girls*billRate)+'</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">'+who+' is billed the full family price ('+fmt(billRate)+' × '+girls+' '+girlLabel+'). Enter an organization flat fee per participant when families pay less and the organization pays the rest. That fee is not added to checkout.</div>';
     return;
   }
   const portion=Math.max(0,Number(portionRaw)||0);
   const bill=girls*portion;
-  const blankNote=!hasRoster?'<div style="font-size:14px;color:#b86a00;font-weight:500;margin-top:6px">Girl count is blank, so this invoice follows who has registered'+( _orgSplitSessionId?' ('+registered+' so far)':'')+'. Enter the roster (for example 6) if the organization committed to a set number of girls.</div>':'';
-  const registeredNote=hasRoster&&_orgSplitSessionId?'<div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">'+registered+' registered so far. The invoice uses the girl count above, not class capacity.</div>':'';
+  const blankNote=!hasRoster?'<div style="font-size:14px;color:#b86a00;font-weight:500;margin-top:6px">Participant count is blank, so this invoice follows who has registered'+( _orgSplitSessionId?' ('+registered+' so far)':'')+'. Enter the roster (for example 6) if the organization committed to a set number of participants.</div>':'';
+  const registeredNote=hasRoster&&_orgSplitSessionId?'<div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:4px">'+registered+' registered so far. The invoice uses the participant count above, not class capacity.</div>':'';
   out.style.color='inherit';
   out.innerHTML='<div style="font-weight:600">Family checkout: '+checkoutLabel+'</div><div style="font-size:14px;color:var(--muted);font-weight:400">Charged at registration. The organization fee is not included.</div><div style="font-weight:700;font-size:18px;color:#1d6b45;margin-top:8px">Org invoice total: '+fmt(bill)+'</div><div style="font-size:14px;color:#1d6b45;font-weight:500">Flat fee '+fmt(portion)+' × '+girls+' '+girlLabel+' billed to '+who+'. Not mixed into family checkout. Not cash received yet.</div><div style="font-size:14px;color:var(--muted);font-weight:400;margin-top:6px">Session revenue = family payments after card fees + this invoice. It is not the family price times the roster.</div>'+registeredNote+blankNote;
 }
@@ -2227,23 +2227,23 @@ function participantMaterialAllowance(s){
 // ─── ORGANIZATION SPLIT VS FULL BILLING ─────────────────────
 // Two ways a named organization pays for a course session:
 //
-//   FULL — "Organization flat fee per girl" is blank. The invoice uses the
+//   FULL — "Organization flat fee per participant" is blank. The invoice uses the
 //   family price (the session override, or the course default). Beth El
 //   works this way: the synagogue pays the whole per-participant price, and
 //   families do not check out on their own.
 //
-//   SPLIT — that field is the organization's flat fee per girl, billed as its
+//   SPLIT — that field is the organization's flat fee per participant, billed as its
 //   own invoice. Families check out at the family price. The flat fee is not
 //   mixed into family checkout. SS-261009: families pay $150 at registration,
-//   and GS Troop 42086 is invoiced $25 × the girls on the roster.
-//   GS-H4782: families pay $15, and Troop 34182 is invoiced $30 × 15 scouts.
+//   and GS Troop 42086 is invoiced $25 × the participants on the roster.
+//   GS-H4782: families pay $15, and Troop 34182 is invoiced $30 × 15 participants.
 //
-// Who is counted (roster girls, not class capacity):
-//   The roster count entered on the session is the number of girls the
+// Who is counted (roster participants, not class capacity):
+//   The roster count entered on the session is the number of participants the
 //   organization is paying for. That is the existing partner pattern — Beth El
 //   sends a roster, and this troop's expected 6 is already stored there — so a
 //   committed roster is billed even before every family has registered.
-//   If that count is left blank AND a per-girl organization amount is set, the
+//   If that count is left blank AND a per-participant organization amount is set, the
 //   bill follows live registrations (not waitlist, cancelled, or host).
 //   A full-org session with a blank roster still adds no organization revenue
 //   until a count is entered, same as before. The invoice builder still falls
@@ -2268,7 +2268,7 @@ function orgRevenueHeadcount(s){
   if(!s||!s.billToOrg||s.isCustomJob)return 0;
   if(s.billedHeadcount!=null&&s.billedHeadcount!=='')return Number(s.billedHeadcount)||0;
   if(orgPortionAmount(s)==null)return 0;
-  // Registered girls only. A host seat is free and is not a girl the organization
+  // Registered participants only. A host seat is free and is not a participant the organization
   // is subsidizing. Waitlist and cancelled are already outside isLiveReg.
   // A live registration row is one booking. Baby Ready holds two people, and
   // the organization fee is per person, so count seats rather than rows.
@@ -2281,7 +2281,7 @@ function orgBillAmount(s){
   return orgRevenueHeadcount(s)*orgBillRate(s);
 }
 // Hover text for a split. Revenue on the row is family payments after card
-// fees, plus the organization invoice. That invoice is the flat fee per girl
+// fees, plus the organization invoice. That invoice is the flat fee per participant
 // times the roster. It is counted before the check arrives, and it is not
 // the family checkout price times the roster (that is what made SS-261009
 // look like about $1,045).
@@ -2290,10 +2290,10 @@ function splitBillCaption(s,f){
   const portion=orgPortionAmount(s);
   const girls=f&&f.orgHeadcount!=null?f.orgHeadcount:orgRevenueHeadcount(s);
   const orgAmt=girls*portion;
-  const girlsWord=girls===1?'girl':'girls';
+  const girlsWord=girls===1?'participant':'participants';
   const rosterSet=s.billedHeadcount!=null&&s.billedHeadcount!=='';
   const cash=orgOrJobFeeReceived(s)?'That invoice has been received.':'That invoice is not cash received yet.';
-  return 'Revenue is family payments after card fees, plus an organization invoice of '+fmt(orgAmt)+' ('+fmt(portion)+' flat fee × '+girls+' '+girlsWord+(rosterSet?' on the roster':' because the girl count is blank')+'). '+cash+' It is not the family price times the roster.';
+  return 'Revenue is family payments after card fees, plus an organization invoice of '+fmt(orgAmt)+' ('+fmt(portion)+' flat fee × '+girls+' '+girlsWord+(rosterSet?' on the roster':' because the participant count is blank')+'). '+cash+' It is not the family price times the roster.';
 }
 // Sub-lines under the revenue figure. The figure itself stays the real total.
 function sessionRevenueNotes(s,f){
@@ -2304,12 +2304,12 @@ function sessionRevenueNotes(s,f){
     const family=familyPrice(s);
     const orgAmt=girls*portion;
     const rosterSet=s.billedHeadcount!=null&&s.billedHeadcount!=='';
-    const girlsWord=girls===1?'girl':'girls';
+    const girlsWord=girls===1?'participant':'participants';
     const familyNet=(f&&f.familyGross!=null&&f.procFee!=null)?f.familyGross-f.procFee:null;
     const title=splitBillCaption(s,f);
     const collected=familyNet==null?'':`<span class="pay-note" title="${escapeHtml(title)}">Families collected ${fmt(familyNet)} after fees</span>`;
     const orgLabel=orgOrJobFeeReceived(s)?`Org fee ${fmt(orgAmt)} — received`:`Org invoice ${fmt(orgAmt)} — not cash yet`;
-    return collected+`<span class="pay-note" style="color:#1d6b45;font-weight:650" title="${escapeHtml(title)}">${orgLabel}</span><span class="pay-note" title="${escapeHtml(title)}">${fmt(portion)} flat fee × ${girls} ${girlsWord}${rosterSet?'':' · roster blank'}</span><span class="pay-note" title="${escapeHtml(title)}">Family ${fmt(family)}/girl at checkout</span>`;
+    return collected+`<span class="pay-note" style="color:#1d6b45;font-weight:650" title="${escapeHtml(title)}">${orgLabel}</span><span class="pay-note" title="${escapeHtml(title)}">${fmt(portion)} flat fee × ${girls} ${girlsWord}${rosterSet?'':' · roster blank'}</span><span class="pay-note" title="${escapeHtml(title)}">Family ${fmt(family)}/participant at checkout</span>`;
   }
   if(s.priceOverride!=null){
     const per=(typeof seatsCharged==='function')?seatsCharged(s.course):(String(s.course||'')==='Baby Ready'||String(s.course||'')==='Baby Ready + CPR Certification'?2:1);
@@ -2340,7 +2340,7 @@ function calcFin(s){
   // was set, otherwise the session override, otherwise the course default.
   // Org-billed sessions (e.g. Beth El): the organization sends a roster and pays at
   // month end. On a full bill that rate is the registration price. On a split, the
-  // organization pays only its flat fee per girl (orgPortion × roster) and
+  // organization pays only its flat fee per participant (orgPortion × roster) and
   // families still pay the registration price above. Session revenue is those
   // family payments after card fees, plus that invoice. The invoice is not
   // cash received yet, and it is never the family price times the roster.
@@ -2739,6 +2739,30 @@ function toggleExtraDates(ev,id){
 function sessionMaxStudents(s){
   if(s&&s.maxStudentsOverride&&Number(s.maxStudentsOverride)>0)return Number(s.maxStudentsOverride);
   return(COURSES[s.course]||{maxStudents:8}).maxStudents;
+}
+// Participants the organization already committed to, on an org-billed session.
+// Blank, zero, and a session with no bill-to name do not reserve seats.
+function orgCommittedParticipants(s){
+  if(!s||!String(s.billToOrg||'').trim())return 0;
+  if(s.billedHeadcount==null||s.billedHeadcount==='')return 0;
+  const n=Number(s.billedHeadcount);
+  if(!isFinite(n)||n<=0)return 0;
+  return Math.floor(n);
+}
+// Live registrations, in people. extraRows is a registration not saved yet
+// (re-enroll). Baby Ready counts two people per registration row.
+function registeredSeatCount(s, extraRows){
+  if(!s)return 0;
+  const per=(typeof seatsPerRegistration==='function')?seatsPerRegistration(s.course):1;
+  const extra=Number(extraRows);
+  const rows=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length+(isFinite(extra)&&extra>0?extra:0);
+  return rows*per;
+}
+// Seats taken for the list and for remaining capacity. A committed roster of 4
+// shows as 4 even before anyone registers. Once those people register they are
+// not added again: the count is the larger of the two, not the sum.
+function sessionOccupiedSeats(s, extraRows){
+  return Math.max(registeredSeatCount(s, extraRows), orgCommittedParticipants(s));
 }
 // ── ACTIVE / INACTIVE INSTRUCTORS ───────────────────────────
 // An inactive instructor is one who is no longer on the roster — someone who never
@@ -3185,7 +3209,7 @@ function partnerRevenueEvents(s){
 
   // An organization's roster, invoiced at month end. No processing fee applies —
   // you are paid by check or transfer, not through PayPal. A split uses the
-  // per-girl organization amount; a full bill uses the registration price.
+  // per-participant organization amount; a full bill uses the registration price.
   if(s.billToOrg){
     const amt=orgBillAmount(s);
     if(amt>0){
@@ -6047,7 +6071,7 @@ function renderSessions(){
     const org=s&&s.billToOrg;
     if(!org)return '';
     const portion=orgPortionAmount(s);
-    const fee=portion!=null?`<span class="sess-sub" style="color:#1d6b45;font-weight:600">Org flat fee ${fmt(portion)}/girl</span>`:'';
+    const fee=portion!=null?`<span class="sess-sub" style="color:#1d6b45;font-weight:600">Org flat fee ${fmt(portion)}/participant</span>`:'';
     return `<span class="sess-sub" title="Billed to ${escapeHtml(org)}">Billed to ${escapeHtml(org)}</span>${fee}`;
   };
   const revenueCell=(s,f,extra='')=>{
@@ -6092,7 +6116,7 @@ function renderSessions(){
       const mgr=bg=>`<td class="mgr-cell" style="text-align:right;background:${bg}"><button type="button" class="btn sm" aria-haspopup="menu" aria-expanded="false" aria-label="Manage session" onclick="openSessionMenu(event,'${s.id}')" onkeydown="sessionMenuButtonKey(event,'${s.id}')">Manage \u25be</button></td>`;
       const where=locCell(s.isVirtual?'Virtual':s.location);
       if(s.isHold){
-        const enrolled=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course);
+        const enrolled=sessionOccupiedSeats(s);
         const wlHold=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
         const whenFull=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
         const timeNote=(s.time||'').trim();
@@ -6152,7 +6176,7 @@ function renderSessions(){
         <td><div class="cell-stack">${courseCell(pills)}</div></td>
         <td><div class="cell-stack">${where}</div></td>
         <td><div class="cell-stack"><span class="sess-wrap" title="${escapeHtml(instr)}">${escapeHtml(instr)}</span></div></td>
-        <td><div class="cell-stack"><span class="sess-wrap">${registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course)} / ${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''}</span></div></td>
+        <td><div class="cell-stack"><span class="sess-wrap">${sessionOccupiedSeats(s)} / ${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''}</span></div></td>
         <td><div class="cell-stack">${revenueCell(s,f)}</div></td>
         <td>${isPast?`<div class="cell-stack"><span>${wrapDots}</span><span class="pay-note" style="color:${wrapAllDone?'var(--success)':'var(--muted)'}">${wrapAllDone?'Done':wrapDone+'/'+wrapTotal}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
         ${mgr('white')}</tr>`;
@@ -8016,7 +8040,7 @@ function renderRegs(){
   const pf=document.getElementById('rf-status').value;
   const q=(document.getElementById('rf-search').value||'').toLowerCase();
   const selEl=document.getElementById('rf-session');const cur=selEl.value;
-  selEl.innerHTML='<option value="">All sessions</option>'+sessions.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(s=>{const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length*seatsPerRegistration(s.course);const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'});const hold=s.isHold?' · on hold':'';return`<option value="${s.id}">${s.course} — ${d}${hold} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
+  selEl.innerHTML='<option value="">All sessions</option>'+sessions.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(s=>{const cnt=sessionOccupiedSeats(s);const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'});const hold=s.isHold?' · on hold':'';return`<option value="${s.id}">${s.course} — ${d}${hold} (${cnt}/${sessionMaxStudents(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
   selEl.value=cur;
   let list=registrations.filter(r=>{
     if(sf&&r.sessionId!==sf)return false;
@@ -8596,12 +8620,12 @@ function reEnrollReg(id){
   const r=registrations.find(x=>x.id===id);if(!r)return;
   const s=sessions.find(x=>x.id===r.sessionId);
   const prev=prevStatusFromNote(r);
-  const per=s?seatsPerRegistration(s.course):1;
-  const filled=s?registrations.filter(x=>x.sessionId===s.id&&isLiveReg(x)).length*per:0;
+  const filled=s?sessionOccupiedSeats(s):0;
+  const after=s?sessionOccupiedSeats(s,1):0;
   const cap=s?sessionMaxStudents(s):0;
   const warns=[];
   if(s&&s.isCancelled)warns.push('This session is cancelled, so the class is not running. Move the student to a different session on the Edit screen instead.');
-  if(s&&cap&&filled+per>cap)warns.push('This session is already full at '+filled+' of '+cap+'. Re-enrolling puts it at '+(filled+per)+' — or bring them back on the waitlist instead.');
+  if(s&&cap&&after>cap)warns.push('This session is already full at '+filled+' of '+cap+'. Re-enrolling puts it at '+after+' — or bring them back on the waitlist instead.');
   const opt=(v,label)=>`<option value="${v}" ${prev===v?'selected':''}>${label}</option>`;
   showModal(`<div class="modal-head"><h3>Re-enroll ${escapeHtml(r.studentName||'student')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
   <div class="modal-body">
@@ -10803,7 +10827,7 @@ function courseOverviewApi(){
   return (typeof window!=='undefined'&&window.MBCourseOverviews)||(typeof MBCourseOverviews!=='undefined'?MBCourseOverviews:null);
 }
 // Money lines for the host-forward draft. A split uses the family checkout
-// price and the organization flat fee. A custom job that has no per-scout
+// price and the organization flat fee. A custom job that has no per-participant
 // fee still says so, instead of pretending the flat job total is a family price.
 function familyForwardMoney(s){
   const org=String((s&&s.billToOrg)||'').trim();
@@ -10819,7 +10843,7 @@ function familyForwardMoney(s){
     const flat=s.priceOverride!=null?fmt(Number(s.priceOverride)):'';
     return {
       familyPayLine:'What each family pays: not set on a custom job. Use New session, pick the course, and enter Family price at registration.',
-      orgCoverLine:'What the organization covers: '+(flat?who+' is entered with one flat fee of '+flat+'.':'the organization fee is not entered yet.')+' That flat fee is not a per-scout family price.'
+      orgCoverLine:'What the organization covers: '+(flat?who+' is entered with one flat fee of '+flat+'.':'the organization fee is not entered yet.')+' That flat fee is not a per-participant family price.'
     };
   }
   const familyLine=family||family===0
@@ -10827,11 +10851,11 @@ function familyForwardMoney(s){
     :'What each family pays: [enter Family price at registration].';
   let orgLine;
   if(portion==null){
-    orgLine='What the organization covers: '+who+' is the bill-to name. Enter Organization flat fee per girl when the troop pays a per-scout amount on top of what families pay.';
+    orgLine='What the organization covers: '+who+' is the bill-to name. Enter Organization flat fee per participant when the troop pays a per-participant amount on top of what families pay.';
   }else{
     const total=fmt(girls*portion);
-    const countBit=girls?(' For '+girls+' scout'+(girls===1?'':'s')+' on the roster, the invoice is '+total+'.'):'';
-    orgLine='What the organization covers: '+who+' is invoiced '+fmt(portion)+' per scout.'+countBit+' Families are not charged this at checkout.';
+    const countBit=girls?(' For '+girls+' participant'+(girls===1?'':'s')+' on the roster, the invoice is '+total+'.'):'';
+    orgLine='What the organization covers: '+who+' is invoiced '+fmt(portion)+' per participant.'+countBit+' Families are not charged this at checkout.';
   }
   return {familyPayLine:familyLine,orgCoverLine:orgLine};
 }
@@ -14246,7 +14270,7 @@ function invoicedSessionIds(){
   return set;
 }
 // Default invoice line for a session: custom jobs bill their flat org fee; course
-// sessions bill girls × the organization rate. A split uses the per-girl
+// sessions bill participants × the organization rate. A split uses the per-participant
 // organization amount. A full bill uses the registration price.
 function invoiceLineFor(s){
   if(s.isCustomJob){
@@ -14254,7 +14278,7 @@ function invoiceLineFor(s){
     return{sessionId:s.id,date:s.date,desc:s.course,qty:null,rate:null,amount:amt,flat:true};
   }
   const split=orgPortionAmount(s)!=null;
-  // A blank roster on a split follows registered girls (same count as revenue).
+  // A blank roster on a split follows registered participants (same count as revenue).
   // A blank roster on a full bill still falls back to every live registration,
   // which is how an invoice was drawn before split pricing existed.
   const qty=s.billedHeadcount!=null?Number(s.billedHeadcount):(split?orgRevenueHeadcount(s):registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length);

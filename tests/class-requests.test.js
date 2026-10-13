@@ -68,6 +68,10 @@ test('host and organization pages use the shared public header', () => {
   assert.doesNotMatch(orgPage, /class="tag"/);
   assert.doesNotMatch(hostPage, /class="brand"/);
   assert.doesNotMatch(orgPage, /class="brand"/);
+  assert.match(intakeCss, /#1E3161/);
+  assert.match(intakeCss, /#F5F2EA/);
+  assert.match(intakeCss, /#EFC75A/);
+  assert.match(intakeCss, /Montserrat/);
   assert.match(hostPage, /we will confirm the date/);
   assert.match(orgPage, /<h1>Organization site information<\/h1>/);
 });

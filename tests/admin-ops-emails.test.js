@@ -141,7 +141,7 @@ test('a troop family-forward draft includes the private link, both prices, and t
     code: 'GS-H4782',
     regLink: 'https://register.mindfulbeginnings.org/register.html?code=GS-H4782',
     familyPayLine: 'What each family pays: $15 per registration, at checkout on the private link. The organization amount is not added to that charge.',
-    orgCoverLine: 'What the organization covers: Girl Scout Troop 34182 (Mary Polacek) is invoiced $30 per scout. For 15 scouts on the roster, the invoice is $450. Families are not charged this at checkout.',
+    orgCoverLine: 'What the organization covers: Girl Scout Troop 34182 (Mary Polacek) is invoiced $30 per participant. For 15 participants on the roster, the invoice is $450. Families are not charged this at checkout.',
     overviewText: overview
   });
   assert.equal(draft.field, 'to');
@@ -155,7 +155,9 @@ test('a troop family-forward draft includes the private link, both prices, and t
   assert.match(draft.body, /\$15 per registration/);
   assert.match(draft.body, /https:\/\/register\.mindfulbeginnings\.org\/register\.html\?code=GS-H4782/);
   assert.match(draft.body, /not on the public class list/);
-  assert.match(draft.body, /\$30 per scout/);
+  assert.match(draft.body, /\$30 per participant/);
+  assert.match(draft.body, /15 participants on the roster/);
+  assert.match(draft.body, /Girl Scout Troop 34182/);
   assert.match(draft.body, /\$450/);
   assert.match(draft.body, /not a CPR or First Aid certification/);
   assert.doesNotMatch(draft.body, /mailto:/);
