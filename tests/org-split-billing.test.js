@@ -113,8 +113,8 @@ test('SS-261009 bills the troop $25 times the roster, and the family price stays
   assert.match(notes, /Families collected/);
   assert.match(notes, /after fees/);
   assert.match(notes, /Org invoice \$150 — not cash yet/);
-  assert.match(notes, /\$25 flat fee × 6 girls/);
-  assert.match(notes, /Family \$150\/girl at checkout/);
+  assert.match(notes, /\$25 flat fee × 6 participants/);
+  assert.match(notes, /Family \$150\/participant at checkout/);
   assert.match(sandbox.splitBillCaption(session, fin), /not the family price times the roster/);
   assert.match(sandbox.splitBillCaption(session, fin), /not cash received yet/);
   // The row total is family net + $25×6, about $295, never the old $150×6 bill.
@@ -122,7 +122,7 @@ test('SS-261009 bills the troop $25 times the roster, and the family price stays
   assert.ok(fin.revenue > 250);
 });
 
-test('a blank roster on a split follows registered girls and ignores capacity and host seats', () => {
+test('a blank roster on a split follows registered participants and ignores capacity and host seats', () => {
   const session = troopSession({ billedHeadcount: null, maxStudentsOverride: 10 });
   sandbox.registrations = [
     { id: 'paid', sessionId: session.id, payStatus: 'paid' },
@@ -140,7 +140,7 @@ test('a blank roster on a split follows registered girls and ignores capacity an
   assert.equal(session.maxStudentsOverride, 10);
 });
 
-test('a full organization bill still uses the registration price when no per-girl share is set', () => {
+test('a full organization bill still uses the registration price when no per-participant share is set', () => {
   const beth = {
     id: 'beth',
     course: 'Safe Sitter®',
@@ -166,21 +166,24 @@ test('a full organization bill still uses the registration price when no per-gir
 test('the sessions table and the edit form show the family checkout and the org invoice separately', () => {
   assert.match(admin, /Org invoice \$\{fmt\(orgAmt\)\} — not cash yet/);
   assert.match(admin, /Families collected \$\{fmt\(familyNet\)\} after fees/);
-  assert.match(admin, /Family \$\{fmt\(family\)\}\/girl at checkout/);
+  assert.match(admin, /Family \$\{fmt\(family\)\}\/participant at checkout/);
   assert.match(admin, /\$\{fmt\(portion\)\} flat fee × \$\{girls\}/);
   assert.match(admin, /function splitBillCaption/);
   assert.match(admin, /not the family price times the roster/);
   assert.match(admin, /\$\{fmt\(f\.revenue\)\}/);
   assert.match(admin, /const revenueCell=\(s,f,extra=''\)/);
   assert.match(admin, /id="m-org-portion"/);
-  assert.match(admin, /Organization flat fee per girl/);
-  assert.match(admin, /Girls on the org invoice/);
+  assert.match(admin, /Organization flat fee per participant/);
+  assert.match(admin, /Participants on the org invoice/);
   assert.match(admin, /Org invoice total/);
   assert.match(admin, /Family price at registration/);
   assert.match(admin, /Family checkout: /);
   assert.match(admin, /Not mixed into family checkout/);
   assert.match(admin, /Not cash received yet/);
   assert.doesNotMatch(admin, /Organization pays per girl/);
+  assert.doesNotMatch(admin, /Girls on the org invoice/);
+  assert.doesNotMatch(admin, /flat fee per girl/);
+  assert.doesNotMatch(admin, /per scout/);
   assert.doesNotMatch(admin, /Registration price per participant/);
   assert.doesNotMatch(admin, /splitRevenueHeadline/);
   assert.equal((admin.match(/\$\{orgBillingFieldsHtml\(/g) || []).length, 2);
@@ -229,7 +232,7 @@ function firstAidSession(overrides) {
   }, overrides || {});
 }
 
-test('GS-H4782 bills the troop $30 times 15 scouts and keeps the family price at $15', () => {
+test('GS-H4782 bills the troop $30 times 15 participants and keeps the family price at $15', () => {
   const session = firstAidSession();
   sandbox.registrations = [];
   sandbox.jobDataCache = {};
@@ -249,7 +252,7 @@ test('GS-H4782 bills the troop $30 times 15 scouts and keeps the family price at
   const notes = sandbox.sessionRevenueNotes(session, fin);
   assert.match(notes, /Org invoice \$450 — not cash yet/);
   assert.match(notes, /\$30 flat fee × 15/);
-  assert.match(notes, /Family \$15\/girl at checkout/);
+  assert.match(notes, /Family \$15\/participant at checkout/);
 
   sandbox.registrations = [
     { id: 'paid', sessionId: session.id, payStatus: 'paid', pricePaid: 15 }
@@ -262,12 +265,13 @@ test('GS-H4782 bills the troop $30 times 15 scouts and keeps the family price at
   assert.notEqual(Math.round(withFamily.revenue * 100) / 100, Math.round((familyNet + 15 * 15) * 100) / 100);
   const money = sandbox.familyForwardMoney(session);
   assert.match(money.familyPayLine, /\$15 per registration/);
-  assert.match(money.orgCoverLine, /\$30 per scout/);
+  assert.match(money.orgCoverLine, /\$30 per participant/);
+  assert.match(money.orgCoverLine, /15 participants on the roster/);
   assert.match(money.orgCoverLine, /\$450/);
   assert.match(money.orgCoverLine, /Girl Scout Troop 34182 \(Mary Polacek\)/);
 });
 
-test('a custom job still ignores a per-scout split until it is a course session', () => {
+test('a custom job still ignores a per-participant split until it is a course session', () => {
   const job = firstAidSession({
     isCustomJob: true,
     course: 'Girl Scouts — First Aid Badge Workshop (Troop 34182)',
@@ -290,7 +294,7 @@ test('the First Aid Badge course is on the session form, at $45 for 60 minutes',
   assert.match(admin, /<option>Girl Scouts — First Aid Badge Workshop<\/option>/);
   assert.match(admin, /s\.course==='Girl Scouts — First Aid Badge Workshop'/);
   assert.match(admin, /Family price at registration 15/);
-  assert.match(admin, /Organization flat fee per girl 30/);
+  assert.match(admin, /Organization flat fee per participant 30/);
   assert.match(admin, /do not use a custom job/);
   assert.match(configJs, /'Girl Scouts — First Aid Badge Workshop':\{price:45/);
   assert.match(configJs, /requiresRN:true/);
