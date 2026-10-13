@@ -465,6 +465,7 @@ if(typeof COURSES==='undefined'){
     'Grandparents: Getting Started':{hours:3, maxStudents:16, requiresSafeSitter:true, adult:true},
     'Care Ready':{hours:2.5, maxStudents:16, adult:true},
     'Baby Ready':{hours:2.5, maxStudents:12, seatsPerRegistration:2, adult:true},
+    'Baby Ready + CPR Certification':{hours:5, maxStudents:12, seatsPerRegistration:2, adult:true},
     'All Kids Welcome':{hours:1.5, maxStudents:20, instrFlatFee:75, virtual:true},
     'Stay Ready: Choking Rescue and CPR':{hours:1.5, maxStudents:12, requiresRN:true},
     'Campus Ready: Safety Skills for College Life':{hours:1, maxStudents:12, instrFlatFee:100, requiresRN:true},
@@ -502,6 +503,14 @@ Object.keys(COURSES).forEach(c=>{
     COURSES[c].redCross=true;
     COURSES[c].requiresLeadTeacher=true;
     COURSES[c].requiresRN=false;
+    COURSES[c].requiresSafeSitter=false;
+  }
+  // Baby Ready + CPR Certification includes "CPR" but it is not an RN-only
+  // course and it is not a Red Cross Lead Teacher course.
+  if(c==='Baby Ready + CPR Certification'){
+    COURSES[c].requiresRN=false;
+    COURSES[c].requiresLeadTeacher=false;
+    COURSES[c].redCross=false;
     COURSES[c].requiresSafeSitter=false;
   }
 });
@@ -588,7 +597,7 @@ function isAdultCourse(course){
   const name=String(course||'');
   const booking=(typeof window!=='undefined'&&window.MBCourseBooking)||null;
   if(booking)return booking.isAdultCourse(name, typeof COURSES!=='undefined'?COURSES:null);
-  return name==='Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready';
+  return name==='Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready'||name==='Baby Ready + CPR Certification';
 }
 function seatsPerRegistration(course){
   const name=String(course||'');
@@ -597,7 +606,7 @@ function seatsPerRegistration(course){
   const c=(typeof COURSES!=='undefined'&&COURSES[name])||{};
   const n=Number(c.seatsPerRegistration);
   if(isFinite(n)&&n>=1)return Math.floor(n);
-  return name==='Baby Ready'?2:1;
+  return name==='Baby Ready'||name==='Baby Ready + CPR Certification'?2:1;
 }
 function filledSeats(s){return countRegs(s&&s.id)*seatsPerRegistration(s&&s.course);}
 function partnerNameOf(r){

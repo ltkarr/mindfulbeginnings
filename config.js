@@ -14,6 +14,10 @@
                  costs $390. A session price override is still the checkout total.
    Oct 13 2026 · Added Safe Sitter® Babysitting Essentials ($185, 4 hours).
                  Safe Sitter®, the 5-hour course with the CPR module, stays $225.
+   Oct 13 2026 · Added Baby Ready + CPR Certification. $275 per person.
+                 A couple registration is two people and costs $495 (couplePrice),
+                 not $550. It is not RN-only. Same people-cap and couple counting
+                 as Baby Ready.
    Oct  8 2026 · Added two American Red Cross courses (redCross + requiresLeadTeacher).
                  New-session prices, same Oct 9 list as the other classes-page prices:
                  Babysitter's Training $295 / 7 hours, Adult & Pediatric First Aid/CPR/AED
@@ -89,6 +93,11 @@ const COURSES={
   // Adult course — no grade, no parent. Length matches Care Ready (2.5 hours)
   // until a published length replaces it. Any instructor may teach it.
   'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · $195 per person'},
+  // Baby Ready plus Pediatric First Aid/CPR certification. $275 per person.
+  // couplePrice is the checkout total for one couple registration (2 people),
+  // $495, which is less than 2 × $275. Not RN-only. Capacity is people, and
+  // each registration holds 2 seats, same as Baby Ready.
+  'Baby Ready + CPR Certification':{price:275,price2027:275,priceNew:275,priceNew2027:275,couplePrice:495,matCost:0,hours:5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · $275 per person ($495 per couple)'},
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters · Grades 3–9'},
   'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:12,requiresRN:true,audience:'Grades 7–12'},
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'11th–12th grade & college'},
@@ -264,6 +273,7 @@ const MAX_STUDENTS={
   'Grandparents: Getting Started':16,
   'Care Ready':16,
   'Baby Ready':12,
+  'Baby Ready + CPR Certification':12,
   'All Kids Welcome':20,
   'Stay Ready: Choking Rescue and CPR':12,
   'Campus Ready: Safety Skills for College Life':12,

@@ -49,7 +49,7 @@ test('courses whose price did not change keep the same price after the cutover',
     'Ready. Period.': 75, 'All Kids Welcome': 25,
     'Campus Ready: Safety Skills for College Life': 75,
     'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 25,
-    'Baby Ready': 195
+    'Baby Ready': 195, 'Baby Ready + CPR Certification': 275
   };
   for (const [course, price] of Object.entries(unchanged)) {
     assert.equal(cfg.getSessionBasePrice(course, '2026-12-01', BEFORE), price, course);
