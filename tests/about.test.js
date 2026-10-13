@@ -42,6 +42,9 @@ function cards() {
       return found ? decode(found[1]) : '';
     };
     const src = (body.match(/<img[^>]*\ssrc="([^"]*)"/) || [])[1] || '';
+    const dataRole = (body.match(/<button[^>]*\sdata-role="([^"]*)"/) || [])[1] || '';
+    const frame = (body.match(/object-position:([^"]*)/) || [])[1] || '';
+    const zoom = /class="shot is-zoom"/.test(body);
     const bios = [];
     const bioMarker = '<div class="bio" hidden>';
     const bioStart = body.indexOf(bioMarker);
@@ -54,6 +57,9 @@ function cards() {
       name: attr('name'),
       heading: pick('name'),
       role: pick('role'),
+      dataRole: decode(dataRole),
+      frame: frame,
+      zoom: zoom,
       credentials: pick('credentials'),
       hasCredentials: /<span class="credentials">/.test(body),
       button: /<button type="button" class="card"/.test(body),
@@ -99,7 +105,10 @@ test('team cards match the uploaded people, in section order, with exact bios', 
     assert.equal(card.section, person.section, 'section ' + person.name);
     assert.equal(card.name, person.name);
     assert.equal(card.heading, person.name);
-    assert.equal(card.role, roleFor(person), 'role ' + person.name);
+    const role = roleFor(person);
+    assert.equal(card.dataRole, role, 'dialog role ' + person.name);
+    const repeatsSection = role === 'Founder & President' || role === 'Lead Instructor' || role === 'Instructor';
+    assert.equal(card.role, repeatsSection ? '' : role, 'card role ' + person.name);
     assert.equal(card.photo, person.photo, 'photo ' + person.name);
     assert.equal(card.button, true, 'button ' + person.name);
     assert.deepEqual(card.bio, person.bio, 'bio ' + person.name);
@@ -126,6 +135,30 @@ test('each person is a button that opens a bio dialog', () => {
   assert.match(page, /\.team-section h2\{margin:0 0 14px;font-size:clamp\(20px,2\.2vw,26px\)/);
   assert.match(page, /\.name\{font-size:15px/);
   assert.match(page, /\.role\{font-size:13px/);
+  assert.match(page, /button\.getAttribute\('data-role'\)/);
+  assert.match(page, /photo\.style\.objectPosition/);
+  const frames = {
+    'Bronwen Kennedy': 'center top',
+    'Kimberly Sinkford': 'center 19%',
+    'Miryam Buchler': 'center top',
+    'Kelley Butler': 'center top',
+    'Marcie Berul': 'center 93%',
+    'Jasmine Rhodes': 'center top',
+    'Mary Parks': 'center top',
+    'Jessica Katz': 'center top',
+    'Ashira Lavine': 'center top',
+    'Bela Shah Spooner': 'center 28%'
+  };
+  const found = cards();
+  Object.keys(frames).forEach((name) => {
+    const card = found.find((item) => item.name === name);
+    assert.equal(card.frame, frames[name], 'frame ' + name);
+    assert.equal(card.zoom, false, 'zoom ' + name);
+  });
+  const chyna = found.find((item) => item.name === 'Chyna Brodie');
+  assert.equal(chyna.zoom, true);
+  assert.match(page, /class="bio-shot" id="bio-shot"/);
+  assert.match(page, /classList\.toggle\('is-zoom'/);
 });
 
 test('closing actions and footer sit together with no empty band', () => {

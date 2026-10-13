@@ -33,6 +33,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 .card:hover .name{text-decoration:underline}
 .card:focus-visible,.bio-close:focus-visible{outline:3px solid #EFC75A;outline-offset:3px}
 .photo{width:120px;height:120px;border-radius:50%;object-fit:cover;display:block;background:#fff}
+.shot{width:120px;height:120px;border-radius:50%;overflow:hidden;display:block;background:#fff;flex:none}
+.shot.is-zoom{background:#e6eaeb}
+.shot .photo{width:142%;height:142%;max-width:none;border-radius:0;margin-left:-21%;margin-top:6%;object-fit:cover}
 .name{font-size:15px;font-weight:800;line-height:1.25}
 .role{font-size:13px;font-weight:600;line-height:1.3}
 .credentials{font-size:12px;font-weight:600;line-height:1.3}
@@ -43,7 +46,10 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 .bio-top{position:sticky;top:0;display:flex;justify-content:flex-end;background:#fff;padding-bottom:4px}
 .bio-close{font-size:14px;font-weight:700;color:#1E3161;background:#fff;border:2px solid #1E3161;border-radius:999px;padding:8px 16px;cursor:pointer}
 .bio-close:hover{background:#EFC75A}
-.bio-photo{width:128px;height:128px;border-radius:50%;object-fit:cover;display:block;background:#fff}
+.bio-shot{width:128px;height:128px;border-radius:50%;overflow:hidden;display:block;background:#fff;flex:none}
+.bio-shot .bio-photo{width:100%;height:100%;border-radius:0;object-fit:cover;display:block;margin:0;background:#fff}
+.bio-shot.is-zoom{background:#e6eaeb}
+.bio-shot.is-zoom .bio-photo{width:142%;height:142%;max-width:none;margin-left:-21%;margin-top:6%}
 .bio-name{margin:0;font-size:20px;line-height:1.2;font-weight:800}
 .bio-role{margin:0;font-size:15px;font-weight:700}
 .bio-credentials{margin:0;font-size:14px;font-weight:600}
@@ -60,6 +66,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 .footer-links{display:flex;flex-wrap:wrap;gap:10px 18px}
 @media (max-width:420px){
   .photo{width:110px;height:110px}
+  .shot{width:110px;height:110px}
 }
 @media (min-width:720px){
   .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 12px}
@@ -98,10 +105,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>Founder &amp; President</h2>
 <div class="grid">
 <div class="person" data-section="Founder &amp; President" data-name="Lindsay Karr">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Founder &amp; President">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_4725.PNG/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Lindsay Karr</span>
-<span class="role">Founder &amp; President</span>
 <span class="credentials">M.Ed.</span>
 </button>
 <div class="bio" hidden>
@@ -114,7 +120,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>Program Team</h2>
 <div class="grid">
 <div class="person" data-section="Program Team" data-name="Kathryn Greenberg">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Community Partnerships Liaison">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Katy.jpg/:/cr=t:0%25,l:2.16%25,w:95.67%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Kathryn Greenberg</span>
 <span class="role">Community Partnerships Liaison</span>
@@ -125,8 +131,8 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Mary Parks">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://register.mindfulbeginnings.org/team/mary-parks.jpg" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Community Partnerships Liaison">
+<img class="photo" style="object-position:center top" src="https://register.mindfulbeginnings.org/team/mary-parks.jpg" alt="" width="120" height="120">
 <span class="name">Mary Parks</span>
 <span class="role">Community Partnerships Liaison</span>
 <span class="credentials">BA, BS</span>
@@ -136,7 +142,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Travis Edwards">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Community Partnerships Liaison">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/7ADC44E5-04C0-42FE-994C-CF0076E81A29.PNG/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Travis Edwards</span>
 <span class="role">Community Partnerships Liaison</span>
@@ -147,7 +153,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Yesmina Battle">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Curriculum Specialist">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Dreamwave-Photo%20(11).png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Yesmina Battle</span>
 <span class="role">Curriculum Specialist</span>
@@ -158,7 +164,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Kelsey Gaston">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Curriculum Specialist">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/KG.jpg/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Kelsey Gaston</span>
 <span class="role">Curriculum Specialist</span>
@@ -169,8 +175,8 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Jessica Katz">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Headshot.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Curriculum Specialist">
+<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Headshot.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Jessica Katz</span>
 <span class="role">Curriculum Specialist</span>
 <span class="credentials">BS</span>
@@ -180,7 +186,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Program Team" data-name="Jennie Stroup">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Curriculum Specialist">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/jennie.png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Jennie Stroup</span>
 <span class="role">Curriculum Specialist</span>
@@ -196,10 +202,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>Lead Instructors</h2>
 <div class="grid">
 <div class="person" data-section="Lead Instructors" data-name="Kim Varner">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Lead Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_5201.jpeg/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Kim Varner</span>
-<span class="role">Lead Instructor</span>
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
@@ -212,10 +217,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <h2>Instructors</h2>
 <div class="grid">
 <div class="person" data-section="Instructors" data-name="Brandi Beers">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Brandi%20Beers%20.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Brandi Beers</span>
-<span class="role">Instructor</span>
 <span class="credentials">M.Ed.</span>
 </button>
 <div class="bio" hidden>
@@ -223,10 +227,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Marcie Berul">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_6940.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:99.13%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
+<img class="photo" style="object-position:center 93%" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_6940.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:99.13%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Marcie Berul</span>
-<span class="role">Instructor</span>
 <span class="credentials">M.Ed.</span>
 </button>
 <div class="bio" hidden>
@@ -234,10 +237,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Chyna Brodie">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/blob-385e9b6.png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
+<span class="shot is-zoom"><img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/blob-385e9b6.png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120"></span>
 <span class="name">Chyna Brodie</span>
-<span class="role">Instructor</span>
 <span class="credentials">BA</span>
 </button>
 <div class="bio" hidden>
@@ -245,10 +247,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Miryam Buchler">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_6168.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
+<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_6168.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Miryam Buchler</span>
-<span class="role">Instructor</span>
 <span class="credentials">MS</span>
 </button>
 <div class="bio" hidden>
@@ -256,10 +257,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Kelley Butler">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/butler.jpg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
+<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/butler.jpg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Kelley Butler</span>
-<span class="role">Instructor</span>
 <span class="credentials">BA</span>
 </button>
 <div class="bio" hidden>
@@ -267,10 +267,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Helena Carboy">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Dreamwave-Photo%2013.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Helena Carboy</span>
-<span class="role">Instructor</span>
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
@@ -278,10 +277,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Michelle Cha">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Dreamwave-Photo%20(16).png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Michelle Cha</span>
-<span class="role">Instructor</span>
 <span class="credentials">RN, BSN, MS</span>
 </button>
 <div class="bio" hidden>
@@ -289,10 +287,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Lilly Deerin">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Dreamwave-Photo%20(17).png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Lilly Deerin</span>
-<span class="role">Instructor</span>
 <span class="credentials">MSN, FNP-BC</span>
 </button>
 <div class="bio" hidden>
@@ -300,10 +297,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Monique DeFrees">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_4816.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Monique DeFrees</span>
-<span class="role">Instructor</span>
 <span class="credentials">M.Ed.</span>
 </button>
 <div class="bio" hidden>
@@ -311,10 +307,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Ingrid Froehner">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_7003.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Ingrid Froehner</span>
-<span class="role">Instructor</span>
 <span class="credentials">MA</span>
 </button>
 <div class="bio" hidden>
@@ -322,20 +317,18 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Gaby Hodor">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/GH.png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Gaby Hodor</span>
-<span class="role">Instructor</span>
 </button>
 <div class="bio" hidden>
 <p>Gaby Hodor is pursuing a dual degree in Human Development and Animal Sciences at the University of Maryland. She has more than six years of experience teaching children, including horseback riding for ages 7 to 12 and after-school STEM in Montgomery County. She uses a patient, hands-on approach to help young learners build confidence.</p>
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Bronwen Kennedy">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Kennedy.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
+<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Kennedy.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Bronwen Kennedy</span>
-<span class="role">Instructor</span>
 <span class="credentials">BA</span>
 </button>
 <div class="bio" hidden>
@@ -343,10 +336,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Ashira Lavine">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/mindfulbeginningsheadshot2.jpg/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
+<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/mindfulbeginningsheadshot2.jpg/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Ashira Lavine</span>
-<span class="role">Instructor</span>
 <span class="credentials">MA</span>
 </button>
 <div class="bio" hidden>
@@ -354,10 +346,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Abigail Plaza">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/Untitled%20design%20(2).png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Abigail Plaza</span>
-<span class="role">Instructor</span>
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
@@ -365,10 +356,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Jasmine Rhodes">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_5539.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
+<img class="photo" style="object-position:center top" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_5539.jpeg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Jasmine Rhodes</span>
-<span class="role">Instructor</span>
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
@@ -376,10 +366,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Kiera Shanahan">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
 <img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/KS.png/:/rs=w:800,h:800,cg:true,m" alt="" width="120" height="120">
 <span class="name">Kiera Shanahan</span>
-<span class="role">Instructor</span>
 <span class="credentials">RN, BSN</span>
 </button>
 <div class="bio" hidden>
@@ -387,10 +376,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Kimberly Sinkford">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/k.sinkford%20headshot.jpg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
+<img class="photo" style="object-position:center 19%" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/k.sinkford%20headshot.jpg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Kimberly Sinkford</span>
-<span class="role">Instructor</span>
 <span class="credentials">BSN, RN</span>
 </button>
 <div class="bio" hidden>
@@ -398,10 +386,9 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </div>
 <div class="person" data-section="Instructors" data-name="Bela Shah Spooner">
-<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog">
-<img class="photo" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_7374.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
+<button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
+<img class="photo" style="object-position:center 28%" src="https://img1.wsimg.com/isteam/ip/779fe0a8-3b41-4312-8a41-f037aa410126/IMG_7374.png/:/cr=t:0%25,l:0%25,w:100%25,h:100%25/rs=w:800,h:800,cg:true" alt="" width="120" height="120">
 <span class="name">Bela Shah Spooner</span>
-<span class="role">Instructor</span>
 <span class="credentials">MA</span>
 </button>
 <div class="bio" hidden>
@@ -435,7 +422,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <div class="bio-top">
 <button type="button" class="bio-close">Close</button>
 </div>
-<img class="bio-photo" id="bio-photo" alt="" width="128" height="128">
+<span class="bio-shot" id="bio-shot"><img class="bio-photo" id="bio-photo" alt="" width="128" height="128"></span>
 <p class="bio-name" id="bio-name"></p>
 <p class="bio-role" id="bio-role"></p>
 <p class="bio-credentials" id="bio-credentials" hidden></p>
@@ -461,8 +448,11 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
     lastFocus = button;
     photo.src = img.getAttribute('src');
     photo.alt = button.querySelector('.name').textContent;
+    photo.style.objectPosition = img.style.objectPosition || 'center center';
+    var bioShot = document.getElementById('bio-shot');
+    bioShot.classList.toggle('is-zoom', !!(img.parentElement && img.parentElement.classList.contains('is-zoom')));
     nameEl.textContent = button.querySelector('.name').textContent;
-    roleEl.textContent = button.querySelector('.role').textContent;
+    roleEl.textContent = button.getAttribute('data-role');
     if (cred && cred.textContent.trim()) {
       credEl.hidden = false;
       credEl.textContent = cred.textContent;
