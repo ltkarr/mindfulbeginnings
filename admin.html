@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261012-org-invoice-payments';
+window.MB_ADMIN_BUILD='20261013-packing-count';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -394,6 +394,9 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .pack-day,.pack-stamp{font-size:14px;line-height:1.35}
 .pack-time,.pack-place,.pack-course{line-height:1.4}
 .pack-course{font-weight:650}
+.pack-count{margin-top:2px;font-size:14px;font-weight:650;color:#1d6b45;line-height:1.35}
+.pack-total{margin:0 0 14px;font-size:17px;font-weight:650;color:#1d6b45;line-height:1.4}
+.pack-pdf-total{margin:8px 0 0;font-size:14px;font-weight:650;color:#1d6b45;line-height:1.4}
 .pack-lock{display:flex;align-items:flex-start;gap:8px;margin:0;font-weight:650;line-height:1.35;cursor:pointer}
 .pack-lock input{width:18px;height:18px;margin:2px 0 0;flex:none;accent-color:var(--success);cursor:pointer}
 .pack-stamp{margin:3px 0 0 26px}
@@ -9464,6 +9467,37 @@ function packingMarkTogether(rows){
 function packingCourseCountText(courses){
   return (courses||[]).map(function(c){return c.course+' ('+c.count+')';}).join(', ');
 }
+// Same people as the class roster. A live registration counts, including
+// comped and host. Waitlist, cancelled, and refunded do not. Baby Ready is
+// one couple per registration, so each of those rows is two people.
+function packingRegisteredCount(s, regList){
+  if(!s)return 0;
+  const regs=regList!=null?regList:(typeof registrations!=='undefined'?registrations:[]);
+  const id=s.id;
+  const live=(regs||[]).filter(function(r){
+    if(!r||r.sessionId!==id)return false;
+    if(typeof countsTowardSeats==='function')return countsTowardSeats(r);
+    const st=String(r.payStatus||'').toLowerCase();
+    return st!=='waitlist'&&st!=='cancelled'&&st!=='canceled'&&st!=='refunded';
+  });
+  let per=1;
+  if(typeof seatsPerRegistration==='function')per=seatsPerRegistration(s.course);
+  else if(String(s.course||'')==='Baby Ready')per=2;
+  const n=Number(per);
+  return live.length*((isFinite(n)&&n>=1)?Math.floor(n):1);
+}
+function packingRegisteredPhrase(n){
+  const count=Math.max(0,Number(n)||0);
+  return count+' '+(count===1?'participant':'participants')+' registered';
+}
+function packingRegisteredTotal(model){
+  return (model&&model.rows||[]).reduce(function(sum,r){return sum+(Number(r&&r.registered)||0);},0);
+}
+function packingTotalPhrase(model){
+  const sessions=(model&&model.rows||[]).length;
+  if(sessions<2)return '';
+  return 'Total: '+packingRegisteredPhrase(packingRegisteredTotal(model));
+}
 function packingBusyDays(rows){
   const by={};
   (rows||[]).forEach(function(r){
@@ -9479,10 +9513,11 @@ function packingBusyDays(rows){
     return {date:d, total:by[d].length, courses:courses};
   });
 }
-function packingBuildModel(sessionList, instructorList, jobData, today, days){
+function packingBuildModel(sessionList, instructorList, jobData, today, days, regList){
   const span=packingRangeDaysValue(days);
   const start=String(today||'');
   const end=matAddDays(start, span);
+  const regs=regList!=null?regList:(typeof registrations!=='undefined'?registrations:[]);
   const rows=(sessionList||[]).filter(function(s){return packingInRange(s, start, span);}).map(function(s){
     const group=packingInstructorGroup(s, instructorList, jobData);
     const jd=(jobData&&s.id&&jobData[s.id])||{};
@@ -9495,7 +9530,8 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days){
       groupId:group.id,
       groupName:group.name,
       materialsSent:!!jd.materialsSent,
-      materialsSentAt:jd.materialsSentAt||null
+      materialsSentAt:jd.materialsSentAt||null,
+      registered:packingRegisteredCount(s, regs)
     };
   }).sort(function(a,b){
     return a.date.localeCompare(b.date)||packingTimeKey(a.time).localeCompare(packingTimeKey(b.time))||a.course.localeCompare(b.course)||String(a.id).localeCompare(String(b.id));
@@ -9537,14 +9573,16 @@ function packingRowHtml(r){
   return '<article class="pack-row'+(r.packTogether?' is-pack':'')+'">'+
     '<div class="pack-date"><div class="pack-dow">'+escapeHtml(parts.dow)+'</div><div class="pack-day">'+escapeHtml(parts.day)+'</div></div>'+
     '<div class="pack-time">'+time+'</div>'+
-    '<div class="pack-course">'+escapeHtml(r.course)+'</div>'+
+    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div></div>'+
     '<div class="pack-place">'+escapeHtml(r.place)+'</div>'+
     '<div class="pack-mat"><label class="pack-lock"><input type="checkbox" data-sess="'+id+'"'+(r.materialsSent?' checked':'')+' onchange="toggleMaterialsFromPacking(this)"> <span>Materials in lock box</span></label>'+
     '<div class="pack-stamp">'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</div>'+flag+'</div></article>';
 }
 function packingGroupsHtml(model){
   if(!model.groups.length)return '<div class="card"><p class="pack-empty">No in-person classes in '+escapeHtml(packingRangeLabel(model.days).toLowerCase())+'.</p></div>';
-  return model.groups.map(function(g){
+  const total=packingTotalPhrase(model);
+  const banner=total?'<p class="pack-total">'+escapeHtml(total)+'</p>':'';
+  return banner+model.groups.map(function(g){
     const n=g.rows.length;
     return '<section class="pack-group"><h2 class="pack-group-title">'+escapeHtml(g.name)+' <span class="pack-group-count">'+n+' '+(n===1?'session':'sessions')+'</span></h2><div class="pack-rows">'+g.rows.map(packingRowHtml).join('')+'</div></section>';
   }).join('');
@@ -9565,11 +9603,13 @@ function packingPrintHtml(model, generatedAt){
   const sections=model.groups.length?model.groups.map(function(g){
     const body=g.rows.map(function(r){
       const flag=r.packTogether?'<div class="pack-pdf-flag">Pack together</div>':'';
-      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</td></tr>';
+      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</td></tr>';
     }).join('');
-    return '<section class="pack-pdf-section"><h2>'+escapeHtml(g.name)+'</h2><table class="pack-pdf-table"><colgroup><col style="width:22%"><col style="width:14%"><col style="width:24%"><col style="width:22%"><col style="width:18%"></colgroup><thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Place</th><th>Materials in lock box</th></tr></thead><tbody>'+body+'</tbody></table></section>';
+    return '<section class="pack-pdf-section"><h2>'+escapeHtml(g.name)+'</h2><table class="pack-pdf-table"><colgroup><col style="width:18%"><col style="width:12%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:18%"></colgroup><thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Place</th><th>Registered</th><th>Materials in lock box</th></tr></thead><tbody>'+body+'</tbody></table></section>';
   }).join(''):'<p class="pack-pdf-empty">No in-person classes in this range.</p>';
-  return '<div class="pack-pdf"><header class="pack-pdf-head"><div class="pack-pdf-brand">Mindful Beginnings</div><h1>Packing list</h1><p class="pack-pdf-meta">Generated '+escapeHtml(when)+' · '+escapeHtml(packingRangeLabel(model.days))+' · '+escapeHtml(packingFormatSpan(model.today, model.end))+'</p></header>'+busy+sections+'</div>';
+  const total=packingTotalPhrase(model);
+  const totalHtml=total?'<p class="pack-pdf-total">'+escapeHtml(total)+'</p>':'';
+  return '<div class="pack-pdf"><header class="pack-pdf-head"><div class="pack-pdf-brand">Mindful Beginnings</div><h1>Packing list</h1><p class="pack-pdf-meta">Generated '+escapeHtml(when)+' · '+escapeHtml(packingRangeLabel(model.days))+' · '+escapeHtml(packingFormatSpan(model.today, model.end))+'</p>'+totalHtml+'</header>'+busy+sections+'</div>';
 }
 function renderPackingList(){
   const busyEl=document.getElementById('pack-busy');
@@ -9581,7 +9621,8 @@ function renderPackingList(){
   const model=packingCurrentModel();
   if(sub){
     const n=model.rows.length;
-    sub.textContent=n+' in-person '+(n===1?'session':'sessions')+' · '+packingRangeLabel(model.days)+' · '+packingFormatSpan(model.today, model.end);
+    const total=packingTotalPhrase(model);
+    sub.textContent=n+' in-person '+(n===1?'session':'sessions')+(total?' · '+total:'')+' · '+packingRangeLabel(model.days)+' · '+packingFormatSpan(model.today, model.end);
   }
   if(busyEl)busyEl.innerHTML=packingBusyHtml(model);
   if(listEl)listEl.innerHTML=packingGroupsHtml(model);
