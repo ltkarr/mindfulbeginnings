@@ -67,6 +67,9 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-line a{color:var(--cream);font-weight:600;text-decoration:none}
 .mb-footer-line a:hover{color:var(--btn-gold)}
 .mb-footer-copy{margin:6px 0 0;font-size:12px;opacity:.7}
+.mb-footer-instructor{margin:8px 0 0;font-size:12px;opacity:.75}
+.mb-footer-instructor a{color:var(--cream);text-decoration:none}
+.mb-footer-instructor a:hover{color:var(--btn-gold)}
 .mb-partners{background:var(--cream);padding:44px 6vw}
 .mb-partners-inner{max-width:1080px;margin:0 auto;text-align:center}
 .mb-partners-title{margin:0 0 10px;font-family:'Caveat',cursive;font-size:30px;line-height:1.1;font-weight:700;color:var(--btn-gold)}
