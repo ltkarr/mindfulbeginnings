@@ -68,7 +68,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-line a:hover{color:var(--btn-gold)}
 .mb-footer-copy{margin:6px 0 0;font-size:12px;opacity:.7}
 .mb-footer-instructor{margin:12px 0 0}
-.mb-footer-instructor a{display:inline-block;background:#fff;color:var(--navy);font-size:15px;font-weight:700;padding:9px 24px;border-radius:100px;text-decoration:none}
+.mb-footer-instructor a{display:inline-block;background:#fff;color:var(--navy);font-size:13px;font-weight:700;padding:7px 18px;border-radius:100px;text-decoration:none}
 .mb-footer-instructor a:hover{background:var(--btn-gold);color:var(--navy)}
 .mb-partners{background:var(--cream);padding:44px 6vw}
 .mb-partners-inner{max-width:1080px;margin:0 auto;text-align:center}
