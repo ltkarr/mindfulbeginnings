@@ -67,8 +67,8 @@
     }
   ];
 
-  var CHECK_KEYS = ['received', 'session_created', 'draft_ready', 'email_sent', 'instructor_claimed', 'done', 'archived'];
-  var TOGGLE_KEYS = ['session_created', 'draft_ready', 'email_sent', 'instructor_claimed', 'done', 'archived'];
+  var CHECK_KEYS = ['received', 'session_created', 'email_sent', 'done', 'archived'];
+  var TOGGLE_KEYS = ['session_created', 'email_sent', 'done', 'archived'];
 
   var MONTHS = {
     jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,
@@ -101,9 +101,7 @@
     return {
       received: true,
       session_created: false,
-      draft_ready: false,
       email_sent: false,
-      instructor_claimed: false,
       done: false,
       archived: false
     };
@@ -114,19 +112,14 @@
     if (c.archived) return 'archived';
     if (c.done) return 'done';
     if (!c.session_created) return 'received';
-    if (!c.draft_ready) return 'session_created';
-    if (!c.email_sent) return 'draft_ready';
-    if (!c.instructor_claimed) return 'instructor_open';
-    return 'instructor_claimed';
+    if (!c.email_sent) return 'session_created';
+    return 'email_sent';
   }
 
   var STATUS_LABELS = {
     received: 'Received',
     session_created: 'Session created',
-    draft_ready: 'Draft ready',
     email_sent: 'Email sent',
-    instructor_open: 'Instructor open',
-    instructor_claimed: 'Instructor claimed',
     done: 'Done',
     archived: 'Archived'
   };
@@ -857,10 +850,9 @@
     };
   }
 
-  function checklistAfterSubmit(sessionCreated, draftReady) {
+  function checklistAfterSubmit(sessionCreated) {
     return applyChecklistUpdate(blankChecklist(), {
-      session_created: !!sessionCreated,
-      draft_ready: !!draftReady
+      session_created: !!sessionCreated
     });
   }
 

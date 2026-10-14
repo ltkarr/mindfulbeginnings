@@ -331,26 +331,20 @@ test('a home form filled out for an organization is refused and pointed at the o
 });
 
 test('checklist starts at received, advances only when Lindsay marks a step, and never marks the email sent on its own', () => {
-  const fresh = model.checklistAfterSubmit(true, true);
+  const fresh = model.checklistAfterSubmit(true);
   assert.equal(fresh.checklist.received, true);
   assert.equal(fresh.checklist.session_created, true);
-  assert.equal(fresh.checklist.draft_ready, true);
   assert.equal(fresh.checklist.email_sent, false);
-  assert.equal(fresh.checklist.instructor_claimed, false);
-  assert.equal(fresh.status, 'draft_ready');
+  assert.equal(fresh.status, 'session_created');
 
-  const waiting = model.checklistAfterSubmit(false, true);
+  const waiting = model.checklistAfterSubmit(false);
   assert.equal(waiting.status, 'received');
-  assert.equal(waiting.checklist.draft_ready, true);
 
   const sent = model.applyChecklistUpdate(fresh.checklist, { email_sent: true });
-  assert.equal(sent.status, 'instructor_open');
+  assert.equal(sent.status, 'email_sent');
   assert.equal(sent.checklist.email_sent, true);
 
-  const claimed = model.applyChecklistUpdate(sent.checklist, { instructor_claimed: true });
-  assert.equal(claimed.status, 'instructor_claimed');
-
-  const done = model.applyChecklistUpdate(claimed.checklist, { done: true });
+  const done = model.applyChecklistUpdate(sent.checklist, { done: true });
   assert.equal(done.status, 'done');
 
   const archived = model.applyChecklistUpdate(done.checklist, { archived: true });
@@ -372,7 +366,7 @@ test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
   const html = adminUi.renderList([{
     id: 'req-1',
     kind: 'host',
-    status: 'draft_ready',
+    status: 'session_created',
     submitter_name: 'Jane Host',
     course: 'Safe Sitter®',
     session_id: 'sess-1',
@@ -380,14 +374,14 @@ test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
     draft_subject: 'Hosting your Safe Sitter® course',
     draft_body: 'Hi Jane',
     draft_to: 'jane@example.com',
-    checklist: model.checklistAfterSubmit(true, true).checklist,
+    checklist: model.checklistAfterSubmit(true).checklist,
     payload: hostBody(),
     created_at: '2026-10-05T12:00:00Z'
   }], 'open', [{ id: 'sess-1', instructorId: null }]);
   assert.match(html, /Session created in ADMIN/);
-  assert.match(html, /Confirmation email drafted/);
+  assert.doesNotMatch(html, /Confirmation email drafted/);
   assert.match(html, /Email sent/);
-  assert.match(html, /Instructor claimed/);
+  assert.doesNotMatch(html, /Instructor claimed/);
   assert.match(html, /Open confirmation draft/);
   assert.match(html, /SS-261102/);
   assert.equal(adminUi.openCount([{ checklist: { done: false, archived: false } }, { checklist: { done: true } }]), 1);
@@ -432,8 +426,7 @@ test('submit stores the request, creates the session, keeps the confirmation a d
   assert.equal(sessions[0].price_override, 0);
   assert.equal(sessions[0].extra_dates.length, 1);
   assert.equal(saved[0].checklist.email_sent, false);
-  assert.equal(saved[0].checklist.draft_ready, true);
-  assert.equal(saved[0].status, 'draft_ready');
+  assert.equal(saved[0].status, 'session_created');
   assert.equal(drafts[0].to, 'alex@example.org');
   assert.match(drafts[0].body, /Warmly/);
   assert.equal(notices.length, 1);

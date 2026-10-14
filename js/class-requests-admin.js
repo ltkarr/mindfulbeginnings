@@ -15,9 +15,7 @@
     return {
       received: c.received !== false,
       session_created: !!c.session_created,
-      draft_ready: !!c.draft_ready,
       email_sent: !!c.email_sent,
-      instructor_claimed: !!c.instructor_claimed,
       done: !!c.done,
       archived: !!c.archived
     };
@@ -45,9 +43,7 @@
   var CHECK_UI = [
     { key: 'received', label: 'Received', locked: true },
     { key: 'session_created', label: 'Session created in ADMIN' },
-    { key: 'draft_ready', label: 'Confirmation email drafted' },
     { key: 'email_sent', label: 'Email sent' },
-    { key: 'instructor_claimed', label: 'Instructor claimed' },
     { key: 'done', label: 'Done' },
     { key: 'archived', label: 'Archived' }
   ];
@@ -118,8 +114,8 @@
       var person = instructors.find(function (i) { return i.id === session.instructorId; });
       name = person ? person.name : '';
     }
-    if (!session.instructorId) return '<div style="font-size:14px;color:var(--muted);margin-top:6px">No instructor on the session yet — this request stays open.</div>';
-    return '<div style="font-size:14px;margin-top:6px">Instructor on the session: <strong>' + esc(name || 'assigned') + '</strong>. Mark claimed once you have confirmed it.</div>';
+    if (!session.instructorId) return '';
+    return '<div style="font-size:14px;color:var(--muted);margin-top:6px">Instructor on the session: <strong>' + esc(name || 'assigned') + '</strong></div>';
   }
 
   function cardHtml(row, session) {
