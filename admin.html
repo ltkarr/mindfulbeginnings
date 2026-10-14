@@ -7920,8 +7920,35 @@ async function cancelSession(id){
     return;
   }
   releaseEquipmentForCancelledSession(id);
-  showToast('Session cancelled and moved to "Cancelled sessions." Opening the notification emails.');
-  openCancellationEmails(id);
+  const instructorNotified=await sendInstructorCancellationEmail(id);
+  if(instructorNotified){
+    showToast('Session cancelled. The instructor has been emailed automatically — the family notice is below.');
+  }else{
+    showToast('Session cancelled, but the automatic instructor email did not go out — the instructor notice is open below so you can send it manually.');
+  }
+  openCancellationEmails(id,instructorNotified);
+}
+
+// Sends the instructor cancellation notice automatically through the
+// /api/notify-instructor-cancelled route (EmailJS). Returns true when at
+// least one instructor email went out. Never throws — a failure just means
+// Lindsay sends the notice manually from the composer below.
+async function sendInstructorCancellationEmail(sessId){
+  try{
+    const sess=await sb.auth.getSession();
+    const token=sess&&sess.data&&sess.data.session&&sess.data.session.access_token;
+    if(!token){console.error('Instructor cancellation email: no admin session token');return false;}
+    const res=await fetch('/api/notify-instructor-cancelled',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({session_id:sessId})
+    });
+    const body=await res.json().catch(()=>({}));
+    if(!res.ok){console.error('Instructor cancellation email failed:',body);return false;}
+    if(body.sent&&body.sent.length)return true;
+    console.warn('Instructor cancellation email: no instructor email addresses on file for session',sessId,body);
+    return false;
+  }catch(e){console.error('Instructor cancellation email failed:',e);return false;}
 }
 
 // Cancelling a class cancels the need for its equipment. Nothing is deleted.
@@ -7984,7 +8011,7 @@ async function uncancelSession(id){
 // Instructor notice and family notice. Wording is in the Google Doc.
 // This window keeps the recipient lists, refund checklist, and compose
 // links (To or BCC + subject, empty body). Nothing is sent from here.
-function openCancellationEmails(sessId){
+function openCancellationEmails(sessId,instructorAlreadyNotified){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const reason=s.cancelReason||'low enrollment';
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'the scheduled date';
@@ -8001,9 +8028,9 @@ function openCancellationEmails(sessId){
   const refundHtml='<div class="facts"><strong>Refunds to issue ('+paidRegs.length+')</strong><ul>'+refundRows+'</ul><div class="facts-note">Refund each of these through the same method the family paid, then update their status on the Registrations tab. This list stays here — it is not placed in the email.</div></div>';
   const sessionLine=s.course+' · '+d+' · '+reason;
   const subject='Cancelled: '+s.course+' on '+shortD;
-  openDocEmail({
-    panes:[
-      {
+  const panes=[];
+  if(!instructorAlreadyNotified){
+    panes.push({
         type:'cancellationInstructor',
         label:'Instructor notice',
         category:'Cancellation — instructor',
@@ -8012,7 +8039,10 @@ function openCancellationEmails(sessId){
         emails:instrAddrs,
         subject:subject,
         note:'Paste the instructor cancellation from the Google Doc. The message is left empty.'
-      },
+    });
+  }
+  openDocEmail({
+    panes:panes.concat([
       {
         type:'cancellationFamily',
         label:'Family notice'+(famAddrs.length?' ('+famAddrs.length+')':''),
@@ -8024,7 +8054,7 @@ function openCancellationEmails(sessId){
         note:'Paste the family cancellation from the Google Doc. The message is left empty.',
         extraHtml:refundHtml
       }
-    ]
+    ])
   });
 }
 
