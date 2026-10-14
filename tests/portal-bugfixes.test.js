@@ -49,11 +49,18 @@ test('calendar dates use the local date helper', () => {
   assert.match(instructor, /function fmtYMD/);
 });
 
-test('a handed-back job does not promise a 24-hour waitlist hold', () => {
-  assert.doesNotMatch(instructor, /REPLACE_WITH_WAITLIST/);
-  assert.doesNotMatch(instructor, /waitlist priority/);
-  assert.doesNotMatch(instructor, /first refusal/);
-  assert.match(instructor, /get_waitlist_contacts/);
-  assert.match(instructor, /There is no hold on the job/);
+test('instructor job waitlist is fully removed — taken jobs never appear as open', () => {
+  assert.doesNotMatch(instructor, /get_waitlist_contacts/);
+  assert.doesNotMatch(instructor, /instructor_join_waitlist/);
+  assert.doesNotMatch(instructor, /instructor_leave_waitlist/);
+  assert.doesNotMatch(instructor, /joinWaitlist/);
+  assert.doesNotMatch(instructor, /leaveWaitlist/);
+  assert.doesNotMatch(instructor, /waitlistAllowed/);
+  assert.doesNotMatch(instructor, /pill-waitlist/);
+  assert.doesNotMatch(instructor, /Join the waitlist/i);
+  assert.doesNotMatch(admin, /Allow instructor waitlist/);
+  // Taken jobs are always hidden from the open board now.
+  assert.match(instructor, /function hideTakenJobFromOpenBoard\(s,jdi,meId\)\{\s*return !!\(jdi&&jdi\.instructorId&&jdi\.instructorId!==meId\);\s*\}/);
+  // The historical migration still references the old RPC; that is fine.
   assert.match(seats, /get_waitlist_contacts/);
 });

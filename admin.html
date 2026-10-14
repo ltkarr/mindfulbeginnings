@@ -6874,13 +6874,6 @@ function openAddSession(){
       <label id="m-instr2-label">Second instructor <span style="font-weight:400;color:var(--muted)">(optional — for large classes needing two instructors)</span></label>
       <select id="m-instr2" style="width:100%"><option value="">— No second instructor —</option></select>
     </div>
-    <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
-      <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
-        <input type="checkbox" id="m-waitlist" checked style="width:16px;height:16px;cursor:pointer">
-        Allow instructor waitlist for this class
-      </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">After someone claims the job, other instructors see a Taken card until one person joins the waitlist — then that Taken card disappears for everyone else (instructors already on the waitlist still see it). If the waitlist empties again, the Taken card comes back. Uncheck this to hide the job from everyone else as soon as it is claimed, with no Taken card and no waitlist button.</div>
-    </div>
     <div class="fg full"><label>Class capacity override <span style="font-weight:400;color:var(--muted)">(optional — leave blank to use the course default)</span></label>
       <div style="display:flex;align-items:center;gap:10px">
         <input type="number" id="m-maxoverride" placeholder="Default" min="1" step="1" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
@@ -7061,13 +7054,6 @@ function openAddCustomJob(){
     </div>
     <div class="fg full"><label>Assign to instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
       <select id="cj-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option></select>
-    </div>
-    <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
-      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
-        <input type="checkbox" id="cj-waitlist" checked style="width:16px;height:16px;cursor:pointer">
-        Allow instructor waitlist for this job
-      </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">After someone claims the job, other instructors see a Taken card until one person joins the waitlist — then that Taken card disappears for everyone else (instructors already on the waitlist still see it). If the waitlist empties again, the Taken card comes back. Uncheck this to hide the job from everyone else as soon as it is claimed, with no Taken card and no waitlist button.</div>
     </div>
     ${externalRegistrationFieldHtml(null)}
     <div class="fg full"><label>Notes / job description <span style="font-weight:400;color:var(--muted)">(optional — what the instructor needs to know)</span></label>
@@ -7319,13 +7305,6 @@ ${lockboxFieldHtml(s)}
       <input type="text" id="cj-code" value="${escapeHtml(s.code||'')}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     ${sessionCostsFieldHtml()}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
-    <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
-      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
-        <input type="checkbox" id="cj-waitlist" ${s.allowWaitlist!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
-        Allow instructor waitlist for this job
-      </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">After someone claims the job, other instructors see a Taken card until one person joins the waitlist — then that Taken card disappears for everyone else (instructors already on the waitlist still see it). If the waitlist empties again, the Taken card comes back. Uncheck this to hide the job from everyone else as soon as it is claimed, with no Taken card and no waitlist button.</div>
-    </div>
     <div class="fg full" id="cj-cred-reveal" style="display:${(s.requiresRN||s.requiresSS)?'none':'block'}">
       <button type="button" class="btn sm" onclick="revealTeachLimit('cj-cred-row','cj-cred-reveal','sess-job-instr')">Limit who can teach</button>
     </div>
@@ -7631,13 +7610,6 @@ ${lockboxFieldHtml(s)}
       <div style="font-size:14px;color:var(--muted);margin-top:6px">Instructors see these on the job board so they know exactly which weeks are off before accepting.</div>
     </div>
     <div class="fg full"><label>Session code</label><input type="text" id="m-code" value="${s.code}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
-    <div class="fg full" style="background:#fff7e6;border:1px solid #f0d9b0;border-radius:var(--r-sm);padding:10px 12px">
-      <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
-        <input type="checkbox" id="m-waitlist" ${s.allowWaitlist!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
-        Allow instructor waitlist for this class
-      </label>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">After someone claims the job, other instructors see a Taken card until one person joins the waitlist — then that Taken card disappears for everyone else (instructors already on the waitlist still see it). If the waitlist empties again, the Taken card comes back. Uncheck this to hide the job from everyone else as soon as it is claimed, with no Taken card and no waitlist button.</div>
-    </div>
     <div class="fg full"><label>Class capacity override <span style="font-weight:400;color:var(--muted)">(optional — leave blank to use the course default of ${(COURSES[s.course]||{maxStudents:8}).maxStudents})</span></label>
       <div style="display:flex;align-items:center;gap:10px">
         <input type="number" id="m-maxoverride" value="${s.maxStudentsOverride||''}" placeholder="Default" min="1" step="1" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">

@@ -1,5 +1,10 @@
 'use strict';
 
+// The instructor job waitlist was removed (2026-10-14, Lindsay's call: it was
+// confusing and made taken jobs look claimable). These tests lock in the new
+// rule: a job another instructor holds never appears on anyone else's Open
+// jobs board, and no waitlist UI, copy, or RPC remains.
+
 const fs = require('fs');
 const path = require('path');
 const test = require('node:test');
@@ -26,63 +31,46 @@ function extractFn(src, name) {
 }
 
 const sandbox = {};
-vm.runInNewContext(
-  extractFn(instructor, 'waitlistAllowed') + '\n' + extractFn(instructor, 'hideTakenJobFromOpenBoard'),
-  sandbox
-);
+vm.runInNewContext(extractFn(instructor, 'hideTakenJobFromOpenBoard'), sandbox);
 const hide = sandbox.hideTakenJobFromOpenBoard;
 
 const me = 'me';
 const holder = 'holder';
-const other = 'other';
 
-test('open job stays visible to everyone', () => {
-  assert.equal(hide({ allowWaitlist: true }, { instructorId: null, waitlist: [] }, me), false);
-  assert.equal(hide({}, { waitlist: [] }, me), false);
+test('unclaimed job is not hidden', () => {
+  assert.equal(hide({}, { instructorId: null }, me), false);
+  assert.equal(hide({}, {}, me), false);
 });
 
-test('taken job with an empty waitlist stays visible so the first backup can join', () => {
-  assert.equal(hide({ allowWaitlist: true }, { instructorId: holder, waitlist: [] }, me), false);
-  assert.equal(hide({}, { instructorId: holder }, me), false);
+test('job held by me is not hidden by this rule', () => {
+  assert.equal(hide({}, { instructorId: me }, me), false);
 });
 
-test('taken job with someone waiting is hidden from instructors who are not on it', () => {
-  const jdi = { instructorId: holder, waitlist: [other] };
-  assert.equal(hide({ allowWaitlist: true }, jdi, me), true);
+test('job held by another instructor is always hidden', () => {
+  assert.equal(hide({}, { instructorId: holder }, me), true);
+  assert.equal(hide({ allowWaitlist: true }, { instructorId: holder, waitlist: [] }, me), true);
+  assert.equal(hide({ allowWaitlist: true }, { instructorId: holder, waitlist: [me] }, me), true);
 });
 
-test('instructors already on the waitlist still see the taken job', () => {
-  const jdi = { instructorId: holder, waitlist: [me, other] };
-  assert.equal(hide({ allowWaitlist: true }, jdi, me), false);
+test('no waitlist UI, copy, or RPC remains in the portal', () => {
+  assert.doesNotMatch(instructor, /joinWaitlist/);
+  assert.doesNotMatch(instructor, /leaveWaitlist/);
+  assert.doesNotMatch(instructor, /waitlistAllowed/);
+  assert.doesNotMatch(instructor, /pill-waitlist/);
+  assert.doesNotMatch(instructor, /instructor_join_waitlist/);
+  assert.doesNotMatch(instructor, /instructor_leave_waitlist/);
+  assert.doesNotMatch(instructor, /get_waitlist_contacts/);
+  assert.doesNotMatch(instructor, /You are on waitlist/);
+  assert.doesNotMatch(instructor, /on the waitlist/);
 });
 
-test('the instructor who holds the job is not hidden by the waitlist rule', () => {
-  const jdi = { instructorId: me, waitlist: [other] };
-  assert.equal(hide({ allowWaitlist: true }, jdi, me), false);
+test('open-jobs copy no longer mentions the waitlist', () => {
+  assert.doesNotMatch(instructor, /join the waitlist/i);
+  assert.match(instructor, /Taken jobs never appear on this board/);
 });
 
-test('an emptied waitlist shows the taken job again', () => {
-  const jdi = { instructorId: holder, waitlist: [] };
-  assert.equal(hide({ allowWaitlist: true }, jdi, me), false);
-});
-
-test('waitlist off hides a taken job from everyone else immediately', () => {
-  assert.equal(hide({ allowWaitlist: false }, { instructorId: holder, waitlist: [] }, me), true);
-  assert.equal(hide({ allowWaitlist: false }, { instructorId: holder, waitlist: [me] }, me), true);
-});
-
-test('an unclaimed reopened job is not hidden, even with people still on the waitlist', () => {
-  assert.equal(hide({ allowWaitlist: true }, { instructorId: null, waitlist: [me], reopenedAt: '2026-09-22T12:00:00Z' }, other), false);
-});
-
-test('instructor open-jobs copy explains the one-person waitlist hide', () => {
-  assert.match(instructor, /Once someone is on the waitlist, the job leaves this board/);
-  assert.match(instructor, /if you are the one waiting, you'll still see it here/);
-});
-
-test('admin waitlist help text matches the new visibility rule on every form', () => {
-  const help = 'then that Taken card disappears for everyone else (instructors already on the waitlist still see it)';
-  const hits = admin.split(help).length - 1;
-  assert.equal(hits, 4);
-  assert.match(admin, /Uncheck this to hide the job from everyone else as soon as it is claimed/);
+test('admin no longer offers the instructor waitlist toggle', () => {
+  assert.doesNotMatch(admin, /Allow instructor waitlist/);
+  assert.doesNotMatch(admin, /id="m-waitlist"/);
+  assert.doesNotMatch(admin, /id="cj-waitlist"/);
 });

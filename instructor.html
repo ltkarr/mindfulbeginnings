@@ -53,11 +53,11 @@ header{background:var(--navy);padding:16px 24px;display:flex;align-items:center;
 .h-name{font-size:15px;color:rgba(255,255,255,.6);margin-top:1px}
 .h-logout{background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:5px 12px;border-radius:100px;font-size:14px;font-family:'Montserrat',sans-serif;cursor:pointer}
 .h-logout:hover{color:white;border-color:rgba(255,255,255,.6)}
-.tabs{background:var(--gold);display:flex;padding:0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs{background:white;border-bottom:1px solid var(--border);display:flex;padding:0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{padding:14px 18px;font-size:16px;font-weight:700;color:var(--navy);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;opacity:.75}
+.tab{padding:14px 18px;font-size:16px;font-weight:700;color:var(--navy);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;opacity:.7}
 .tab:hover{opacity:1}
-.tab.active{opacity:1;border-bottom-color:var(--navy)}
+.tab.active{opacity:1;border-bottom-color:var(--gold)}
 .acct-nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}
 .acct-nav .btn{font-size:14px;padding:6px 14px}
 .acct-section{margin-bottom:36px;scroll-margin-top:14px}
@@ -97,7 +97,6 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:13px;font-weight:500;white-space:nowrap}
 .pill-open{background:#f0f4ff;color:#3355bb}
 .pill-accepted{background:var(--success-bg);color:var(--success)}
-.pill-waitlist{background:var(--warn-bg);color:var(--warn)}
 .pill-taken{background:#f0f0f0;color:#888}
 .pill-rn{background:#eaf1f8;color:#2c5f8a;margin-left:8px;vertical-align:middle}
 .pill-mat-pending{background:var(--warn-bg);color:var(--warn)}
@@ -358,7 +357,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="screen" id="tab-open">
       <div class="section-title">Open jobs</div>
-      <div class="section-sub">Jobs you can claim. <span title="Accept an open job to claim it. If it's already taken and nobody is waiting yet, you can join the waitlist. Once someone is on the waitlist, the job leaves this board — if you are the one waiting, you'll still see it here so you can leave. You only see jobs for the courses you're eligible to teach.">?</span></div>
+      <div class="section-sub">Jobs you can claim. <span title="Every job listed here is unclaimed and ready to accept. Taken jobs never appear on this board. You only see jobs for the courses you're eligible to teach.">?</span></div>
       <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px">
         <button class="btn" style="font-size:14px;padding:6px 14px" onclick="refreshData(true)">Refresh</button>
         <span id="refresh-status" style="font-size:14px;color:var(--muted)"></span>
@@ -1836,25 +1835,11 @@ function credentialPill(s){
   if(sessionRequiresSafeSitter(s))return'<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>';
   return'';
 }
-// Per-session waitlist toggle, set by the admin in the session / custom job form
-// (sessions.allow_waitlist, default true). When off, a job claimed by another
-// instructor is hidden from Open jobs entirely — no "Taken" card, no waitlist
-// button. When on, a taken job stays visible as "Taken" until at least one
-// instructor joins the waitlist; after that it is hidden from everyone who is
-// not already on the waitlist. If the waitlist empties again, the Taken card
-// returns. Open (unclaimed) postings still appear and can be accepted as usual.
-function waitlistAllowed(s){return s.allowWaitlist!==false;}
 // True when a job another instructor already holds should be left off this
-// person's Open jobs board.
-//   waitlist off → hide as soon as it is taken
-//   waitlist on, nobody waiting → show Taken + Join waitlist
-//   waitlist on, someone waiting, and I am not one of them → hide
-//   I already hold it, or it is unclaimed → not hidden by this rule
+// person's Open jobs board. Taken jobs never appear here — every listing on
+// the Open jobs board is unclaimed and ready to accept.
 function hideTakenJobFromOpenBoard(s,jdi,meId){
-  if(!jdi||!jdi.instructorId||jdi.instructorId===meId)return false;
-  if(!waitlistAllowed(s))return true;
-  const wl=jdi.waitlist||[];
-  return wl.length>=1&&!wl.includes(meId);
+  return !!(jdi&&jdi.instructorId&&jdi.instructorId!==meId);
 }
 
 // Re-render every job board at once. Cheap (the screens always exist in the DOM,
@@ -1892,12 +1877,10 @@ function renderOnboardingGate(el){
 }
 
 // ─── OPEN JOBS ───────────────────────────────────────────────
-// Upcoming sessions the instructor can act on: open postings to accept, taken
-// jobs whose waitlist is still empty (Join waitlist), and taken jobs this
-// instructor is already waiting on. Excludes jobs they already hold (those live
-// in My jobs), taken jobs with someone else already waiting, and anything in
-// the past. A handed-back job is open to every eligible instructor. There is
-// no hold for people already on the waitlist.
+// Upcoming sessions the instructor can act on: unclaimed postings they are
+// eligible to teach. Excludes jobs they already hold (those live in My jobs),
+// jobs another instructor holds, and anything in the past. A handed-back job
+// is open to every eligible instructor.
 function renderOpen(){
   const el=document.getElementById('open-list');
   if(renderOnboardingGate(el))return;
@@ -1919,24 +1902,10 @@ function renderOpen(){
   const idx=myMeetingIndex();
   el.innerHTML=flagWarningCard()+sessions.map(s=>{
     const jdi=jobDataCache[s.id]||{};
-    const isOnWaitlist=(jdi.waitlist||[]).includes(me.id);
-    const isTakenByOther=jdi.instructorId&&jdi.instructorId!==me.id;
-    const waitCount=(jdi.waitlist||[]).length;
     const baseFee=instrFeeForJob(s,jdi);
     const fee=baseFee;
-    let pill,actions='';
-    if(isTakenByOther){
-      if(isOnWaitlist){
-        pill='<span class="pill pill-waitlist">You are on waitlist</span>';
-        actions=`<button class="btn" onclick="leaveWaitlist('${s.id}')">Leave waitlist</button>`;
-      }else{
-        pill=`<span class="pill pill-taken">Taken${waitCount?' · '+waitCount+' on waitlist':''}</span>`;
-        actions=`<button class="btn warn" onclick="joinWaitlist('${s.id}')">Join waitlist</button>`;
-      }
-    }else{
-      pill='<span class="pill pill-open">Open</span>';
-      actions=`<button class="btn primary" onclick="acceptJob('${s.id}')">Accept this job</button>`;
-    }
+    const pill='<span class="pill pill-open">Open</span>';
+    const actions=`<button class="btn primary" onclick="acceptJob('${s.id}')">Accept this job</button>`;
     const meetings=sessMeetings(s);
     const mapQ=encodeURIComponent([s.location,s.city,s.state,s.zip].filter(Boolean).join(', '));
     const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">View on map ↗</a>`:'';
@@ -1960,12 +1929,7 @@ async function acceptJob(sessId){
   const sElig=allSessions.find(x=>x.id===sessId);
   if(sElig&&!canTeachSession(sElig)){alert('This job requires a credential that is not on your profile. Please contact Lindsay if you believe this is a mistake.');refreshJobViews();return;}
   if(jobDataCache[sessId]&&jobDataCache[sessId].instructorId&&jobDataCache[sessId].instructorId!==me.id){
-    const sTaken=allSessions.find(x=>x.id===sessId);
-    const wl=(jobDataCache[sessId].waitlist||[]);
-    // Waitlist off, or someone is already waiting: this instructor will not see a
-    // Join button after refresh, so don't invite them onto a waitlist they can't reach.
-    const canStillJoin=!(sTaken&&!waitlistAllowed(sTaken))&&wl.length<1;
-    alert(canStillJoin?'This job was just taken. Would you like to join the waitlist instead?':'This job was just taken by another instructor.');
+    alert('This job was just taken by another instructor.');
     refreshJobViews();return;
   }
   try{
@@ -1994,45 +1958,9 @@ async function cancelJob(sessId){
   }catch(e){console.error(e);showToast('Connection error.');return;}
   if(jobDataCache[sessId])jobDataCache[sessId].instructorId=null;
   const s=allSessions.find(x=>x.id===sessId);if(s)s.instructorId=null;
-  const waiting=await waitlistNames(sessId);
-  if(sessSnapshot)sendJobCancelledNotification(sessSnapshot, waiting);
+  if(sessSnapshot)sendJobCancelledNotification(sessSnapshot);
   refreshJobViews();
   showToast('Cancellation noted. Lindsay has been emailed. The job is open to every eligible instructor.');
-}
-
-// Names of instructors waiting on this one job. Used only to tell Lindsay who
-// had asked to be contacted. A bad PIN or a missing function returns no names.
-async function waitlistNames(sessId){
-  try{
-    const{data,error}=await sb.rpc('get_waitlist_contacts',{p_pin:me.pin,p_session_id:sessId});
-    if(error||!Array.isArray(data))return [];
-    return data.map(c=>c&&c.name).filter(Boolean);
-  }catch(e){return [];}
-}
-
-async function joinWaitlist(sessId){
-  if(!isOnboardingComplete()){alert('Please complete your onboarding before joining the waitlist.');return;}
-  const sWl=allSessions.find(x=>x.id===sessId);
-  if(sWl&&!canTeachSession(sWl)){alert('This job requires a credential that is not on your profile. Please contact Lindsay if you believe this is a mistake.');refreshJobViews();return;}
-  if(sWl&&!waitlistAllowed(sWl)){showToast('The waitlist is not available for this class.');refreshJobViews();return;}
-  try{
-    const{data:ok,error}=await sb.rpc('instructor_join_waitlist',{p_pin:me.pin,p_session_id:sessId});
-    if(error||!ok){showToast('Could not join the waitlist. Please try again.');return;}
-  }catch(e){console.error(e);showToast('Connection error.');return;}
-  if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
-  if(!(jobDataCache[sessId].waitlist||[]).includes(me.id)){
-    jobDataCache[sessId].waitlist=[...(jobDataCache[sessId].waitlist||[]),me.id];
-  }
-  refreshJobViews();showToast('Added to waitlist!');
-}
-
-async function leaveWaitlist(sessId){
-  try{
-    const{data:ok,error}=await sb.rpc('instructor_leave_waitlist',{p_pin:me.pin,p_session_id:sessId});
-    if(error||!ok){showToast('Could not leave the waitlist. Please try again.');return;}
-  }catch(e){console.error(e);showToast('Connection error.');return;}
-  if(jobDataCache[sessId])jobDataCache[sessId].waitlist=(jobDataCache[sessId].waitlist||[]).filter(id=>id!==me.id);
-  refreshJobViews();showToast('Removed from waitlist.');
 }
 
 // ─── PRIVATE SITE DETAILS ────────────────────────────────────
@@ -3474,7 +3402,7 @@ const FAQ_SECTIONS=[
 ]},
 {title:'7. Schedule changes and cancellations',blocks:[
   {sub:'If you need to cancel a job',items:[
-    ['More than one week out.','Cancel through the portal. Waitlisted instructors are notified automatically.'],
+    ['More than one week out.','Cancel through the portal.'],
     ['Fewer than 48 hours out.','Securing a replacement is your responsibility. Contact the instructor sub list right away.'],
     ['Emergency escalation.','If you have exhausted the sub list and cannot find coverage, call Lindsay immediately at 703-987-5979.']
   ]},
@@ -3834,12 +3762,9 @@ function sendJobAcceptedNotification(session){
   }
 }
 
-function sendJobCancelledNotification(session, waiting){
+function sendJobCancelledNotification(session){
   const fee=instrFee(session);
-  const names=Array.isArray(waiting)?waiting.filter(Boolean):[];
-  const waitNote=names.length
-    ?`\n\nThese instructors had asked to be told if it opened up: ${names.join(', ')}. There is no hold on the job. It is open to every eligible instructor now. Please email them if you want them to hear about it before someone else accepts it.`
-    :'\n\nNobody was on the waitlist. The job is open to every eligible instructor.';
+  const waitNote='\n\nThe job is open to every eligible instructor.';
   const params={
     instructor_name:me.name,
     instructor_email:me.email||'not on file',
