@@ -32,7 +32,7 @@ window.MB_ADMIN_BUILD='20261013-org-seat-count';
 })();
 </script>
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/course-booking.js"></script>
 <script src="/js/course-overviews.js"></script>
@@ -50,25 +50,25 @@ window.MB_ADMIN_BUILD='20261013-org-seat-count';
   --r:10px;--r-sm:7px;
   --sidebar-w:255px;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);font-size:17px;line-height:1.6;min-height:100vh}
+body{font-family:'Montserrat',sans-serif;background:var(--cream);color:var(--text);font-size:17px;line-height:1.6;min-height:100vh}
 #login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--navy);z-index:999;padding:24px 16px}
 .login-box{background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:410px;text-align:center}
 .login-mark{height:72px;width:auto;display:block;margin:0 auto 14px}
 @media(max-width:480px){
   .login-box{padding:28px 18px}
 }
-.login-logo{font-family:'DM Serif Display',serif;font-size:25px;color:var(--navy);margin-bottom:4px}
+.login-logo{font-family:'Montserrat',sans-serif;font-weight:700;font-size:25px;color:var(--navy);margin-bottom:4px}
 .login-sub{font-size:15px;color:var(--muted);margin-bottom:28px}
-.login-box input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:17px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:12px;transition:border-color .2s}
+.login-box input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:17px;font-family:'Montserrat',sans-serif;outline:none;margin-bottom:12px;transition:border-color .2s}
 .login-box input:focus{border-color:var(--sky)}
 .login-box input.err{border-color:var(--danger)}
 .login-err{color:var(--danger);font-size:15px;margin-bottom:10px;min-height:16px}
-.login-btn{width:100%;padding:13px;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:17px;font-weight:500;cursor:pointer;transition:background .2s}
+.login-btn{width:100%;padding:13px;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);font-family:'Montserrat',sans-serif;font-size:17px;font-weight:500;cursor:pointer;transition:background .2s}
 .login-btn:hover{background:var(--navy2)}
 #app{display:none;min-height:100vh}
 .sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);transition:width .18s ease;background:var(--navy);display:flex;flex-direction:column;z-index:100}
 .sidebar-brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
-.sidebar-brand .brand{font-family:'DM Serif Display',serif;font-size:20px;color:white}
+.sidebar-brand .brand{font-family:'Montserrat',sans-serif;font-weight:700;font-size:20px;color:white}
 .sidebar-brand .sub{font-size:14px;color:rgba(255,255,255,.45);margin-top:2px}
 .nav-items{flex:1;padding:12px 0}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:rgba(255,255,255,.6);cursor:pointer;font-size:16px;transition:all .15s;border-left:3px solid transparent}
@@ -76,17 +76,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .nav-item.active{background:rgba(255,255,255,.1);color:white;border-left-color:var(--sky)}
 .nav-icon{font-size:18px;width:22px;text-align:center}
 .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1)}
-.logout-btn{font-size:15px;color:rgba(255,255,255,.45);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif}
+.logout-btn{font-size:15px;color:rgba(255,255,255,.45);cursor:pointer;background:none;border:none;font-family:'Montserrat',sans-serif}
 .logout-btn:hover{color:white}
 .main-content{margin-left:var(--sidebar-w);padding:20px 28px;min-height:100vh;transition:margin-left .18s ease;max-width:calc(100vw - var(--sidebar-w));box-sizing:border-box;min-width:0}
 .page-header{margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.page-title{font-family:'DM Serif Display',serif;font-size:27px}
+.page-title{font-family:'Montserrat',sans-serif;font-weight:700;font-size:27px}
 .page-sub{font-size:16px;color:var(--muted);margin-top:2px}
 .screen{display:none}.screen.active{display:block}
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
 .metric{background:white;border:0.5px solid var(--border);border-radius:var(--r);padding:16px 18px}
 .metric .m-label{font-size:14px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.metric .m-val{font-size:29px;font-family:'DM Serif Display',serif}
+.metric .m-val{font-size:29px;font-family:'Montserrat',sans-serif;font-weight:700}
 .metric .m-val.green{color:var(--success)}
 .metric .m-val.red{color:var(--danger)}
 .metric .m-sub{font-size:14px;color:var(--muted);margin-top:3px}
@@ -122,12 +122,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 #sessions-table col.c-mgr{width:10%}
 #sessions-table th,#sessions-table td{box-sizing:border-box;overflow:hidden;overflow-wrap:break-word}
 #sessions-table th{white-space:normal;line-height:1.25;vertical-align:bottom}
+#sessions-table thead th{position:sticky;top:15px;z-index:4;background:white;box-shadow:0 1px 0 var(--border)}
 #sessions-table td{vertical-align:top}
 #sessions-table .sess-title{display:block;max-width:100%;min-width:0;line-height:1.3;overflow:hidden;overflow-wrap:anywhere;font-weight:600}
 #sessions-table .sess-pills{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:4px;max-width:100%;min-width:0}
-#sessions-table .sess-pill{display:block;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;padding:1px 7px;border-radius:100px;font-size:13px;font-weight:600;letter-spacing:.2px;line-height:1.45}
+#sessions-table .sess-pill{display:block;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;padding:2px 8px;border-radius:100px;font-size:13.5px;font-weight:600;letter-spacing:.2px;line-height:1.45}
 #sessions-table .sess-sub,#sessions-table .sess-clip,#sessions-table .sess-wrap,#sessions-table .sess-clamp{display:block;max-width:100%;min-width:0;line-height:1.35}
-#sessions-table .sess-sub,#sessions-table .sess-clamp{margin-top:3px;font-size:13px;font-weight:500;color:var(--muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
+#sessions-table .sess-sub,#sessions-table .sess-clamp{margin-top:3px;font-size:14px;font-weight:500;color:var(--muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;overflow-wrap:anywhere}
 #sessions-table .sess-clamp.when{margin-top:0;font-size:15px;font-weight:500;color:var(--text)}
 #sessions-table .sess-clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #sessions-table .sess-wrap{overflow-wrap:anywhere;white-space:normal}
@@ -135,7 +136,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
    hold time would paint across the title and the ON HOLD badge. */
 #sessions-table .cell-stack{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;max-width:100%;min-width:0;overflow:hidden}
 #sessions-table .cell-stack>*{max-width:100%;min-width:0}
-#sessions-table .pay-note{display:block;font-size:13px;line-height:1.3;overflow-wrap:anywhere;white-space:normal}
+#sessions-table .pay-note{display:block;font-size:14px;line-height:1.3;overflow-wrap:anywhere;white-space:normal}
 #sessions-table .code-badge{display:block;width:fit-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;margin-top:4px;font-size:13.5px;padding:1px 8px}
 /* The Manage button is the whole point of the row, so it stays pinned to the right edge
    even when the rest of the table has to scroll. Its menu is position:fixed on the page,
@@ -144,8 +145,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 .tbl-wrap.scrollable #sessions-table .mgr-cell{box-shadow:-7px 0 9px -7px rgba(26,39,68,.16)}
 #sessions-table .mgr-cell .btn{padding:5px 8px}
 table{width:100%;border-collapse:collapse;font-size:16px}
-th{text-align:left;font-weight:500;font-size:14px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:10px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+th{text-align:left;font-weight:600;font-size:14px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:12px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#fafbfd}
 .empty-row td{text-align:center;padding:32px;color:var(--muted);font-style:italic}
@@ -167,11 +168,11 @@ tr:hover td{background:#fafbfd}
 .pay-send-due{background:#f3f7fb;border:1px solid #c5d8ea}
 .pay-send-paid{background:var(--success-bg);border:1px solid #c5e0d0}
 .pay-send-missing{background:var(--warn-bg);border:1px solid #f0d9b5}
-.pay-send-amt{font-family:'DM Serif Display',serif;font-size:22px;line-height:1.25;color:#16324d}
+.pay-send-amt{font-family:'Montserrat',sans-serif;font-weight:700;font-size:22px;line-height:1.25;color:#16324d}
 .pay-send-paid .pay-send-amt{color:var(--success)}
-.pay-send-missing .pay-send-amt{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:#8a5a12}
+.pay-send-missing .pay-send-amt{font-family:'Montserrat',sans-serif;font-size:16px;font-weight:700;color:#8a5a12}
 .pay-send-sub{font-size:14px;color:var(--muted);margin-top:4px;line-height:1.45}
-.btn{padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:white;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;cursor:pointer;font-weight:500;transition:all .15s;white-space:nowrap}
+.btn{padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:white;color:var(--text);font-family:'Montserrat',sans-serif;font-size:16px;cursor:pointer;font-weight:500;transition:all .15s;white-space:nowrap}
 .btn:hover{background:var(--cream);border-color:#c0c8d8}
 .btn.primary{background:var(--navy);color:white;border-color:transparent}
 .btn.primary:hover{background:var(--navy2)}
@@ -180,7 +181,7 @@ tr:hover td{background:#fafbfd}
 .btn.danger{background:var(--danger-bg);color:var(--danger);border-color:#f0b8b2}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap}
 .row-menu{position:fixed;z-index:300;background:white;border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:0 8px 28px rgba(26,39,68,.18);padding:6px;min-width:220px;display:flex;flex-direction:column;gap:2px}
-.row-menu-item{text-align:left;padding:9px 12px;border:none;background:none;border-radius:6px;font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);cursor:pointer;white-space:nowrap;font-weight:500}
+.row-menu-item{text-align:left;padding:9px 12px;border:none;background:none;border-radius:6px;font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);cursor:pointer;white-space:nowrap;font-weight:500}
 .row-menu-item:hover,.row-menu-item:focus{background:var(--cream);outline:2px solid var(--sky);outline-offset:-2px}
 .row-menu-item.danger{color:var(--danger)}
 .row-menu-item.danger:hover{background:var(--danger-bg)}
@@ -189,7 +190,7 @@ tr:hover td{background:#fafbfd}
 .fg{display:flex;flex-direction:column;gap:4px;min-width:0}
 .fg.full{grid-column:1/-1}
 .fg label{font-size:15px;font-weight:500;color:var(--muted)}
-.fg input,.fg select,.fg textarea{padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s}
+.fg input,.fg select,.fg textarea{padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none;transition:border-color .2s}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--sky)}
 /* Expense session typeahead. The list floats over the notes under the field
    and stays inside the dialog, so a long class name ellipsizes instead of
@@ -213,7 +214,7 @@ tr:hover td{background:#fafbfd}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding-top:60px}
 .modal{background:white;border-radius:var(--r);width:560px;max-width:95vw;max-height:85vh;overflow-y:auto}
 .modal-head{padding:20px 22px 0;display:flex;align-items:center;justify-content:space-between}
-.modal-head h3{font-family:'DM Serif Display',serif;font-size:22px}
+.modal-head h3{font-family:'Montserrat',sans-serif;font-weight:700;font-size:22px}
 .modal-close{background:none;border:none;font-size:23px;cursor:pointer;color:var(--muted);line-height:1;padding:4px}
 .modal-body{padding:18px 22px}
 .modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
@@ -239,7 +240,7 @@ tr:hover td{background:#fafbfd}
 .row-menu-more{border-top:1px solid var(--border);margin-top:4px;padding-top:4px}
 .row-menu-more>summary{cursor:pointer;list-style:none;padding:9px 12px;font-size:16px;font-weight:500;color:var(--muted)}
 .row-menu-more>summary::-webkit-details-marker{display:none}
-.about-title{font-family:'DM Serif Display',serif;font-size:22px;line-height:1.25;color:var(--navy)}
+.about-title{font-family:'Montserrat',sans-serif;font-weight:700;font-size:22px;line-height:1.25;color:var(--navy)}
 .about-block{padding:14px 0 2px;border-top:1px solid var(--border);margin-top:14px}
 .about-kicker{font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .about-value{font-size:16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -256,7 +257,7 @@ tr:hover td{background:#fafbfd}
 .about-note a{color:var(--sky)}
 .about-note.private{background:#f6f3ee;border:1px dashed #d9cfc0}
 .filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
-.filter-row select,.filter-row input{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none}
+.filter-row select,.filter-row input{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none}
 .filter-row select:focus,.filter-row input:focus{border-color:var(--sky)}
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:15px}
 .bar-label{min-width:72px;color:var(--muted);text-align:right}
@@ -270,12 +271,12 @@ tr:hover td{background:#fafbfd}
 .chart-legend{display:flex;gap:14px;margin-top:10px;font-size:14px;color:var(--muted)}
 .legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
 .toggle-group{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;width:fit-content;margin-bottom:16px}
-.tgl{padding:6px 14px;font-size:15px;font-family:'DM Sans',sans-serif;cursor:pointer;background:white;border:none;color:var(--muted);transition:all .15s}
+.tgl{padding:6px 14px;font-size:15px;font-family:'Montserrat',sans-serif;cursor:pointer;background:white;border:none;color:var(--muted);transition:all .15s}
 .tgl.active{background:var(--navy);color:white}
 /* Active / Inactive tabs on the Instructors screen. Deliberately NOT the .tgl class:
    setFinView() clears .active from every .tgl on the page, which would wipe these. */
 .instr-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;width:fit-content;margin-bottom:14px}
-.itg{padding:9px 22px;font-size:17px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;background:white;border:none;color:var(--muted);transition:all .15s}
+.itg{padding:9px 22px;font-size:17px;font-weight:600;font-family:'Montserrat',sans-serif;cursor:pointer;background:white;border:none;color:var(--muted);transition:all .15s}
 .itg:hover{background:var(--cream)}
 .itg.active{background:var(--navy);color:white}
 .itg.active:hover{background:var(--navy)}
@@ -313,7 +314,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
    generous padding pushed the right-hand columns off screen. Two things fix it:
    a collapsible icon-only menu, and tighter table spacing as the window
    narrows. Everything below only affects layout density, never what is shown. */
-.rail-btn{display:flex;align-items:center;gap:8px;font-size:15px;color:rgba(255,255,255,.45);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;text-align:left;width:100%}
+.rail-btn{display:flex;align-items:center;gap:8px;font-size:15px;color:rgba(255,255,255,.45);cursor:pointer;background:none;border:none;font-family:'Montserrat',sans-serif;padding:0;text-align:left;width:100%}
 .rail-btn:hover{color:white}
 .sidebar-footer{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 .logout-btn{display:flex;align-items:center;gap:8px;padding:0;text-align:left;width:100%}
@@ -374,7 +375,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 #screen-packing{min-width:0;max-width:100%}
 .pack-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .pack-range-label{font-size:15px;font-weight:500;color:var(--muted)}
-.pack-actions select{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none;max-width:100%}
+.pack-actions select{padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none;max-width:100%}
 .pack-actions select:focus{border-color:var(--sky)}
 .pack-busy-card{margin-bottom:16px}
 .pack-busy-lead,.pack-busy-empty,.pack-empty{font-size:16px;line-height:1.45;color:var(--text)}
@@ -385,8 +386,8 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .pack-busy-date{font-weight:650}
 .pack-busy-counts{color:var(--muted)}
 .pack-group{background:white;border:0.5px solid var(--border);border-radius:var(--r);padding:4px 16px 6px;margin-bottom:14px;min-width:0}
-.pack-group-title{font-family:'DM Serif Display',serif;font-size:22px;font-weight:400;line-height:1.25;padding:12px 0 8px;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
-.pack-group-count{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--muted);font-weight:500}
+.pack-group-title{font-family:'Montserrat',sans-serif;font-weight:700;font-size:22px;font-weight:400;line-height:1.25;padding:12px 0 8px;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+.pack-group-count{font-family:'Montserrat',sans-serif;font-size:14px;color:var(--muted);font-weight:500}
 .pack-row{display:grid;grid-template-columns:minmax(7.5rem,10rem) minmax(6.5rem,9rem) minmax(0,1.4fr) minmax(0,1fr) minmax(11rem,14.5rem);column-gap:14px;row-gap:4px;align-items:start;padding:12px 0;border-top:0.5px solid var(--border);min-width:0}
 .pack-row>*{min-width:0;overflow-wrap:anywhere}
 .pack-dow{font-weight:650;line-height:1.3}
@@ -397,7 +398,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .pack-count{margin-top:2px;font-size:14px;font-weight:650;color:#1d6b45;line-height:1.35}
 .pack-kit,.pack-bring{margin-top:2px;font-size:14px;font-weight:500;line-height:1.35}
 .more-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;max-width:720px}
-.more-link{display:block;width:100%;text-align:left;background:white;border:0.5px solid var(--border);border-radius:var(--r);padding:18px 20px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text)}
+.more-link{display:block;width:100%;text-align:left;background:white;border:0.5px solid var(--border);border-radius:var(--r);padding:18px 20px;cursor:pointer;font-family:'Montserrat',sans-serif;color:var(--text)}
 .more-link:hover{border-color:var(--sky);background:#f7fbfe}
 .more-link-title{display:block;font-size:18px;font-weight:650}
 .more-link-sub{display:block;margin-top:4px;font-size:15px;color:var(--muted);font-weight:400;line-height:1.4}
@@ -409,11 +410,11 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .pack-flag{margin:4px 0 0 26px;font-size:13px;font-weight:650;color:#3d6f99;line-height:1.3}
 .pack-row.is-pack{box-shadow:inset 3px 0 0 #c5d8ea;padding-left:10px}
 .pack-print-only{display:none}
-.pack-pdf-brand{font-family:'DM Serif Display',Georgia,serif;font-size:26px;line-height:1.2;color:#1a2744}
-.pack-pdf h1{font-family:'DM Serif Display',Georgia,serif;font-size:20px;font-weight:400;margin:2px 0 0;line-height:1.2}
+.pack-pdf-brand{font-family:'Montserrat',sans-serif;font-weight:700;font-size:26px;line-height:1.2;color:#1a2744}
+.pack-pdf h1{font-family:'Montserrat',sans-serif;font-weight:700;font-size:20px;font-weight:400;margin:2px 0 0;line-height:1.2}
 .pack-pdf-meta{margin-top:6px;font-size:14px;color:#6b7a99;line-height:1.45}
 .pack-pdf-busy,.pack-pdf-section{margin-top:18px}
-.pack-pdf-busy h2,.pack-pdf-section h2{font-family:'DM Serif Display',Georgia,serif;font-size:18px;font-weight:400;margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid #dde4ee;break-after:avoid;page-break-after:avoid}
+.pack-pdf-busy h2,.pack-pdf-section h2{font-family:'Montserrat',sans-serif;font-weight:700;font-size:18px;font-weight:400;margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid #dde4ee;break-after:avoid;page-break-after:avoid}
 .pack-pdf-busy p,.pack-pdf-empty{font-size:14px;line-height:1.45;color:#1a2744}
 .pack-pdf-busy ul{margin:8px 0 0;padding-left:18px}
 .pack-pdf-busy li{margin:4px 0;line-height:1.4;overflow-wrap:anywhere}
@@ -528,7 +529,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <div><div class="page-title">Sessions</div><div class="page-sub">Manage all course sessions</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <div style="display:flex;gap:6px;align-items:center">
-            <select id="report-filter" onchange="renderSessions()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none">
+            <select id="report-filter" onchange="renderSessions()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none">
               <option value="upcoming">Upcoming sessions</option>
               <option value="completed">Completed sessions</option>
               <option value="cancelled">Cancelled sessions</option>
@@ -586,8 +587,8 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <button class="tgl" onclick="setFinView('session',this)">By session</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <select id="report-month" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
-          <select id="report-year" onchange="renderFinances()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
+          <select id="report-month" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none"></select>
+          <select id="report-year" onchange="renderFinances()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none"></select>
           <button class="btn" id="print-report-btn" onclick="printReport()">Print monthly report</button>
         </div>
       </div>
@@ -696,7 +697,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div id="mat-holders"></div>
       <div class="page-header" style="margin-top:24px;margin-bottom:12px">
         <div><div class="page-title" style="font-size:23px">Checkouts</div><div class="page-sub">Check items back in when they return. A partial check-in leaves the rest out with that instructor.</div></div>
-        <select id="mat-filter" onchange="renderMaterials()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none">
+        <select id="mat-filter" onchange="renderMaterials()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none">
           <option value="active">Out &amp; upcoming</option>
           <option value="all">All (incl. returned)</option>
         </select>
@@ -707,7 +708,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
     <div class="screen" id="screen-reports">
       <div class="page-header">
         <div><div class="page-title">Reports</div><div class="page-sub">How families find you, liaison referrals, in-kind donations, and discount code usage</div></div>
-        <select id="rep-year" onchange="renderReports()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none"></select>
+        <select id="rep-year" onchange="renderReports()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none"></select>
       </div>
 
       <div class="page-header" style="margin-bottom:14px">
@@ -874,7 +875,7 @@ const FEE_RECEIVED_SQL_TOAST='⚠️ Saved, but WITHOUT the received mark — ru
 function adminPrivateNotesFieldHtml(value){
   return `<div class="fg full" style="background:#f6f3ee;border:1px dashed #d9cfc0;border-radius:var(--r-sm);padding:10px 12px">
       <label>Private notes <span style="font-weight:400;color:var(--muted)">(admin only)</span></label>
-      <textarea id="m-private-notes" rows="3" placeholder="Optional — org details, rates, anything instructors should not see." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(value||'')}</textarea>
+      <textarea id="m-private-notes" rows="3" placeholder="Optional — org details, rates, anything instructors should not see." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(value||'')}</textarea>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Only you can see this. It is not on the instructor job board, in instructor emails, or on the public registration page.</div>
     </div>`;
 }
@@ -1745,8 +1746,8 @@ function orgBillingFieldsHtml(s){
       <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Name the organization. If families also register and pay their own price, enter the organization’s flat fee per participant. Leave that fee blank only when the organization pays the full family price (for example Beth El). A troop that pays $30 per participant while each family pays $15 at checkout uses Family price at registration 15, Participants on the org invoice for the roster, and Organization flat fee per participant 30.</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
         <div style="flex:1;min-width:200px"><label style="font-size:14px;margin-bottom:4px;display:block">Organization name</label><input type="text" id="m-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. GS Troop 42086 or Congregation Beth El" oninput="toggleOrgHeadcount()" style="width:100%"></div>
-        <div id="m-billcount-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Participants on the org invoice</label><input type="number" id="m-billcount" value="${count}" min="0" step="1" placeholder="e.g. 6" oninput="updateOrgSplitPreview()" style="width:130px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:240px">Roster the flat fee covers. Not class capacity. Enter 6 if the troop committed to 6 participants, even before they all register.</div></div>
-        <div id="m-orgportion-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Organization flat fee per participant</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;color:var(--muted)">$</span><input type="number" id="m-org-portion" value="${portion}" min="0" step="0.01" placeholder="25" oninput="updateOrgSplitPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none"></div><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:240px">Billed on the organization invoice only. Families are not charged this at checkout.</div></div>
+        <div id="m-billcount-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Participants on the org invoice</label><input type="number" id="m-billcount" value="${count}" min="0" step="1" placeholder="e.g. 6" oninput="updateOrgSplitPreview()" style="width:130px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none"><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:240px">Roster the flat fee covers. Not class capacity. Enter 6 if the troop committed to 6 participants, even before they all register.</div></div>
+        <div id="m-orgportion-wrap" style="display:${show}"><label style="font-size:14px;margin-bottom:4px;display:block">Organization flat fee per participant</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;color:var(--muted)">$</span><input type="number" id="m-org-portion" value="${portion}" min="0" step="0.01" placeholder="25" oninput="updateOrgSplitPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none"></div><div style="font-size:13px;color:var(--muted);margin-top:4px;max-width:240px">Billed on the organization invoice only. Families are not charged this at checkout.</div></div>
       </div>
       <div id="m-org-split-preview" style="font-size:15px;margin-top:12px;line-height:1.45"></div>
       ${feeReceivedBoxHtml(s,'m-fee-received')}
@@ -2726,7 +2727,7 @@ function extraDatesHtml(s){
   if(rows.length<=1)return rows.map(line).join('');
   const id='xd'+Math.random().toString(36).slice(2,9);
   const label=`+ ${rows.length} more dates`;
-  return `<br><button type="button" id="${id}-btn" data-more="${label}" onclick="toggleExtraDates(event,'${id}')" style="background:none;border:none;padding:0;margin-top:2px;font-family:'DM Sans',sans-serif;font-size:14px;color:#1a5c8a;font-weight:500;cursor:pointer;text-decoration:underline;white-space:normal;text-align:left">${label}</button>`
+  return `<br><button type="button" id="${id}-btn" data-more="${label}" onclick="toggleExtraDates(event,'${id}')" style="background:none;border:none;padding:0;margin-top:2px;font-family:'Montserrat',sans-serif;font-size:14px;color:#1a5c8a;font-weight:500;cursor:pointer;text-decoration:underline;white-space:normal;text-align:left">${label}</button>`
     +`<span id="${id}" style="display:none">${rows.map(line).join('')}</span>`;
 }
 function toggleExtraDates(ev,id){
@@ -4212,7 +4213,7 @@ function renderPartners(){
       <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
         <div>
           <label style="font-size:14px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px">Commission month</label>
-          <select onchange="selectPartnerPeriod(this.value)" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:17px;font-family:'DM Sans',sans-serif;background:white;color:var(--text);outline:none">
+          <select onchange="selectPartnerPeriod(this.value)" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:17px;font-family:'Montserrat',sans-serif;background:white;color:var(--text);outline:none">
             ${payableOpts.length?`<optgroup label="Payable now">${payableOpts.map(p=>`<option value="${p}" ${p===partnerPeriod?'selected':''}>${periodOptionLabel(p)}</option>`).join('')}</optgroup>`:''}
             ${forwardOpts.length?`<optgroup label="In progress &amp; projected">${forwardOpts.map(p=>`<option value="${p}" ${p===partnerPeriod?'selected':''}>${periodOptionLabel(p)}</option>`).join('')}</optgroup>`:''}
             ${kind==='past'?`<optgroup label="Past statement"><option value="${partnerPeriod}" selected>${periodLabel(partnerPeriod)} — past</option></optgroup>`:''}
@@ -4220,7 +4221,7 @@ function renderPartners(){
         </div>
         ${pastPeriods.length?`<div>
           <label style="font-size:14px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px">Past statements</label>
-          <select onchange="if(this.value)selectPartnerPeriod(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'DM Sans',sans-serif;background:white;color:var(--muted);outline:none">
+          <select onchange="if(this.value)selectPartnerPeriod(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:'Montserrat',sans-serif;background:white;color:var(--muted);outline:none">
             <option value="${kind==='past'?lastMonth:''}">${kind==='past'?'Back to last month…':'Open a past statement…'}</option>
             ${pastPeriods.map(p=>`<option value="${p}" ${p===partnerPeriod?'selected':''}>${periodLabel(p)}</option>`).join('')}
           </select>
@@ -4709,7 +4710,7 @@ function openPartnerStatement(partnerId){
   <div class="modal-body">
     <div id="partner-statement" style="font-size:16px;line-height:1.6">
       <div style="text-align:center;margin-bottom:20px">
-        <div style="font-family:'DM Serif Display',serif;font-size:23px;color:var(--navy)">Mindful Beginnings LLC</div>
+        <div style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:23px;color:var(--navy)">Mindful Beginnings LLC</div>
         <div style="color:var(--muted);font-size:15px">Community Partnerships Liaison — commission statement</div>
       </div>
       <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)">
@@ -5903,7 +5904,7 @@ function renderDashboard(){
           <label style="display:inline-flex;align-items:center;gap:7px;font-size:15px;color:${checked?'var(--success)':'var(--text)'};cursor:pointer">
             <input type="checkbox" ${checked?'checked':''} onchange="${onchange}" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">${checked?'✓ ':''}${label}
           </label>${btn||''}</div>`;
-        const sendBtn=(onclick,emoji,color,bg,border)=>`<button onclick="${onclick}" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid ${border};background:${bg};color:${color};cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;flex-shrink:0">${emoji} Send</button>`;
+        const sendBtn=(onclick,emoji,color,bg,border)=>`<button onclick="${onclick}" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid ${border};background:${bg};color:${color};cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;flex-shrink:0">${emoji} Send</button>`;
         const items=[];
         const matStamp=materialsCheckedStamp(jd);
         items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,preClassMaterialsLabel(s)+(matStamp?` <span class="lockbox-dash-when">${escapeHtml(matStamp)}</span>`:''),''));
@@ -6686,8 +6687,8 @@ function renderEditDates(){
   el.innerHTML=_editDays.length?_editDays.map((d,i)=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
       <span style="font-size:15px;color:var(--muted);white-space:nowrap">Day ${i+2}</span>
-      <input type="date" value="${d.date||''}" onchange="_editDays[${i}].date=this.value;if(document.getElementById('m-mat-body')&&typeof renderSessionMaterials==='function')renderSessionMaterials()" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
-      <input type="text" value="${(d.time||'').replace(/"/g,'&quot;')}" placeholder="e.g. 4:00 PM – 6:30 PM" oninput="_editDays[${i}].time=this.value" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white">
+      <input type="date" value="${d.date||''}" onchange="_editDays[${i}].date=this.value;if(document.getElementById('m-mat-body')&&typeof renderSessionMaterials==='function')renderSessionMaterials()" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
+      <input type="text" value="${(d.time||'').replace(/"/g,'&quot;')}" placeholder="e.g. 4:00 PM – 6:30 PM" oninput="_editDays[${i}].time=this.value" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white">
       <button type="button" class="btn sm" onclick="removeEditDate(${i})" title="Remove this day">✕</button>
     </div>`).join(''):'<div style="font-size:14px;color:var(--muted)">This class meets once. Use “+ Add another day” for courses that meet on more than one day (e.g. Safe Sitter split over two afternoons).</div>';
   renderSeriesWarning();
@@ -6726,8 +6727,8 @@ function renderEditClosures(){
   el.innerHTML=_editClosures.length?_editClosures.map((d,i)=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
       <span style="font-size:15px;color:var(--muted);white-space:nowrap">No class</span>
-      <input type="date" value="${d.date||''}" onchange="_editClosures[${i}].date=this.value" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
-      <input type="text" value="${(d.reason||'').replace(/"/g,'&quot;')}" placeholder="Reason, e.g. Thanksgiving break" oninput="_editClosures[${i}].reason=this.value" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white">
+      <input type="date" value="${d.date||''}" onchange="_editClosures[${i}].date=this.value" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
+      <input type="text" value="${(d.reason||'').replace(/"/g,'&quot;')}" placeholder="Reason, e.g. Thanksgiving break" oninput="_editClosures[${i}].reason=this.value" style="flex:1;min-width:0;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white">
       <button type="button" class="btn sm" onclick="removeEditClosure(${i})" title="Remove this closure">✕</button>
     </div>`).join(''):'<div style="font-size:14px;color:var(--muted)">No closures. Add the weeks this series skips (school breaks, holidays) so instructors see exactly which weeks are off.</div>';
 }
@@ -6876,7 +6877,7 @@ function openAddSession(){
     </div>
     <div class="fg full"><label>Class capacity override <span style="font-weight:400;color:var(--muted)">(optional — leave blank to use the course default)</span></label>
       <div style="display:flex;align-items:center;gap:10px">
-        <input type="number" id="m-maxoverride" placeholder="Default" min="1" step="1" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="m-maxoverride" placeholder="Default" min="1" step="1" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
         <span id="m-maxoverride-hint" style="font-size:15px;color:var(--muted)"></span>
       </div>
     </div>
@@ -6897,7 +6898,7 @@ function openAddSession(){
     <div class="fg full"><label>Family price at registration <span style="font-weight:400;color:var(--muted)">(charged at checkout only — not the organization bill. Leave blank to use the course default)</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
-        <input type="number" id="m-price-override" placeholder="Default" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="m-price-override" placeholder="Default" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
         <span id="m-price-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
@@ -6907,12 +6908,12 @@ function openAddSession(){
     <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee)</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
-        <input type="number" id="m-instr-pay-override" placeholder="Default" min="0" step="1" oninput="updateInstrPayPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="m-instr-pay-override" placeholder="Default" min="0" step="1" oninput="updateInstrPayPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
         <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
     <div class="fg full"><label>Notes for instructors <span style="font-weight:400;color:var(--muted)">(shown on the job board)</span></label>
-      <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea>
+      <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Anything an instructor needs in order to decide and prepare. Visible before they accept, so leave host phone numbers out — those are shared automatically once the job is claimed.</div>
     </div>
     ${adminPrivateNotesFieldHtml('')}
@@ -7019,13 +7020,13 @@ function openAddCustomJob(){
     <div class="fg full"><label>Total pay for this job * <span style="font-weight:400;color:var(--muted)">(flat dollar amount — this is the entire pay for the assignment)</span></label>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:18px;color:var(--muted)">$</span>
-        <input type="number" id="cj-pay" placeholder="e.g. 150" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="cj-pay" placeholder="e.g. 150" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
       </div>
     </div>
     <div class="fg full"><label>What the organization pays you <span style="font-weight:400;color:var(--muted)">(optional — what GOTR / the partner pays Mindful Beginnings for this job; counted as revenue)</span></label>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:18px;color:var(--muted)">$</span>
-        <input type="number" id="cj-orgfee" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="cj-orgfee" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
       </div>
       ${feeReceivedBoxHtml(null,'cj-fee-received')}
       ${customJobSplitHintHtml()}
@@ -7057,7 +7058,7 @@ function openAddCustomJob(){
     </div>
     ${externalRegistrationFieldHtml(null)}
     <div class="fg full"><label>Notes / job description <span style="font-weight:400;color:var(--muted)">(optional — what the instructor needs to know)</span></label>
-      <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
+      <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
     ${adminPrivateNotesFieldHtml('')}
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCustomJob()">Add job</button></div>`);
@@ -7214,13 +7215,13 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>Total pay for this job *</label>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:18px;color:var(--muted)">$</span>
-        <input type="number" id="cj-pay" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="e.g. 150" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="cj-pay" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="e.g. 150" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
       </div>
     </div>
     <div class="fg full"><label>What the organization pays you <span style="font-weight:400;color:var(--muted)">(optional — counted as revenue)</span></label>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:18px;color:var(--muted)">$</span>
-        <input type="number" id="cj-orgfee" value="${s.priceOverride!=null&&s.priceOverride!==0?s.priceOverride:''}" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="cj-orgfee" value="${s.priceOverride!=null&&s.priceOverride!==0?s.priceOverride:''}" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
       </div>
       ${feeReceivedBoxHtml(s,'cj-fee-received')}
       ${customJobSplitHintHtml()}
@@ -7310,7 +7311,7 @@ ${lockboxFieldHtml(s)}
     </div>
     ${externalRegistrationFieldHtml(s)}
     <div class="fg full"><label>Notes / job description</label>
-      <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea></div>
+      <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea></div>
     ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
 </div></details>
   </div>
@@ -7545,7 +7546,7 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>Instructor pay for this session <span style="font-weight:400;color:var(--muted)">(optional — what you'll pay each instructor who helps teach; leave blank to use the usual fee of ${fmt(usualInstrPayAmount(s.course,s.isVirtual))})</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
-        <input type="number" id="m-instr-pay-override" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="Default: ${usualInstrPayAmount(s.course,s.isVirtual)}" min="0" step="1" oninput="updateInstrPayPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="m-instr-pay-override" value="${s.instrPayOverride!=null?s.instrPayOverride:''}" placeholder="Default: ${usualInstrPayAmount(s.course,s.isVirtual)}" min="0" step="1" oninput="updateInstrPayPreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
         <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
@@ -7569,7 +7570,7 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>Family price at registration <span style="font-weight:400;color:var(--muted)">(charged at checkout only — not the organization bill. Leave blank to use the course default of $${courseCheckoutDefaultLabel(s.course,s.date,s.createdAt)})</span></label>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:16px;color:var(--muted)">$</span>
-        <input type="number" id="m-price-override" value="${s.priceOverride!=null?s.priceOverride:''}" placeholder="Default: ${courseCheckoutDefaultLabel(s.course,s.date,s.createdAt)}" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="m-price-override" value="${s.priceOverride!=null?s.priceOverride:''}" placeholder="Default: ${courseCheckoutDefaultLabel(s.course,s.date,s.createdAt)}" min="0" step="1" oninput="updatePricePreview()" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
         <span id="m-price-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
@@ -7612,7 +7613,7 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>Session code</label><input type="text" id="m-code" value="${s.code}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     <div class="fg full"><label>Class capacity override <span style="font-weight:400;color:var(--muted)">(optional — leave blank to use the course default of ${(COURSES[s.course]||{maxStudents:8}).maxStudents})</span></label>
       <div style="display:flex;align-items:center;gap:10px">
-        <input type="number" id="m-maxoverride" value="${s.maxStudentsOverride||''}" placeholder="Default" min="1" step="1" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="m-maxoverride" value="${s.maxStudentsOverride||''}" placeholder="Default" min="1" step="1" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
         ${s.maxStudentsOverride?`<span style="font-size:15px;color:var(--warn)">⚠ Capacity overridden to ${s.maxStudentsOverride} (default is ${(COURSES[s.course]||{maxStudents:8}).maxStudents})</span>`:`<span style="font-size:15px;color:var(--muted)">Course default: ${(COURSES[s.course]||{maxStudents:8}).maxStudents}</span>`}
       </div>
     </div>
@@ -7620,7 +7621,7 @@ ${lockboxFieldHtml(s)}
     ${externalRegistrationFieldHtml(s)}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
     <div class="fg full"><label>Notes for instructors <span style="font-weight:400;color:var(--muted)">(shown on the job board)</span></label>
-      <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;background:white;resize:vertical">${(()=>{
+      <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${(()=>{
         // Notes and the old "Job details for instructors" box both displayed on the same
         // job board, so they are one field now. Any legacy instructor_info text is folded
         // into this textarea; saving writes it back as Notes and clears the old column.
@@ -10462,9 +10463,9 @@ function openDocEmail(opts){
     '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">',
     '<style>',
     '*{box-sizing:border-box;margin:0;padding:0}',
-    'body{font-family:\'DM Sans\',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.6}',
+    'body{font-family:\'Montserrat\',sans-serif;background:#f5f5f0;color:#1a2744;font-size:17px;line-height:1.6}',
     '.toolbar{background:#1a2744;padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0}',
-    '.toolbar button{padding:9px 16px;border-radius:6px;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:\'DM Sans\',sans-serif}',
+    '.toolbar button{padding:9px 16px;border-radius:6px;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:\'Montserrat\',sans-serif}',
     '.b-doc{background:#fff;color:#1a2744}',
     '.b-outlook{background:#0f6cbd;color:white}',
     '.b-gmail,.b-mail,.b-bcc,.b-extra{background:rgba(255,255,255,.12);color:white}',
@@ -10472,7 +10473,7 @@ function openDocEmail(opts){
     '.tab{background:rgba(255,255,255,.12);color:white}',
     '.tab.on{background:#fff;color:#1a2744}',
     '.wrap{max-width:760px;margin:28px auto;padding:0 32px 64px}',
-    'h2{font-family:\'DM Serif Display\',serif;font-size:26px;margin-bottom:4px}',
+    'h2{font-family:\'Montserrat\',sans-serif;font-weight:700;font-size:26px;margin-bottom:4px}',
     '.sub{color:#6b7a99;font-size:16px;margin-bottom:14px}',
     '.note{background:#fff7e6;border:1px solid #f0d090;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:15px;color:#7a5000}',
     '.bcc-box{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:15px;color:#1a5c8a}',
@@ -10483,7 +10484,7 @@ function openDocEmail(opts){
     '.subject-line{background:white;border:1px solid #dde4ee;border-radius:8px;padding:10px 16px;font-size:16px;margin-bottom:8px}',
     '.subject-line label{display:block;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#6b7a99;margin-bottom:4px}',
     '.subj-input{width:100%;border:none;font:inherit;font-weight:600;color:#1a2744;background:transparent;outline:none;padding:0}',
-    '.email-body{width:100%;min-height:440px;padding:16px 18px;border:1px solid #dde4ee;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:16px;line-height:1.55;color:#1a2744;background:white;resize:vertical}',
+    '.email-body{width:100%;min-height:440px;padding:16px 18px;border:1px solid #dde4ee;border-radius:8px;font-family:\'Montserrat\',sans-serif;font-size:16px;line-height:1.55;color:#1a2744;background:white;resize:vertical}',
     '.section-label{font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#6b7a99;margin:18px 0 8px}',
     '.facts{background:white;border:1px solid #dde4ee;border-radius:8px;padding:14px 16px;font-size:15px;line-height:1.7}',
     '.facts ul{margin:8px 0 0 18px}',
@@ -13237,7 +13238,7 @@ function renderSessionMaterials(){
   }
   const rows=plan.lines.filter(function(l){return !l.consumable;}).map(function(l){
     if(!l.eqId)return '<div style="font-size:15px;padding:4px 0">'+escapeHtml(l.name)+' is not on the equipment list yet.</div>';
-    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border)"><div style="flex:1;font-size:16px;font-weight:500">'+escapeHtml(l.name)+'</div><div id="m-mat-free-'+l.eqId+'" style="font-size:14px;color:var(--muted);white-space:nowrap"></div><input type="number" id="m-mat-qty-'+l.eqId+'" data-need="'+l.need+'" min="0" max="99" step="1" value="'+l.requested+'" oninput="paintSessionMaterialsStatus()" style="width:64px;padding:7px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:\'DM Sans\',sans-serif;outline:none"></div>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:0.5px solid var(--border)"><div style="flex:1;font-size:16px;font-weight:500">'+escapeHtml(l.name)+'</div><div id="m-mat-free-'+l.eqId+'" style="font-size:14px;color:var(--muted);white-space:nowrap"></div><input type="number" id="m-mat-qty-'+l.eqId+'" data-need="'+l.need+'" min="0" max="99" step="1" value="'+l.requested+'" oninput="paintSessionMaterialsStatus()" style="width:64px;padding:7px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:\'Montserrat\',sans-serif;outline:none"></div>';
   }).join('');
   const batteryLine=(!draft.isVirtual&&courseUsesManikins(draft.course))?'<div class="pack-kit" style="padding:6px 0;font-size:16px">Batteries + screwdriver</div>':'';
   body.innerHTML='<div class="fg" style="margin:0 0 8px"><label>Who has the materials</label><input type="text" id="m-mat-who" value="'+escapeHtml(draft.personForField)+'" placeholder="Instructor name" oninput="matWhoTyped()" style="width:100%"></div>'+rows+batteryLine+'<div id="m-mat-status" style="margin-top:8px"></div>';
@@ -13797,7 +13798,7 @@ function buildCheckoutModal(c,presetSessId){
     return`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)">
       <div style="flex:1;font-size:16px;font-weight:500">${escapeHtml(eq.name)}</div>
       <div id="m-co-avail-${eq.id}" style="font-size:14px;color:var(--muted);white-space:nowrap"></div>
-      <input type="number" id="m-co-qty-${eq.id}" min="0" max="99" step="1" value="${cur}" oninput="coUpdateAvail()" style="width:64px;padding:7px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+      <input type="number" id="m-co-qty-${eq.id}" min="0" max="99" step="1" value="${cur}" oninput="coUpdateAvail()" style="width:64px;padding:7px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
     </div>`;
   }).join('');
   showModal(`<div class="modal-head"><h3>${c?'Edit checkout':'Check out equipment'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -14151,7 +14152,7 @@ function openCheckIn(id){
     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)">
       <div style="flex:1"><div style="font-weight:500">${escapeHtml(name)}</div><div style="font-size:14px;color:var(--muted)">${it.qty} checked out</div></div>
       <label style="font-size:14px;color:var(--muted);white-space:nowrap">Coming back</label>
-      <input type="number" id="m-in-${it.equipmentId}" min="0" max="${it.qty}" step="1" value="${it.qty}" style="width:72px;padding:7px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none">
+      <input type="number" id="m-in-${it.equipmentId}" min="0" max="${it.qty}" step="1" value="${it.qty}" style="width:72px;padding:7px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
     </div>`;
   }).join('');
   showModal(`<div class="modal-head"><h3>Check in</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -14626,8 +14627,8 @@ function openCreateInvoice(presetOrg,presetYm){
     <div class="fg"><label>Bill-to email <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="inv-email" placeholder="e.g. contact@org.org"></div>
     <div class="fg"><label>Bill-to name</label><input type="text" id="inv-billname"></div>
     <div class="fg"><label>Attention <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="inv-attn" placeholder="e.g. Program Director"></div>
-    <div class="fg full"><label>Bill-to address</label><textarea id="inv-addr" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical"></textarea></div>
-    <div class="fg full"><label>Payment terms / notes <span style="font-weight:400;color:var(--muted)">(printed on the invoice)</span></label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical">${INVOICE_DEFAULT_TERMS}</textarea><div style="font-size:14px;color:var(--muted);margin-top:4px">Every invoice also lists PayPal, Venmo, Zelle, and check. Those details are added on the invoice, the PDF, and the invoice email.</div></div>
+    <div class="fg full"><label>Bill-to address</label><textarea id="inv-addr" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;resize:vertical"></textarea></div>
+    <div class="fg full"><label>Payment terms / notes <span style="font-weight:400;color:var(--muted)">(printed on the invoice)</span></label><textarea id="inv-notes" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;resize:vertical">${INVOICE_DEFAULT_TERMS}</textarea><div style="font-size:14px;color:var(--muted);margin-top:4px">Every invoice also lists PayPal, Venmo, Zelle, and check. Those details are added on the invoice, the PDF, and the invoice email.</div></div>
   </div></div>
   <div class="modal-foot" style="justify-content:space-between;align-items:center">
     <div id="inv-total" style="font-size:18px;font-weight:600"></div>
