@@ -51,11 +51,11 @@ header{background:var(--navy);padding:16px 24px;display:flex;align-items:center;
 .h-name{font-size:15px;color:rgba(255,255,255,.6);margin-top:1px}
 .h-logout{background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:5px 12px;border-radius:100px;font-size:14px;font-family:'Montserrat',sans-serif;cursor:pointer}
 .h-logout:hover{color:white;border-color:rgba(255,255,255,.6)}
-.tabs{background:white;border-bottom:1px solid var(--border);display:flex;padding:0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs{background:var(--gold);display:flex;padding:0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{padding:14px 16px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
-.tab:hover{color:var(--text)}
-.tab.active{color:var(--navy);border-bottom-color:var(--gold)}
+.tab{padding:14px 18px;font-size:16px;font-weight:700;color:var(--navy);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;opacity:.75}
+.tab:hover{opacity:1}
+.tab.active{opacity:1;border-bottom-color:var(--navy)}
 .acct-nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}
 .acct-nav .btn{font-size:14px;padding:6px 14px}
 .acct-section{margin-bottom:36px;scroll-margin-top:14px}
@@ -105,7 +105,7 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .pill-level-started{background:#f0f0f0;color:#555}
 .pill-level-established{background:#eaf1f8;color:#2c5f8a}
 .pill-level-senior{background:var(--gold-l);color:var(--gold-d)}
-.pill-level-lead{background:var(--navy);color:#fff}
+.pill-level-lead{background:var(--gold);color:var(--navy);font-weight:700}
 .h-level{margin-top:4px}
 .h-level .pill{background:rgba(199,162,74,.18);color:#f6e7c2;border:1px solid rgba(199,162,74,.55)}
 .btn{padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:white;color:var(--text);font-family:'Montserrat',sans-serif;font-size:14px;cursor:pointer;font-weight:500;transition:all .15s;white-space:nowrap}
@@ -333,7 +333,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
 <div id="app">
   <header>
     <div class="h-brandwrap">
-      <span class="h-logo"><img src="/images/logo.png" alt="Mindful Beginnings logo"></span>
+      <span class="h-logo"><img src="/images/logo-white.png" alt="Mindful Beginnings logo"></span>
       <div>
         <div class="h-brand">Mindful Beginnings</div>
         <div class="h-name" id="h-name">Instructor portal</div>
@@ -423,10 +423,11 @@ const INSTRUCTOR_LEVELS=['Started','Established','Senior','Lead'];
 function normalizeInstructorLevel(v){
   return INSTRUCTOR_LEVELS.indexOf(v)>=0?v:'Started';
 }
-function instructorLevelBadge(level){
-  const l=normalizeInstructorLevel(level);
+function instructorLevelBadge(level,isLead){
+  const l=isLead?'Lead':normalizeInstructorLevel(level);
   const cls={Started:'pill-level-started',Established:'pill-level-established',Senior:'pill-level-senior',Lead:'pill-level-lead'}[l];
-  return `<span class="pill ${cls}" title="Your instructor level. Only Lindsay can change this.">${escapeHtml(l)}</span>`;
+  const label=l==='Lead'?'LEAD':l;
+  return `<span class="pill ${cls}" title="Your instructor level. Only Lindsay can change this.">${escapeHtml(label)}</span>`;
 }
 
 // ─── SUPABASE ────────────────────────────────────────────────
@@ -1239,7 +1240,7 @@ function enterApp(){
   const lvlEl=document.getElementById('h-level');
   if(lvlEl){
     if(partnerOnly||!me||!me.level){lvlEl.style.display='none';lvlEl.innerHTML='';}
-    else{lvlEl.style.display='';lvlEl.innerHTML=instructorLevelBadge(me.level);}
+    else{lvlEl.style.display='';lvlEl.innerHTML=instructorLevelBadge(me.level,me.isLeadTeacher);}
   }
   if(partnerOnly){
     showTab('partner',document.getElementById('tab-btn-partner'));

@@ -109,9 +109,9 @@ test('admin edit screen offers the four levels and the roster shows them', () =>
 });
 
 test('instructor portal shows the level and never sends it to a profile update', () => {
-  assert.match(portalSandbox.instructorLevelBadge('Lead'), />Lead</);
+  assert.match(portalSandbox.instructorLevelBadge('Lead'), />LEAD</);
   assert.match(instructor, /id="h-level"/);
-  assert.match(instructor, /instructorLevelBadge\(me\.level\)/);
+  assert.match(instructor, /instructorLevelBadge\(me\.level,/);
   assert.match(instructor, /instructor_get_level/);
   assert.doesNotMatch(instructor, /id="m-ilevel"/);
   assert.doesNotMatch(instructor, /<select[^>]*level/i);
