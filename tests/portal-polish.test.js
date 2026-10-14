@@ -75,7 +75,7 @@ test('instructor portal login, type size, and merged tabs', () => {
   assert.match(instructor, /id="myinfo-content"/);
   assert.match(instructor, /id="h-level"/);
   assert.match(instructor, /instructorLevelBadge\(me\.level\)/);
-  assert.match(instructor, /9\.\.40,600;9\.\.40,700/);
+  assert.match(instructor, /family=Montserrat:wght@400;500;600;700;800/);
   assert.match(admin, /9\.\.40,600;9\.\.40,700/);
   assert.equal(instructor.includes('font-size:11px'), false);
   assert.equal(instructor.includes('font-size:12px'), false);
