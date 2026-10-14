@@ -72,7 +72,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-instructor a:hover{color:var(--btn-gold)}
 .mb-partners{background:var(--cream);padding:44px 6vw}
 .mb-partners-inner{max-width:1080px;margin:0 auto;text-align:center}
-.mb-partners-title{margin:0 0 10px;font-family:'Caveat',cursive;font-size:30px;line-height:1.1;font-weight:700;color:var(--btn-gold)}
+.mb-partners-title{margin:0 0 10px;font-family:'Caveat',cursive;font-size:36px;line-height:1.1;font-weight:700;color:var(--btn-gold)}
 .mb-partners-logos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:24px 32px;justify-items:center;align-items:center;margin-top:18px}
 .mb-partners-logos img{max-height:110px;max-width:100%;width:auto;height:auto}
 
