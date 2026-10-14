@@ -203,13 +203,28 @@
     return formatClock(start, true) + ' to ' + formatClock(end, true);
   }
 
+  function minutesOf(parts) {
+    return parts.h * 60 + Number(parts.min);
+  }
+
+  // Time inputs submit 24-hour "HH:MM". In a 12-hour locale, 8:30 PM is sometimes
+  // stored as 08:30 while the start is correctly 19:00. That prints "7:00 PM to
+  // 8:30 AM". When the end is not after the start, and adding 12 hours puts it
+  // after the start, the end is the same evening (7:00 to 8:30 PM). A real next-day
+  // end, such as 10:00 PM to 12:00 AM, stays put because noon is still before the start.
   function formatSpan(startHHMM, endHHMM) {
     function fromInput(v) {
       var m = String(v || '').trim().match(/^(\d{1,2}):(\d{2})$/);
       if (!m) return null;
       return clockParts(Number(m[1]), m[2], '');
     }
-    return formatSpanFromParts(fromInput(startHHMM), fromInput(endHHMM));
+    var start = fromInput(startHHMM);
+    var end = fromInput(endHHMM);
+    if (start && end && end.h < 12 && minutesOf(end) <= minutesOf(start)) {
+      var rolled = clockParts(end.h + 12, end.min, '');
+      if (rolled && minutesOf(rolled) > minutesOf(start)) end = rolled;
+    }
+    return formatSpanFromParts(start, end);
   }
 
   function parseTimeRange(text) {
@@ -709,21 +724,43 @@
     return null;
   }
 
+  function participantCount(n) {
+    var b = n.billing || {};
+    if (b.billedHeadcount) return b.billedHeadcount;
+    var count = parseInt(n.expectedCount, 10);
+    return isFinite(count) && count > 0 ? count : null;
+  }
+
+  // Org-paid confirmations put the rate on its own line, then the headcount
+  // times that rate. No estimate when the headcount is unknown. No em dashes.
+  function orgInvoicePriceLine(rateText, count) {
+    var rate = String(rateText || '').trim();
+    if (!rate) return '';
+    var line = 'Price: ' + rate + ' per participant.';
+    var n = parseInt(count, 10);
+    if (!(n > 0)) return line;
+    var amount = Number(rate.replace(/[^0-9.]/g, ''));
+    if (!isFinite(amount)) return line;
+    var people = n === 1 ? '1 participant' : (n + ' participants');
+    return 'Price: ' + rate + ' per participant. Estimated total for ' + people + ': ' + dollars(amount * n) + ', final invoice based on attendance';
+  }
+
   function paymentParagraph(n, code) {
     var b = n.billing || {};
     var price = n.course && n.course.price != null ? dollars(n.course.price) : 'the course price';
     var link = regLink(code);
+    var count = participantCount(n);
     if (b.mode === 'org_full_external') {
-      return 'Payment: your organization is covering the full cost (' + price + ' per participant) and handling registration. Participants sign up through you at no charge. I will invoice the organization after the course. There is no family payment link for this class.';
+      return orgInvoicePriceLine(price, count) + '\nPayment: your organization is covering the full cost and handling registration. Participants sign up through you at no charge. I will invoice the organization after the course. There is no family payment link for this class.';
     }
     if (b.mode === 'org_full_link') {
-      return 'Payment: your organization is covering the full cost (' + price + ' per participant). Participants register on this private link at no charge, and I will invoice the organization after the course.\nRegistration link: ' + link;
+      return orgInvoicePriceLine(price, count) + '\nPayment: your organization is covering the full cost. Participants register on this private link at no charge, and I will invoice the organization after the course.\nRegistration link: ' + link;
     }
     if (b.mode === 'individual') {
-      return 'Payment: each participant registers and pays on this private link (' + price + ' per participant).\nRegistration link: ' + link;
+      return 'Price: ' + price + ' per participant.\nPayment: each participant registers and pays that amount on this private link.\nRegistration link: ' + link;
     }
     if (b.mode === 'split') {
-      return 'Payment: each participant pays ' + dollars(b.priceOverride) + ' at registration. I will invoice the organization ' + dollars(b.orgPortion) + ' per participant after the course.\nRegistration link: ' + link;
+      return orgInvoicePriceLine(dollars(b.orgPortion), count) + '\nPayment: each participant pays ' + dollars(b.priceOverride) + ' at registration. I will invoice the organization ' + dollars(b.orgPortion) + ' per participant after the course.\nRegistration link: ' + link;
     }
     return 'Payment: I still need to confirm the billing arrangement before I send a registration link.';
   }

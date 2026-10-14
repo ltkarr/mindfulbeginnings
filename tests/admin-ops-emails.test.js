@@ -98,7 +98,8 @@ test('host letter is the initial confirm and drops the free spot when there is n
   assert.equal(draft.field, 'to');
   assert.equal(draft.subject, 'Hosting your Safe Sitter® course');
   assert.match(draft.body, /Thank you so much for hosting an upcoming Mindful Beginnings course!/);
-  assert.match(draft.body, /Cost: \$185 per participant/);
+  assert.match(draft.body, /Price: \$185 per participant\./);
+  assert.doesNotMatch(draft.body, /Estimated total/);
   assert.match(draft.body, /Registration link: https:\/\/register\.mindfulbeginnings\.org\/register\.html\?code=SS-1010/);
   assert.match(draft.body, /Session code: SS-1010/);
   assert.match(draft.body, /TBD — as we get closer to the date, I will share your instructor's name/);
@@ -111,6 +112,15 @@ test('host letter is the initial confirm and drops the free spot when there is n
   const venue = emails.draft('hostLetter', sample({ hasHostSpot: false }));
   assert.doesNotMatch(venue.body, /completely free/);
   assert.doesNotMatch(venue.body, /I am the host for this session/);
+
+  const orgPaid = emails.draft('hostLetter', sample({
+    priceText: '$45',
+    expectedCount: 11,
+    hasHostSpot: false,
+    course: 'Girl Scouts — First Aid Badge Workshop'
+  }));
+  assert.match(orgPaid.body, /Price: \$45 per participant\. Estimated total for 11 participants: \$495, final invoice based on attendance/);
+  assert.doesNotMatch(orgPaid.body, /Price:.*\u2014/);
 });
 
 test('a troop family-forward draft includes the private link, both prices, and the course overview', () => {
@@ -140,8 +150,8 @@ test('a troop family-forward draft includes the private link, both prices, and t
     hostFirst: 'Mary',
     code: 'GS-H4782',
     regLink: 'https://register.mindfulbeginnings.org/register.html?code=GS-H4782',
-    familyPayLine: 'What each family pays: $15 per registration, at checkout on the private link. The organization amount is not added to that charge.',
-    orgCoverLine: 'What the organization covers: Girl Scout Troop 34182 (Mary Polacek) is invoiced $30 per participant. For 15 participants on the roster, the invoice is $450. Families are not charged this at checkout.',
+    familyPayLine: 'Price: $15 per registration. Each family pays this at checkout on the private link. The organization amount is not added to that charge.',
+    orgCoverLine: 'Price: $30 per participant. Estimated total for 15 participants: $450, final invoice based on attendance. Girl Scout Troop 34182 (Mary Polacek) is invoiced this amount. Families are not charged this at checkout.',
     overviewText: overview
   });
   assert.equal(draft.field, 'to');
@@ -155,8 +165,7 @@ test('a troop family-forward draft includes the private link, both prices, and t
   assert.match(draft.body, /\$15 per registration/);
   assert.match(draft.body, /https:\/\/register\.mindfulbeginnings\.org\/register\.html\?code=GS-H4782/);
   assert.match(draft.body, /not on the public class list/);
-  assert.match(draft.body, /\$30 per participant/);
-  assert.match(draft.body, /15 participants on the roster/);
+  assert.match(draft.body, /Price: \$30 per participant\. Estimated total for 15 participants: \$450, final invoice based on attendance/);
   assert.match(draft.body, /Girl Scout Troop 34182/);
   assert.match(draft.body, /\$450/);
   assert.match(draft.body, /not a CPR or First Aid certification/);

@@ -65,6 +65,33 @@
     return t;
   }
 
+  function moneyAmount(text) {
+    var m = String(text || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
+    if (!m) return null;
+    var n = Number(m[1]);
+    return isFinite(n) ? n : null;
+  }
+
+  function formatDollars(n) {
+    var rounded = Math.round(Number(n) * 100) / 100;
+    if (!isFinite(rounded)) return '';
+    if (Math.round(rounded) === rounded) return '$' + rounded;
+    return '$' + rounded.toFixed(2);
+  }
+
+  // Same price line as the organization confirmation. The estimate is omitted
+  // when the headcount is unknown, and also when the cost names a couple rate
+  // (that total is not headcount times the first number).
+  function participantPriceLine(cost, count) {
+    var label = /per (person|couple|participant|student)/i.test(cost) ? cost : (cost + ' per participant');
+    if (!/[.]$/.test(label)) label += '.';
+    var n = parseInt(count, 10);
+    var amount = moneyAmount(cost);
+    if (!(n > 0) || /couple/i.test(cost) || amount == null) return 'Price: ' + label;
+    var people = n === 1 ? '1 participant' : (n + ' participants');
+    return 'Price: ' + label.replace(/\.$/, '') + '. Estimated total for ' + people + ': ' + formatDollars(amount * n) + ', final invoice based on attendance';
+  }
+
   function val(info, key, fallback) {
     var v = info && info[key];
     v = v == null ? '' : String(v).trim();
@@ -243,7 +270,7 @@
       lines.push('Date: ' + dateLong);
       lines.push('Time: ' + time);
       lines.push('Address: ' + address);
-      lines.push('Cost: ' + (/per (person|couple|participant|student)/i.test(cost) ? cost : (cost + ' per participant')));
+      lines.push(participantPriceLine(cost, info.expectedCount));
       lines.push('Registration link: ' + regLink);
       lines.push('Session code: ' + code);
       lines.push('Instructor: ' + instrLine);
@@ -274,6 +301,7 @@
     specialNotes: specialNotes,
     familyMealLine: familyMealLine,
     hostMealLine: hostMealLine,
+    participantPriceLine: participantPriceLine,
     draft: draft
   };
 

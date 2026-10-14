@@ -10823,7 +10823,8 @@ function opsEmailInfo(s){
     wifi:s.wifiInfo||'',
     priceText:price,
     regLink:REG_PAGE+'?code='+(s.code||''),
-    hasHostSpot:s.hasHost!==false
+    hasHostSpot:s.hasHost!==false,
+    expectedCount:(s.billToOrg&&s.billedHeadcount)?s.billedHeadcount:''
   };
 }
 function courseOverviewApi(){
@@ -10850,15 +10851,15 @@ function familyForwardMoney(s){
     };
   }
   const familyLine=family||family===0
-    ?'What each family pays: '+fmt(family)+' per registration, at checkout on the private link. The organization amount is not added to that charge.'
-    :'What each family pays: [enter Family price at registration].';
+    ?'Price: '+fmt(family)+' per registration. Each family pays this at checkout on the private link. The organization amount is not added to that charge.'
+    :'Price: [enter Family price at registration].';
   let orgLine;
   if(portion==null){
     orgLine='What the organization covers: '+who+' is the bill-to name. Enter Organization flat fee per participant when the troop pays a per-participant amount on top of what families pay.';
   }else{
-    const total=fmt(girls*portion);
-    const countBit=girls?(' For '+girls+' participant'+(girls===1?'':'s')+' on the roster, the invoice is '+total+'.'):'';
-    orgLine='What the organization covers: '+who+' is invoiced '+fmt(portion)+' per participant.'+countBit+' Families are not charged this at checkout.';
+    const people=girls===1?'1 participant':(girls+' participants');
+    const estimate=girls?(' Estimated total for '+people+': '+fmt(girls*portion)+', final invoice based on attendance.'):'';
+    orgLine='Price: '+fmt(portion)+' per participant.'+estimate+' '+who+' is invoiced this amount. Families are not charged this at checkout.';
   }
   return {familyPayLine:familyLine,orgCoverLine:orgLine};
 }
