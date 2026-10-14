@@ -2542,6 +2542,7 @@ function myUpcomingJobs(){
   const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
   return allSessions.filter(s=>{
     const jdi=jobDataCache[s.id]||{};
+    if(s.isCancelled)return false; // cancelled by the office — never an upcoming job
     return jdi.instructorId===me.id&&new Date(lastSessDate(s)+'T12:00:00')>=startOfToday;
   }).sort((a,b)=>a.date.localeCompare(b.date));
 }
