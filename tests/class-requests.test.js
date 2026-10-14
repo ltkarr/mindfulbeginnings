@@ -233,11 +233,14 @@ test('billing modes map to family price, organization portion, and whether a pri
   assert.equal(externalPlan.row.org_portion, 225);
   assert.equal(externalPlan.row.is_private, true);
   const externalDraft = model.buildDraft(fullExternal, externalPlan.row);
+  assert.match(externalDraft.body, /Price: \$225 per participant\. Estimated total for 10 participants: \$2250, final invoice based on attendance/);
   assert.match(externalDraft.body, /no family payment link/i);
   assert.doesNotMatch(externalDraft.body, /register\.html\?code=/);
+  assert.doesNotMatch(externalDraft.body, /\u2014/);
 
   const link = model.normalizeSubmission(orgBody({ billing: 'org_full_link' }));
   const linkDraft = model.buildDraft(link, model.buildSessionRow(link, []).row);
+  assert.match(linkDraft.body, /Price: \$225 per participant\. Estimated total for 10 participants: \$2250, final invoice based on attendance/);
   assert.match(linkDraft.body, /private link at no charge/i);
   assert.match(linkDraft.body, /register\.html\?code=SS-261102/);
 
@@ -247,15 +250,18 @@ test('billing modes map to family price, organization portion, and whether a pri
   assert.equal(individualPlan.row.bill_to_org, null);
   assert.equal(individualPlan.row.org_portion, null);
   assert.equal(individualPlan.row.is_private, true);
-  assert.match(model.buildDraft(individual, individualPlan.row).body, /\$225 per participant/);
+  assert.match(model.buildDraft(individual, individualPlan.row).body, /Price: \$225 per participant\./);
+  assert.doesNotMatch(model.buildDraft(individual, individualPlan.row).body, /Estimated total/);
 
   const split = model.normalizeSubmission(orgBody({ billing: 'split', portionText: '$25' }));
   const splitPlan = model.buildSessionRow(split, []);
   assert.equal(splitPlan.row.price_override, 200);
   assert.equal(splitPlan.row.org_portion, 25);
   assert.equal(splitPlan.row.bill_to_org, 'Congregation Beth El');
-  assert.match(model.buildDraft(split, splitPlan.row).body, /\$200/);
-  assert.match(model.buildDraft(split, splitPlan.row).body, /\$25 per participant/);
+  const splitDraft = model.buildDraft(split, splitPlan.row);
+  assert.match(splitDraft.body, /Price: \$25 per participant\. Estimated total for 10 participants: \$250, final invoice based on attendance/);
+  assert.match(splitDraft.body, /\$200/);
+  assert.match(splitDraft.body, /\$25 per participant/);
 
   const half = model.mapBilling({ kind: 'organization', billing: 'split', orgName: 'Troop', portionText: '50%', catalogPrice: 225, expectedCount: '6' });
   assert.equal(half.resolved, true);
@@ -267,6 +273,47 @@ test('billing modes map to family price, organization portion, and whether a pri
   assert.equal(model.canCreateSession(messy).ok, false);
   assert.equal(model.canCreateSession(messy).reason, 'billing');
   assert.equal(model.buildSessionRow(messy, []).created, false);
+});
+
+test('GSFA evening end 08:30 next to a 19:00 start displays as 8:30 PM, with a per-participant total', () => {
+  assert.equal(model.formatSpan('19:00', '08:30'), '7:00 to 8:30 PM');
+  assert.equal(model.formatSpan('19:00', '20:30'), '7:00 to 8:30 PM');
+  assert.equal(model.formatSpan('07:00', '08:30'), '7:00 to 8:30 AM');
+  assert.equal(model.formatSpan('13:30', '16:00'), '1:30 to 4:00 PM');
+  assert.equal(model.formatSpan('22:00', '00:00'), '10:00 PM to 12:00 AM');
+  assert.equal(model.formatSpan('11:00', '13:00'), '11:00 AM to 1:00 PM');
+
+  const n = model.normalizeSubmission(orgBody({
+    courseKey: 'gs-first-aid',
+    organizationName: 'GS Troop 55090',
+    expectedCount: '11 7th graders',
+    billing: 'org_full_link',
+    days: [{ date: '2026-11-12', start: '19:00', end: '08:30' }]
+  }));
+  assert.equal(n.days[0].time, '7:00 to 8:30 PM');
+  assert.equal(n.billing.billedHeadcount, 11);
+  const plan = model.buildSessionRow(n, []);
+  assert.equal(plan.row.code, 'GSFA-261112');
+  assert.equal(plan.row.time, '7:00 to 8:30 PM');
+  assert.equal(plan.row.org_portion, 45);
+  assert.equal(plan.row.billed_headcount, 11);
+  const draft = model.buildDraft(n, plan.row);
+  assert.match(draft.body, /Time: 7:00 to 8:30 PM/);
+  assert.doesNotMatch(draft.body, /8:30 AM/);
+  assert.match(draft.body, /Price: \$45 per participant\. Estimated total for 11 participants: \$495, final invoice based on attendance/);
+  assert.match(draft.body, /Participants register on this private link at no charge/);
+  assert.doesNotMatch(draft.body, /Price:.*\u2014/);
+  assert.doesNotMatch(draft.body, /Payment:.*\u2014/);
+
+  const unknown = model.normalizeSubmission(orgBody({
+    courseKey: 'gs-first-aid',
+    expectedCount: '',
+    billing: 'org_full_link',
+    days: [{ date: '2026-11-12', start: '19:00', end: '20:30' }]
+  }));
+  const unknownDraft = model.buildDraft(unknown, model.buildSessionRow(unknown, []).row);
+  assert.match(unknownDraft.body, /Price: \$45 per participant\./);
+  assert.doesNotMatch(unknownDraft.body, /Estimated total/);
 });
 
 test('a custom course and a request with no date are saved as requests but do not create a session', () => {

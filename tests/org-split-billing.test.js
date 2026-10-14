@@ -264,11 +264,10 @@ test('GS-H4782 bills the troop $30 times 15 participants and keeps the family pr
   assert.equal(Math.round(withFamily.revenue * 100) / 100, Math.round((familyNet + 450) * 100) / 100);
   assert.notEqual(Math.round(withFamily.revenue * 100) / 100, Math.round((familyNet + 15 * 15) * 100) / 100);
   const money = sandbox.familyForwardMoney(session);
-  assert.match(money.familyPayLine, /\$15 per registration/);
-  assert.match(money.orgCoverLine, /\$30 per participant/);
-  assert.match(money.orgCoverLine, /15 participants on the roster/);
-  assert.match(money.orgCoverLine, /\$450/);
-  assert.match(money.orgCoverLine, /Girl Scout Troop 34182 \(Mary Polacek\)/);
+  assert.match(money.familyPayLine, /Price: \$15 per registration/);
+  assert.match(money.orgCoverLine, /Price: \$30 per participant\. Estimated total for 15 participants: \$450, final invoice based on attendance/);
+  assert.match(money.orgCoverLine, /Girl Scout Troop 34182 \(Mary Polacek\) is invoiced this amount/);
+  assert.doesNotMatch(money.orgCoverLine, /\u2014/);
 });
 
 test('a custom job still ignores a per-participant split until it is a course session', () => {
