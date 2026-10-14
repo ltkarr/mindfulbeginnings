@@ -103,7 +103,7 @@ test('admin edit screen offers the four levels and the roster shows them', () =>
   }
   assert.match(options, /value="Senior" selected/);
   assert.equal((admin.match(/id="m-ilevel"/g) || []).length, 2);
-  assert.match(admin, /<th>Level<\/th>/);
+  // Roster is cards now (no table headers); the level tag renders on each card.
   assert.match(admin, /instructorLevelTag\(i\.level\)/);
   assert.match(admin, /migrations\/instructor_level\.sql/);
 });

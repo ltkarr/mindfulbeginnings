@@ -158,6 +158,9 @@ tr:hover td{background:#fafbfd}
 .tag.waitlist{background:#fff7e6;color:#b86a00}
 .tag.in_kind{background:#f3e8fb;color:#6D1ED4}
 .tag.cancelled{background:#f2f2f2;color:#8a8a8a}
+.tag.success{background:var(--success-bg);color:var(--success)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.tag.danger{background:var(--danger-bg);color:var(--danger)}
 .tag.lvl-started{background:#f0f0f0;color:#555}
 .tag.lvl-established{background:var(--sky-l);color:#1a5c8a}
 .tag.lvl-senior{background:#f5ecd8;color:#8a6d1f}
@@ -281,6 +284,28 @@ tr:hover td{background:#fafbfd}
 .itg.active{background:var(--navy);color:white}
 .itg.active:hover{background:var(--navy)}
 .itg .itg-count{font-weight:500;opacity:.75;margin-left:5px}
+/* Instructor cards: everything about each instructor, no sideways scrolling. */
+.instr-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.instr-card{background:white;border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;min-width:0}
+.instr-card.instr-inactive{opacity:.8;background:#fafbfd}
+.instr-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.instr-name{font-size:19px;font-weight:700;color:var(--navy);line-height:1.3}
+.instr-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.instr-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
+.instr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 14px;margin-bottom:10px}
+.instr-field{min-width:0}
+.instr-field>span{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:1px}
+.instr-field .instr-val{font-size:15px;color:var(--text);overflow-wrap:anywhere}
+.instr-field .instr-val a{color:var(--navy);font-weight:500}
+.instr-stats{display:flex;gap:18px;flex-wrap:wrap;padding:10px 0;border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border);margin-bottom:6px}
+.instr-stat b{display:block;font-size:19px;color:var(--navy)}
+.instr-stat span{font-size:13px;color:var(--muted)}
+.instr-jobs-toggle{background:none;border:none;color:var(--sky);font-size:15px;font-weight:600;cursor:pointer;padding:6px 0;font-family:'Montserrat',sans-serif}
+.instr-jobs{margin-top:6px;border-top:0.5px solid var(--border);padding-top:6px}
+.instr-job{padding:8px 0;border-bottom:0.5px solid var(--border);font-size:14px}
+.instr-job:last-child{border-bottom:none}
+.instr-job .ij-course{font-weight:600;color:var(--navy)}
+.instr-job .ij-meta{color:var(--muted)}
 tr.instr-inactive td{background:#fbfbfc}
 tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .code-badge{display:inline-flex;align-items:center;gap:4px;background:var(--navy);color:white;padding:3px 9px;border-radius:100px;font-size:15px;font-family:monospace;letter-spacing:.4px;cursor:pointer;transition:opacity .2s;white-space:nowrap}
@@ -640,7 +665,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <button class="itg" id="itg-inactive" onclick="setInstrTab('inactive',this)">Inactive</button>
       </div>
       <div id="instr-inactive-note" class="alert info" style="display:none">📁 &nbsp;These people are off your roster. Their past classes and pay history are kept, and they stay attached to any session they already taught, but they no longer appear in assignment dropdowns, credential counts, or the open-jobs email. Reactivate any time.</div>
-      <div class="card" style="padding:0"><div class="tbl-wrap"><table id="instructors-table"></table></div></div>
+      <div id="instructors-table" class="instr-cards"></div>
     </div>
 
     <div class="screen" id="screen-more">
@@ -9115,8 +9140,7 @@ function renderInstructors(){
   if(aBtn)aBtn.innerHTML=`Active <span class="itg-count">${nActive}</span>`;
   if(iBtn)iBtn.innerHTML=`Inactive <span class="itg-count">${nInactive}</span>`;
   const showing=instructors.filter(i=>instrTab==='inactive'?!instrActive(i):instrActive(i));
-  t.innerHTML=`<thead><tr><th>Name</th><th>Level</th><th>Email</th><th>Phone</th><th>Zelle</th><th>Rate/hr</th><th>PIN</th><th>Training date</th><th>Sweatshirt</th><th title="Classes already taught (primary or second instructor, past dates only, cancelled classes excluded)">Classes taught</th><th title="Classes they are scheduled to teach today or later (primary or second instructor, cancelled classes excluded)">Classes pending</th><th>Pending pay</th><th>Total paid</th><th></th></tr></thead><tbody>`+
-    (showing.length?showing.slice().sort(byInstrName).map(i=>{
+  t.innerHTML=showing.length?showing.slice().sort(byInstrName).map(i=>{
       const myJobs=sessions.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.instructorId===i.id;});
       const paidAmt=myJobs.filter(s=>(jobDataCache[s.id]||{}).payStatus==='paid')
         .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
@@ -9132,84 +9156,89 @@ function renderInstructors(){
       const totalPaidAmt=paidAmt+secondPaidAmt;
       const totalPendingAmt=pendingAmt+secondPendingAmt;
       const trainDate=i.safeSitterTrainingDate?new Date(i.safeSitterTrainingDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
-      // Build jobs detail rows
+      // Job history rows (expandable)
       const jobRows=myJobs.length?myJobs.map(s=>{
         const jd=jobDataCache[s.id]||{};
         const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
-        const c=COURSES[s.course]||{};
         const baseFee=instrDisplayFee(s,i,jd);
         const bonus=jd.referralBonus||0;
         const fee=baseFee+bonus;
-        const feeDisplay=bonus>0?`${fmt(fee)}<br><span style="font-size:13px;color:var(--muted)">Base ${fmt(baseFee)} + Bonus ${fmt(bonus)}</span>`:fmt(fee);
+        const feeDisplay=bonus>0?`${fmt(fee)} <span style="font-size:13px;color:var(--muted)">(Base ${fmt(baseFee)} + Bonus ${fmt(bonus)})</span>`:fmt(fee);
         const payPill=jd.payStatus==='paid'
           ?`<span class="tag paid">Paid</span>`
           :`<span class="tag pending">Pending</span>`;
-        return`<tr style="background:#fafbfd">
-          <td colspan="2" style="padding-left:32px;font-size:15px;color:var(--muted)">↳ ${s.course}</td>
-          <td colspan="2" style="font-size:15px;color:var(--muted)">${d}</td>
-          <td colspan="2" style="font-size:15px;color:var(--muted)">${s.location||''}${s.city?', '+s.city:''}</td>
-          <td colspan="2" style="font-size:15px">${feeDisplay}</td>
-          <td colspan="2">${payPill}${jd.payDate?`<span style="font-size:14px;color:var(--muted);margin-left:6px">${(pd=>{const dt=new Date(/^\d{4}-\d{2}-\d{2}$/.test(pd)?pd+'T12:00:00':pd);return isNaN(dt)?pd:dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});})(jd.payDate)}</span>`:''}</td>
-          <td></td></tr>`;
-      }).join(''):'';
-      return`<tr class="${instrActive(i)?'':'instr-inactive'}" style="cursor:pointer" onclick="this.nextElementSibling&&this.nextElementSibling.tagName==='TR'?toggleInstructorJobs(this):null">
-        <td style="font-weight:500">${i.name}
-          ${instrActive(i)?'':`<br><span style="font-size:14px;color:var(--muted);font-weight:600" title="Off the roster — hidden from assignment dropdowns, credential counts and the open-jobs email">📁 Inactive${i.archivedAt?' since '+new Date(i.archivedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''}</span>`}
-          ${(()=>{
-            // Mirror the instructor portal's isOnboardingComplete() gate: an instructor
-            // cannot see ANY job posts until all five steps below are done. Skipped for
-            // inactive people — a lockout warning is noise for someone off the roster,
-            // though the list of what they never finished still shows on their profile.
-            if(!instrActive(i))return'';
-            const missing=[];
-            if(!i.contractSigned)missing.push('contract');
-            if(!i.w9Submitted)missing.push('W-9');
-            if(!i.cprCertPath)missing.push('CPR cert');
-            if(!i.licensePath)missing.push('license/ID');
-            // Satisfied by an uploaded headshot, or by the legacy "marked complete"
-            // flag for instructors who finished this step under the old process.
-            if(!(i.headshotPath||i.headshotCompleted))missing.push('headshot');
-            // Self-entered in the portal — either a training date or "not taken yet".
-            if(!instrAnsweredSafeSitter(i))missing.push('Safe Sitter® training date');
-            return missing.length
-              ?`<br><span style="font-size:14px;color:var(--danger)" title="This instructor cannot see the job board until every onboarding step is complete">🔒 Locked out of job board — missing: ${missing.join(', ')}</span>`
-              :'<br><span style="font-size:14px;color:var(--success)" title="All 5 onboarding steps complete — this instructor can see and accept jobs">✓ Onboarding complete</span>';
-          })()}
-          ${(()=>{
-            // Credential badges — these control which job posts the instructor sees.
-            const creds=[];
-            if(instrIsSafeSitter(i))creds.push('🧒 Safe Sitter®');
-            if(i.isRN)creds.push('🩺 RN');
-            if(i.isLeadTeacher)creds.push('Lead Teacher');
-            return`<br><span style="font-size:14px;color:${creds.length?'#1a5c8a':'var(--muted)'};font-weight:500" title="Controls which job posts this instructor sees in their portal">${creds.length?creds.join(' · '):'Everyone-courses only'}</span>`;
-          })()}
-          ${({proprietary:'<br><span style="font-size:14px;color:#1a5c8a;font-weight:500">📄 RN agreement</span>',mb_courses:'<br><span style="font-size:14px;color:#1a5c8a;font-weight:500" title="Signed the original MB Courses agreement. Their saved PDF still prints that version, which is what they agreed to.">📄 MB Courses agreement <span style="color:var(--muted);font-weight:400">(2025 version)</span></span>',mb_courses_2026:'<br><span style="font-size:14px;color:#1a5c8a;font-weight:500">📄 MB Courses agreement</span>',curriculum:'<br><span style="font-size:14px;color:#7a5c1a;font-weight:500">📄 Curriculum Specialist agreement</span>'})[i.contractType]||''}
-          ${(()=>{const tc=classesTaughtBy(i.id);return tc>=5?`<br><span style="font-size:14px;color:#b8860b;font-weight:600" title="Lifetime classes taught (primary or second instructor, past dates only)">🏅 ${tc} classes taught</span>`:'';})()}
-          ${myJobs.length?`<br><span style="font-size:14px;color:var(--sky)">▶ ${myJobs.length} job${myJobs.length!==1?'s':''}</span>`:''}
-        </td>
-        <td>${instructorLevelTag(i.level)}</td>
-        <td style="color:var(--muted);font-size:15px">${i.email||'—'}</td>
-        <td style="color:var(--muted);font-size:15px">${i.phone||'—'}</td>
-        <td style="color:var(--muted);font-size:15px">${i.zelle||'—'}</td>
-        <td style="font-weight:500;color:var(--success)" title="${i.isLeadTeacher?'Lead Teacher pay is $75/hour for every session. The rate on the profile stays on file.':''}">${i.isLeadTeacher?'$75/hr':'$'+(i.hourlyRate||50)+'/hr'}</td>
-        <td><span class="pin-badge" data-pin="${escapeHtml(i.pin||'')}">••••</span> <button type="button" class="btn sm" onclick="event.stopPropagation();toggleInstructorPin(this)">${i.pin?'Show':'—'}</button>${i.pinChangeRequired?'<div style="font-size:13px;color:var(--warn);margin-top:3px">PIN change pending</div>':''}</td>
-        <td style="font-size:15px">${i.safeSitterTrainingDate?trainDate:(i.safeSitterCertified===false?'<span style="color:var(--muted)">Not trained</span>':'<span style="color:var(--warn);font-weight:500" title="This instructor has not entered a Safe Sitter® training date in their portal yet">⚠ Needed</span>')}</td>
-        <td style="font-size:15px;color:${i.sweatshirtSize?'var(--text)':'var(--muted)'}">${i.sweatshirtSize||'—'}</td>
-        ${(()=>{const tc=classesTaughtBy(i.id),pc=classesPendingBy(i.id);return`<td style="font-weight:600;font-size:18px;color:${tc?'var(--success)':'var(--muted)'}">${tc||'—'}</td><td style="font-weight:600;font-size:18px;color:${pc?'var(--sky)':'var(--muted)'}">${pc||'—'}</td>`;})()}
-        <td style="color:${totalPendingAmt>0?'var(--warn)':'var(--muted)'}">${totalPendingAmt?fmt(totalPendingAmt):'—'}</td>
-        <td style="color:var(--success);font-weight:500">${totalPaidAmt?fmt(totalPaidAmt):'—'}</td>
-        <td><div class="btn-row">
-          <button class="btn sm primary" onclick="event.stopPropagation();openInstructorProfile('${i.id}')">Profile</button>
-          <button class="btn sm" onclick="event.stopPropagation();openEditInstructor('${i.id}')">Edit</button>
-          ${instrActive(i)
-            ?`<button class="btn sm" onclick="event.stopPropagation();setInstructorActive('${i.id}',false)" title="Move off the roster. Keeps their record and pay history.">📁 Make inactive</button>`
-            :`<button class="btn sm success" onclick="event.stopPropagation();setInstructorActive('${i.id}',true)" title="Put them back on the roster">↩ Reactivate</button>
-              <button class="btn sm danger" onclick="event.stopPropagation();deleteInstructor('${i.id}')" title="Delete the record permanently">Delete forever</button>`}
-        </div></td></tr>
-        <tr class="instructor-jobs-row" style="display:none"><td colspan="14" style="padding:0">
-          <table style="width:100%;border-collapse:collapse">${jobRows||`<tr><td colspan="12" style="padding:10px 32px;font-size:15px;color:var(--muted);font-style:italic">No jobs assigned yet.</td></tr>`}</table>
-        </td></tr>`;
-    }).join(''):`<tr class="empty-row"><td colspan="14">${instrTab==='inactive'?'Nobody is inactive. Use <strong>Make inactive</strong> on the Active tab to move someone off the roster.':'No active instructors yet.'}</td></tr>`)+'</tbody>';
+        const pd=jd.payDate?(()=>{const dt=new Date(/^\d{4}-\d{2}-\d{2}$/.test(jd.payDate)?jd.payDate+'T12:00:00':jd.payDate);return isNaN(dt)?jd.payDate:dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});})():'';
+        return`<div class="instr-job"><span class="ij-course">${escapeHtml(s.course)}</span> <span class="ij-meta">· ${d}${s.location?' · '+escapeHtml(s.location):''}${s.city?', '+escapeHtml(s.city):''}</span><br>${payPill} <span style="font-size:14px">${feeDisplay}</span>${pd?` <span style="font-size:13px;color:var(--muted)">${pd}</span>`:''}</div>`;
+      }).join(''):`<div style="padding:8px 0;font-size:14px;color:var(--muted);font-style:italic">No jobs assigned yet.</div>`;
+      // Status badges under the name
+      const badges=[];
+      if(!instrActive(i))badges.push(`<span class="tag pending" title="Off the roster — hidden from assignment dropdowns, credential counts and the open-jobs email">📁 Inactive${i.archivedAt?' since '+new Date(i.archivedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''}</span>`);
+      if(instrActive(i)){
+        const missing=[];
+        if(!i.contractSigned)missing.push('contract');
+        if(!i.w9Submitted)missing.push('W-9');
+        if(!i.cprCertPath)missing.push('CPR cert');
+        if(!i.licensePath)missing.push('license/ID');
+        if(!(i.headshotPath||i.headshotCompleted))missing.push('headshot');
+        if(!instrAnsweredSafeSitter(i))missing.push('Safe Sitter® training date');
+        badges.push(missing.length
+          ?`<span class="tag danger" title="This instructor cannot see the job board until every onboarding step is complete">🔒 Locked out — missing: ${missing.join(', ')}</span>`
+          :`<span class="tag success" title="All onboarding steps complete — this instructor can see and accept jobs">✓ Onboarding complete</span>`);
+      }
+      const creds=[];
+      if(instrIsSafeSitter(i))creds.push('🧒 Safe Sitter®');
+      if(i.isRN)creds.push('🩺 RN');
+      if(i.isLeadTeacher)creds.push('⭐ Lead Teacher');
+      badges.push(`<span class="tag" title="Controls which job posts this instructor sees in their portal">${creds.length?creds.join(' · '):'Everyone-courses only'}</span>`);
+      const tc0=classesTaughtBy(i.id);
+      if(tc0>=5)badges.push(`<span class="tag warn" title="Lifetime classes taught (primary or second instructor, past dates only)">🏅 ${tc0} classes taught</span>`);
+      const contractTag=({proprietary:'<span class="tag">📄 RN agreement</span>',mb_courses:'<span class="tag" title="Signed the original MB Courses agreement.">📄 MB Courses agreement (2025 version)</span>',mb_courses_2026:'<span class="tag">📄 MB Courses agreement</span>',curriculum:'<span class="tag warn">📄 Curriculum Specialist agreement</span>'})[i.contractType]||'';
+      if(contractTag)badges.push(contractTag);
+      // Contact + detail fields
+      const tel=i.phone?String(i.phone).replace(/[^+\d]/g,''):'';
+      const field=(label,val)=>`<div class="instr-field"><span>${label}</span><div class="instr-val">${val||'—'}</div></div>`;
+      const pinHtml=`<span class="pin-badge" data-pin="${escapeHtml(i.pin||'')}">••••</span> <button type="button" class="btn sm" onclick="event.stopPropagation();toggleInstructorPin(this)">${i.pin?'Show':'—'}</button>${i.pinChangeRequired?'<div style="font-size:13px;color:var(--warn);margin-top:3px">PIN change pending</div>':''}`;
+      return`<div class="instr-card${instrActive(i)?'':' instr-inactive'}">
+        <div class="instr-card-top">
+          <div style="min-width:0">
+            <div class="instr-name">${escapeHtml(i.name)} ${instructorLevelTag(i.level)}</div>
+            <div class="instr-badges">${badges.join('')}</div>
+          </div>
+          <div class="instr-actions">
+            <button class="btn sm primary" onclick="openInstructorProfile('${i.id}')">Profile</button>
+            <button class="btn sm" onclick="openEditInstructor('${i.id}')">Edit</button>
+            ${instrActive(i)
+              ?`<button class="btn sm" onclick="setInstructorActive('${i.id}',false)" title="Move off the roster. Keeps their record and pay history.">📁 Make inactive</button>`
+              :`<button class="btn sm success" onclick="setInstructorActive('${i.id}',true)" title="Put them back on the roster">↩ Reactivate</button>
+                <button class="btn sm danger" onclick="deleteInstructor('${i.id}')" title="Delete the record permanently">Delete forever</button>`}
+          </div>
+        </div>
+        <div class="instr-grid">
+          ${field('Email', i.email?`<a href="mailto:${escapeHtml(i.email)}">${escapeHtml(i.email)}</a>`:'')}
+          ${field('Cell phone', i.phone&&tel?`<a href="tel:${escapeHtml(tel)}">${escapeHtml(i.phone)}</a>`:(i.phone?escapeHtml(i.phone):''))}
+          ${field('Zelle', i.zelle?escapeHtml(i.zelle):'')}
+          ${field('Rate', `<span style="font-weight:600;color:var(--success)" title="${i.isLeadTeacher?'Lead Teacher pay is $75/hour for every session. The rate on the profile stays on file.':''}">${i.isLeadTeacher?'$75/hr':'$'+(i.hourlyRate||50)+'/hr'}</span>`)}
+          ${field('PIN', pinHtml)}
+          ${field('Safe Sitter training', i.safeSitterTrainingDate?trainDate:(i.safeSitterCertified===false?'<span style="color:var(--muted)">Not trained</span>':'<span style="color:var(--warn);font-weight:500">⚠ Needed</span>'))}
+          ${field('Sweatshirt', i.sweatshirtSize?escapeHtml(i.sweatshirtSize):'')}
+        </div>
+        <div class="instr-stats">
+          <div class="instr-stat"><b style="color:${tc0?'var(--success)':'var(--muted)'}">${tc0||'—'}</b><span>classes taught</span></div>
+          <div class="instr-stat"><b style="color:${classesPendingBy(i.id)?'var(--sky)':'var(--muted)'}">${classesPendingBy(i.id)||'—'}</b><span>classes pending</span></div>
+          <div class="instr-stat"><b style="color:${totalPendingAmt>0?'var(--warn)':'var(--muted)'}">${totalPendingAmt?fmt(totalPendingAmt):'—'}</b><span>pending pay</span></div>
+          <div class="instr-stat"><b style="color:var(--success)">${totalPaidAmt?fmt(totalPaidAmt):'—'}</b><span>total paid</span></div>
+        </div>
+        ${myJobs.length?`<button class="instr-jobs-toggle" onclick="toggleInstrCardJobs(this)">▶ ${myJobs.length} job${myJobs.length!==1?'s':''}</button><div class="instr-jobs" style="display:none">${jobRows}</div>`:''}
+      </div>`;
+    }).join('')
+    :`<div class="card" style="padding:28px;text-align:center;color:var(--muted);font-size:16px">${instrTab==='inactive'?'Nobody is inactive. Use <strong>Make inactive</strong> on the Active tab to move someone off the roster.':'No active instructors yet.'}</div>`;
+}
+function toggleInstrCardJobs(btn){
+  const panel=btn.nextElementSibling;
+  if(!panel||!panel.classList.contains('instr-jobs'))return;
+  const open=panel.style.display==='none';
+  panel.style.display=open?'':'none';
+  btn.textContent=(open?'▼':'▶')+btn.textContent.slice(1);
 }
 function toggleInstructorPin(btn){
   const badge=btn.previousElementSibling;
@@ -9220,14 +9249,6 @@ function toggleInstructorPin(btn){
   badge.textContent=open?'••••':pin;
   badge.setAttribute('data-open',open?'0':'1');
   btn.textContent=open?'Show':'Hide';
-}
-function toggleInstructorJobs(row){
-  const next=row.nextElementSibling;
-  if(next&&next.classList.contains('instructor-jobs-row')){
-    next.style.display=next.style.display==='none'?'table-row':'none';
-    const arrow=row.querySelector('.sky');
-    if(arrow)arrow.textContent=next.style.display==='none'?`▶ ${arrow.textContent.slice(2)}`:`▼ ${arrow.textContent.slice(2)}`;
-  }
 }
 function exportInstructorsCSV(){
   const rows=[['Status','Name','Level','Email','Phone','Zelle','Rate/hr','PIN','Training Date','Sweatshirt Size','Contract Signed','Classes Taught','Classes Pending','Pending Pay','Total Paid','--- Job Details ---','Course','Date','Location','Base Fee','Referral Bonus','Total Fee','Pay Status','Pay Date']];
