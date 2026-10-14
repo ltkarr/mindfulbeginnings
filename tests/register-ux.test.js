@@ -142,17 +142,18 @@ test('full public sessions show WAITLIST ONLY as a mailto, not inside the regist
   assert.ok(click.indexOf('openExternalRegistration') < click.indexOf('selectPublicSession'));
 });
 
-test('manually sold-out sessions show SOLD OUT with no price and a JOIN WAITLIST mailto', () => {
+test('manually sold-out sessions show a red SOLD OUT banner, no price, and a JOIN WAITLIST contact link', () => {
   assert.match(register, /var SOLD_OUT_CODES=\['SS-1103'\]/);
+  assert.match(register, /SOLD_OUT_CONTACT_URL='https:\/\/mindfulbeginnings\.org\/contact'/);
   const render = register.slice(register.indexOf('function renderPublicSessions'), register.indexOf('async function loadPublicSessions'));
   assert.match(render, /soldOut/);
-  assert.match(render, /pseats soldout/);
+  assert.match(render, /psoldout-banner/);
   assert.match(render, />SOLD OUT</);
   assert.match(render, /if\(soldOut\)priceLabel=''/);
   assert.match(render, /JOIN WAITLIST/);
-  assert.match(render, /<a class="pgo-waitlist" href=.*waitlistMailto\(r\)/);
+  assert.match(render, /pgo-waitlist.+SOLD_OUT_CONTACT_URL/);
   assert.match(render, /soldout-card/);
-  assert.match(register, /\.public-card \.pseats\.soldout\{/);
+  assert.match(register, /\.public-card \.psoldout-banner\{/);
   assert.match(register, /a\.pgo-waitlist\{/);
 });
 
