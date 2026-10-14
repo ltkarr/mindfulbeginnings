@@ -130,7 +130,7 @@ test('full public sessions show WAITLIST ONLY as a mailto, not inside the regist
   assert.doesNotMatch(register, /All '\+max\+' spots/);
   assert.match(register, /\.public-card a\.public-waitlist\{display:block/);
   assert.match(render, /escapeHtml\(seats\)/);
-  const card = render.slice(render.indexOf("html+='<div class=\"public-card\""));
+  const card = render.slice(render.indexOf("html+='<div class=\"public-card'"));
   assert.ok(card.indexOf('public-card-hit') >= 0);
   assert.ok(card.indexOf('</button>') < card.indexOf('seatsHtml'), 'the register hit target closes before the waitlist link is inserted');
   assert.doesNotMatch(render, /<button[^>]*class="public-card"/);
@@ -140,6 +140,20 @@ test('full public sessions show WAITLIST ONLY as a mailto, not inside the regist
   assert.match(click, /public-card-hit/);
   assert.ok(click.indexOf('public-waitlist') < click.indexOf('selectPublicSession'), 'waitlist mailto returns before registration');
   assert.ok(click.indexOf('openExternalRegistration') < click.indexOf('selectPublicSession'));
+});
+
+test('manually sold-out sessions show SOLD OUT with no price and a JOIN WAITLIST mailto', () => {
+  assert.match(register, /var SOLD_OUT_CODES=\['SS-1103'\]/);
+  const render = register.slice(register.indexOf('function renderPublicSessions'), register.indexOf('async function loadPublicSessions'));
+  assert.match(render, /soldOut/);
+  assert.match(render, /pseats soldout/);
+  assert.match(render, />SOLD OUT</);
+  assert.match(render, /if\(soldOut\)priceLabel=''/);
+  assert.match(render, /JOIN WAITLIST/);
+  assert.match(render, /<a class="pgo-waitlist" href=.*waitlistMailto\(r\)/);
+  assert.match(render, /soldout-card/);
+  assert.match(register, /\.public-card \.pseats\.soldout\{/);
+  assert.match(register, /a\.pgo-waitlist\{/);
 });
 
 test('deep links and waitlist stay on this page', () => {
