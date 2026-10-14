@@ -42,7 +42,7 @@ function adminEmails() {
 async function verifyAdmin(bearer) {
   if (!bearer) return null;
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: <redacted> 'Authorization': `Bearer ${bearer}` },
+    headers: { apikey: SUPABASE_ANON_KEY, 'Authorization': `Bearer ${bearer}` },
   });
   if (!res.ok) return null;
   const user = await res.json().catch(() => null);
