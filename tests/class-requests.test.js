@@ -148,6 +148,31 @@ test('organization course choices match the catalog, including Girl Scout badge 
   assert.match(orgPage, /host\.html/);
 });
 
+test('After School Clubs is a $200/participant organization option with a club picker', () => {
+  const asc = model.coursesFor('organization').find(function (c) { return c.key === 'after-school-clubs'; });
+  assert.ok(asc, 'catalog has after-school-clubs for organizations');
+  assert.equal(asc.price, 200);
+  assert.equal(asc.course, 'After School Clubs');
+  assert.ok(!model.coursesFor('host').some(function (c) { return c.key === 'after-school-clubs'; }), 'not on the home host form');
+  assert.match(orgPage, /value="after-school-clubs"/);
+  assert.match(orgPage, /After School Clubs — Grades K–5, multi-week series, in person \(\$200\)/);
+  assert.match(orgPage, /\$200 per participant/);
+  assert.match(orgPage, /id="clubs-wrap"/);
+  ['My First Babysitter\'s Club', 'Little Medics', 'Pet Sitter\'s Club', 'Snack Squad', 'Kid Boss Club',
+   'Middle School, Here I Come', 'Big Sibling Club', 'My First Phone', 'Walk and Roll Ready', 'Calm and Ready'
+  ].forEach(function (club) {
+    assert.match(orgPage, new RegExp('name="clubs"[^>]*value="' + club.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  });
+  const formScript = fs.readFileSync(path.join(root, 'js/class-request-form.js'), 'utf8');
+  assert.match(formScript, /after-school-clubs/);
+  assert.match(formScript, /clubs-wrap/);
+  const n = model.normalizeSubmission(orgBody({ courseKey: 'after-school-clubs', clubs: ['Little Medics (Grades K–2)', 'Snack Squad (Grades 2–5)'] }));
+  assert.equal(n.course.key, 'after-school-clubs');
+  assert.equal(n.course.price, 200);
+  assert.deepEqual(n.clubs, ['Little Medics (Grades K–2)', 'Snack Squad (Grades 2–5)']);
+  assert.equal(model.validate(n).length, 0);
+});
+
 test('a home host maps to a private session with a free host seat and catalog pricing', () => {
   const n = model.normalizeSubmission(hostBody());
   assert.equal(model.validate(n).length, 0);

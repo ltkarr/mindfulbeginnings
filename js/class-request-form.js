@@ -103,6 +103,7 @@
       data.arrival = form.arrival ? form.arrival.value : '';
       data.participantInfo = form.participantInfo ? form.participantInfo.value : '';
       data.customRequest = form.customRequest ? form.customRequest.value : '';
+      data.clubs = checkedValues(form, 'clubs');
     }
     return data;
   }
@@ -115,6 +116,8 @@
     note.textContent = opt && opt.getAttribute('data-note') ? opt.getAttribute('data-note') : '';
     var custom = $('custom-wrap');
     if (custom) custom.hidden = !opt || opt.value !== 'custom';
+    var clubs = $('clubs-wrap');
+    if (clubs) clubs.hidden = !opt || opt.value !== 'after-school-clubs';
   }
 
   function updateSteer() {

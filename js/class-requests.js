@@ -41,6 +41,9 @@
     // Adult & Pediatric is $125 for sessions created from Oct 14 2026.
     { key: 'rc-babysitter', course: "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED", abbr: 'RCB', price: 295, hours: '7 hours', audience: 'Ages 11-14', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 125, hours: '4 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    // After School Clubs: 10 themed clubs for grades K-5, multi-week series at
+    // schools. $200 per participant. Organization form only.
+    { key: 'after-school-clubs', course: 'After School Clubs', abbr: 'ASC', price: 200, hours: 'multi-week series', audience: 'Grades K–5', where: 'in person', host: false, org: true },
     { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet — I would like guidance' },
     { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course — we will follow up with pricing' }
   ];
@@ -482,6 +485,7 @@
       customRequest: clip(body.customRequest, 4000),
       portionText: clip(body.portionText, 200),
       av: Array.isArray(body.av) ? body.av.map(function (x) { return clip(x, 80); }).filter(Boolean).slice(0, 8) : [],
+      clubs: Array.isArray(body.clubs) ? body.clubs.map(function (x) { return clip(x, 80); }).filter(Boolean).slice(0, 12) : [],
       datesText: clip(body.datesText, 4000)
     };
   }
@@ -589,6 +593,7 @@
     if (n.participantInfo) lines.push('For participants: ' + n.participantInfo);
     if (n.specialInstructions) lines.push('Special instructions: ' + n.specialInstructions);
     if (n.customRequest) lines.push('Custom request: ' + n.customRequest);
+    if (n.clubs && n.clubs.length) lines.push('Clubs: ' + n.clubs.join(', '));
     return lines.join('\n').slice(0, 4000);
   }
 
@@ -795,6 +800,7 @@
     if (n.participantInfo) notes.push('For participants: ' + n.participantInfo);
     if (n.av && n.av.length) notes.push('AV you have on site: ' + n.av.join(', '));
     if (n.customRequest) notes.push('Custom request: ' + n.customRequest);
+    if (n.clubs && n.clubs.length) notes.push('Clubs: ' + n.clubs.join(', '));
     if (notes.length) {
       lines.push('');
       lines.push('What I have on file:');
