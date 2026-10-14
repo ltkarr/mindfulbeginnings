@@ -11,7 +11,7 @@
 <title>Instructor Portal — Mindful Beginnings</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="apple-touch-icon" href="/email-logo.png">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <!-- Course data for the job board. This page deliberately loads config-instructor.js
@@ -24,36 +24,36 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --navy:#1E3161;--navy2:#152747;--gold:#C7A24A;--gold-l:#f5ecd8;--gold-d:#8a6d1f;
-  --cream:#faf8f4;--text:#1E3161;--muted:#6b7a99;--border:#dde4ee;
+  --cream:#F5F2EA;--text:#1E3161;--muted:#6b7a99;--border:#dde4ee;
   --success:#2d7a5e;--success-bg:#eaf5f0;--warn:#b86a00;--warn-bg:#fff7e6;
   --danger:#c0392b;--danger-bg:#fdf0ee;--r:12px;--r-sm:8px;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+body{font-family:'Montserrat',sans-serif;background:var(--cream);color:var(--text);font-size:16px;line-height:1.6;min-height:100vh}
 #login-screen,#inactive-screen,#pinchange-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);padding:24px 16px}
 .login-box{background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:410px;text-align:center}
-.login-logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--navy);margin-bottom:4px}
+.login-logo{font-family:'Montserrat',sans-serif;font-weight:800;font-size:22px;color:var(--navy);margin-bottom:4px}
 .login-logo-img{height:72px;width:auto;display:block;margin:0 auto 14px}
 @media(max-width:480px){#login-screen,#inactive-screen,#pinchange-screen{padding:16px 12px}.login-box{padding:28px 18px}}
 .h-brandwrap{display:flex;align-items:center;gap:12px}
-.h-logo{background:#fff;border-radius:10px;padding:5px 10px;display:inline-flex;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.18)}
-.h-logo img{height:32px;width:auto;display:block}
+.h-logo{display:inline-flex;align-items:center}
+.h-logo img{height:42px;width:42px;border-radius:50%;display:block}
 .login-sub{font-size:14px;color:var(--muted);margin-bottom:28px}
-.pin-input{width:100%;padding:16px;font-size:28px;letter-spacing:8px;text-align:center;font-family:'DM Serif Display',serif;border:2px solid var(--border);border-radius:var(--r-sm);outline:none;background:var(--cream);transition:border-color .2s;margin-bottom:8px}
+.pin-input{width:100%;padding:16px;font-size:28px;letter-spacing:8px;text-align:center;font-family:'Montserrat',sans-serif;font-weight:700;border:2px solid var(--border);border-radius:var(--r-sm);outline:none;background:var(--cream);transition:border-color .2s;margin-bottom:8px}
 .pin-input:focus{border-color:var(--gold);background:white}
 .pin-input.err{border-color:var(--danger)}
 .login-err{color:var(--danger);font-size:14px;margin-bottom:12px;min-height:16px}
-.login-btn{width:100%;padding:13px;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s}
+.login-btn{width:100%;padding:13px;background:var(--navy);color:white;border:none;border-radius:var(--r-sm);font-family:'Montserrat',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s}
 .login-btn:hover{background:var(--navy2)}
 .login-btn:disabled{opacity:.6;cursor:not-allowed}
 #app{display:none;min-height:100vh}
 header{background:var(--navy);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
-.h-brand{font-family:'DM Serif Display',serif;font-size:18px;color:white}
-.h-name{font-size:14px;color:rgba(255,255,255,.6);margin-top:1px}
-.h-logout{background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:5px 12px;border-radius:100px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.h-brand{font-family:'Montserrat',sans-serif;font-weight:800;font-size:19px;color:white;letter-spacing:.01em}
+.h-name{font-size:15px;color:rgba(255,255,255,.6);margin-top:1px}
+.h-logout{background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:5px 12px;border-radius:100px;font-size:14px;font-family:'Montserrat',sans-serif;cursor:pointer}
 .h-logout:hover{color:white;border-color:rgba(255,255,255,.6)}
 .tabs{background:white;border-bottom:1px solid var(--border);display:flex;padding:0 24px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{padding:14px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab{padding:14px 16px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
 .tab:hover{color:var(--text)}
 .tab.active{color:var(--navy);border-bottom-color:var(--gold)}
 .acct-nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}
@@ -61,24 +61,24 @@ header{background:var(--navy);padding:16px 24px;display:flex;align-items:center;
 .acct-section{margin-bottom:36px;scroll-margin-top:14px}
 .acct-section:last-child{margin-bottom:0}
 /* ── Home dashboard ─────────────────────────────────────────── */
-.home-hello{font-family:'DM Serif Display',serif;font-size:30px;color:var(--navy)}
-.home-sub{color:var(--muted);font-size:14px;margin:2px 0 18px}
+.home-hello{font-family:'Montserrat',sans-serif;font-weight:800;font-size:30px;color:var(--navy)}
+.home-sub{color:var(--muted);font-size:15px;margin:2px 0 18px}
 .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
 .home-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;cursor:pointer;transition:box-shadow .15s}
 .home-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.home-card .hc-num{font-family:'DM Serif Display',serif;font-size:32px;color:var(--navy);line-height:1.1}
-.home-card .hc-label{font-size:14px;color:var(--muted);margin-top:2px}
+.home-card .hc-num{font-family:'Montserrat',sans-serif;font-weight:800;font-size:32px;color:var(--navy);line-height:1.1}
+.home-card .hc-label{font-size:15px;color:var(--muted);margin-top:2px}
 .home-next{background:var(--navy);color:#fff;border-radius:var(--r);padding:18px 20px;margin-bottom:14px;cursor:pointer}
-.home-next .hn-label{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--gold);margin-bottom:6px;font-weight:500}
-.home-next .hn-course{font-family:'DM Serif Display',serif;font-size:21px;margin-bottom:4px}
-.home-next .hn-meta{font-size:13px;color:rgba(255,255,255,.78);line-height:1.6}
-.home-next .hn-go{margin-top:10px;font-size:13px;font-weight:500;color:var(--gold)}
+.home-next .hn-label{font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:var(--gold);margin-bottom:6px;font-weight:500}
+.home-next .hn-course{font-family:'Montserrat',sans-serif;font-weight:700;font-size:21px;margin-bottom:4px}
+.home-next .hn-meta{font-size:14px;color:rgba(255,255,255,.78);line-height:1.6}
+.home-next .hn-go{margin-top:10px;font-size:14px;font-weight:500;color:var(--gold)}
 .progress{height:8px;background:#eef1f6;border-radius:100px;overflow:hidden;margin:10px 0 14px}
 .progress>div{height:100%;background:var(--gold);border-radius:100px;transition:width .3s}
 main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .screen{display:none}.screen.active{display:block;animation:fadeIn .2s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-.section-title{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:6px}
+.section-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:22px;margin-bottom:6px}
 .section-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
 .job-card{background:white;border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px;transition:box-shadow .2s}
 .job-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
@@ -108,7 +108,7 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .pill-level-lead{background:var(--navy);color:#fff}
 .h-level{margin-top:4px}
 .h-level .pill{background:rgba(199,162,74,.18);color:#f6e7c2;border:1px solid rgba(199,162,74,.55)}
-.btn{padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:white;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;font-weight:500;transition:all .15s;white-space:nowrap}
+.btn{padding:8px 16px;border-radius:var(--r-sm);border:1px solid var(--border);background:white;color:var(--text);font-family:'Montserrat',sans-serif;font-size:14px;cursor:pointer;font-weight:500;transition:all .15s;white-space:nowrap}
 .btn:hover{background:var(--cream)}
 .btn.primary{background:var(--navy);color:white;border-color:transparent}
 .btn.primary:hover{background:var(--navy2)}
@@ -160,10 +160,10 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 /* ── Headline numbers: pay, commitment, effective rate ── */
 .hero-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:14px}
 .hero-cell{background:white;padding:11px 13px}
-.hero-v{font-family:'DM Serif Display',serif;font-size:20px;line-height:1.15;color:var(--navy)}
+.hero-v{font-family:'Montserrat',sans-serif;font-weight:700;font-size:20px;line-height:1.15;color:var(--navy)}
 .hero-l{font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-top:3px}
 .hero-s{font-size:13px;color:var(--muted);margin-top:2px}
-.hero-cell.loc .hero-v{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;line-height:1.3;word-break:break-word}
+.hero-cell.loc .hero-v{font-family:'Montserrat',sans-serif;font-size:14px;font-weight:500;line-height:1.3;word-break:break-word}
 /* ── Fit checks: reasons to say yes, and any blockers ── */
 .fit{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:14px}
 .fit-row{display:flex;gap:9px;align-items:flex-start;padding:9px 12px;font-size:13px;line-height:1.5;background:white}
@@ -333,7 +333,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
 <div id="app">
   <header>
     <div class="h-brandwrap">
-      <span class="h-logo"><img src="/email-logo.png" alt="Mindful Beginnings logo"></span>
+      <span class="h-logo"><img src="/images/logo.png" alt="Mindful Beginnings logo"></span>
       <div>
         <div class="h-brand">Mindful Beginnings</div>
         <div class="h-name" id="h-name">Instructor portal</div>
@@ -1510,7 +1510,7 @@ function renderPartner(){
           <div style="font-weight:500;font-size:15px">Statement</div>
           <div style="font-size:14px;color:var(--muted);margin-top:3px">${escapeHtml(paidNote)}</div>
         </div>
-        ${months.length>1?`<select onchange="selectPartnerMonth(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:13px;background:white;color:var(--text);outline:none">
+        ${months.length>1?`<select onchange="selectPartnerMonth(this.value)" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-family:'Montserrat',sans-serif;font-size:13px;background:white;color:var(--text);outline:none">
           ${months.map(m=>`<option value="${m.period}" ${m.period===partnerMonth?'selected':''}>${pMonthLabel(m.period)}${m.payout?' — paid':''}</option>`).join('')}
         </select>`:''}
       </div>
@@ -2200,7 +2200,7 @@ async function renderMyProfile(){
       <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Income summary — 1099 helper</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Download a summary of all your sessions and income for the year to help with tax reporting.</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <select id="income-year" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:white;outline:none">
+        <select id="income-year" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none">
           ${[...new Set(allSessions.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.instructorId===me.id;}).map(s=>new Date(s.date+'T12:00:00').getFullYear()))].sort((a,b)=>b-a).map(y=>`<option value="${y}">${y}</option>`).join('')||`<option value="${new Date().getFullYear()}">${new Date().getFullYear()}</option>`}
         </select>
         <button class="btn primary" onclick="downloadIncomeSummary()">📥 Download income summary</button>
@@ -2232,7 +2232,7 @@ function safeSitterCardHTML(){
       ${banner}
       <div style="font-size:13px;color:var(--text);margin-bottom:12px;line-height:1.6">Enter the date you completed your Safe Sitter® instructor training. As soon as it is saved, Safe Sitter® and Grandparents job posts appear on your Open jobs board.</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input type="date" id="ss-training-date" max="${today}" value="${escapeHtml(dateOnFile)}" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+        <input type="date" id="ss-training-date" max="${today}" value="${escapeHtml(dateOnFile)}" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'Montserrat',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
         <button class="btn primary" onclick="submitSafeSitterDate()">${dateOnFile?'Update date':'Save date'}</button>
       </div>
       ${dateOnFile?'':`<div style="margin-top:12px"><button class="btn" style="font-size:14px;padding:6px 12px" onclick="declineSafeSitterTraining()">I have not taken this training yet</button></div>`}
@@ -2728,11 +2728,11 @@ function renderContract(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
         <div class="fg">
           <label style="font-size:14px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px">Full legal name *</label>
-          <input type="text" id="contract-name" placeholder="Type your full name" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+          <input type="text" id="contract-name" placeholder="Type your full name" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'Montserrat',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
         </div>
         <div class="fg">
           <label style="font-size:14px;font-weight:500;color:var(--muted);display:block;margin-bottom:4px">Date *</label>
-          <input type="date" id="contract-date" value="${fmtYMD(new Date())}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+          <input type="date" id="contract-date" value="${fmtYMD(new Date())}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:'Montserrat',sans-serif;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
         </div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;padding:12px 14px;background:var(--cream);border-radius:var(--r-sm)">
