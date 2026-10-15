@@ -16,8 +16,7 @@
       received: c.received !== false,
       session_created: !!c.session_created,
       email_sent: !!c.email_sent,
-      done: !!c.done,
-      archived: !!c.archived
+      done: !!(c.done || c.archived)
     };
   }
 
@@ -29,14 +28,14 @@
   function openCount(rows) {
     return (rows || []).filter(function (row) {
       var c = checks(row);
-      return !c.done && !c.archived && !c.email_sent;
+      return !c.done && !c.email_sent;
     }).length;
   }
 
   function receivedCount(rows) {
     return (rows || []).filter(function (row) {
       var c = checks(row);
-      return !c.archived && !c.done && !c.session_created;
+      return !c.done && !c.session_created;
     }).length;
   }
 
@@ -44,18 +43,16 @@
     { key: 'received', label: 'Received', locked: true },
     { key: 'session_created', label: 'Session created in ADMIN' },
     { key: 'email_sent', label: 'Email sent' },
-    { key: 'done', label: 'Done' },
-    { key: 'archived', label: 'Archived' }
+    { key: 'done', label: 'Done' }
   ];
 
   function matchesFilter(row, filter) {
     var c = checks(row);
     var status = statusOf(row);
-    if (filter === 'archived') return c.archived;
-    if (filter === 'done') return !!(c.done || c.archived);
-    if (filter === 'received') return status === 'received' && !c.archived;
+    if (filter === 'done') return !!c.done;
+    if (filter === 'received') return status === 'received';
     if (filter === 'all') return true;
-    return !c.done && !c.archived && !c.email_sent;
+    return !c.done && !c.email_sent;
   }
 
   function whenText(row) {

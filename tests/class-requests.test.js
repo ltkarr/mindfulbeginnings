@@ -347,15 +347,11 @@ test('checklist starts at received, advances only when Lindsay marks a step, and
   const done = model.applyChecklistUpdate(sent.checklist, { done: true });
   assert.equal(done.status, 'done');
 
-  const archived = model.applyChecklistUpdate(done.checklist, { archived: true });
-  assert.equal(archived.status, 'archived');
-  assert.equal(archived.checklist.done, true);
-
   const locked = model.applyChecklistUpdate(fresh.checklist, { received: false, email_sent: true });
   assert.equal(locked.checklist.received, true);
 
-  const reopened = model.applyChecklistUpdate(archived.checklist, { archived: false });
-  assert.equal(reopened.status, 'done');
+  const reopened = model.applyChecklistUpdate(done.checklist, { done: false });
+  assert.equal(reopened.status, 'email_sent');
 });
 
 test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
@@ -382,22 +378,26 @@ test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
   assert.doesNotMatch(html, /Confirmation email drafted/);
   assert.match(html, /Email sent/);
   assert.doesNotMatch(html, /Instructor claimed/);
+  assert.doesNotMatch(html, /Archived/);
   assert.match(html, /Open confirmation draft/);
   assert.match(html, /SS-261102/);
-  assert.equal(adminUi.openCount([{ checklist: { done: false, archived: false } }, { checklist: { done: true } }]), 1);
+  assert.equal(adminUi.openCount([{ checklist: { done: false } }, { checklist: { done: false, email_sent: true } }, { checklist: { done: true } }]), 1);
   assert.match(admin, /<option value="open" selected>Open<\/option>/);
   assert.match(admin, /<option value="done">Done<\/option>/);
   assert.doesNotMatch(admin, /Just received/);
   assert.doesNotMatch(admin, /value="archived"/);
-  const fresh = { checklist: { done: false, archived: false, session_created: false } };
-  const attention = { checklist: { done: false, archived: false, session_created: true } };
-  const finished = { checklist: { done: true, archived: false } };
-  const filed = { checklist: { done: true, archived: true } };
+  const fresh = { checklist: { done: false, session_created: false } };
+  const attention = { checklist: { done: false, session_created: true } };
+  const emailed = { checklist: { done: false, email_sent: true } };
+  const finished = { checklist: { done: true } };
+  const filed = { checklist: { done: false, archived: true } };
   assert.equal(adminUi.matchesFilter(fresh, 'open'), true);
   assert.equal(adminUi.matchesFilter(attention, 'open'), true);
+  assert.equal(adminUi.matchesFilter(emailed, 'open'), false);
   assert.equal(adminUi.matchesFilter(finished, 'open'), false);
   assert.equal(adminUi.matchesFilter(finished, 'done'), true);
   assert.equal(adminUi.matchesFilter(filed, 'done'), true);
+  assert.equal(adminUi.matchesFilter(filed, 'open'), false);
   assert.equal(adminUi.matchesFilter(fresh, 'done'), false);
   assert.match(migration, /enable row level security/i);
   assert.match(migration, /revoke all on table public\.class_requests from public, anon/i);

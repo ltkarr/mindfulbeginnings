@@ -67,8 +67,8 @@
     }
   ];
 
-  var CHECK_KEYS = ['received', 'session_created', 'email_sent', 'done', 'archived'];
-  var TOGGLE_KEYS = ['session_created', 'email_sent', 'done', 'archived'];
+  var CHECK_KEYS = ['received', 'session_created', 'email_sent', 'done'];
+  var TOGGLE_KEYS = ['session_created', 'email_sent', 'done'];
 
   var MONTHS = {
     jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,
@@ -102,14 +102,12 @@
       received: true,
       session_created: false,
       email_sent: false,
-      done: false,
-      archived: false
+      done: false
     };
   }
 
   function statusFromChecklist(c) {
     c = c || {};
-    if (c.archived) return 'archived';
     if (c.done) return 'done';
     if (!c.session_created) return 'received';
     if (!c.email_sent) return 'session_created';
@@ -120,8 +118,7 @@
     received: 'Received',
     session_created: 'Session created',
     email_sent: 'Email sent',
-    done: 'Done',
-    archived: 'Archived'
+    done: 'Done'
   };
 
   function applyChecklistUpdate(current, patch) {
@@ -859,7 +856,7 @@
   function openRequestCount(rows) {
     return (rows || []).filter(function (r) {
       var c = r.checklist || r;
-      return !c.archived && !c.done;
+      return !c.done && !c.email_sent;
     }).length;
   }
 
