@@ -110,11 +110,11 @@ test('register checkout uses dynamic PayPal Orders, not the hosted NCP button', 
 
 test('header branding is multi-course, not Safe Sitter-only', () => {
   assert.equal(register.includes('<img class="mb-logo"'), true);
-  assert.equal(register.includes('src="/images/logo.png"'), true);
+  assert.equal(register.includes('src="/images/logo-navy.png"'), true);
   assert.equal(pay.includes('<img class="mb-logo"'), true);
-  assert.equal(pay.includes('src="/images/logo.png"'), true);
-  assert.match(register, /<span class="mb-wordmark">Mindful Beginnings<\/span>/);
-  assert.match(pay, /<span class="mb-wordmark">Mindful Beginnings<\/span>/);
+  assert.equal(pay.includes('src="/images/logo-navy.png"'), true);
+  assert.match(register, /<span class="mb-lockup">Mindful <span class="mb-lockup-script">Beginnings<\/span><\/span>/);
+  assert.match(pay, /<span class="mb-lockup">Mindful <span class="mb-lockup-script">Beginnings<\/span><\/span>/);
   assert.doesNotMatch(register, /<div class="tag">Safe Sitter® Courses<\/div>/);
   assert.doesNotMatch(pay, /<div class="tag">Safe Sitter® Courses<\/div>/);
 });

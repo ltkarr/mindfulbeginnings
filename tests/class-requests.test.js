@@ -60,11 +60,11 @@ function orgBody(over) {
 
 test('host and organization pages use the shared brand header without a duplicate title', () => {
   assert.equal(hostPage.includes('<img class="mb-logo"'), true);
-  assert.equal(hostPage.includes('src="/images/logo.png"'), true);
+  assert.equal(hostPage.includes('src="/images/logo-navy.png"'), true);
   assert.equal(orgPage.includes('<img class="mb-logo"'), true);
-  assert.equal(orgPage.includes('src="/images/logo.png"'), true);
-  assert.match(hostPage, /<span class="mb-wordmark">Mindful Beginnings<\/span>/);
-  assert.match(orgPage, /<span class="mb-wordmark">Mindful Beginnings<\/span>/);
+  assert.equal(orgPage.includes('src="/images/logo-navy.png"'), true);
+  assert.match(hostPage, /<span class="mb-lockup">Mindful <span class="mb-lockup-script">Beginnings<\/span><\/span>/);
+  assert.match(orgPage, /<span class="mb-lockup">Mindful <span class="mb-lockup-script">Beginnings<\/span><\/span>/);
   assert.doesNotMatch(hostPage, /Safe Sitter® and family safety courses/);
   assert.doesNotMatch(orgPage, /Safe Sitter® and family safety courses/);
   assert.doesNotMatch(intakeCss, /border-radius:\s*50%/);

@@ -83,9 +83,9 @@ test('about page is static HTML in the public page style', () => {
   assert.equal(JSON.stringify(people).includes('\u2014'), false);
 });
 
-test('hero uses the approved line and the mission block is gone', () => {
+test('hero is just the script title now that the header carries the tagline', () => {
   assert.match(page, /<p class="mb-script-title">about<\/p>/);
-  assert.match(page, /<h1[^>]*>Safety and confidence for every age, taught by nurses and certified educators\.<\/h1>/);
+  assert.doesNotMatch(page, /Safety and confidence for every age/);
   assert.doesNotMatch(page, /Lindsay: add/);
   assert.doesNotMatch(page, /class="mission"/);
   assert.doesNotMatch(page, />Mission</);
