@@ -341,8 +341,9 @@ test('checklist starts at received, advances only when Lindsay marks a step, and
   assert.equal(waiting.status, 'received');
 
   const sent = model.applyChecklistUpdate(fresh.checklist, { email_sent: true });
-  assert.equal(sent.status, 'email_sent');
+  assert.equal(sent.status, 'done');
   assert.equal(sent.checklist.email_sent, true);
+  assert.equal(sent.checklist.done, true);
 
   const done = model.applyChecklistUpdate(sent.checklist, { done: true });
   assert.equal(done.status, 'done');

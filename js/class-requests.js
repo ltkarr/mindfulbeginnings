@@ -132,6 +132,8 @@
       if (TOGGLE_KEYS.indexOf(k) < 0) return;
       next[k] = !!patch[k];
     });
+    // Email sent is the last real step: checking it finishes the request.
+    if (patch.email_sent) next.done = true;
     next.received = true;
     return { checklist: next, status: statusFromChecklist(next) };
   }

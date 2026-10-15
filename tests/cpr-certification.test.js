@@ -19,14 +19,15 @@ test('group CPR page is static HTML with a title and description', () => {
   assert.equal(page.includes('\u2014'), false);
 });
 
-test('schedule and contact links open the host page, contact page, and phone in the same tab', () => {
+test('schedule and contact links open the host page and contact page in the same tab', () => {
   assert.equal((page.match(/href="\/host-a-class\.html"/g) || []).length, 3);
   assert.match(page, /href="\/host-a-class\.html"[^>]*>Host a Class</);
   assert.match(page, /class="mb-btn mb-btn-gold mb-btn-sm" href="\/register\.html">Register</);
   assert.match(page, /href="\/host-a-class\.html"[^>]*>Schedule a group class</);
   assert.doesNotMatch(page, /target="_blank"/);
-  assert.equal((page.match(/href="tel:\+17039875979"/g) || []).length, 2);
-  assert.match(page, />703-987-5979</);
+  // Phone lives on the home page footer only.
+  assert.doesNotMatch(page, /href="tel:/);
+  assert.doesNotMatch(page, /703-987-5979/);
   assert.match(page, /href="mailto:lindsay@mindfulbeginnings\.org"/);
 });
 
