@@ -78,7 +78,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 
 /* ---------- layout helpers ---------- */
 .mb-wrap{max-width:1080px;margin:0 auto;padding:0 6vw}
-.mb-section{padding:56px 6vw}
+.mb-section{padding:72px 6vw}
 .mb-section-cream{background:var(--cream)}
 .mb-section-white{background:var(--white)}
 .mb-section-navy{background:var(--navy);color:var(--cream)}
@@ -107,7 +107,7 @@ p:last-child{margin-bottom:0}
 /* ---------- cards ---------- */
 .mb-grid{display:grid;grid-template-columns:1fr;gap:24px;align-items:stretch}
 .mb-card{
-  background:var(--white);border:1px solid rgba(30,49,97,0.08);border-radius:16px;
+  background:var(--white);border:0;border-radius:24px;box-shadow:0 10px 30px rgba(30,49,97,.10);
   overflow:hidden;display:flex;flex-direction:column;
 }
 .mb-card-band{background:var(--navy);padding:14px 18px}
@@ -156,6 +156,43 @@ p:last-child{margin-bottom:0}
 }
 .mb-goldbar{width:72px;height:8px;background:var(--gold);border-radius:4px}
 
+/* ---------- vibe: Columbia Mom energy, Mindful Beginnings brand ---------- */
+.mb-hl{
+  background-image:linear-gradient(104deg, rgba(239,199,90,0) .5%, rgba(239,199,90,.92) 4%, rgba(239,199,90,.92) 96%, rgba(239,199,90,0) 99.5%);
+  background-repeat:no-repeat;background-size:100% .58em;background-position:0 84%;
+  padding:0 .1em;box-decoration-break:clone;-webkit-box-decoration-break:clone;
+}
+.mb-h2-script{font-family:'Caveat',cursive;font-weight:700;color:var(--navy)}
+.mb-section-navy .mb-h2-script{color:var(--btn-gold)}
+.mb-ticker{background:var(--btn-gold);color:var(--navy);overflow:hidden;white-space:nowrap;padding:13px 0;border-top:2px solid var(--navy);border-bottom:2px solid var(--navy)}
+.mb-ticker-track{display:inline-block;white-space:nowrap;animation:mb-ticker 26s linear infinite;font-weight:800;font-size:17px;letter-spacing:.02em}
+.mb-ticker-track .mb-tick-script{font-family:'Caveat',cursive;font-size:22px;font-weight:700;padding:0 6px}
+@keyframes mb-ticker{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.mb-ticker-track{animation:none}}
+.mb-photo{
+  border-radius:28px;transform:rotate(-2deg);
+  box-shadow:0 24px 48px rgba(15,29,63,.28);
+  border:6px solid var(--cream);display:block;width:100%;height:auto;
+}
+.mb-photo-alt{transform:rotate(1.5deg)}
+.mb-caption{font-family:'Caveat',cursive;font-size:26px;font-weight:700;color:var(--btn-gold);margin-top:14px;transform:rotate(-2deg)}
+.mb-hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+.mb-split{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+@media(max-width:860px){
+  .mb-hero-grid,.mb-split{grid-template-columns:1fr;gap:28px}
+  .mb-photo{transform:rotate(-1deg)}
+}
+
+/* ---------- header lockup mockup: mixed wordmark + tagline ---------- */
+.mb-wordmark{display:flex;flex-direction:column;line-height:1.2}
+.mb-lockup{font-size:20px;font-weight:800;letter-spacing:0.02em;white-space:nowrap}
+.mb-lockup-script{font-family:'Caveat',cursive;font-weight:700;font-size:1.45em;color:var(--navy);margin-left:.08em;letter-spacing:0}
+.mb-tagline{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#5a6b8c;margin-top:3px;white-space:nowrap}
+@media(max-width:560px){
+  .mb-lockup{font-size:17px}
+  .mb-tagline{font-size:9px;letter-spacing:.12em}
+}
+
 /* ---------- misc ---------- */
 .mb-checklist{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:16px}
 .mb-note{
@@ -179,7 +216,7 @@ p:last-child{margin-bottom:0}
   .mb-header{padding:12px 5vw}
   .mb-wordmark{font-size:17px}
   .mb-hero{padding:40px 6vw 44px}
-  .mb-section{padding:40px 6vw}
+  .mb-section{padding:52px 6vw}
 }
 
 .mb-social{position:absolute;right:0;bottom:0;display:inline-flex;gap:14px}
@@ -195,6 +232,11 @@ p:last-child{margin-bottom:0}
 .mb-gallery figure{margin:0}
 .mb-gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;display:block}
 .mb-gallery figcaption{font-size:14px;color:var(--navy);margin-top:8px}
+.mb-gallery-tilt{gap:28px}
+.mb-gallery-tilt img{border-radius:20px;border:5px solid var(--white);box-shadow:0 14px 30px rgba(30,49,97,.16)}
+.mb-gallery-tilt figure:nth-child(odd) img{transform:rotate(-2deg)}
+.mb-gallery-tilt figure:nth-child(even) img{transform:rotate(2deg)}
+.mb-gallery-tilt figcaption{font-family:'Caveat',cursive;font-size:20px;font-weight:700}
 @media(max-width:720px){.mb-gallery{grid-template-columns:1fr}}
 
 .mb-nav-toggle{display:none;background:none;border:0;cursor:pointer;padding:10px;margin-left:auto}
