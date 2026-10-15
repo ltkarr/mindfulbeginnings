@@ -2436,7 +2436,7 @@ async function printRoster(sessId){
       <div><span style="color:#6b7a99">Date:</span> <strong>${d}</strong></div>
       <div><span style="color:#6b7a99">Time:</span> <strong>${s.time||'TBD'}</strong></div>
       <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(s.location||'TBD')}${s.city?', '+escapeHtml(s.city):''}</strong></div>
-      <div><span style="color:#6b7a99">Session code:</span> <strong>${escapeHtml(s.code)}</strong></div>
+      ${s.code?`<div><span style="color:#6b7a99">Session code:</span> <strong>${escapeHtml(s.code)}</strong></div>`:''}
       <div><span style="color:#6b7a99">${adult?'Participants:':'Students:'}</span> <strong>${people}</strong></div>
       ${_mtgs.length>1?`<div style="grid-column:1/-1;border-top:1px solid #dde4ee;padding-top:8px;margin-top:4px"><span style="color:#6b7a99">Class days:</span> <strong>${_mtgs.map(m=>new Date(m.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' · ')}</strong>${sessClosures(s).length?`<div style="color:#b86a00;font-size:14px;margin-top:4px">No class: ${sessClosures(s).map(c=>new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+escapeHtml(c.reason)+')':'')).join(' · ')}</div>`:''}</div>`:''}
     </div>

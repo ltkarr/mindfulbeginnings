@@ -128,6 +128,8 @@
     if (flagOn(row, 'is_custom_job') || flagOn(row, 'isCustomJob')) return false;
      // Admin "private" flag (e.g. Beth El sessions): never listed publicly.
      if (flagOn(row, 'is_private') || flagOn(row, 'isPrivate')) return false;
+    // Organization registration: public limit 0, and no session code is accepted.
+    if (flagOn(row, 'org_handles_registration') || flagOn(row, 'orgHandlesRegistration')) return false;
     if (isPrivateHostSession(row)) return false;
     if (startsWithOpsCode(row.code)) return false;
     if (isOpsCourseName(row.course)) return false;

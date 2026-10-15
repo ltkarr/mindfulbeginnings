@@ -631,8 +631,9 @@
     var days = n.days.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     var first = days[0];
     var extra = days.slice(1);
+    var orgReg = !!(n.billing && n.billing.mode === 'org_full_external');
     var base = datedCode(n.course.abbr, first.date);
-    var code = uniqueCode(base, existingCodes);
+    var code = orgReg ? null : uniqueCode(base, existingCodes);
     var place = n.place || {};
     var location = place.location || (n.isVirtual ? 'Virtual' : null);
     if (n.kind === 'host' && !n.isVirtual) location = place.city || 'Host home';
@@ -679,6 +680,7 @@
       instructor_info: n.instructorRequest ? ('Requested instructor: ' + n.instructorRequest) : null,
       max_students_override: null
     };
+    if (orgReg) row.org_handles_registration = true;
     return { created: true, row: row };
   }
 
