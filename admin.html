@@ -136,6 +136,10 @@ body{font-family:'Montserrat',sans-serif;background:var(--cream);color:var(--tex
    hold time would paint across the title and the ON HOLD badge. */
 #sessions-table .cell-stack{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;max-width:100%;min-width:0;overflow:hidden}
 #sessions-table .cell-stack>*{max-width:100%;min-width:0}
+/* Buttons must keep their natural width: the td's inherited overflow-wrap
+   would otherwise break button labels (e.g. "Mark received" -> "Mark receive/d")
+   when the column squeezes them. The table widens the column to fit. */
+#sessions-table .cell-stack>button{max-width:none;overflow-wrap:normal}
 #sessions-table .pay-note{display:block;font-size:14px;line-height:1.3;overflow-wrap:anywhere;white-space:normal}
 #sessions-table .code-badge{display:block;width:fit-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;margin-top:4px;font-size:13.5px;padding:1px 8px}
 /* The Manage button is the whole point of the row, so it stays pinned to the right edge
