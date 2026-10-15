@@ -1556,6 +1556,12 @@ function regEffectivePrice(r, s){
 function sessionListPrice(s){
   if(!s)return 0;
   if(s.priceOverride!=null)return Number(s.priceOverride);
+  return sessionBasePrice(s);
+}
+// Retail/base price, ignoring any session price override (e.g. a $0 override so
+// auction winners register free). In-kind donations are recorded at retail value.
+function sessionBasePrice(s){
+  if(!s)return 0;
   const per=(typeof seatsCharged==='function')?seatsCharged(s.course):(String(s.course||'')==='Baby Ready'||String(s.course||'')==='Baby Ready + CPR Certification'?2:1);
   const unit=getCoursePrice(s.course,s.date,s.createdAt);
   return (typeof registrationCheckoutTotal==='function')?registrationCheckoutTotal(s.course, unit, per):unit*per;
@@ -5004,18 +5010,21 @@ const INKIND_NOTE_RE=/\[AUCTION\s*[—-]\s*IN-KIND DONATION:\s*\$?(\d+(?:\.\d+)?
 // course's standard price for that session date.
 function regInKindValue(r){
   const m=INKIND_NOTE_RE.exec(r.notes||'');
-  if(m)return parseFloat(m[1])||0;
+  const stamped=m?parseFloat(m[1])||0:0;
   const s=sessions.find(x=>x.id===r.sessionId);
-  return s?sessionListPrice(s):0;
+  const base=s?sessionBasePrice(s):0;
+  return stamped>0?stamped:base;
 }
 // When a registration is set to in-kind from the admin (rather than the auction link),
 // stamp the session's advertised price into notes so the donation report has a value.
 function ensureInKindTag(r){
   if(!r||r.payStatus!=='in_kind')return;
-  if(INKIND_NOTE_RE.test(r.notes||''))return;
   const s=sessions.find(x=>x.id===r.sessionId);
-  const val=s?sessionListPrice(s):0;
-  r.notes='[AUCTION — IN-KIND DONATION: $'+val+'] '+(r.notes||'');
+  const val=s?sessionBasePrice(s):0;
+  const m=INKIND_NOTE_RE.exec(r.notes||'');
+  if(m&&parseFloat(m[1])>0)return; // already stamped with a real value
+  const cleaned=(r.notes||'').replace(INKIND_NOTE_RE,'').replace(/\s{2,}/g,' ').trim();
+  r.notes=('[AUCTION — IN-KIND DONATION: $'+val+'] '+cleaned).trim();
 }
 // Mark every live registration for a session as an in-kind (auction) donation.
 // Skips cancelled and waitlist rows. Paid registrations get a confirm first,

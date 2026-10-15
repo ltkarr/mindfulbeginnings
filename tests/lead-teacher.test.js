@@ -130,6 +130,7 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
     extractFn(admin, 'seatCountOrBabyReady'),
     extractFn(admin, 'seatsCharged'),
     extractFn(admin, 'sessionListPrice'),
+    extractFn(admin, 'sessionBasePrice'),
     extractFn(admin, 'regEffectivePrice')
   ].join('\n'), adminSandbox);
   const essSession = { course: ESS, date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
@@ -137,6 +138,7 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
   assert.equal(adminSandbox.regEffectivePrice({ pricePaid: null }, essSession), 185);
   assert.equal(adminSandbox.sessionListPrice({ course: 'Safe Sitter®', date: '2026-12-01', createdAt: Date.now(), priceOverride: null }), 225);
   assert.equal(adminSandbox.sessionListPrice(Object.assign({}, essSession, { priceOverride: 100 })), 100);
+  assert.equal(adminSandbox.sessionBasePrice(Object.assign({}, essSession, { priceOverride: 0 })), 185);
 });
 
 test('admin and the register fallback carry the same Oct 9 Red Cross prices', () => {

@@ -155,7 +155,7 @@ test('Baby Ready is $195 per person, $390 per couple, and consumes two people-se
 
 test('Baby Ready revenue and checkout use $195 per person and $390 per couple', () => {
   const names = [
-    'regEffectivePrice', 'sessionListPrice', 'familyPrice', 'orgPortionAmount',
+    'regEffectivePrice', 'sessionListPrice', 'sessionBasePrice', 'familyPrice', 'orgPortionAmount',
     'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount', 'isLiveReg'
   ];
   const sandbox = {

@@ -103,7 +103,7 @@ test('checkout and revenue charge $495 per couple and keep Baby Ready at $390', 
     'laterPriceFor', 'getCoursePrice', 'seatsPerRegistration', 'bookingApi',
     'registrationSeatCount', 'seatCountOrBabyReady', 'seatsCharged',
     'couplePackagePrice', 'registrationCheckoutTotal',
-    'regEffectivePrice', 'sessionListPrice', 'familyPrice',
+    'regEffectivePrice', 'sessionListPrice', 'sessionBasePrice', 'familyPrice',
     'orgPortionAmount', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
     'isLiveReg', 'fmt', 'courseCheckoutDefaultLabel', 'familyForwardMoney'
   ];

@@ -46,3 +46,16 @@ test('in-kind registrations land in the donations report', () => {
   // The payment-status dropdown offers it for single registrations too.
   assert.match(admin, /<option value="in_kind">In-kind \(auction\)<\/option>/);
 });
+
+test('in-kind donations are valued at the base retail price, not a $0 override', () => {
+  // A $0 session price override (so auction winners register free) must not
+  // zero out the donation value.
+  assert.match(admin, /function sessionBasePrice\(s\)/);
+  assert.match(admin, /In-kind donations are recorded at retail value/);
+  // The stamp uses the base price...
+  assert.match(admin, /const val=s\?sessionBasePrice\(s\):0;/);
+  // ...and a $0 stamp gets re-stamped instead of sticking.
+  assert.match(admin, /if\(m&&parseFloat\(m\[1\]\)>0\)return;/);
+  // The report prefers a real stamped value but falls back to base on $0.
+  assert.match(admin, /return stamped>0\?stamped:base;/);
+});
