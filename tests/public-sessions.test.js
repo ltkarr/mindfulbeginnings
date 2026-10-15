@@ -164,6 +164,29 @@ test('a dated private troop session stays off the public list and still has a fa
   assert.equal(courseAudience('Girl Scouts — First Aid Badge Workshop'), 'Girl Scout troops');
 });
 
+test('organization registration stays off the public list even when a code is still on the row', () => {
+  assert.equal(isPublicSession(row({
+    code: 'SS-1016',
+    course: 'Safe Sitter®',
+    org_handles_registration: true,
+    is_private: false,
+    has_host: false
+  }), TODAY), false);
+  assert.equal(isPublicSession(row({
+    code: 'GSFA-270303',
+    course: 'Girl Scout Badge Class',
+    org_handles_registration: false,
+    is_private: true,
+    has_host: false
+  }), TODAY), false);
+  assert.equal(isPublicSession(row({
+    code: 'SS-261025',
+    org_handles_registration: false,
+    is_private: false,
+    has_host: false
+  }), TODAY), true);
+});
+
 test('private/host sessions are excluded from the public list', () => {
   assert.equal(isPrivateHostSession(row({ has_host: false })), false);
   assert.equal(isPrivateHostSession(row({ has_host: true })), true);

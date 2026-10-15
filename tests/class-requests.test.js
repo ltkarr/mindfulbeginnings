@@ -232,6 +232,9 @@ test('billing modes map to family price, organization portion, and whether a pri
   assert.equal(externalPlan.row.price_override, 0);
   assert.equal(externalPlan.row.org_portion, 225);
   assert.equal(externalPlan.row.is_private, true);
+  assert.equal(externalPlan.row.code, null);
+  assert.equal(externalPlan.row.org_handles_registration, true);
+  assert.doesNotMatch(model.buildDraft(fullExternal, externalPlan.row).body, /Session code:/);
   const externalDraft = model.buildDraft(fullExternal, externalPlan.row);
   assert.match(externalDraft.body, /Price: \$225 per participant\. Estimated total for 10 participants: \$2250, final invoice based on attendance/);
   assert.match(externalDraft.body, /no family payment link/i);

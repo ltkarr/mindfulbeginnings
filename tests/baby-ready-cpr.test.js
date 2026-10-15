@@ -142,8 +142,12 @@ test('checkout and revenue charge $495 per couple and keep Baby Ready at $390', 
   assert.equal(sandbox.orgBillAmount(orgPeople), 550);
 
   const baby = { id: 'br', course: 'Baby Ready', date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
-  assert.equal(sandbox.sessionListPrice(baby), 390);
-  assert.equal(sandbox.familyPrice(baby), 195);
+  // Sessions created on/after the Oct 14 2026 catalog are $185 per person, $300 per couple.
+  assert.equal(sandbox.sessionListPrice(baby), 300);
+  assert.equal(sandbox.familyPrice(baby), 185);
+  const babyBeforeCatalog = { id: 'br-old', course: 'Baby Ready', date: '2026-12-01', createdAt: Date.parse('2026-10-13T12:00:00Z'), priceOverride: null };
+  assert.equal(sandbox.sessionListPrice(babyBeforeCatalog), 390);
+  assert.equal(sandbox.familyPrice(babyBeforeCatalog), 195);
 
   const bare = { Number, Math, String, isFinite };
   vm.createContext(bare);
@@ -168,6 +172,8 @@ test('public registration checkout is $495 for the couple and still $390 for Bab
   regSandbox.currentSession = Object.assign({}, regSandbox.currentSession, { priceOverride: 100 });
   assert.equal(regSandbox.getEffectivePrice(), 100);
   regSandbox.currentSession = { course: 'Baby Ready', date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
+  assert.equal(regSandbox.getEffectivePrice(), 300);
+  regSandbox.currentSession = { course: 'Baby Ready', date: '2026-12-01', createdAt: Date.parse('2026-10-13T12:00:00Z'), priceOverride: null };
   assert.equal(regSandbox.getEffectivePrice(), 390);
   regSandbox.currentSession = { course: 'Safe Sitter®', date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
   assert.equal(regSandbox.getEffectivePrice(), 225);
