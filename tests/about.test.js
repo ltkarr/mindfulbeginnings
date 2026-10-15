@@ -99,8 +99,8 @@ test('team cards match the uploaded people, in section order, with exact bios', 
   assert.equal(people.length, 27);
   const found = cards();
   assert.equal(found.length, people.length);
-  const headings = [...page.matchAll(/<h2>([\s\S]*?)<\/h2>/g)].map((hit) => decode(hit[1]));
-  assert.deepEqual(headings, ['Founder & President', 'Program Team', 'Lead Instructors', 'Instructors']);
+  const headings = [...page.matchAll(/<h2>([\s\S]*?)<\/h2>/g)].map((hit) => decode(hit[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()));
+  assert.deepEqual(headings, ['Founder & President meet Lindsay!', 'Program Team the planners', 'Lead Instructors our pros', 'Instructors the team']);
   people.forEach((person, i) => {
     const card = found[i];
     assert.equal(card.section, person.section, 'section ' + person.name);

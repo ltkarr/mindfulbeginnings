@@ -561,6 +561,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <div style="display:flex;gap:6px;align-items:center">
             <select id="report-filter" onchange="renderSessions()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none">
               <option value="upcoming">Upcoming sessions</option>
+              <option value="series">Multi-week series</option>
               <option value="completed">Completed sessions</option>
               <option value="cancelled">Cancelled sessions</option>
               <option value="all">All sessions</option>
@@ -1610,6 +1611,16 @@ function sessionEndDate(s){
   (s.extraDates||[]).forEach(d=>{if(d&&(!end||d>end))end=d;});
   return end;
 }
+// Days from the first meeting to the last. A session "lasts more than 1 week"
+// when this span exceeds 7 days — e.g. a multi-week school series. Those live
+// in their own Sessions tab so they stop burying one-off upcoming sessions.
+function sessionSpanDays(s){
+  if(!s||!s.date)return 0;
+  const end=sessionEndDate(s)||s.date;
+  const ms=new Date(end+'T12:00:00')-new Date(s.date+'T12:00:00');
+  return Number.isFinite(ms)?Math.round(ms/86400000):0;
+}
+function isLongSeries(s){return sessionSpanDays(s)>7;}
 const RECUR_NAMES={weekly:'Weekly',biweekly:'Every other week',monthly:'Monthly'};
 function recurLabel(s){
   if(!s.isRecurring)return'';
@@ -6116,8 +6127,8 @@ function renderDupeBanner(){
 function renderSessions(){
   const cf=document.getElementById('sf-course').value;
   const mf=document.getElementById('sf-month').value;
-  // The dropdown above the table (Upcoming / Completed / Cancelled / All) scopes which
-  // sessions show. A session is "completed" once wrap-up is fully done (not just when the
+  // The dropdown above the table (Upcoming / Series / Completed / Cancelled / All)
+  // scopes which sessions show. A session is "completed" once wrap-up is fully done (not just when the
   // date is past). Cancelled sessions are pulled out of Upcoming and Completed entirely so
   // they stop cluttering the working list; they live in their own Cancelled view and still
   // appear under All (nothing is ever hidden from All).
@@ -6129,6 +6140,11 @@ function renderSessions(){
     if(scope==='cancelled')return !!s.isCancelled;
     if(scope!=='all'){
       if(s.isCancelled)return false;
+      // Multi-week series live in their own tab, so one-off upcoming sessions
+      // are visible without scrolling past e.g. a whole school series.
+      const series=isLongSeries(s);
+      if(scope==='series')return series;
+      if(series)return false;
       const isPast=new Date(sessionEndDate(s)+'T12:00:00')<now;
       const jdi=jobDataCache[s.id]||{};
       const wrapAllDone=wrapProgress(s,jdi).wrapAllDone;
