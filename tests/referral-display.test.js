@@ -116,10 +116,10 @@ test('session summary and registration detail name the source, and escape it', (
 
 test('opening a session lists the summary, and each registration row shows the answer', () => {
   const fn = admin.slice(admin.indexOf('function renderRegs('), admin.indexOf('function renderRegAlerts('));
-  assert.match(fn, /How they heard/);
-  assert.match(fn, /referralSourceCellHtml\(r\)/);
+  assert.match(fn, /How heard/);
+  assert.match(fn, /referralSourceLabel\(r\)/);
   assert.match(fn, /sf\?sessionReferralSummaryHtml\(list\):''/);
-  assert.match(fn, /colspan="11"/);
+  assert.match(fn, /colspan="6"/);
   assert.match(admin, /id="reg-referral"/);
   const edit = admin.slice(admin.indexOf('function openEditReg('), admin.indexOf('async function saveEditReg('));
   assert.match(edit, /referralSourceDetailHtml\(r\)/);
