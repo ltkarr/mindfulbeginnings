@@ -1792,6 +1792,23 @@ function orgBillingFieldsHtml(s){
 function customJobSplitHintHtml(){
   return `<div style="font-size:14px;color:#7a5c1e;margin-top:8px;line-height:1.45">If each family also pays their own price at registration, do not use a custom job. Use <strong>New session</strong>, choose the course (Girl Scouts — First Aid Badge Workshop for this badge), check <strong>Place a hold</strong> when the date is still TBD, and enter Family price at registration plus Organization flat fee per participant.</div>`;
 }
+// Session-level in-kind donation switch. Checking it on save marks every live
+// registration for the session as an in-kind (auction) donation, so the whole
+// donated class lands in Reports → In-kind donations at retail value.
+function inKindBoxHtml(s){
+  const regs=registrations.filter(r=>r.sessionId===s.id&&r.payStatus!=='cancelled'&&r.payStatus!=='waitlist');
+  const n=regs.filter(r=>r.payStatus==='in_kind').length;
+  const status=regs.length
+    ?`${n} of ${regs.length} registration${regs.length===1?'':'s'} currently marked as in-kind.`
+    :'No registrations yet.';
+  return `<div class="fg full" style="background:#f3e8fb;border:1px solid #d9c8f0;border-radius:var(--r-sm);padding:12px 14px">
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
+        <input type="checkbox" id="m-inkind" style="width:16px;height:16px;cursor:pointer">
+        In-kind donation (auction prize)
+      </label>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">${status} Checking the box marks every registration for this session as an in-kind donation on save. They will appear in Reports → In-kind donations at the session's retail value.</div>
+    </div>`;
+}
 function feeReceivedBoxHtml(s, inputId){
   const on=!!(s&&orgOrJobFeeReceived(s));
   return `<label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
@@ -5000,6 +5017,25 @@ function ensureInKindTag(r){
   const val=s?sessionListPrice(s):0;
   r.notes='[AUCTION — IN-KIND DONATION: $'+val+'] '+(r.notes||'');
 }
+// Mark every live registration for a session as an in-kind (auction) donation.
+// Skips cancelled and waitlist rows. Paid registrations get a confirm first,
+// since flipping them changes the revenue picture.
+async function markSessionRegistrationsInKind(sessionId){
+  const targets=registrations.filter(r=>r.sessionId===sessionId&&r.payStatus!=='in_kind'&&r.payStatus!=='cancelled'&&r.payStatus!=='waitlist');
+  if(!targets.length){showToast('All registrations are already marked as in-kind donations.');return;}
+  const paidCount=targets.filter(r=>r.payStatus==='paid').length;
+  if(paidCount&&!confirm(paidCount+' of these registrations are marked paid. Mark them as in-kind donations anyway?'))return;
+  for(const r of targets){
+    r.payStatus='in_kind';
+    ensureInKindTag(r);
+    r.notes=notesForPaymentStatus('in_kind',r.notes);
+  }
+  renderRegs();renderDashboard();
+  for(const r of targets){
+    await dbWrite(sb.from('registrations').update(regToDB(r)).eq('id',r.id),'Mark in-kind donation');
+  }
+  showToast(`Marked ${targets.length} registration${targets.length===1?'':'s'} as in-kind donations.`);
+}
 // Once a family is marked paid, the "awaiting payment" / "confirm payment" reservation
 // tags are stale, so strip them while leaving the family's own notes and any other tags
 // (promo, auction, prerequisite) intact. Keep in sync with lib/payment-utils.js.
@@ -7604,6 +7640,7 @@ ${lockboxFieldHtml(s)}
         <span id="m-price-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
+    ${inKindBoxHtml(s)}
     ${orgBillingFieldsHtml(s)}
 </div></details>
 <details class="sess-fold"><summary>More options</summary><div class="sess-fold-body form-grid">
@@ -7776,6 +7813,7 @@ async function saveSession(editId){
   // text into notes and blanks the old column. Nothing is lost; it just moves.
   const instructorInfo='';
   const feeReceived=readFeeReceived('m-fee-received', editId?(sessions.find(x=>x.id===editId)||{}).feeReceived:null);
+  const markInKind=document.getElementById('m-inkind')?.checked||false;
   const requiresRN=!!((document.getElementById('m-rnonly')||{}).checked||(COURSES[course]||{}).requiresRN);
   const requiresSS=!!(COURSES[course]||{}).requiresSafeSitter;
   // Duplicate check runs while the modal is still open, so backing out leaves
@@ -7825,6 +7863,7 @@ async function saveSession(editId){
   // this session pick up their name.
   syncCheckoutInstructors();
   applySessionMaterials(s.id,matChoice);
+  if(markInKind)await markSessionRegistrationsInKind(s.id);
   }finally{_savingSession=false;}
 }
 
