@@ -29,7 +29,7 @@
   function openCount(rows) {
     return (rows || []).filter(function (row) {
       var c = checks(row);
-      return !c.done && !c.archived;
+      return !c.done && !c.archived && !c.email_sent;
     }).length;
   }
 
@@ -55,7 +55,7 @@
     if (filter === 'done') return !!(c.done || c.archived);
     if (filter === 'received') return status === 'received' && !c.archived;
     if (filter === 'all') return true;
-    return !c.done && !c.archived;
+    return !c.done && !c.archived && !c.email_sent;
   }
 
   function whenText(row) {
