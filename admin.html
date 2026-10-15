@@ -6248,6 +6248,10 @@ function renderSessions(){
         if(s.requiresRN)pills.push(pill('RN only','#e2efe7','#2d7a5e','Registered nurse instructors only'));
         if(s.requiresSS)pills.push(pill('Safe Sitter only','#e6eff7','#1a5c8a','Safe Sitter® instructors only'));
         if(kit)pills.push(kit);
+        // jdi.instrPaid was never written anywhere, so every past custom job read
+        // as Unpaid. The wrap-up records payment in payStatus/payDate/paidFee —
+        // use the same check it uses.
+        const instrPaidNow=typeof isInstructorPaymentDone==='function'&&isInstructorPaymentDone(s,jdi);
         return`<tr style="background:#fdf8f0;${cxRowStyle}">
           <td><div class="cell-stack">${d}${thru}</div></td>
           <td><div class="cell-stack">${courseCell(pills)}</div></td>
@@ -6255,7 +6259,7 @@ function renderSessions(){
           <td><div class="cell-stack">${instrStatus}</div></td>
           <td><div class="cell-stack"><span class="sess-sub">—</span></div></td>
           <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.orgRevenue?`<span class="pay-note">Org fee ${fmt(f.orgRevenue)}</span>${feeReceivedControl(s,f.orgRevenue)}`:''}${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit)}</div></td>
-          <td>${isPast?`<div class="cell-stack"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${jdi.instrPaid?'var(--success)':'#dde4ee'};margin-right:2px"></span></span><span class="pay-note" style="color:${jdi.instrPaid?'var(--success)':'var(--muted)'}">${jdi.instrPaid?'Paid':'Unpaid'}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
+          <td>${isPast?`<div class="cell-stack"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${instrPaidNow?'var(--success)':'#dde4ee'};margin-right:2px"></span></span><span class="pay-note" style="color:${instrPaidNow?'var(--success)':'var(--muted)'}">${instrPaidNow?'Paid':'Unpaid'}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
           ${mgr('#fdf8f0')}</tr>`;
       }
       const pills=[];
@@ -10179,6 +10183,10 @@ function toggleReminderFlag(sessId,field,checked){
 function wrapReportTasks(s){
   const tasks=[];
   if(!s)return tasks;
+  // A vendor fair has no course completions to report — no badge summary, no
+  // Safe Sitter rep notice, no Red Cross report — even if the event name
+  // mentions Girl Scouts or another program.
+  if(typeof isVendorFairSession==='function'&&isVendorFairSession(s))return tasks;
   const course=String(s.course||'');
   const norm=course.toLowerCase().replace(/®/g,'').replace(/[^a-z0-9@]+/g,' ').replace(/\s+/g,' ').trim();
   const safeSitter=course==='Safe Sitter®'||course==='Safe Sitter® Babysitting Essentials'
@@ -10198,12 +10206,15 @@ function wrapReportTasks(s){
 function wrapProgress(s,jdi){
   jdi=jdi||{};
   const paid=typeof isInstructorPaymentDone==='function'&&isInstructorPaymentDone(s,jdi);
-  const flags=wrapReportTasks(s).map(function(t){return !!jdi[t.field];}).concat([
-    !!jdi.parentLetterSent,
-    !!paid,
-    !!jdi.instrFollowupSent,
-    !!jdi.evalSentToHost
-  ]);
+  // Vendor fairs skip the family/host steps: no parent letter, no course
+  // evaluation. What remains is instructor pay + instructor follow-up.
+  const fair=typeof isVendorFairSession==='function'&&isVendorFairSession(s);
+  const flags=wrapReportTasks(s).map(function(t){return !!jdi[t.field];}).concat(
+    (fair?[]:[!!jdi.parentLetterSent]).concat([
+      !!paid,
+      !!jdi.instrFollowupSent
+    ]).concat(fair?[]:[!!jdi.evalSentToHost])
+  );
   const wrapDone=flags.filter(Boolean).length;
   return {flags:flags,wrapDone:wrapDone,wrapTotal:flags.length,wrapAllDone:wrapDone===flags.length};
 }
@@ -10211,6 +10222,9 @@ function openWrapup(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   const jdi=jobDataCache[sessId];
+  // Vendor fairs get a short wrap-up: instructor pay + instructor follow-up
+  // only. No badge summary, parent letter, or course evaluation.
+  const fair=isVendorFairSession(s);
   const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
   const emails=regs.filter(r=>r.contact&&r.contact.includes('@')).map(r=>r.contact);
@@ -10225,7 +10239,7 @@ function openWrapup(sessId){
     <div style="font-size:16px;color:var(--muted);margin-bottom:8px">${s.course} &nbsp;·&nbsp; ${d}</div>
     <div style="background:var(--cream);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px">${sessionProfitSummaryHtml(s)}</div>
     ${wrapReportTasks(s).map(function(t){return chk('wu-'+t.field,!!jdi[t.field],false,"toggleWrapField('"+sessId+"','"+t.field+"',this.checked)")+'<span style="font-weight:500;font-size:16px">'+escapeHtml(t.label)+'</span></label></div>';}).join('')}
-    ${chk('wu-letter',jdi.parentLetterSent,false,`toggleWrapField('${sessId}','parentLetterSent',this.checked)`)}<span style="font-weight:500;font-size:16px">Sent post-course letter to families</span><div style="font-size:14px;color:var(--muted);margin-top:3px">After class. ${emails.length} email address${emails.length!==1?'es':''} from registrations${emailList}</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button class="btn sm primary" onclick="openPostCourseEmail('${sessId}')">📧 Post-course email — after class</button><span style="font-size:14px;color:var(--warn)">📎 Remember to attach the PDF</span></div></label></div>
+    ${fair?'':chk('wu-letter',jdi.parentLetterSent,false,`toggleWrapField('${sessId}','parentLetterSent',this.checked)`)+'<span style="font-weight:500;font-size:16px">Sent post-course letter to families</span><div style="font-size:14px;color:var(--muted);margin-top:3px">After class. '+emails.length+' email address'+(emails.length!==1?'es':'')+' from registrations'+emailList+'</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button class="btn sm primary" onclick="openPostCourseEmail(\''+sessId+'\')">📧 Post-course email — after class</button><span style="font-size:14px;color:var(--warn)">📎 Remember to attach the PDF</span></div></label></div>'}
     ${(()=>{
       // Build the list of instructor-payment rows. We show one row per applicable slot:
       // (1) PRIMARY: either "you taught it" (auto-checked), or a hired primary's pay state,
@@ -10287,7 +10301,7 @@ function openWrapup(sessId){
       return rows.join('');
     })()}
     ${chk('wu-instr-followup',jdi.instrFollowupSent,false,`toggleWrapField('${sessId}','instrFollowupSent',this.checked)`)}<span style="font-weight:500;font-size:16px">Sent instructor follow-up email</span><div style="font-size:14px;color:var(--muted);margin-top:3px">Thank-you and payment confirmation to the instructor who taught this session</div><div style="margin-top:8px"><button class="btn sm primary" onclick="openInstructorFollowup('${sessId}')">📧 Open instructor follow-up email</button></div></label></div>
-    ${chk('wu-eval',jdi.evalSentToHost,false,`toggleWrapField('${sessId}','evalSentToHost',this.checked)`)}<span style="font-weight:500;font-size:16px">Sent course evaluation to host</span></label></div>
+    ${fair?'':chk('wu-eval',jdi.evalSentToHost,false,`toggleWrapField('${sessId}','evalSentToHost',this.checked)`)+'<span style="font-weight:500;font-size:16px">Sent course evaluation to host</span></label></div>'}
   </div>
   <div class="modal-foot"><button class="btn primary" onclick="closeModal()">Done</button></div>`);
 }
