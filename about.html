@@ -7,7 +7,7 @@
 <meta name="description" content="Meet the Mindful Beginnings team. Classes are taught by registered nurses and certified educators and was founded by a 20-year classroom teacher.">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="/site.css?v=2">
+<link rel="stylesheet" href="/site.css?v=3">
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#F5F2EA}
@@ -75,13 +75,26 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 @media (min-width:1100px){
   .grid{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
+/* vibe phase 2: scrapbook team */
+.team-block .photo,.team-block .shot{
+  border-radius:18px;border:6px solid #fff;box-shadow:0 12px 28px rgba(30,49,97,.18);
+  width:132px;height:132px;transition:transform .2s ease;
+}
+.person:nth-child(odd) .photo,.person:nth-child(odd) .shot{transform:rotate(-2.5deg)}
+.person:nth-child(even) .photo,.person:nth-child(even) .shot{transform:rotate(2.5deg)}
+.card:hover .photo,.card:hover .shot{transform:rotate(0deg) scale(1.05)}
+.team-block .shot .photo{width:142%;height:142%;border:0;border-radius:0;box-shadow:none;transform:none}
+.team-section h2 .mb-h2-script{font-size:.8em}
+@media (max-width:420px){
+  .team-block .photo,.team-block .shot{width:118px;height:118px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
 
 <header class="mb-header">
-<a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark">Mindful Beginnings</span></a>
+<a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark"><span>Mindful <span class="mb-hl">Beginnings</span></span><span class="mb-tagline">Safety and Confidence for All Ages</span></span></a>
 <button class="mb-nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
 <nav class="mb-nav" id="primary-nav" aria-label="Primary">
 <a href="/">Home</a>
@@ -98,13 +111,13 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 <section class="hero">
 <div class="hero-inner">
 <p class="mb-script-title">about</p>
-<h1 style="font-size:clamp(20px,2.4vw,26px);font-weight:700;line-height:1.35;margin:10px 0 0">Safety and confidence for every age, taught by nurses and certified educators.</h1>
+<h1 style="font-size:clamp(20px,2.4vw,26px);font-weight:700;line-height:1.35;margin:10px 0 0">Safety and <span class="mb-hl">confidence</span> for every age, taught by nurses and certified educators.</h1>
 </div>
 </section>
 
 <div class="team-block">
 <section class="team-section" id="founder-and-president">
-<h2>Founder &amp; President</h2>
+<h2><span class="mb-hl">Founder &amp; President</span> <span class="mb-h2-script">meet Lindsay!</span></h2>
 <div class="grid">
 <div class="person" data-section="Founder &amp; President" data-name="Lindsay Karr">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Founder &amp; President">
@@ -119,7 +132,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </section>
 <section class="team-section" id="program-team">
-<h2>Program Team</h2>
+<h2><span class="mb-hl">Program Team</span> <span class="mb-h2-script">the planners</span></h2>
 <div class="grid">
 <div class="person" data-section="Program Team" data-name="Kathryn Greenberg">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Community Partnerships Liaison">
@@ -201,7 +214,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </section>
 <section class="team-section" id="lead-instructors">
-<h2>Lead Instructors</h2>
+<h2><span class="mb-hl">Lead Instructors</span> <span class="mb-h2-script">our pros</span></h2>
 <div class="grid">
 <div class="person" data-section="Lead Instructors" data-name="Kim Varner">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Lead Instructor">
@@ -226,7 +239,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 </section>
 <section class="team-section" id="instructors">
-<h2>Instructors</h2>
+<h2><span class="mb-hl">Instructors</span> <span class="mb-h2-script">the team</span></h2>
 <div class="grid">
 <div class="person" data-section="Instructors" data-name="Brandi Beers">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
