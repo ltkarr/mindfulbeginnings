@@ -160,7 +160,7 @@ p:last-child{margin-bottom:0}
 .mb-checklist{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:16px}
 .mb-note{
   background:var(--white);border-left:6px solid var(--btn-gold);border-radius:0 12px 12px 0;
-  padding:18px 20px;font-size:15px;
+  padding:18px 20px;font-size:17px;line-height:1.55;
 }
 .mb-trust{
   margin:0;background:var(--white);color:var(--navy);text-align:center;
