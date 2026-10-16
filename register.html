@@ -132,9 +132,9 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
 .public-card .psoldout-banner{display:block;background:#C0392B;color:#fff;font-weight:800;font-size:13px;letter-spacing:0.1em;text-align:center;border-radius:8px;padding:6px 10px;margin-top:6px}
 .public-card.soldout-card{cursor:default}
 .public-card.soldout-card:hover{background:#fff}
-.public-card a.pgo-waitlist{display:inline-block;pointer-events:auto;position:relative;z-index:3;margin-top:6px;font-size:12px;font-weight:800;color:#fff;background:var(--navy);border-radius:999px;padding:8px 14px;text-decoration:none;line-height:1.3;white-space:nowrap}
-.public-card a.pgo-waitlist:hover{background:var(--gold);color:var(--navy)}
-.public-card a.pgo-waitlist:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.public-card .pgo-waitlist{display:inline-block;pointer-events:auto;position:relative;z-index:3;margin-top:6px;font-size:12px;font-weight:800;color:#fff;background:var(--navy);border-radius:999px;padding:8px 14px;text-decoration:none;line-height:1.3;white-space:nowrap;cursor:pointer;font:inherit;border:0}
+.public-card .pgo-waitlist:hover{background:var(--gold);color:var(--navy)}
+.public-card .pgo-waitlist:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .public-card .pgo{display:inline-block;margin-top:6px;font-size:12px;font-weight:800;color:var(--navy);line-height:1.3;max-width:11.5em}
 .public-empty{font-size:14px;color:var(--text);text-align:center;padding:8px 4px 12px;line-height:1.6}
 .public-more{width:100%;margin:4px 0 8px;padding:12px;background:#fff;border:2px dashed rgba(30,49,97,0.35);border-radius:999px;font-family:inherit;font-size:14px;font-weight:800;color:var(--navy);cursor:pointer;min-height:44px}
@@ -1120,11 +1120,10 @@ function selectPublicSession(code){
   checkCode();
 }
 // Manual sold-out override: session codes listed here render as SOLD OUT
-// (no price, JOIN WAITLIST mailto to Lindsay) regardless of seat counts.
+// (no price; JOIN WAITLIST routes to the native waitlist flow)
+// regardless of seat counts.
 var SOLD_OUT_CODES=['SS-1103'];
-// Sold-out cards send families to the main site's contact page
-// (mailto links do nothing on devices with no mail app configured).
-var SOLD_OUT_CONTACT_URL='https://mindfulbeginnings.org/contact';
+// Sold-out cards route families to the native waitlist flow via selectPublicSession.
 function renderPublicSessions(){
   const box=document.getElementById('public-sessions-list');
   const moreBtn=document.getElementById('public-show-more');
@@ -1181,7 +1180,7 @@ function renderPublicSessions(){
       }
     }
     if(soldOut)priceLabel='';
-    const goHtml=soldOut?'<a class="pgo-waitlist" href="'+SOLD_OUT_CONTACT_URL+'" target="_blank" rel="noopener">JOIN WAITLIST</a>':'<div class="pgo" aria-hidden="true">'+escapeHtml(goLabel)+'</div>';
+    const goHtml=soldOut?'<button type="button" class="pgo-waitlist" data-waitlist-code="'+escapeHtml(r.code)+'">JOIN WAITLIST</button>':'<div class="pgo" aria-hidden="true">'+escapeHtml(goLabel)+'</div>';
     html+='<div class="public-card'+(soldOut?' soldout-card':'')+'" data-code="'+escapeHtml(r.code)+'"'+(externalUrl?' data-external="1"':'')+'>'+
       (soldOut?'':'<button type="button" class="public-card-hit" aria-label="'+escapeHtml(ariaLabel)+'"></button>')+
       '<div class="pmain" aria-hidden="true"><div class="pname">'+escapeHtml(r.course||'Course')+'</div>'+
@@ -1234,6 +1233,8 @@ window.onload=function(){
   if(list){
     list.addEventListener('click',function(e){
       if(e.target.closest&&e.target.closest('.public-waitlist'))return;
+      var wlBtn=e.target.closest?e.target.closest('[data-waitlist-code]'):null;
+      if(wlBtn){selectPublicSession(wlBtn.getAttribute('data-waitlist-code'));return;}
       const hit=e.target.closest?e.target.closest('.public-card-hit'):null;
       const btn=hit&&hit.closest?hit.closest('.public-card'):null;
       if(!btn)return;
