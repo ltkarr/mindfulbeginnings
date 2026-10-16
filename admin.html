@@ -6211,7 +6211,8 @@ function renderSessions(){
   t.innerHTML=`<colgroup><col class="c-date"><col class="c-course"><col class="c-loc"><col class="c-instr"><col class="c-seats"><col class="c-pay"><col class="c-wrap"><col class="c-mgr"></colgroup><thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Wrap-up</th><th class="mgr-cell" style="background:white"></th></tr></thead><tbody>`+
     (list.length?list.map(s=>{
       const f=calcFin(s);
-      const d=s.date?('<span class="sess-wrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s)+sessionDateRainHtml(s)):'<span class="sess-wrap">Date TBD</span>';
+      const sessTime=(s.time||'').trim();
+      const d=(s.date?('<span class="sess-wrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s)+sessionDateRainHtml(s)):'<span class="sess-wrap">Date TBD</span>')+(sessTime?`<span class="sess-clip" title="${escapeHtml(sessTime)}">${escapeHtml(sessTime)}</span>`:'');
       const jdi=jobDataCache[s.id]||{};
       const instr=(()=>{
         if(s.ownerTaught)return'You (owner)';
