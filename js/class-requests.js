@@ -22,7 +22,7 @@
     { key: 'campus-ready', course: 'Campus Ready: Safety Skills for College Life', abbr: 'CR', price: 75, hours: '1 hour', audience: 'Ages 16+', where: 'in person', requiresRN: true, host: true, org: true },
     { key: 'ready-period', course: 'Ready. Period.', abbr: 'RP', price: 75, hours: '90 minutes', audience: 'Grades 5–8', where: 'in person', requiresRN: true, host: true, org: true },
     { key: 'stay-ready', course: 'Stay Ready: Choking Rescue and CPR', abbr: 'SR', price: 85, hours: '75 minutes', audience: 'Grades 8+', where: 'in person', requiresRN: true, host: true, org: true },
-    { key: 'steady-ready', course: 'Steady and Ready', abbr: 'STR', price: 65, hours: '70 minutes', audience: 'Ages 8+', where: 'in person', host: true, org: true },
+    { key: 'steady-ready', course: 'Steady and Ready', abbr: 'STR', price: 65, hours: '60 minutes', audience: 'Ages 8+', where: 'in person', host: true, org: true },
     { key: 'intro', course: 'Intro to Babysitting', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Grades 6–8', where: 'in person', host: true, org: true },
     { key: 'intro-virtual', course: 'Intro to Babysitting', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Grades 6–8', where: 'virtual', virtual: true, host: true, org: true },
     { key: 'all-kids-welcome', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '1 hour', audience: 'Experienced sitters', where: 'in person', host: true, org: true },

@@ -32,7 +32,7 @@ const COURSES={
   "All Kids Welcome":{hours:1.5,maxStudents:20,instrFlatFee:75,virtual:true},
   "Stay Ready: Choking Rescue and CPR":{hours:1.25,maxStudents:12,requiresRN:true},
   "Campus Ready: Safety Skills for College Life":{hours:1,maxStudents:12,instrFlatFee:100,requiresRN:true},
-  "Steady and Ready":{hours:70/60,maxStudents:8},
+  "Steady and Ready":{hours:1,maxStudents:8},
   "My First Babysitters Club":{hours:1,maxStudents:12},
   "My First Babysitters Club — Single Session":{hours:2.5,maxStudents:12},
   "Ready. Period.":{hours:1.5,maxStudents:18,requiresRN:true},

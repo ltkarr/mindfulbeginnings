@@ -111,8 +111,8 @@ const COURSES={
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'11th–12th grade & college'},
   // Steady and Ready stays $65 on purpose — the Aug 2026 program guide printed
   // $50, which Lindsay confirmed is a typo in the guide, not a price change.
-  // Published length is 70 minutes (70/60 hours).
-  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:70/60,maxStudents:8,audience:'Family safety workshop'},
+  // Published length is 60 minutes.
+  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1,maxStudents:8,audience:'Family safety workshop'},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug
   // 2026 program guide confirmed $165 for the 8-week series.
   // Material allowance is $30/student — an 8-week series consumes far more supplies
