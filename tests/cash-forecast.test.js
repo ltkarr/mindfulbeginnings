@@ -36,6 +36,7 @@ function makeSandbox(sessionList) {
   const store = {};
   const sandbox = {
     sessions: sessionList,
+    invoices: [],
     fmtYMD: (d) => {
       const p = (n) => String(n).padStart(2, '0');
       return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
@@ -86,6 +87,22 @@ test('dateless sessions are excluded', () => {
   ]);
   const fc = sb.cashForecast30(NOW);
   assert.equal(fc.total, 150);
+});
+
+test('sent invoices due in the window count as money in', () => {
+  const sb = makeSandbox([
+    { id: 'a', course: 'Safe Sitter®', date: '2026-10-20', owed: 500 },
+  ]);
+  sb.invoices = [
+    { id: 'v1', orgName: 'GS Troop 42086', invoiceNumber: 'MB-001', status: 'sent', dueDate: '2026-10-30', total: 300 },
+    { id: 'v2', orgName: 'Beth El', invoiceNumber: 'MB-002', status: 'sent', dueDate: '2026-11-20', total: 999 },
+    { id: 'v3', orgName: 'Draft Org', invoiceNumber: 'MB-003', status: 'draft', dueDate: '2026-10-25', total: 400 },
+    { id: 'v4', orgName: 'Paid Org', invoiceNumber: 'MB-004', status: 'paid', dueDate: '2026-10-25', total: 250 },
+  ];
+  const fc = sb.cashForecast30(NOW);
+  assert.equal(fc.inRows.length, 1);
+  assert.equal(fc.inRows[0].org, 'GS Troop 42086');
+  assert.equal(fc.inTotal, 300);
 });
 
 test('balance defaults to 1500 and persists', () => {

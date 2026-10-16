@@ -5998,15 +5998,27 @@ function cashForecast30(now){
   });
   rows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const total=round2(rows.reduce((a,r)=>a+r.amount,0));
-  return {rows,total,unset,today,endStr};
+  // Invoices out: sent but not paid, due inside the same 30-day window.
+  const inRows=[];
+  (invoices||[]).forEach(v=>{
+    if(!v||v.status!=='sent')return;
+    const d=String(v.dueDate||'');
+    if(!d||d<today||d>endStr)return;
+    const amt=Number(v.total)||0;
+    if(!(amt>0))return;
+    inRows.push({date:d,org:v.orgName||'',number:v.invoiceNumber||'',amount:amt});
+  });
+  inRows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const inTotal=round2(inRows.reduce((a,r)=>a+r.amount,0));
+  return {rows,total,inRows,inTotal,unset,today,endStr};
 }
 function renderCashForecast(now){
   const el=document.getElementById('dash-cash');
   if(!el)return;
   const fc=cashForecast30(now);
   const bal=cashForecastBalance();
-  const need=round2(Math.max(0,fc.total-bal));
-  const cushion=round2(bal-fc.total);
+  const need=round2(Math.max(0,fc.total-fc.inTotal-bal));
+  const cushion=round2(bal+fc.inTotal-fc.total);
   const fmtD=d=>{const dt=new Date(d+'T12:00:00');return isNaN(dt.getTime())?escapeHtml(d):dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});};
   const verdict=need>0
     ?`<div style="font-size:17px;font-weight:700;color:var(--danger);margin-top:8px">Move over ${fmt(need)} to cover it.</div>`
@@ -6019,13 +6031,18 @@ function renderCashForecast(now){
   const unsetLine=fc.unset?`<div style="font-size:14px;color:var(--warn);margin-top:8px">Pay is not set yet on ${fc.unset} upcoming job${fc.unset===1?'':'s'}, so ${fc.unset===1?'it is':'they are'} not in this total.</div>`:'';
   el.innerHTML=`<div class="card" style="padding:14px 16px;border-left:4px solid var(--navy)">
     <div class="card-title">30-day cash forecast</div>
-    <div style="font-size:15px;color:var(--muted);line-height:1.45;margin-top:-2px">Instructor pay due ${fmtD(fc.today)} \u2013 ${fmtD(fc.endStr)}, before organization money comes in.</div>
+    <div style="font-size:15px;color:var(--muted);line-height:1.45;margin-top:-2px">Instructor pay due ${fmtD(fc.today)} \u2013 ${fmtD(fc.endStr)}, net of invoices due in.</div>
     <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:10px">
-      <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Due in 30 days</div><div style="font-size:24px;font-weight:700;color:var(--danger)">${fmt(fc.total)}</div></div>
+      <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Pay out, 30 days</div><div style="font-size:24px;font-weight:700;color:var(--danger)">${fmt(fc.total)}</div></div>
+      <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Invoices in, 30 days</div><div style="font-size:24px;font-weight:700;color:var(--success)">${fmt(fc.inTotal)}</div></div>
       <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">In the account now</div><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-size:20px;font-weight:600">$</span><input type="number" id="cash-bal" value="${bal}" min="0" step="1" onchange="setCashForecastBalance(Number(this.value)||0);renderCashForecast(new Date())" style="width:110px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:18px;font-family:Montserrat,sans-serif;outline:none"></div></div>
     </div>
     ${verdict}
     <div style="margin-top:10px">${rows}</div>
+    ${fc.inRows.length?`<div style="font-size:14px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px">Invoices due in \u2014 ${fmt(fc.inTotal)}</div>`+fc.inRows.map(r=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:15px">
+      <div style="min-width:0"><span style="color:var(--muted)">${fmtD(r.date)}</span> <span style="font-weight:600">${escapeHtml(r.org)}</span>${r.number?`<div style="color:var(--muted);font-size:14px">${escapeHtml(r.number)}</div>`:''}</div>
+      <div style="font-weight:650;color:var(--success);white-space:nowrap">${fmt(r.amount)}</div>
+    </div>`).join(''):''}
     ${unsetLine}
   </div>`;
 }
