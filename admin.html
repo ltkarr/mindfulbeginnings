@@ -507,6 +507,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="nav-item" id="nav-requests" title="Class requests" onclick="showScreen('requests',this)"><span class="nav-icon">✉</span> <span class="nav-label">Class requests</span></div>
       <div class="nav-item" title="Registrations" onclick="showScreen('registrations',this)"><span class="nav-icon">◻</span> <span class="nav-label">Registrations</span></div>
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
+      <div class="nav-item" title="Invoices" onclick="showScreen('invoices',this)"><span class="nav-icon">🧾</span> <span class="nav-label">Invoices</span></div>
       <div class="nav-item" title="Instructors" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> <span class="nav-label">Instructors</span></div>
       <div class="nav-item" id="nav-more" title="More" onclick="showScreen('more',this)"><span class="nav-icon">⋯</span> <span class="nav-label">More</span></div>
       <div id="nav-orgpartners" hidden></div>
@@ -630,13 +631,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div id="fin-fee-section"></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:16px">
-        <div><div class="page-title" style="font-size:23px">Organization invoices</div><div class="page-sub">End-of-month invoices for partner organizations (e.g. Beth El). Sessions marked "Bill to organization" appear here once complete.</div></div>
-        <button class="btn primary" onclick="openCreateInvoice()">+ Create invoice</button>
-      </div>
-      <div id="invoice-alerts"></div>
-      <div class="card" style="padding:0"><div class="tbl-wrap"><table id="invoices-table"></table></div></div>
-
-      <div class="page-header" style="margin-top:28px;margin-bottom:16px">
         <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Insurance, software, equipment, and handbook or supply orders. These reduce net profit, and they are not also taken off each class. Add an expense with the button at the top of this page.</div></div>
       </div>
       <div class="metrics" id="exp-metrics"></div>
@@ -655,6 +649,15 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <input type="text" id="ef-year" placeholder="Filter by year e.g. 2026" oninput="renderExpenses()" style="width:180px">
       </div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="expenses-table"></table></div></div>
+    </div>
+
+    <div class="screen" id="screen-invoices">
+      <div class="page-header">
+        <div><div class="page-title">Invoices</div><div class="page-sub">Bills to partner organizations (e.g. Beth El). Sessions marked "Bill to organization" appear here once complete.</div></div>
+        <button class="btn primary" onclick="openCreateInvoice()">+ Create invoice</button>
+      </div>
+      <div id="invoice-alerts"></div>
+      <div class="card" style="padding:0"><div class="tbl-wrap"><table id="invoices-table"></table></div></div>
     </div>
 
     <div class="screen" id="screen-instructors">
@@ -5040,6 +5043,7 @@ function showScreen(name,el){
   if(name==='requests'&&typeof renderClassRequests==='function')renderClassRequests();
   if(name==='registrations')renderRegs();
   if(name==='finances'){renderFinances();renderExpenses();}
+  if(name==='invoices'&&typeof renderInvoices==='function')renderInvoices();
   if(name==='codes')renderCodes();
   if(name==='instructors')renderInstructors();
   if(name==='partners')renderPartners();
@@ -14852,11 +14856,10 @@ function undismissOrgBillChecks(){
   localStorage.removeItem('mb_orgbill_dismissed');
   renderOrgBilling();
 }
-// Jump from the dashboard to Finances → Organization invoices.
+// Jump to the Invoices tab.
 function gotoInvoices(){
-  const nav=[...document.querySelectorAll('.nav-item')].find(n=>(n.getAttribute('onclick')||'').includes("'finances'"));
-  showScreen('finances',nav);
-  setTimeout(()=>{const t=document.getElementById('invoices-table');if(t)t.scrollIntoView({behavior:'smooth',block:'center'});},80);
+  const nav=[...document.querySelectorAll('.nav-item')].find(n=>(n.getAttribute('onclick')||'').includes("'invoices'"));
+  showScreen('invoices',nav);
 }
 // Finished org work that cannot be invoiced correctly as it stands: a custom job
 // carrying an organization fee with no organization named (it never reaches the
