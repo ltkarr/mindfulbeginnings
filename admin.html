@@ -563,6 +563,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <div style="display:flex;gap:6px;align-items:center">
             <select id="report-filter" onchange="renderSessions()" style="padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none">
               <option value="upcoming">Upcoming sessions</option>
+              <option value="hold">Sessions on hold</option>
               <option value="series">Multi-week series</option>
               <option value="completed">Completed sessions</option>
               <option value="cancelled">Cancelled sessions</option>
@@ -6378,7 +6379,7 @@ function renderDupeBanner(){
 function renderSessions(){
   const cf=document.getElementById('sf-course').value;
   const mf=document.getElementById('sf-month').value;
-  // The dropdown above the table (Upcoming / Series / Completed / Cancelled / All)
+  // The dropdown above the table (Upcoming / On hold / Series / Completed / Cancelled / All)
   // scopes which sessions show. A session is "completed" once wrap-up is fully done (not just when the
   // date is past). Cancelled sessions are pulled out of Upcoming and Completed entirely so
   // they stop cluttering the working list; they live in their own Cancelled view and still
@@ -6389,8 +6390,10 @@ function renderSessions(){
     if(cf&&s.course!==cf)return false;
     if(mf&&!(s.date||'').startsWith(mf))return false;
     if(scope==='cancelled')return !!s.isCancelled;
+    if(scope==='hold')return !!s.isHold;
     if(scope!=='all'){
       if(s.isCancelled)return false;
+      if(s.isHold)return false;
       // Multi-week series live in their own tab, so one-off upcoming sessions
       // are visible without scrolling past e.g. a whole school series.
       const series=isLongSeries(s);
