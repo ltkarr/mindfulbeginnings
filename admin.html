@@ -2205,6 +2205,122 @@ function wrapupPayCallout(inst,amount,opts){
     :'Check the box after you send it via Zelle';
   return `<div class="pay-send ${paid?'pay-send-paid':'pay-send-due'}"><div class="pay-send-amt">${verb} ${fmt(amount)} to ${safeName}</div><div class="pay-send-sub">Zelle: ${zelle}${bonusNote} · ${status}</div></div>`;
 }
+
+// ── Wrap-up: materials-return status on instructor pay ──────────────────────
+// Lindsay pays instructors only once materials are back — unless the instructor
+// is holding the kit for an upcoming class that needs it. These helpers cross-
+// reference the equipment checkouts with the instructor's upcoming sessions and
+// tell her, per pay row, whether she needs to check for a return.
+// Open (not returned) equipment checkouts belonging to one instructor, matched
+// by checkout person name or by the checkout's session instructor.
+function wrapupOpenCheckoutsFor(inst){
+  if(!inst||!inst.name||typeof matCheckouts==='undefined')return[];
+  const nm=String(inst.name).trim().toLowerCase();
+  const t=(typeof matToday==='function')?matToday():(typeof fmtYMD==='function'?fmtYMD(new Date()):'');
+  return (matCheckouts||[]).filter(function(c){
+    if(typeof matKitIsOutNow!=='function'||!matKitIsOutNow(c,t))return false;
+    if(String(c.person||'').trim().toLowerCase()===nm)return true;
+    if(c.sessionId&&typeof sessions!=='undefined'){
+      const cs=sessions.find(function(x){return x&&x.id===c.sessionId;});
+      if(cs&&(cs.instructorId===inst.id||cs.secondInstructorId===inst.id))return true;
+    }
+    return false;
+  });
+}
+// Upcoming (not yet taught, not cancelled) sessions for this instructor that
+// need a durable kit. When this list is non-empty the instructor is "holding"
+// materials for the next class and does not need to return them first.
+function wrapupUpcomingKitSessions(inst,excludeId){
+  if(!inst||!inst.id||typeof sessions==='undefined')return[];
+  return sessions.filter(function(x){
+    if(!x||x.id===excludeId||x.isCancelled)return false;
+    if(x.instructorId!==inst.id&&x.secondInstructorId!==inst.id)return false;
+    if(typeof sessionIsComplete==='function'&&sessionIsComplete(x))return false;
+    return !!(typeof sessionMatNeeds==='function'&&sessionMatNeeds(x));
+  }).sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''));});
+}
+// Null when pay is fine; the open checkouts when materials must come back first.
+function wrapupPayBlockedByMaterials(s,inst){
+  if(!inst)return null;
+  const open=wrapupOpenCheckoutsFor(inst);
+  if(!open.length)return null;
+  if(wrapupUpcomingKitSessions(inst,s&&s.id).length)return null;
+  return open;
+}
+function wrapupCheckoutNames(c){
+  const items=(c.items||[]).filter(function(it){return it&&Number(it.qty)>0&&!(typeof matItemIsConsumable==='function'&&matItemIsConsumable(it));});
+  const names=items.map(function(it){
+    if(it.name)return it.name;
+    if(typeof equipment!=='undefined'){
+      const eq=equipment.find(function(e){return e&&e.id===it.equipmentId;});
+      if(eq&&eq.name)return eq.name;
+    }
+    return 'kit';
+  });
+  const uniq=[...new Set(names)];
+  return uniq.length?uniq.join(', '):'equipment';
+}
+function wrapupShortDate(ymd){
+  if(!ymd)return '';
+  return new Date(ymd+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+// The per-pay-row materials line: holding-for-next-class (pay OK) or
+// not-returned (confirm return before paying), with a one-click check-in.
+function wrapupMaterialsNote(s,inst){
+  if(!s||!inst)return '';
+  const open=wrapupOpenCheckoutsFor(inst);
+  if(!open.length)return '';
+  const items=escapeHtml(open.map(wrapupCheckoutNames).filter(Boolean).join('; ')||'equipment');
+  const upcoming=wrapupUpcomingKitSessions(inst,s.id);
+  if(upcoming.length){
+    const nx=upcoming[0];
+    const nxDate=wrapupShortDate(nx.date);
+    return '<div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">📦 Holding '+items+' for '+escapeHtml(nx.course||'the next class')+(nxDate?' on '+nxDate:'')+' — no return needed. OK to pay.</div>';
+  }
+  const first=open[0];
+  const outD=wrapupShortDate(first.outDate);
+  const dueD=wrapupShortDate(first.dueDate);
+  return '<div style="font-size:14px;color:var(--danger);font-weight:600;margin-top:6px;line-height:1.5">⚠️ '+items+' checked out'+(outD?' '+outD:'')+' — not returned'+(dueD?' (due '+dueD+')':'')+'. Confirm return before paying.</div>'
+    +'<div style="margin-top:6px"><button class="btn sm" onclick="markReturnedFromWrap(\''+s.id+'\',\''+inst.id+'\')">✓ Mark returned</button></div>';
+}
+// One-click check-in of every open checkout for an instructor, from wrap-up.
+async function markReturnedFromWrap(sessId,instId){
+  const inst=(typeof instructors!=='undefined'?instructors:[]).find(function(x){return x&&x.id===instId;});
+  const open=wrapupOpenCheckoutsFor(inst);
+  if(!open.length){if(typeof openWrapup==='function')openWrapup(sessId);return;}
+  const t=(typeof matToday==='function')?matToday():fmtYMD(new Date());
+  open.forEach(function(c){
+    c.returnedDate=t;
+    c.items=(c.items||[]).filter(function(it){return !(typeof matItemIsConsumable==='function'&&matItemIsConsumable(it));});
+    if(typeof dbWrite==='function'&&typeof sb!=='undefined')dbWrite(sb.from('equipment_checkouts').update({returned_date:t,items:c.items}).eq('id',c.id),'Mark returned');
+  });
+  if(typeof renderMaterials==='function')renderMaterials();
+  if(typeof showToast==='function')showToast('✓ Materials marked returned — back on the shelf');
+  if(typeof openWrapup==='function')openWrapup(sessId);
+}
+// ── Wrap-up: organization invoice CTA ───────────────────────────────────────
+// When the session is billed to an organization, offer the invoice flow right
+// in the wrap-up: already invoiced → status + view; not yet → one click opens
+// the invoice builder pre-filled for that org and month.
+function wrapupInvoiceCta(s){
+  const org=String((s&&s.billToOrg)||'').trim();
+  if(!org)return '';
+  const list=(typeof invoices!=='undefined'?invoices:[]);
+  const onInv=list.find(function(v){
+    return v&&v.orgName&&v.orgName.trim().toLowerCase()===org.toLowerCase()
+      &&(v.lineItems||[]).some(function(li){return li&&li.sessionId===s.id;});
+  });
+  if(onInv){
+    return '<div style="background:var(--cream);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+      +'<span style="font-size:16px">✓ On invoice '+escapeHtml(onInv.invoiceNumber||'')+' to '+escapeHtml(org)+' ('+escapeHtml(onInv.status||'draft')+')</span>'
+      +'<button class="btn sm" onclick="openInvoiceDoc(\''+onInv.id+'\')">🖨️ View</button></div>';
+  }
+  const ym=(s.date||'').slice(0,7);
+  const ymLbl=(typeof ymLabel==='function'&&ym)?ymLabel(ym):ym;
+  return '<div style="background:var(--cream);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px">'
+    +'<button class="btn sm primary" onclick="openCreateInvoice(decodeURIComponent(\''+encodeURIComponent(org)+'\'),\''+ym+'\')">🧾 Send invoice to '+escapeHtml(org)+'</button>'
+    +'<div style="font-size:14px;color:var(--muted);margin-top:6px">Opens the invoice builder pre-filled for '+escapeHtml(org)+(ymLbl?' · '+escapeHtml(ymLbl):'')+'</div></div>';
+}
 // Dollar amount one instructor is paid for this session. Same figure as wrap-up
 // and Pay instructor: a session instr_pay_override is a flat amount (no hourly
 // add-on). Otherwise wrapupPayAmount — the course flat fee, or hours × rate,
@@ -10284,6 +10400,7 @@ function openWrapup(sessId){
   <div class="modal-body">
     <div style="font-size:16px;color:var(--muted);margin-bottom:8px">${s.course} &nbsp;·&nbsp; ${d}</div>
     <div style="background:var(--cream);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px">${sessionProfitSummaryHtml(s)}</div>
+    ${wrapupInvoiceCta(s)}
     ${wrapReportTasks(s).map(function(t){return chk('wu-'+t.field,!!jdi[t.field],false,"toggleWrapField('"+sessId+"','"+t.field+"',this.checked)")+'<span style="font-weight:500;font-size:16px">'+escapeHtml(t.label)+'</span></label></div>';}).join('')}
     ${fair?'':chk('wu-letter',jdi.parentLetterSent,false,`toggleWrapField('${sessId}','parentLetterSent',this.checked)`)+'<span style="font-weight:500;font-size:16px">Sent post-course letter to families</span><div style="font-size:14px;color:var(--muted);margin-top:3px">After class. '+emails.length+' email address'+(emails.length!==1?'es':'')+' from registrations'+emailList+'</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button class="btn sm primary" onclick="openPostCourseEmail(\''+sessId+'\')">📧 Post-course email — after class</button><span style="font-size:14px;color:var(--warn)">📎 Remember to attach the PDF</span></div></label></div>'}
     ${(()=>{
@@ -10307,7 +10424,7 @@ function openWrapup(sessId){
       function payCallout(inst,slot,paid,payDate,fallbackName){
         const amount=wrapupPayAmount(s,inst,jdi,slot);
         const bonus=slot==='second'?0:(Number(jdi.referralBonus)||0);
-        return wrapupPayCallout(inst,amount,{paid,payDate,bonus,fallbackName});
+        return wrapupPayCallout(inst,amount,{paid,payDate,bonus,fallbackName})+wrapupMaterialsNote(s,inst);
       }
 
       // ── PRIMARY SLOT ────────────────────────────────────────
@@ -10366,6 +10483,12 @@ function toggleInstrPaidFromWrap(sessId,checked){
   const jdi=jobDataCache[sessId];
   const s=sessions.find(x=>x.id===sessId);
   if(checked){
+    const inst=instructors.find(x=>x.id===jdi.instructorId);
+    const blocked=wrapupPayBlockedByMaterials(s,inst);
+    if(blocked&&!confirm('\u26A0\uFE0F '+((inst&&inst.name)||'The instructor')+' still has '+wrapupCheckoutNames(blocked[0])+' checked out and no upcoming class needs it.\n\nMark the materials returned first, or pay anyway?')){
+      openWrapup(sessId);
+      return;
+    }
     jdi.payStatus='paid';
     jdi.payDate=fmtYMD(new Date());
     jdi.paidFee=instrBaseFee(s,instructors.find(x=>x.id===jdi.instructorId));
@@ -10390,6 +10513,14 @@ function toggleSecondInstrPaidFromWrap(sessId,checked){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   const jdi=jobDataCache[sessId];
   const s=sessions.find(x=>x.id===sessId);
+  if(checked){
+    const inst2=instructors.find(x=>x.id===s.secondInstructorId);
+    const blocked2=wrapupPayBlockedByMaterials(s,inst2);
+    if(blocked2&&!confirm('\u26A0\uFE0F '+((inst2&&inst2.name)||'The instructor')+' still has '+wrapupCheckoutNames(blocked2[0])+' checked out and no upcoming class needs it.\n\nMark the materials returned first, or pay anyway?')){
+      openWrapup(sessId);
+      return;
+    }
+  }
   jdi.secondInstrPaid=!!checked;
   jdi.secondInstrPayDate=checked?fmtYMD(new Date()):null;
   jdi.secondInstrPaidFee=checked?instrBaseFee(s,instructors.find(x=>x.id===s.secondInstructorId)):null;
