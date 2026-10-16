@@ -528,6 +528,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="metrics" id="dash-metrics"></div>
       <div id="dash-mat-check" style="margin-bottom:16px"></div>
       <div id="dash-upcoming" style="margin-bottom:16px"></div>
+      <div id="dash-cash" style="margin-bottom:16px"></div>
       <div id="instructor-milestones" style="margin-bottom:16px"></div>
       <div class="card">
         <div class="card-title" title="Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view.">Revenue by month</div>
@@ -5966,6 +5967,68 @@ function upcomingCommittedExpenses(now){
     vendorRows,noFeeRows,classRows,billRows,unset
   };
 }
+// ── 30-day cash forecast ────────────────────────────────────────────────────
+// Instructor pay still owed for sessions dated in the next 30 days, against
+// the business account balance. Answers: how much cash needs to move over.
+function cashForecastBalance(){
+  try{
+    const v=localStorage.getItem('mb_cash_balance');
+    if(v!=null&&v!==''&&isFinite(Number(v)))return Number(v);
+  }catch(e){}
+  return 1500;
+}
+function setCashForecastBalance(v){
+  try{localStorage.setItem('mb_cash_balance',String(v));}catch(e){}
+}
+function cashForecast30(now){
+  const n=now instanceof Date?now:new Date();
+  const today=fmtYMD(n);
+  const end=new Date(n);end.setDate(end.getDate()+30);
+  const endStr=fmtYMD(end);
+  const rows=[];
+  let unset=0;
+  (sessions||[]).forEach(s=>{
+    if(!s||s.isCancelled||s.isHold)return;
+    const d=String(s.date||'');
+    if(!d||d<today||d>endStr)return;
+    if(typeof customJobPayMissing==='function'&&customJobPayMissing(s))unset++;
+    const owed=(typeof instructorPayStillOwed==='function')?instructorPayStillOwed(s):0;
+    if(!(owed>0))return;
+    rows.push({date:d,course:s.course||'',names:(typeof sessionInstructorNames==='function')?sessionInstructorNames(s):'',amount:owed});
+  });
+  rows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const total=round2(rows.reduce((a,r)=>a+r.amount,0));
+  return {rows,total,unset,today,endStr};
+}
+function renderCashForecast(now){
+  const el=document.getElementById('dash-cash');
+  if(!el)return;
+  const fc=cashForecast30(now);
+  const bal=cashForecastBalance();
+  const need=round2(Math.max(0,fc.total-bal));
+  const cushion=round2(bal-fc.total);
+  const fmtD=d=>{const dt=new Date(d+'T12:00:00');return isNaN(dt.getTime())?escapeHtml(d):dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});};
+  const verdict=need>0
+    ?`<div style="font-size:17px;font-weight:700;color:var(--danger);margin-top:8px">Move over ${fmt(need)} to cover it.</div>`
+    :`<div style="font-size:17px;font-weight:700;color:var(--success);margin-top:8px">You are covered \u2014 ${fmt(cushion)} cushion.</div>`;
+  const rows=fc.rows.length?fc.rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:15px">
+      <div style="min-width:0"><span style="color:var(--muted)">${fmtD(r.date)}</span> <span style="font-weight:600">${escapeHtml(r.course)}</span><div style="color:var(--muted);font-size:14px">${escapeHtml(r.names)}</div></div>
+      <div style="font-weight:650;white-space:nowrap">${fmt(r.amount)}</div>
+    </div>`).join('')
+    :'<div style="font-size:15px;color:var(--muted);padding:8px 0">No instructor pay due in the next 30 days.</div>';
+  const unsetLine=fc.unset?`<div style="font-size:14px;color:var(--warn);margin-top:8px">Pay is not set yet on ${fc.unset} upcoming job${fc.unset===1?'':'s'}, so ${fc.unset===1?'it is':'they are'} not in this total.</div>`:'';
+  el.innerHTML=`<div class="card" style="padding:14px 16px;border-left:4px solid var(--navy)">
+    <div class="card-title">30-day cash forecast</div>
+    <div style="font-size:15px;color:var(--muted);line-height:1.45;margin-top:-2px">Instructor pay due ${fmtD(fc.today)} \u2013 ${fmtD(fc.endStr)}, before organization money comes in.</div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:10px">
+      <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Due in 30 days</div><div style="font-size:24px;font-weight:700;color:var(--danger)">${fmt(fc.total)}</div></div>
+      <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">In the account now</div><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-size:20px;font-weight:600">$</span><input type="number" id="cash-bal" value="${bal}" min="0" step="1" onchange="setCashForecastBalance(Number(this.value)||0);renderCashForecast(new Date())" style="width:110px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:18px;font-family:Montserrat,sans-serif;outline:none"></div></div>
+    </div>
+    ${verdict}
+    <div style="margin-top:10px">${rows}</div>
+    ${unsetLine}
+  </div>`;
+}
 function upcomingWhenNote(inThisMonth){
   return inThisMonth?'Included in class costs above':'Not in this month\'s profit';
 }
@@ -6057,6 +6120,7 @@ function renderDashboard(){
   `;
   renderDashMatChecklist(now);
   renderUpcomingExpenses(now);
+  renderCashForecast(now);
   // Build a continuous 6-month window anchored on the current month: 3 months
   // back through 2 months ahead. This keeps the current month and next month
   // (e.g. June and July) always visible, and shows every month in between even
