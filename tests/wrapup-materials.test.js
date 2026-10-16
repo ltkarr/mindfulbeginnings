@@ -30,7 +30,8 @@ function extractFunction(src, name) {
 
 const names = [
   'escapeHtml', 'fmtYMD',
-  'wrapupOpenCheckoutsFor', 'wrapupUpcomingKitSessions', 'wrapupPayBlockedByMaterials',
+  'wrapupOpenCheckoutsFor', 'wrapupUpcomingKitSessions', 'wrapupPayNeedsMaterialsConfirm',
+  'wrapupPayConfirmText', 'wrapupSamePerson',
   'wrapupCheckoutNames', 'wrapupShortDate', 'wrapupMaterialsNote', 'wrapupInvoiceCta'
 ];
 
@@ -72,31 +73,53 @@ function co(person, sessionId, returnedDate) {
   };
 }
 
-test('no open checkouts means no note and no block', () => {
+test('a kit session always asks for a materials confirm, even with no open checkout found', () => {
   const sb = makeSandbox();
-  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15' };
+  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15', isVirtual: false };
   assert.deepEqual(sb.wrapupOpenCheckoutsFor(alex), []);
-  assert.equal(sb.wrapupMaterialsNote(s, alex), '');
-  assert.equal(sb.wrapupPayBlockedByMaterials(s, alex), null);
+  assert.equal(sb.wrapupPayNeedsMaterialsConfirm(s, alex), true);
+  const note = sb.wrapupMaterialsNote(s, alex);
+  assert.match(note, /confirm the kit is back/);
+  const text = sb.wrapupPayConfirmText(s, alex);
+  assert.match(text, /materials been returned/);
 });
 
-test('an open checkout matched by instructor name blocks pay', () => {
+test('a virtual session needs no materials confirm', () => {
+  const sb = makeSandbox();
+  const s = { id: 's1', course: 'Safe@Home', date: '2026-10-15', isVirtual: true };
+  assert.equal(sb.wrapupPayNeedsMaterialsConfirm(s, alex), false);
+  assert.equal(sb.wrapupMaterialsNote(s, alex), '');
+});
+
+test('nickname checkouts match the instructor record (Katy vs Kathryn)', () => {
+  assert.equal(makeSandbox().wrapupSamePerson('Katy Greenberg', 'Kathryn Greenberg'), true);
+  assert.equal(makeSandbox().wrapupSamePerson('Alex Rivera', 'Alex Rivera'), true);
+  assert.equal(makeSandbox().wrapupSamePerson('Alex Rivera', 'Jordan Lee'), false);
+  const sb = makeSandbox({ matCheckouts: [co('Katy Greenberg', 's1')] });
+  const katy = { id: 'k', name: 'Kathryn Greenberg' };
+  assert.equal(sb.wrapupOpenCheckoutsFor(katy).length, 1);
+});
+
+test('an open checkout matched by instructor name triggers the specific warning', () => {
   const sb = makeSandbox({ matCheckouts: [co('Alex Rivera', 's1')] });
-  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15' };
+  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15', isVirtual: false };
   const open = sb.wrapupOpenCheckoutsFor(alex);
   assert.equal(open.length, 1);
-  assert.ok(sb.wrapupPayBlockedByMaterials(s, alex), 'pay is blocked');
+  assert.equal(sb.wrapupPayNeedsMaterialsConfirm(s, alex), true);
   const note = sb.wrapupMaterialsNote(s, alex);
   assert.match(note, /not returned/);
   assert.match(note, /Mark returned/);
   assert.match(note, /Infant manikin/);
+  assert.match(sb.wrapupPayConfirmText(s, alex), /still has Infant manikin checked out/);
 });
 
-test('a returned checkout does not block pay', () => {
+test('a returned checkout does not change the default confirm', () => {
   const sb = makeSandbox({ matCheckouts: [co('Alex Rivera', 's1', '2026-10-15')] });
-  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15' };
+  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15', isVirtual: false };
   assert.deepEqual(sb.wrapupOpenCheckoutsFor(alex), []);
-  assert.equal(sb.wrapupPayBlockedByMaterials(s, alex), null);
+  // No specific checkout found, but the default confirm still applies.
+  assert.equal(sb.wrapupPayNeedsMaterialsConfirm(s, alex), true);
+  assert.match(sb.wrapupMaterialsNote(s, alex), /confirm the kit is back/);
 });
 
 test('a checkout linked by session (no person name) still counts', () => {
@@ -104,16 +127,18 @@ test('a checkout linked by session (no person name) still counts', () => {
     matCheckouts: [co('', 's9')],
     sessions: [{ id: 's9', course: 'Safe@Home', date: '2026-10-14', instructorId: 'a' }]
   });
-  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15' };
+  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15', isVirtual: false };
   assert.equal(sb.wrapupOpenCheckoutsFor(alex).length, 1);
-  assert.ok(sb.wrapupPayBlockedByMaterials(s, alex));
+  assert.equal(sb.wrapupPayNeedsMaterialsConfirm(s, alex), true);
 });
 
-test('another instructor\u2019s checkout does not block this instructor', () => {
+test('another instructor\u2019s checkout does not single out this instructor', () => {
   const sb = makeSandbox({ matCheckouts: [co('Jordan Lee', 's1')] });
-  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15' };
+  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15', isVirtual: false };
   assert.deepEqual(sb.wrapupOpenCheckoutsFor(alex), []);
-  assert.equal(sb.wrapupPayBlockedByMaterials(s, alex), null);
+  // Default confirm still applies, but no specific warning names her.
+  assert.equal(sb.wrapupPayNeedsMaterialsConfirm(s, alex), true);
+  assert.doesNotMatch(sb.wrapupMaterialsNote(s, alex), /not returned/);
 });
 
 test('holding the kit for an upcoming class is OK to pay', () => {
@@ -124,26 +149,14 @@ test('holding the kit for an upcoming class is OK to pay', () => {
       { id: 's3', course: 'Safe@Home', date: '2026-10-10', instructorId: 'a', isVirtual: false }
     ]
   });
-  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15' };
+  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15', isVirtual: false };
   const upcoming = sb.wrapupUpcomingKitSessions(alex, 's1');
   assert.equal(upcoming.length, 1);
   assert.equal(upcoming[0].id, 's2');
-  assert.equal(sb.wrapupPayBlockedByMaterials(s, alex), null);
+  assert.equal(sb.wrapupPayNeedsMaterialsConfirm(s, alex), false);
   const note = sb.wrapupMaterialsNote(s, alex);
   assert.match(note, /no return needed/);
   assert.match(note, /OK to pay/);
-});
-
-test('a session with no date does not count as an upcoming class', () => {
-  const sb = makeSandbox({
-    matCheckouts: [co('Alex Rivera', 's1')],
-    sessions: [
-      { id: 's2', course: 'Safe Sitter®', date: '', instructorId: 'a', isVirtual: false }
-    ]
-  });
-  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15' };
-  assert.deepEqual(sb.wrapupUpcomingKitSessions(alex, 's1'), []);
-  assert.ok(sb.wrapupPayBlockedByMaterials(s, alex), 'pay is still blocked');
 });
 
 test('an upcoming virtual class does not excuse the return', () => {
@@ -153,9 +166,21 @@ test('an upcoming virtual class does not excuse the return', () => {
       { id: 's2', course: 'Safe@Home', date: '2026-10-20', instructorId: 'a', isVirtual: true }
     ]
   });
-  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15' };
+  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15', isVirtual: false };
   assert.deepEqual(sb.wrapupUpcomingKitSessions(alex, 's1'), []);
-  assert.ok(sb.wrapupPayBlockedByMaterials(s, alex), 'pay is still blocked');
+  assert.equal(sb.wrapupPayNeedsMaterialsConfirm(s, alex), true);
+});
+
+test('a session with no date does not count as an upcoming class', () => {
+  const sb = makeSandbox({
+    matCheckouts: [co('Alex Rivera', 's1')],
+    sessions: [
+      { id: 's2', course: 'Safe Sitter®', date: '', instructorId: 'a', isVirtual: false }
+    ]
+  });
+  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15', isVirtual: false };
+  assert.deepEqual(sb.wrapupUpcomingKitSessions(alex, 's1'), []);
+  assert.equal(sb.wrapupPayNeedsMaterialsConfirm(s, alex), true);
 });
 
 test('invoice CTA is absent when the session is not billed to an org', () => {

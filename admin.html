@@ -123,7 +123,7 @@ body{font-family:'Montserrat',sans-serif;background:var(--cream);color:var(--tex
 #sessions-table th,#sessions-table td{box-sizing:border-box;overflow:hidden;overflow-wrap:break-word}
 #sessions-table th{white-space:normal;line-height:1.25;vertical-align:bottom}
 #sessions-table thead th{position:sticky;top:15px;z-index:4;background:white;box-shadow:0 1px 0 var(--border)}
-#sessions-table td{vertical-align:top;padding:14px 10px}
+#sessions-table td{vertical-align:top;padding:20px 10px 14px}
 #sessions-table .sess-title{display:block;max-width:100%;min-width:0;line-height:1.3;overflow:hidden;overflow-wrap:anywhere;font-weight:600}
 #sessions-table .sess-pills{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin-top:4px;max-width:100%;min-width:0}
 #sessions-table .sess-pill{display:block;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;padding:2px 8px;border-radius:100px;font-size:13.5px;font-weight:600;letter-spacing:.2px;line-height:1.45}
@@ -2219,7 +2219,7 @@ function wrapupOpenCheckoutsFor(inst){
   const t=(typeof matToday==='function')?matToday():(typeof fmtYMD==='function'?fmtYMD(new Date()):'');
   return (matCheckouts||[]).filter(function(c){
     if(typeof matKitIsOutNow!=='function'||!matKitIsOutNow(c,t))return false;
-    if(String(c.person||'').trim().toLowerCase()===nm)return true;
+    if(wrapupSamePerson(c.person,inst.name))return true;
     if(c.sessionId&&typeof sessions!=='undefined'){
       const cs=sessions.find(function(x){return x&&x.id===c.sessionId;});
       if(cs&&(cs.instructorId===inst.id||cs.secondInstructorId===inst.id))return true;
@@ -2240,13 +2240,31 @@ function wrapupUpcomingKitSessions(inst,excludeId){
     return !!(typeof sessionMatNeeds==='function'&&sessionMatNeeds(x));
   }).sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''));});
 }
-// Null when pay is fine; the open checkouts when materials must come back first.
-function wrapupPayBlockedByMaterials(s,inst){
-  if(!inst)return null;
+// Loose person-name match: same last name + same first initial catches
+// nicknames ("Katy Greenberg" vs "Kathryn Greenberg").
+function wrapupSamePerson(a,b){
+  const pa=String(a||'').trim().toLowerCase().split(/\s+/);
+  const pb=String(b||'').trim().toLowerCase().split(/\s+/);
+  const na=String(a||'').trim().toLowerCase(), nb=String(b||'').trim().toLowerCase();
+  if(pa.length<2||pb.length<2)return na===nb&&na!=='';
+  return pa[pa.length-1]===pb[pb.length-1]&&(pa[0]===pb[0]||pa[0][0]===pb[0][0]);
+}
+// Lindsay's rule: assume the instructor has materials out. Pay is fine when
+// they're holding the kit for an upcoming class that needs it; otherwise she
+// confirms the return before paying. Sessions that need no kit are exempt.
+function wrapupPayNeedsMaterialsConfirm(s,inst){
+  if(!s||!inst)return false;
+  if(!(typeof sessionMatNeeds==='function'&&sessionMatNeeds(s)))return false;
+  if(wrapupUpcomingKitSessions(inst,s.id).length)return false;
+  return true;
+}
+function wrapupPayConfirmText(s,inst){
+  const name=(inst&&inst.name)||'The instructor';
   const open=wrapupOpenCheckoutsFor(inst);
-  if(!open.length)return null;
-  if(wrapupUpcomingKitSessions(inst,s&&s.id).length)return null;
-  return open;
+  if(open.length){
+    return '\u26A0\uFE0F '+name+' still has '+wrapupCheckoutNames(open[0])+' checked out and no upcoming class needs it.\n\nMark the materials returned first, or pay anyway?';
+  }
+  return '\uD83D\uDCE6 Have '+name+'\u2019s materials been returned?\n\nThey taught an in-person class \u2014 confirm the kit is back before paying.';
 }
 function wrapupCheckoutNames(c){
   const items=(c.items||[]).filter(function(it){return it&&Number(it.qty)>0&&!(typeof matItemIsConsumable==='function'&&matItemIsConsumable(it));});
@@ -2269,20 +2287,23 @@ function wrapupShortDate(ymd){
 // not-returned (confirm return before paying), with a one-click check-in.
 function wrapupMaterialsNote(s,inst){
   if(!s||!inst)return '';
-  const open=wrapupOpenCheckoutsFor(inst);
-  if(!open.length)return '';
-  const items=escapeHtml(open.map(wrapupCheckoutNames).filter(Boolean).join('; ')||'equipment');
+  if(!(typeof sessionMatNeeds==='function'&&sessionMatNeeds(s)))return '';
   const upcoming=wrapupUpcomingKitSessions(inst,s.id);
   if(upcoming.length){
     const nx=upcoming[0];
     const nxDate=wrapupShortDate(nx.date);
-    return '<div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">📦 Holding '+items+' for '+escapeHtml(nx.course||'the next class')+(nxDate?' on '+nxDate:'')+' — no return needed. OK to pay.</div>';
+    return '<div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">📦 Holding the kit for '+escapeHtml(nx.course||'the next class')+(nxDate?' on '+nxDate:'')+' — no return needed. OK to pay.</div>';
   }
-  const first=open[0];
-  const outD=wrapupShortDate(first.outDate);
-  const dueD=wrapupShortDate(first.dueDate);
-  return '<div style="font-size:14px;color:var(--danger);font-weight:600;margin-top:6px;line-height:1.5">⚠️ '+items+' checked out'+(outD?' '+outD:'')+' — not returned'+(dueD?' (due '+dueD+')':'')+'. Confirm return before paying.</div>'
-    +'<div style="margin-top:6px"><button class="btn sm" onclick="markReturnedFromWrap(\''+s.id+'\',\''+inst.id+'\')">✓ Mark returned</button></div>';
+  const open=wrapupOpenCheckoutsFor(inst);
+  if(open.length){
+    const items=escapeHtml(open.map(wrapupCheckoutNames).filter(Boolean).join('; ')||'equipment');
+    const first=open[0];
+    const outD=wrapupShortDate(first.outDate);
+    const dueD=wrapupShortDate(first.dueDate);
+    return '<div style="font-size:14px;color:var(--danger);font-weight:600;margin-top:6px;line-height:1.5">⚠️ '+items+' checked out'+(outD?' '+outD:'')+' — not returned'+(dueD?' (due '+dueD+')':'')+'. Confirm return before paying.</div>'
+      +'<div style="margin-top:6px"><button class="btn sm" onclick="markReturnedFromWrap(\''+s.id+'\',\''+inst.id+'\')">✓ Mark returned</button></div>';
+  }
+  return '<div style="font-size:14px;color:#b86a00;font-weight:600;margin-top:6px;line-height:1.5">📦 Materials check: confirm the kit is back before paying.</div>';
 }
 // One-click check-in of every open checkout for an instructor, from wrap-up.
 async function markReturnedFromWrap(sessId,instId){
@@ -10483,8 +10504,7 @@ function toggleInstrPaidFromWrap(sessId,checked){
   const s=sessions.find(x=>x.id===sessId);
   if(checked){
     const inst=instructors.find(x=>x.id===jdi.instructorId);
-    const blocked=wrapupPayBlockedByMaterials(s,inst);
-    if(blocked&&!confirm('\u26A0\uFE0F '+((inst&&inst.name)||'The instructor')+' still has '+wrapupCheckoutNames(blocked[0])+' checked out and no upcoming class needs it.\n\nMark the materials returned first, or pay anyway?')){
+    if(wrapupPayNeedsMaterialsConfirm(s,inst)&&!confirm(wrapupPayConfirmText(s,inst))){
       openWrapup(sessId);
       return;
     }
@@ -10514,8 +10534,7 @@ function toggleSecondInstrPaidFromWrap(sessId,checked){
   const s=sessions.find(x=>x.id===sessId);
   if(checked){
     const inst2=instructors.find(x=>x.id===s.secondInstructorId);
-    const blocked2=wrapupPayBlockedByMaterials(s,inst2);
-    if(blocked2&&!confirm('\u26A0\uFE0F '+((inst2&&inst2.name)||'The instructor')+' still has '+wrapupCheckoutNames(blocked2[0])+' checked out and no upcoming class needs it.\n\nMark the materials returned first, or pay anyway?')){
+    if(wrapupPayNeedsMaterialsConfirm(s,inst2)&&!confirm(wrapupPayConfirmText(s,inst2))){
       openWrapup(sessId);
       return;
     }
