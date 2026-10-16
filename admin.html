@@ -2235,6 +2235,7 @@ function wrapupUpcomingKitSessions(inst,excludeId){
   return sessions.filter(function(x){
     if(!x||x.id===excludeId||x.isCancelled)return false;
     if(x.instructorId!==inst.id&&x.secondInstructorId!==inst.id)return false;
+    if(!x.date)return false; // a session with no date is not a scheduled upcoming class
     if(typeof sessionIsComplete==='function'&&sessionIsComplete(x))return false;
     return !!(typeof sessionMatNeeds==='function'&&sessionMatNeeds(x));
   }).sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''));});

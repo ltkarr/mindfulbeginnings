@@ -134,6 +134,18 @@ test('holding the kit for an upcoming class is OK to pay', () => {
   assert.match(note, /OK to pay/);
 });
 
+test('a session with no date does not count as an upcoming class', () => {
+  const sb = makeSandbox({
+    matCheckouts: [co('Alex Rivera', 's1')],
+    sessions: [
+      { id: 's2', course: 'Safe Sitter®', date: '', instructorId: 'a', isVirtual: false }
+    ]
+  });
+  const s = { id: 's1', course: 'Safe Sitter®', date: '2026-10-15' };
+  assert.deepEqual(sb.wrapupUpcomingKitSessions(alex, 's1'), []);
+  assert.ok(sb.wrapupPayBlockedByMaterials(s, alex), 'pay is still blocked');
+});
+
 test('an upcoming virtual class does not excuse the return', () => {
   const sb = makeSandbox({
     matCheckouts: [co('Alex Rivera', 's1')],
