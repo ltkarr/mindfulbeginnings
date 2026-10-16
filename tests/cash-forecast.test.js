@@ -65,7 +65,7 @@ test('only sessions dated inside the 30-day window count', () => {
   const fc = sb.cashForecast30(NOW);
   assert.equal(fc.rows.length, 2);
   assert.equal(fc.total, 450);
-  assert.deepEqual(fc.rows.map((r) => r.course), ['Safe Sitter®', 'Safe@Home']);
+  assert.equal(fc.rows.map((r) => r.course).join('|'), 'Safe Sitter®|Safe@Home');
 });
 
 test('cancelled and hold sessions are excluded', () => {
