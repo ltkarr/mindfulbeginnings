@@ -6280,9 +6280,13 @@ function renderDashboard(){
 // ─── SESSIONS ────────────────────────────────────────────────
 function toggleSessionSort(){
   sessionSortAsc=!sessionSortAsc;
-  const btn=document.getElementById('sf-sort-btn');
-  if(btn)btn.textContent=sessionSortAsc?'Date ↑ Oldest first':'Date ↓ Newest first';
   renderSessions();
+}
+function syncSessionSortBtn(scope){
+  const btn=document.getElementById('sf-sort-btn');
+  if(!btn)return;
+  const asc=scope==='completed'?false:sessionSortAsc;
+  btn.textContent=asc?'Date ↑ Oldest first':'Date ↓ Newest first';
 }
 // ─── DUPLICATE SESSION CHECK ─────────────────────────────────────────────
 // Two ways the same class ended up on the calendar twice: a save that looked
@@ -6385,6 +6389,7 @@ function renderSessions(){
   // they stop cluttering the working list; they live in their own Cancelled view and still
   // appear under All (nothing is ever hidden from All).
   const scope=document.getElementById('report-filter')?.value||'upcoming';
+  if(typeof syncSessionSortBtn==='function')syncSessionSortBtn(scope);
   const now=new Date();
   let list=sessions.filter(s=>{
     if(cf&&s.course!==cf)return false;
@@ -6407,7 +6412,11 @@ function renderSessions(){
       if(scope==='upcoming'&&isCompleted)return false;
     }
     return true;
-  }).sort((a,b)=>sessionSortAsc?(a.date||'').localeCompare(b.date||''):(b.date||'').localeCompare(a.date||''));
+  }).sort((a,b)=>{
+    // Completed sessions always read newest-first: the most recent class on top.
+    const asc=scope==='completed'?false:sessionSortAsc;
+    return asc?(a.date||'').localeCompare(b.date||''):(b.date||'').localeCompare(a.date||'');
+  });
   const t=document.getElementById('sessions-table');
   // Column count matters more than column width here: on a 13" laptop ten columns could
   // not fit no matter how they were squeezed. Code now rides under the course name and
