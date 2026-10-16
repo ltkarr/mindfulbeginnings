@@ -98,6 +98,12 @@
     return v || fallback;
   }
 
+  var SAFE_HOME_POST_COURSE = "Dear Parent or Guardian,\n\nWe are so proud of your child for completing the Safe@Home program! We truly believe your child walked away more confident, capable, and better prepared for those first important steps toward independence.\n\nAbout the Class: Safe@Home is a 90-minute program designed to prepare students to be safe when they are home alone. During the course, participants learned how to:\n\n- Practice safe habits at home\n- Prevent unsafe situations before they happen\n- Handle power failures or weather emergencies\n- Use the Safe Sitter First Aid Chart to assess and respond to injuries\n\nReinforcing the Lesson at Home: Ask your child Safe Sitter First Aid Chart, walk you through an emergency plan, or share a favorite part of the class.\n\nProgram Evaluation We want to hear about your experience! Please take a quick moment to fill out our Program Evaluation Form (https://docs.google.com/forms/d/e/1FAIpQLScgK8G9rDBC2MM6vCo-cn05CemXdsowv-cgyjfr01ng1_Bctw/viewform?usp=send_form).\n\nRefer a Friend & Earn $50 Know another family who would love this program? Refer a host family to us and earn a $50 bonus via Zelle! When the family registers to host a course in their home, have them list your name and phone number on the registration page.\n\nLeave Us a Google Review If you have a moment, a quick Google review (https://g.page/r/Ca2jsWW-MkfvEAE/review)  means the world to a small business like ours!\n\nWhat’s Next?\n\nAs your child grows over the next couple of years, we would love to help them continue their safety and childcare education! Consider preparing them for their first independent jobs by enrolling them in our Intro to Babysitting or the Safe Sitter® Comprehensive Babysitting Course.\n\n- Join a Scheduled Class: View upcoming sessions and register at mindfulbeginnings.org/register (https://mindfulbeginnings.org/register).\n- Host at Home: Gather a group of friends or neighbors and host a private course right in your own living room! Reach out to learn more about setting up a home session.\n\nThank you for trusting Mindful Beginnings with your child's safety education.";
+
+  function isSafeHome(course) {
+    return /safe\s*(@|at)\s*home/i.test(String(course || ''));
+  }
+
   function draft(kind, info) {
     info = info || {};
     var course = val(info, 'course', 'Safe Sitter\u00ae');
@@ -195,6 +201,14 @@
     }
 
     if (kind === 'postCourse') {
+      if (isSafeHome(course)) {
+        return {
+          field: 'bcc',
+          subject: 'Congratulations on completing Safe@Home!',
+          body: SAFE_HOME_POST_COURSE,
+          attachment: ''
+        };
+      }
       lines.push('Thank you for trusting Mindful Beginnings with your child. We hope they came home feeling confident, capable, and proud of everything they accomplished.');
       lines.push('');
       lines.push('The most important thing your child learned today is the Safety Signal. If you ever receive a text or call that says, "I\'m ready to be picked up now," that is their signal that they feel unsafe. Please go immediately, do not ask questions, and let them explain once they are in the car. This signal works in any situation, not only babysitting.');
@@ -207,7 +221,8 @@
       return {
         field: 'bcc',
         subject: 'After Safe Sitter\u00ae \u2014 Safety Signal & next steps',
-        body: lines.join('\n')
+        body: lines.join('\n'),
+        attachment: 'Letter-to-Parents_English-and-Spanish.pdf'
       };
     }
 
