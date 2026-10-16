@@ -6212,7 +6212,7 @@ function renderSessions(){
     (list.length?list.map(s=>{
       const f=calcFin(s);
       const sessTime=(s.time||'').trim();
-      const d=(s.date?('<span class="sess-wrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s)+sessionDateRainHtml(s)):'<span class="sess-wrap">Date TBD</span>')+(sessTime?`<span class="sess-clip" title="${escapeHtml(sessTime)}">${escapeHtml(sessTime)}</span>`:'');
+      const d=(s.date?('<span class="sess-wrap">'+new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>'+extraDatesHtml(s)+sessionDateRainHtml(s)):'<span class="sess-wrap">Date TBD</span>')+(sessTime?`<span class="sess-sub" title="${escapeHtml(sessTime)}">${escapeHtml(sessTime)}</span>`:'');
       const jdi=jobDataCache[s.id]||{};
       const instr=(()=>{
         if(s.ownerTaught)return'You (owner)';
@@ -6250,7 +6250,7 @@ function renderSessions(){
         const whenTip=[whenFull,timeNote].filter(Boolean).join(' — ');
         // The preferred-time note stays on the date, one clipped line. It used to
         // run in a single unwrapped line through the title and the ON HOLD badge.
-        const whenCell=`<span class="sess-clamp when" title="${escapeHtml(whenTip)}">${escapeHtml(when)}</span>`+(timeNote?`<span class="sess-clip" title="${escapeHtml(timeNote)}">${escapeHtml(timeNote)}</span>`:'');
+        const whenCell=`<span class="sess-clamp when" title="${escapeHtml(whenTip)}">${escapeHtml(when)}</span>`+(timeNote?`<span class="sess-sub" title="${escapeHtml(timeNote)}">${escapeHtml(timeNote)}</span>`:'');
         const holdNote=s.holdPayment?`<span class="sess-clamp" title="${escapeHtml(s.holdPayment)}">${escapeHtml(s.holdPayment)}</span>`:'';
         const payCell=revenueCell(s,f,holdNote);
         const pills=[pill('ON HOLD','#e7e0f5','#5b4a8a')];
