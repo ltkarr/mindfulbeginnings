@@ -23,6 +23,12 @@
 .price-band .amt{font-size:30px;font-weight:800;color:#EFC75A}
 .price-band p{margin:0;max-width:640px}
 @media(max-width:640px){.club-card{flex-direction:column}.club-badge{width:96px;height:96px}}
+.tight{padding-top:30px!important;padding-bottom:30px!important}
+.club-card h3{margin-top:6px}
+.step-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:0 0 26px;padding:0;list-style:none}
+.step-grid li{background:#fff;border-radius:16px;padding:18px;display:flex;gap:14px;align-items:flex-start;box-shadow:0 1px 4px rgba(30,49,97,.08)}
+.step-num{width:38px;height:38px;flex:none;border-radius:50%;background:#1E3161;color:#EFC75A;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center}
+.step-grid p{margin:0}
 </style>
 </head>
 <body>
@@ -49,7 +55,7 @@
 </div>
 </section>
 
-<section class="mb-section mb-section-cream">
+<section class="mb-section mb-section-cream tight">
 <div class="mb-wrap">
 <h2 class="mb-h2">At a glance</h2>
 <ul class="glance">
@@ -64,7 +70,7 @@
 </div>
 </section>
 
-<section class="mb-section">
+<section class="mb-section tight">
 <div class="mb-wrap">
 <h2 class="mb-h2">The clubs</h2>
 <div class="mb-grid">
@@ -143,7 +149,7 @@
 </div>
 </section>
 
-<section class="mb-section">
+<section class="mb-section tight">
 <div class="mb-wrap">
 <div class="price-band">
 <div><p style="font-size:20px;font-weight:700;margin:0 0 6px">Bring clubs to your school</p>
@@ -153,14 +159,14 @@
 </div>
 </section>
 
-<section class="mb-section mb-section-cream">
+<section class="mb-section mb-section-cream tight">
 <div class="mb-wrap">
 <h2 class="mb-h2">How it works</h2>
-<ol class="mb-steps">
-<li>Tell us which clubs you want, which grades and which days, and we build the schedule around your dismissal time.</li>
-<li>We handle instructors, materials and supplies.</li>
-<li>A minimum of six students is needed to run a club. If the minimum is not met, the club simply does not run.</li>
-<li>Clubs can be tailored. If your school needs something not listed here, ask.</li>
+<ol class="step-grid">
+<li><span class="step-num">1</span><p>Tell us which clubs you want, which grades and which days, and we build the schedule around your dismissal time.</p></li>
+<li><span class="step-num">2</span><p>We handle instructors, materials and supplies.</p></li>
+<li><span class="step-num">3</span><p>A minimum of six students is needed to run a club. If the minimum is not met, the club simply does not run.</p></li>
+<li><span class="step-num">4</span><p>Clubs can be tailored. If your school needs something not listed here, ask.</p></li>
 </ol>
 <div class="mb-cta"><a class="mb-btn mb-btn-gold" href="/contact.html">Contact us about clubs</a></div>
 </div>
