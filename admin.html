@@ -10463,8 +10463,6 @@ function openWrapup(sessId){
 
       return rows.join('');
     })()}
-    ${chk('wu-instr-followup',jdi.instrFollowupSent,false,`toggleWrapField('${sessId}','instrFollowupSent',this.checked)`)}<span style="font-weight:500;font-size:16px">Sent instructor follow-up email</span><div style="font-size:14px;color:var(--muted);margin-top:3px">Thank-you and payment confirmation to the instructor who taught this session</div><div style="margin-top:8px"><button class="btn sm primary" onclick="openInstructorFollowup('${sessId}')">📧 Open instructor follow-up email</button></div></label></div>
-    ${fair?'':chk('wu-eval',jdi.evalSentToHost,false,`toggleWrapField('${sessId}','evalSentToHost',this.checked)`)+'<span style="font-weight:500;font-size:16px">Sent course evaluation to host</span></label></div>'}
   </div>
   <div class="modal-foot"><button class="btn primary" onclick="closeModal()">Done</button></div>`);
 }
