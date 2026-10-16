@@ -348,7 +348,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     <div class="tab" onclick="showTab('open',this)">Open jobs</div>
     <div class="tab" onclick="showTab('myjobs',this)">My jobs</div>
     <div class="tab" id="tab-btn-partner" style="display:none" onclick="showTab('partner',this)">Partnerships</div>
-    <div class="tab" onclick="showTab('guide',this)">FAQs &amp; resources</div>
+    <div class="tab" onclick="showTab('guide',this)">Instructor Guide</div>
     <div class="tab" onclick="showTab('account',this)">My account</div>
   </div>
   <main>
@@ -400,8 +400,8 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
       </div>
     </div>
     <div class="screen" id="tab-guide">
-      <div class="section-title">FAQs &amp; resources</div>
-      <div class="section-sub">Teaching notes and course folders. <span title="FAQs cover preparing, materials, pacing, equipment, virtual classes, and badges. The resource center holds presentations, manuals, and printables.">?</span></div>
+      <div class="section-title">Instructor Guide</div>
+      <div class="section-sub">Teaching notes, class sizes, and course folders. <span title="FAQs cover preparing, materials, pacing, equipment, virtual classes, and badges. The resource center holds presentations, manuals, and printables.">?</span></div>
       <div id="guide-content"></div>
       <div id="materials-content" style="margin-top:18px"></div>
     </div>
@@ -489,7 +489,7 @@ if(typeof COURSES==='undefined'){
     'All Kids Welcome':{hours:1.5, maxStudents:20, instrFlatFee:75, virtual:true},
     'Stay Ready: Choking Rescue and CPR':{hours:1.25, maxStudents:12, requiresRN:true},
     'Campus Ready: Safety Skills for College Life':{hours:1, maxStudents:12, instrFlatFee:100, requiresRN:true},
-    'Steady and Ready':{hours:70/60, maxStudents:8},
+    'Steady and Ready':{hours:1, maxStudents:8},
     'My First Babysitters Club':{hours:1, maxStudents:12},
     'My First Babysitters Club — Single Session':{hours:2.5, maxStudents:12},
     'Ready. Period.':{hours:1.5, maxStudents:18, requiresRN:true},
@@ -885,7 +885,7 @@ function fitChecksHTML(s,idx){
   }
   const hist=myHistory(s);
   if(hist.course>0)rows.push({t:'good',ic:'✓',x:`You have taught <strong>${escapeHtml(s.course)}</strong> ${hist.course} time${hist.course!==1?'s':''} before`});
-  else rows.push({t:'info',ic:'📘',x:`First time teaching <strong>${escapeHtml(s.course)}</strong> — see the Instructor FAQs tab to prepare`});
+  else rows.push({t:'info',ic:'📘',x:`First time teaching <strong>${escapeHtml(s.course)}</strong> — see the Instructor Guide tab to prepare`});
   if(hist.venue>0)rows.push({t:'good',ic:'📍',x:`You have taught at <strong>${escapeHtml(s.location)}</strong> before — you know the drill`});
   const en=enrollment(s);
   if(!s.isCustomJob&&en.cap){
@@ -3447,15 +3447,27 @@ const FAQ_SECTIONS=[
     ['Pay increases.','Hourly rate increases are merit-based and at the sole discretion of Mindful Beginnings LLC, based on the number of courses taught and feedback from participant and parent evaluations. All increases are communicated in writing.'],
     ['Questions?','Contact Lindsay \u00b7 703-987-5979 \u00b7 lindsay@mindfulbeginnings.org']
   ]}
+]},
+{title:'10. After School Clubs',blocks:[
+  {sub:'How clubs run',items:[
+    ['Ten clubs, grades K\u20135.','My First Babysitter\u2019s Club, Little Medics, Pet Sitter\u2019s Club, Snack Squad, Kid Boss Club, Middle School Here I Come, Big Sibling Club, My First Phone, Walk and Roll Ready, and Calm and Ready.'],
+    ['Schedule.','One hour a week after dismissal, for an 8- or 10-week session. More than one club can run at the same time in different rooms.'],
+    ['Group size.','8\u201316 children per club. A minimum of 6 students is needed to run a club \u2014 if the minimum is not met, the club does not run.'],
+    ['Staffing.','Clubs are taught by certified teachers and registered nurses.'],
+    ['What we bring.','Everything: the instructor, materials, props, handbooks, and take-home pages.'],
+    ['What the school provides.','A classroom, dismissal of students to the instructor, and a pickup plan.'],
+    ['Also in Spanish.','Every club is also offered in Spanish.'],
+    ['Pricing.','$200 per participant. My First Babysitter\u2019s Club 8-week series is $165.']
+  ]}
 ]}
 ];
 
 function renderGuide(){
   const el=document.getElementById('guide-content');
   let html=`<div class="info-card">
-    <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Mindful Beginnings instructor FAQs</div>
+    <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px">Mindful Beginnings Instructor Guide</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Everything below lives here in the portal now. Please review before your first session.</div>
-    <input id="faq-search" type="search" placeholder="Search FAQs\u2026" oninput="filterFaq(this.value)" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:14px" />
+    <input id="faq-search" type="search" placeholder="Search the guide\u2026" oninput="filterFaq(this.value)" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:14px" />
     <div id="faq-list">`;
   FAQ_SECTIONS.forEach(function(sec,si){
     html+=`<details class="mb-faq" data-sec="${si}" open><summary>${escapeHtml(sec.title)}</summary><div class="mb-faq-body">`;
