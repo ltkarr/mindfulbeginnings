@@ -11169,7 +11169,7 @@ function openPostCourseEmail(sessId){
     emails:emails,
     field:'bcc',
     body:draft.body,
-    note:'This is the after-class letter for families. Attach Letter-to-Parents_English-and-Spanish.pdf before sending. Copy the letter and the BCC list into your own email. Addresses are separated with semicolons.'
+    note:'This is the after-class letter for families. '+(draft.attachment?'Attach '+draft.attachment+' before sending. ':'')+'Copy the letter and the BCC list into your own email. Addresses are separated with semicolons.'
   });
 }
 

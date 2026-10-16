@@ -202,3 +202,14 @@ test('ADMIN copy window is the send path and does not put a body in a mail link'
   assert.doesNotMatch(admin, /three small things/);
   assert.doesNotMatch(admin, /gmail\.com\/mail\/\?view=cm&fs=1&bcc=[^'"]*&body=/);
 });
+
+test('Safe@Home post-course letter is Lindsay\'s Safe@Home letter, no attachment', () => {
+  const draft = emails.draft('postCourse', sample({ course: 'Safe@Home' }));
+  assert.equal(draft.field, 'bcc');
+  assert.equal(draft.subject, 'Congratulations on completing Safe@Home!');
+  assert.match(draft.body, /^Dear Parent or Guardian,/);
+  assert.match(draft.body, /completing the Safe@Home program/);
+  assert.match(draft.body, /\(https:\/\/mindfulbeginnings\.org\/register\)/);
+  assert.doesNotMatch(draft.body, /google\.com\/search|Safety Signal/);
+  assert.equal(draft.attachment, '');
+});
