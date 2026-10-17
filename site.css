@@ -169,7 +169,7 @@ p:last-child{margin-bottom:0}
 .mb-reviews-ticker .mb-ticker-track{font-weight:400;font-size:15px}
 .mb-review .mb-stars{color:var(--btn-gold);font-size:15px;letter-spacing:2px}
 .mb-review .mb-reviewer{font-weight:700;color:var(--btn-gold)}
-.mb-ticker-track{display:inline-block;white-space:nowrap;animation:mb-ticker 26s linear infinite;font-weight:800;font-size:17px;letter-spacing:.02em}
+.mb-ticker-track{display:inline-block;white-space:nowrap;animation:mb-ticker 60s linear infinite;font-weight:800;font-size:17px;letter-spacing:.02em}
 .mb-ticker-track .mb-tick-script{font-family:'Caveat',cursive;font-size:22px;font-weight:700;padding:0 6px}
 @keyframes mb-ticker{to{transform:translateX(-50%)}}
 @media (prefers-reduced-motion:reduce){.mb-ticker-track{animation:none}}
