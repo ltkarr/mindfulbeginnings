@@ -157,11 +157,7 @@ p:last-child{margin-bottom:0}
 .mb-goldbar{width:72px;height:8px;background:var(--gold);border-radius:4px}
 
 /* ---------- vibe: Columbia Mom energy, Mindful Beginnings brand ---------- */
-.mb-hl{
-  background-image:linear-gradient(104deg, rgba(239,199,90,0) .5%, rgba(239,199,90,.92) 4%, rgba(239,199,90,.92) 96%, rgba(239,199,90,0) 99.5%);
-  background-repeat:no-repeat;background-size:100% .58em;background-position:0 84%;
-  padding:0 .1em;box-decoration-break:clone;-webkit-box-decoration-break:clone;
-}
+.mb-hl{background:none;padding:0}
 .mb-h2-script{font-family:'Caveat',cursive;font-weight:700;color:var(--navy)}
 .mb-section-navy .mb-h2-script{color:var(--btn-gold)}
 .mb-ticker{background:var(--btn-gold);color:var(--navy);overflow:hidden;white-space:nowrap;padding:13px 0;border-top:2px solid var(--navy);border-bottom:2px solid var(--navy)}
