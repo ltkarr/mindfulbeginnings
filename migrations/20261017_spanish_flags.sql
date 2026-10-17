@@ -14,6 +14,11 @@
 --       instructor portal can read the flag even if the deployed
 --       instructor_login predates the column (same shape as
 --       instructor_is_rn / instructor_lead_teacher).
+--    4. Adds sessions.host_address to instructor_list_sessions so the Open
+--       Jobs board can show the full street address before acceptance.
+--       (Lindsay 2026-10-17: instructors will not accept a job without
+--       knowing exactly where it is. Host cell, day-of contact, and WiFi
+--       stay behind the post-acceptance private RPC.)
 --
 --  SAFE TO RE-RUN: yes. Columns, function, and grants are idempotent.
 -- ============================================================================
@@ -81,7 +86,7 @@ begin
            is_custom_job, is_virtual, is_hold, is_cancelled, cancel_reason,
            allow_waitlist, extra_dates, is_recurring, recur_pattern, recur_end_date,
            extra_days, closures, instructor_info, requires_rn, requires_safe_sitter,
-           requires_spanish
+           requires_spanish, host_address
     from public.sessions
   ) x;
 end;

@@ -988,7 +988,8 @@ function locationHTML(s,showPrivate,priv,mapLink){
     lines.push(`<div style="font-size:14px;color:var(--muted)">You can teach this one from home. ${showPrivate?'The Zoom link is emailed to you and to registered families before the first class.':'The Zoom link is sent to you once you accept.'}</div>`);
   }else{
     lines.push(`<div style="font-weight:500">${escapeHtml(s.location||'Location TBD')}</div>`);
-    if(showPrivate&&priv&&priv.hostAddress)lines.push(`<div>${escapeHtml(priv.hostAddress)}${mapLink||''}</div>`);
+    const streetAddr=(showPrivate&&priv&&priv.hostAddress)||(!showPrivate&&s.hostAddress)||'';
+    if(streetAddr)lines.push(`<div>${escapeHtml(streetAddr)}${mapLink||''}</div>`);
     if(cityLine.trim())lines.push(`<div>${escapeHtml(cityLine.trim())}</div>`);
     if(showPrivate){
       if(priv&&priv.hostPhone)lines.push(`<div style="margin-top:6px;font-size:14px"><span style="color:var(--muted)">Host cell:</span> ${escapeHtml(priv.hostPhone)}</div>`);
@@ -997,7 +998,7 @@ function locationHTML(s,showPrivate,priv,mapLink){
       if(priv===undefined)lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">Loading site details…</div>`);
       else if(!priv||(!priv.hostAddress&&!priv.hostPhone))lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">No street address or host contact on file yet — text Lindsay at 703-987-5979 if you need it.</div>`);
     }else{
-      lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">📍 The exact street address, host cell and WiFi are shared as soon as you accept this job.${mapLink||''}</div>`);
+      lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">📍 The host's cell number and WiFi are shared as soon as you accept this job.</div>`);
     }
   }
   return`<div class="jc-section"><div class="jc-section-t">${s.isVirtual?'Format':'Where'}</div><div style="font-size:13px;line-height:1.7">${lines.join('')}</div></div>`;
@@ -1366,6 +1367,7 @@ async function loadData(){
       if('requires_rn' in f)x.requiresRN=!!f.requires_rn;
       if('requires_safe_sitter' in f)x.requiresSS=!!f.requires_safe_sitter;
       if('requires_spanish' in f)x.requiresSpanish=!!f.requires_spanish;
+      if('host_address' in f)x.hostAddress=f.host_address||'';
       if('is_cancelled' in f)x.isCancelled=!!f.is_cancelled;
       if('cancel_reason' in f)x.cancelReason=f.cancel_reason||'';
     });
