@@ -78,7 +78,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 
 /* ---------- layout helpers ---------- */
 .mb-wrap{max-width:1080px;margin:0 auto;padding:0 6vw}
-.mb-section{padding:72px 6vw}
+.mb-section{padding:56px 6vw}
 .mb-section-cream{background:var(--cream)}
 .mb-section-white{background:var(--white)}
 .mb-section-navy{background:var(--navy);color:var(--cream)}
@@ -165,7 +165,7 @@ p:last-child{margin-bottom:0}
 .mb-reviews-ticker .mb-ticker-track{font-weight:400;font-size:15px}
 .mb-review .mb-stars{color:var(--btn-gold);font-size:15px;letter-spacing:2px}
 .mb-review .mb-reviewer{font-weight:700;color:var(--btn-gold)}
-.mb-ticker-track{display:inline-block;white-space:nowrap;animation:mb-ticker 60s linear infinite;font-weight:800;font-size:17px;letter-spacing:.02em}
+.mb-ticker-track{display:inline-block;white-space:nowrap;animation:mb-ticker 90s linear infinite;font-weight:800;font-size:17px;letter-spacing:.02em}
 .mb-ticker-track .mb-tick-script{font-family:'Caveat',cursive;font-size:22px;font-weight:700;padding:0 6px}
 @keyframes mb-ticker{to{transform:translateX(-50%)}}
 @media (prefers-reduced-motion:reduce){.mb-ticker-track{animation:none}}
@@ -216,7 +216,7 @@ p:last-child{margin-bottom:0}
   .mb-header{padding:12px 5vw}
   .mb-wordmark{font-size:17px}
   .mb-hero{padding:40px 6vw 44px}
-  .mb-section{padding:52px 6vw}
+  .mb-section{padding:36px 6vw}
 }
 
 .mb-social{position:absolute;right:0;bottom:0;display:inline-flex;gap:14px}
