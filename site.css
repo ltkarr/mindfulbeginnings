@@ -165,6 +165,10 @@ p:last-child{margin-bottom:0}
 .mb-h2-script{font-family:'Caveat',cursive;font-weight:700;color:var(--navy)}
 .mb-section-navy .mb-h2-script{color:var(--btn-gold)}
 .mb-ticker{background:var(--btn-gold);color:var(--navy);overflow:hidden;white-space:nowrap;padding:13px 0;border-top:2px solid var(--navy);border-bottom:2px solid var(--navy)}
+.mb-reviews-ticker{background:var(--navy);color:#fff;overflow:hidden;white-space:nowrap;padding:14px 0;border-top:3px solid var(--btn-gold);border-bottom:3px solid var(--btn-gold)}
+.mb-reviews-ticker .mb-ticker-track{font-weight:400;font-size:15px}
+.mb-review .mb-stars{color:var(--btn-gold);font-size:15px;letter-spacing:2px}
+.mb-review .mb-reviewer{font-weight:700;color:var(--btn-gold)}
 .mb-ticker-track{display:inline-block;white-space:nowrap;animation:mb-ticker 26s linear infinite;font-weight:800;font-size:17px;letter-spacing:.02em}
 .mb-ticker-track .mb-tick-script{font-family:'Caveat',cursive;font-size:22px;font-weight:700;padding:0 6px}
 @keyframes mb-ticker{to{transform:translateX(-50%)}}
