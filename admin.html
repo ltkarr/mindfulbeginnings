@@ -37,6 +37,7 @@ window.MB_ADMIN_BUILD='20261015-org-registration';
 <script src="/js/course-booking.js"></script>
 <script src="/js/course-overviews.js"></script>
 <script src="/js/admin-ops-emails.js"></script>
+<script src="/js/post-course-emails.js"></script>
 <script src="/js/class-requests.js"></script>
 <script src="/js/class-requests-admin.js"></script>
 <script src="/js/invoice-payments.js"></script>
@@ -508,6 +509,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="nav-item" title="Registrations" onclick="showScreen('registrations',this)"><span class="nav-icon">◻</span> <span class="nav-label">Registrations</span></div>
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
       <div class="nav-item" title="Invoices" onclick="showScreen('invoices',this)"><span class="nav-icon">🧾</span> <span class="nav-label">Invoices</span></div>
+      <div class="nav-item" title="Evaluations" onclick="showScreen('evaluations',this)"><span class="nav-icon">★</span> <span class="nav-label">Evaluations</span></div>
       <div class="nav-item" title="Instructors" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> <span class="nav-label">Instructors</span></div>
       <div class="nav-item" id="nav-more" title="More" onclick="showScreen('more',this)"><span class="nav-icon">⋯</span> <span class="nav-label">More</span></div>
       <div id="nav-orgpartners" hidden></div>
@@ -659,6 +661,21 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div id="invoice-alerts"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="invoices-table"></table></div></div>
+    </div>
+
+    <div class="screen" id="screen-evaluations">
+      <div class="page-header">
+        <div><div class="page-title">Evaluations</div><div class="page-sub">Family feedback from the program evaluation form</div></div>
+      </div>
+      <div id="eval-stats" class="stat-row" style="margin-bottom:12px"></div>
+      <div class="filter-row" style="margin-bottom:12px">
+        <select id="ev-course" onchange="renderEvaluations()"><option value="">All courses</option></select>
+        <select id="ev-instructor" onchange="renderEvaluations()"><option value="">All instructors</option></select>
+        <input type="date" id="ev-from" onchange="renderEvaluations()" title="From date">
+        <input type="date" id="ev-to" onchange="renderEvaluations()" title="To date">
+        <button class="btn sm" onclick="clearEvalFilters()">Clear</button>
+      </div>
+      <div class="card" style="padding:0"><div class="tbl-wrap"><table id="evaluations-table"></table></div></div>
     </div>
 
     <div class="screen" id="screen-instructors">
@@ -5045,6 +5062,7 @@ function showScreen(name,el){
   if(name==='registrations')renderRegs();
   if(name==='finances'){renderFinances();renderExpenses();}
   if(name==='invoices'&&typeof renderInvoices==='function')renderInvoices();
+  if(name==='evaluations'&&typeof renderEvaluations==='function')renderEvaluations();
   if(name==='codes')renderCodes();
   if(name==='instructors')renderInstructors();
   if(name==='partners')renderPartners();
@@ -10835,10 +10853,11 @@ function openDocEmail(opts){
       extraHtml:p.extraHtml||'',
       copyExtra:p.copyExtra||'',
       copyExtraLabel:p.copyExtraLabel||'Copy details',
-      hasRoster:!!p.hasRoster
+      hasRoster:!!p.hasRoster,
+      richHtml:p.richHtml||''
     };
   });
-  const data=panes.map(p=>({docUrl:p.docUrl,outlook:p.outlook,gmail:p.gmail,mailto:p.mailto,listText:p.emails.join('; '),subject:p.subject,body:p.body,filled:p.filled,copyExtra:p.copyExtra,copyExtraLabel:p.copyExtraLabel,field:p.field,hasRoster:p.hasRoster}));
+  const data=panes.map(p=>({docUrl:p.docUrl,outlook:p.outlook,gmail:p.gmail,mailto:p.mailto,listText:p.emails.join('; '),subject:p.subject,body:p.body,filled:p.filled,copyExtra:p.copyExtra,copyExtraLabel:p.copyExtraLabel,field:p.field,hasRoster:p.hasRoster,richHtml:p.richHtml}));
   const panesJson=JSON.stringify(data).replace(/</g,'\\u003c');
   const tabBtns=panes.length>1?panes.map((p,i)=>'<button type="button" class="tab'+(i===0?' on':'')+'" onclick="showPane('+i+')">'+esc(p.label)+'</button>').join(''):'';
   const paneHtml=panes.map((p,i)=>{
@@ -10850,8 +10869,11 @@ function openDocEmail(opts){
     const subjectHtml=p.filled
       ?'<div class="subject-line"><label>Subject</label><input class="subj-input" value="'+esc(p.subject)+'"></div>'
       :'<div class="subject-line"><span style="color:#6b7a99">Subject:</span> <strong>'+esc(p.subject)+'</strong></div>';
-    const messageHtml=p.filled
-      ?'<div class="section-label">Message</div><textarea class="email-body">'+esc(p.body).replace(/<\/textarea/ig,'&lt;/textarea')+'</textarea>'
+    const richPreview=p.richHtml
+      ?'<div class="section-label">Formatted message — links embedded</div><div class="rich-preview">'+safeHtml(p.richHtml)+'</div>'
+      :'';
+const messageHtml=p.filled
+      ?richPreview+'<div class="section-label">Plain-text message</div><textarea class="email-body">'+esc(p.body).replace(/<\/textarea/ig,'&lt;/textarea')+'</textarea>'
       :'';
     return '<div class="pane'+(i===0?'':' hidden')+'" id="pane-'+i+'"><h2>'+esc(p.category)+'</h2>'+(p.sessionLine?'<div class="sub">'+esc(p.sessionLine)+'</div>':'')+'<div class="note">'+esc(p.note)+' Nothing is sent from this screen.</div><div class="bcc-box"><strong>'+p.emails.length+' recipient'+(p.emails.length!==1?'s':'')+' — '+who+semiHint+'</strong>'+addrHtml+'</div>'+subjectHtml+messageHtml+safeHtml(p.extraHtml)+'</div>';
   }).join('');
@@ -10877,6 +10899,9 @@ function openDocEmail(opts){
     '.bcc-box{background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:15px;color:#1a5c8a}',
     '.bcc-box strong{display:block;margin-bottom:4px;font-size:13px;letter-spacing:.6px;text-transform:uppercase}',
     '.bcc-addr{word-break:break-all;line-height:1.8;color:#27496b}',
+    '.rich-preview{background:#fff;border:1px solid #b8d8ee;border-radius:8px;padding:16px 18px;margin-bottom:16px;font-size:15.5px;line-height:1.65;color:#1a2744}',
+    '.rich-preview p{margin:0 0 12px}',
+    '.rich-preview a{color:#1a5c8a;font-weight:600}',
     '.semi-hint{font-weight:500;text-transform:none;letter-spacing:0;color:#4a7394;font-size:13px}',
     '.bcc-edit{width:100%;min-height:72px;border:none;background:transparent;font:inherit;color:#27496b;resize:vertical;outline:none;line-height:1.6}',
     '.subject-line{background:white;border:1px solid #dde4ee;border-radius:8px;padding:10px 16px;font-size:16px;margin-bottom:8px}',
@@ -10898,6 +10923,7 @@ function openDocEmail(opts){
     '</style></head><body>',
     '<div class="toolbar">',tabBtns,
     '<button class="b-doc" id="copy-body" style="display:none" onclick="copyBody()">Copy email</button>',
+    '<button class="b-doc" id="copy-rich" style="display:none" onclick="copyRich()">Copy formatted email</button>',
     '<button class="b-bcc" id="copy-list" onclick="copyList()">',esc(first.field==='to'?'Copy To':'Copy BCC'),'</button>',
     '<button class="b-extra" id="copy-subject" style="display:none" onclick="copySubject()">Copy subject</button>',
     '<button class="b-doc" id="open-doc" onclick="openDoc()">Open this Google Doc</button>',
@@ -10911,12 +10937,13 @@ function openDocEmail(opts){
     '<script>',
     'const PANES=',panesJson,';',
     'let active=0;',
-    'function showPane(n){active=n;document.querySelectorAll(".pane").forEach((el,i)=>{el.className="pane"+(i===n?"":" hidden");});document.querySelectorAll(".tab").forEach((el,i)=>{el.className="tab"+(i===n?" on":"");});const p=PANES[n];const copyBtn=document.getElementById("copy-list");if(copyBtn)copyBtn.textContent=p.field==="to"?"Copy To":"Copy BCC";const extraBtn=document.getElementById("copy-extra");if(extraBtn){extraBtn.style.display=p.copyExtra?"":"none";extraBtn.textContent=p.copyExtraLabel||"Copy details";}const rosterBtn=document.getElementById("print-roster");if(rosterBtn)rosterBtn.style.display=p.hasRoster?"":"none";const bodyBtn=document.getElementById("copy-body");if(bodyBtn)bodyBtn.style.display=p.filled?"":"none";const subBtn=document.getElementById("copy-subject");if(subBtn)subBtn.style.display=p.filled?"":"none";const docBtn=document.getElementById("open-doc");if(docBtn){docBtn.textContent=p.filled?"Open template":"Open this Google Doc";docBtn.className=p.filled?"b-gmail":"b-doc";}document.querySelectorAll(".mail-link").forEach((el)=>{el.style.display=p.filled?"none":"";});}',
+    'function showPane(n){active=n;document.querySelectorAll(".pane").forEach((el,i)=>{el.className="pane"+(i===n?"":" hidden");});document.querySelectorAll(".tab").forEach((el,i)=>{el.className="tab"+(i===n?" on":"");});const p=PANES[n];const copyBtn=document.getElementById("copy-list");if(copyBtn)copyBtn.textContent=p.field==="to"?"Copy To":"Copy BCC";const extraBtn=document.getElementById("copy-extra");if(extraBtn){extraBtn.style.display=p.copyExtra?"":"none";extraBtn.textContent=p.copyExtraLabel||"Copy details";}const rosterBtn=document.getElementById("print-roster");if(rosterBtn)rosterBtn.style.display=p.hasRoster?"":"none";const bodyBtn=document.getElementById("copy-body");if(bodyBtn)bodyBtn.style.display=p.filled?"":"none";const richBtn=document.getElementById("copy-rich");if(richBtn)richBtn.style.display=p.richHtml?"":"none";const subBtn=document.getElementById("copy-subject");if(subBtn)subBtn.style.display=p.filled?"":"none";const docBtn=document.getElementById("open-doc");if(docBtn){docBtn.textContent=p.filled?"Open template":"Open this Google Doc";docBtn.className=p.filled?"b-gmail":"b-doc";}document.querySelectorAll(".mail-link").forEach((el)=>{el.style.display=p.filled?"none":"";});}',
     'function openDoc(){window.open(PANES[active].docUrl,"_blank","noopener,noreferrer,width=1100,height=800");}',
     'function openOutlook(){window.open(PANES[active].outlook,"_blank");}',
     'function openGmail(){window.open(PANES[active].gmail,"_blank");}',
     'function openMail(){window.location.href=PANES[active].mailto;}',
     'function copyList(){const p=PANES[active];const pane=document.getElementById("pane-"+active);const box=pane&&pane.querySelector(".bcc-edit");const t=box?box.value:(p.listText||"");navigator.clipboard.writeText(t).then(()=>alert((p.field==="to"?"To":"BCC")+" addresses copied. They are separated with semicolons.")).catch(()=>{if(box){box.focus();box.select();}alert("Could not copy automatically — select the list and copy it.");});}',
+    'function copyRich(){const p=PANES[active];const html=p.richHtml||"";if(!html)return;const plain=p.body||"";const done=function(){alert("Formatted email copied with links. Paste it into your message.")};const fail=function(){alert("Could not copy automatically — select the formatted message above and copy it.")};try{if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){const item=new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([plain],{type:"text/plain"})});navigator.clipboard.write([item]).then(done).catch(fail);}else{fail();}}catch(e){fail();}}',
     'function copyBody(){const pane=document.getElementById("pane-"+active);const ta=pane&&pane.querySelector(".email-body");const t=ta?ta.value:(PANES[active].body||"");navigator.clipboard.writeText(t).then(()=>alert("Email copied. Paste it into your own message.")).catch(()=>{if(ta){ta.focus();ta.select();}alert("Could not copy automatically — the message is selected so you can copy it.");});}',
     'function copySubject(){const pane=document.getElementById("pane-"+active);const inp=pane&&pane.querySelector(".subj-input");const t=inp?inp.value:(PANES[active].subject||"");navigator.clipboard.writeText(t).then(()=>alert("Subject copied.")).catch(()=>{if(inp){inp.focus();inp.select();}alert("Could not copy automatically — the subject is selected so you can copy it.");});}',
     'function copyExtra(){const t=PANES[active].copyExtra||"";if(!t)return;navigator.clipboard.writeText(t).then(()=>alert("Copied.")).catch(()=>alert("Could not copy automatically — select the details and copy them."));}',
@@ -11284,7 +11311,8 @@ function openPostCourseEmail(sessId){
     emails:emails,
     field:'bcc',
     body:draft.body,
-    note:'This is the after-class letter for families. Attach Letter-to-Parents_English-and-Spanish.pdf before sending. Copy the letter and the BCC list into your own email. Addresses are separated with semicolons.'
+    richHtml:draft.bodyHtml||'',
+    note:'This is the after-class email for families. Copy the message and the BCC list into your own email. Addresses are separated with semicolons.'
   });
 }
 
@@ -14806,6 +14834,100 @@ const INV_STATUS_PILL={
   sent:'<span style="background:#e3eef7;color:#1a5c8a;padding:2px 10px;border-radius:100px;font-size:14px;font-weight:600">Sent</span>',
   paid:'<span style="background:#e2efe7;color:#2d7a5e;padding:2px 10px;border-radius:100px;font-size:14px;font-weight:600">✓ Paid</span>'
 };
+// ─── COURSE EVALUATIONS ──────────────────────────────────────────────
+// Family feedback from the hidden course-evaluation.html page.
+// Reads public.course_evaluations (authenticated RLS policy; the migration
+// is migrations/20261016_course_evaluations.sql).
+let evalCache=[];
+async function loadEvaluations(){
+  if(!sb)return[];
+  try{
+    const {data,error}=await sb.from('course_evaluations').select('*').order('created_at',{ascending:false});
+    if(error)throw error;
+    evalCache=data||[];
+  }catch(e){console.warn('Evaluations load failed:',e);evalCache=[];}
+  return evalCache;
+}
+function clearEvalFilters(){
+  document.getElementById('ev-course').value='';
+  document.getElementById('ev-instructor').value='';
+  document.getElementById('ev-from').value='';
+  document.getElementById('ev-to').value='';
+  renderEvaluations();
+}
+function evalAvg(rows,key){
+  const vs=rows.map(r=>Number(r[key])).filter(n=>n>=1&&n<=5);
+  if(!vs.length)return null;
+  return vs.reduce((a,b)=>a+b,0)/vs.length;
+}
+async function renderEvaluations(){
+  const rows=await loadEvaluations();
+  // Filter dropdowns from data
+  const courseSel=document.getElementById('ev-course');
+  const instrSel=document.getElementById('ev-instructor');
+  const courses=[...new Set(rows.map(r=>r.course).filter(Boolean))].sort();
+  const instrs=[...new Set(rows.map(r=>r.instructor).filter(Boolean))].sort();
+  const keepC=courseSel.value,keepI=instrSel.value;
+  courseSel.innerHTML='<option value="">All courses</option>'+courses.map(c=>'<option>'+escapeHtml(c)+'</option>').join('');
+  instrSel.innerHTML='<option value="">All instructors</option>'+instrs.map(c=>'<option>'+escapeHtml(c)+'</option>').join('');
+  if(courses.includes(keepC))courseSel.value=keepC;
+  if(instrs.includes(keepI))instrSel.value=keepI;
+  const fc=courseSel.value,fi=instrSel.value;
+  const from=document.getElementById('ev-from').value,to=document.getElementById('ev-to').value;
+  const list=rows.filter(r=>{
+    if(fc&&r.course!==fc)return false;
+    if(fi&&r.instructor!==fi)return false;
+    const d=(r.created_at||'').slice(0,10);
+    if(from&&d<from)return false;
+    if(to&&d>to)return false;
+    return true;
+  });
+  // Stats
+  const avg=(k)=>{const v=evalAvg(list,k);return v==null?'—':v.toFixed(1)+' ★';};
+  const rec=list.filter(r=>Number(r.recommend_likelihood)>=4).length;
+  document.getElementById('eval-stats').innerHTML=
+    '<div class="instr-stats">'+
+    '<div class="instr-stat"><b>'+list.length+'</b><span>responses</span></div>'+
+    '<div class="instr-stat"><b>'+avg('registration_ease')+'</b><span>registration ease</span></div>'+
+    '<div class="instr-stat"><b>'+avg('instructor_engagement')+'</b><span>instructor engagement</span></div>'+
+    '<div class="instr-stat"><b>'+avg('safe_environment')+'</b><span>safe environment</span></div>'+
+    '<div class="instr-stat"><b>'+avg('recommend_likelihood')+'</b><span>likely to recommend</span></div>'+
+    '<div class="instr-stat"><b>'+(list.length?Math.round(rec/list.length*100)+'%':'—')+'</b><span>would recommend (4-5)</span></div>'+
+    '</div>';
+  // Table
+  const t=document.getElementById('evaluations-table');
+  if(!list.length){
+    t.innerHTML='<tr><td style="padding:24px;color:var(--muted)">No evaluations yet. Families submit them from the hidden program evaluation page linked in post-course emails.</td></tr>';
+    return;
+  }
+  const yn=v=>v===true?'<span style="color:var(--success)">Yes</span>':v===false?'<span style="color:var(--danger)">No</span>':'<span style="color:var(--muted)">—</span>';
+  const stars=v=>(v>=1&&v<=5)?'<b>'+v+'</b> <span style="color:#C7A24A">★</span>':'<span style="color:var(--muted)">—</span>';
+  t.innerHTML='<thead><tr><th>Submitted</th><th>Course</th><th>Instructor</th><th>Class date</th><th>Info clear</th><th>On time</th><th>Reg.</th><th>Engage</th><th>Safe</th><th>Recommend</th><th>Best part</th><th>Improve</th><th></th></tr></thead><tbody>'+
+    list.map(r=>'<tr>'+
+      '<td style="white-space:nowrap">'+escapeHtml((r.created_at||'').slice(0,10))+'</td>'+
+      '<td>'+escapeHtml(r.course||'')+'</td>'+
+      '<td>'+escapeHtml(r.instructor||'')+'</td>'+
+      '<td style="white-space:nowrap">'+escapeHtml(r.session_date||'—')+'</td>'+
+      '<td>'+yn(r.info_clear)+'</td>'+
+      '<td>'+yn(r.ready_on_time)+'</td>'+
+      '<td>'+stars(r.registration_ease)+'</td>'+
+      '<td>'+stars(r.instructor_engagement)+'</td>'+
+      '<td>'+stars(r.safe_environment)+'</td>'+
+      '<td>'+stars(r.recommend_likelihood)+'</td>'+
+      '<td style="max-width:220px">'+escapeHtml(r.best_part||'—')+'</td>'+
+      '<td style="max-width:220px">'+escapeHtml(r.improvements||'—')+'</td>'+
+      '<td><button class="btn sm" onclick="deleteEvaluation(\''+r.id+'\')" title="Delete">✕</button></td>'+
+    '</tr>').join('')+'</tbody>';
+}
+async function deleteEvaluation(id){
+  if(!confirm('Delete this evaluation?'))return;
+  try{
+    const {error}=await sb.from('course_evaluations').delete().eq('id',id);
+    if(error)throw error;
+  }catch(e){alert('Could not delete: '+(e.message||e));return;}
+  renderEvaluations();
+}
+
 function renderInvoices(){
   const t=document.getElementById('invoices-table');if(!t)return;
   // "Ready to invoice" alerts

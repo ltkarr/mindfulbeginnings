@@ -6,21 +6,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const emails = require('../js/admin-ops-emails.js');
 const overviews = require('../js/course-overviews.js');
+const postCourse = require('../js/post-course-emails.js');
+globalThis.postCourseDraftFor = postCourse.postCourseDraftFor;
 
 const root = path.join(__dirname, '..');
 const admin = fs.readFileSync(path.join(root, 'admin.html'), 'utf8');
-
-const POST_COURSE = [
-  'Thank you for trusting Mindful Beginnings with your child. We hope they came home feeling confident, capable, and proud of everything they accomplished.',
-  '',
-  'The most important thing your child learned today is the Safety Signal. If you ever receive a text or call that says, "I\'m ready to be picked up now," that is their signal that they feel unsafe. Please go immediately, do not ask questions, and let them explain once they are in the car. This signal works in any situation, not only babysitting.',
-  '',
-  'The course is a meaningful achievement, but it does not automatically mean your child is ready to babysit or stay home alone, so please assess their readiness based on their individual maturity. We ask students to take jobs only with friends, neighbors, and others you or they know personally, and never to advertise online. And a quick conversation after each job gives your child helpful guidance while keeping you informed about what they are experiencing.',
-  '',
-  'If you have a moment, two small things would mean a great deal to us. A Google review (https://g.page/r/Ca2jsWW-MkfvEAE/review) helps other families find us! And our short program evaluation (https://forms.gle/3YkNJiaJyavjvSu49) helps us improve every session.',
-  '',
-  'Thank you again for being part of the Mindful Beginnings community. We are so glad your child is now a certified Safe Sitter!'
-].join('\n');
 
 function sample(over) {
   return Object.assign({
@@ -42,13 +32,26 @@ function sample(over) {
   }, over || {});
 }
 
-test('post-course letter uses the updated Safe Sitter body exactly', () => {
+test('post-course email is per-course with embedded links', () => {
   const draft = emails.draft('postCourse', sample());
   assert.equal(draft.field, 'bcc');
-  assert.equal(draft.subject, 'After Safe Sitter® — Safety Signal & next steps');
-  assert.equal(draft.body, POST_COURSE);
-  assert.doesNotMatch(draft.body, /three small things/);
-  assert.match(draft.body, /two small things would mean a great deal to us/);
+  assert.equal(draft.subject, 'Thank you for a great Safe Sitter class');
+  assert.match(draft.body, /Safety Signal/);
+  assert.match(draft.body, /mindfulbeginnings\.org\/course-evaluation\.html/);
+  assert.doesNotMatch(draft.body, /forms\.gle/);
+  assert.match(draft.bodyHtml, /<a href="https:\/\/mindfulbeginnings\.org\/course-evaluation\.html">program evaluation<\/a>/);
+  assert.match(draft.bodyHtml, /<a href="https:\/\/g\.page\/r\/Ca2jsWW-MkfvEAE\/review">Google review<\/a>/);
+  assert.doesNotMatch(draft.subject + draft.body, /\u2014/);
+});
+
+test('post-course email picks the right draft per course', () => {
+  const cpr = emails.draft('postCourse', sample({ course: 'Adult & Pediatric First Aid/CPR/AED Certification' }));
+  assert.equal(cpr.subject, "You're certified");
+  assert.match(cpr.body, /valid for two years/);
+  const gs = emails.draft('postCourse', sample({ course: 'Girl Scouts \u2014 First Aid Badge Workshop' }));
+  assert.equal(gs.subject, 'Badge work, well done');
+  const virtual = emails.draft('postCourse', sample({ course: 'Safe@Home \u2014 Virtual' }));
+  assert.equal(virtual.subject, 'Your child is Safe@Home ready');
 });
 
 test('host reminder fills the checklist and leaves a meal placeholder', () => {

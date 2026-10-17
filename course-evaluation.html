@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Program Evaluation | Mindful Beginnings</title>
+<meta name="description" content="Tell us how your Mindful Beginnings class went. Your feedback helps us improve every session.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/site.css?v=3">
+<style>
+.eval-wrap{max-width:680px;margin:0 auto}
+.eval-card{background:#fff;border:1px solid #e8e2d2;border-radius:18px;padding:28px 26px;box-shadow:0 6px 24px rgba(30,49,97,.07)}
+.eval-field{margin-bottom:22px}
+.eval-field>label,.eval-legend{display:block;font-weight:700;font-size:15.5px;color:#1E3161;margin-bottom:8px}
+.eval-field .hint{font-weight:400;font-size:13.5px;color:#6b7a99}
+.eval-field select,.eval-field input[type="date"],.eval-field textarea{width:100%;padding:12px 14px;border:1.5px solid #d8d2bd;border-radius:12px;font-family:'Montserrat',sans-serif;font-size:16px;color:#1E3161;background:#fff}
+.eval-field textarea{min-height:110px;resize:vertical}
+.eval-field select:focus,.eval-field input:focus,.eval-field textarea:focus{outline:3px solid #EFC75A;outline-offset:2px;border-color:#1E3161}
+.pill-group{display:flex;flex-wrap:wrap;gap:10px}
+.pill-group input{position:absolute;opacity:0;pointer-events:none}
+.pill{border:2px solid #d8d2bd;border-radius:100px;padding:10px 20px;font-weight:700;font-size:15px;color:#1E3161;cursor:pointer;background:#fff;transition:all .15s}
+.pill:hover{border-color:#1E3161}
+.pill-group input:checked+.pill{background:#1E3161;border-color:#1E3161;color:#fff}
+.pill-group input:focus-visible+.pill{outline:3px solid #EFC75A;outline-offset:2px}
+.rate-group{display:flex;gap:8px}
+.rate-group input{position:absolute;opacity:0;pointer-events:none}
+.rate{width:52px;height:52px;border-radius:50%;border:2px solid #d8d2bd;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#1E3161;cursor:pointer;background:#fff;transition:all .15s}
+.rate:hover{border-color:#1E3161}
+.rate-group input:checked+.rate{background:#EFC75A;border-color:#C7A24A;color:#1E3161}
+.rate-group input:focus-visible+.rate{outline:3px solid #1E3161;outline-offset:2px}
+.rate-labels{display:flex;justify-content:space-between;font-size:12.5px;color:#6b7a99;margin-top:6px;max-width:300px}
+.eval-submit{width:100%;padding:16px;font-size:18px}
+.eval-error{display:none;background:#fdecec;border:1px solid #f0a8a8;color:#9c2b2b;border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:15px}
+.eval-thanks{display:none;text-align:center;padding:40px 20px}
+.eval-thanks h2{font-size:28px;color:#1E3161;margin:0 0 10px}
+.eval-thanks p{font-size:16px;color:#3c4a6b;max-width:440px;margin:0 auto}
+.hp{position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden}
+@media(max-width:640px){.eval-card{padding:22px 18px}.rate{width:46px;height:46px}}
+</style>
+</head>
+<body>
+<header class="mb-header">
+<a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo-navy.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark"><span class="mb-lockup">Mindful <span class="mb-lockup-script">Beginnings</span></span><span class="mb-tagline">Safety and Confidence for All Ages</span></span></a>
+<button class="mb-nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+<nav class="mb-nav" id="primary-nav" aria-label="Primary">
+<a href="/">Home</a>
+<a href="/about">About</a>
+<a href="/classes-catalog">Classes</a>
+<a href="/host-a-class.html">Host a Class</a>
+<a href="/girl-scouts.html">Girl Scouts</a>
+<a href="/after-school-clubs.html">After School Clubs</a>
+<a href="/cpr-certification">CPR Certification</a>
+<a href="/contact.html">Contact</a>
+<a class="mb-btn mb-btn-gold mb-btn-sm" href="/register.html">Register</a>
+</nav>
+</header>
+
+<section class="mb-hero">
+<div class="mb-hero-inner">
+<h1 class="mb-script-title">program evaluation</h1>
+<p class="mb-hero-sub">Tell us how your class went. Your feedback helps us improve every session.</p>
+</div>
+</section>
+
+<section class="mb-section mb-section-white">
+<div class="mb-wrap eval-wrap">
+<div class="eval-card">
+<div class="eval-error" id="eval-error" role="alert"></div>
+<form id="eval-form" novalidate>
+<div class="eval-field">
+<label for="eval-course">Course completed *</label>
+<select id="eval-course" name="course" required>
+<option value="">Choose the course...</option>
+<option>Safe Sitter® Babysitting with CPR Module</option>
+<option>Safe Sitter® Babysitting Essentials</option>
+<option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option>
+<option>Babysitter's Training</option>
+<option>Introduction to Safe Babysitting by Safe Sitter®</option>
+<option>All Kids Welcome™: For Experienced Sitters</option>
+<option>Safe@Home: First Steps to Independence</option>
+<option>Social Ready™</option>
+<option>Steady and Ready™: Inclusive Safety and Readiness</option>
+<option>Stay Ready™: Choking Rescue, CPR, and Seizure Response</option>
+<option>Ready. Period.™</option>
+<option>My First Babysitter's Club™</option>
+<option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option>
+<option>Adult First Aid/CPR/AED</option>
+<option>Group CPR Certification for Workplaces</option>
+<option>Basic Life Support (BLS)</option>
+<option>Baby Ready™</option>
+<option>Baby Ready™ + CPR Certification</option>
+<option>Safe Sitter® Grandparents: Getting Started</option>
+<option>Babysitting Grandkids Workshop</option>
+<option>Care Ready™: Essential Skills for Nannies</option>
+<option>Campus Ready™: Safety Skills for College Life</option>
+<option>Season Ready™: Safety Skills for Student Athletes</option>
+<option>Girl Scout Badge Workshops</option>
+</select>
+</div>
+<div class="eval-field">
+<label for="eval-instructor">Instructor *</label>
+<select id="eval-instructor" name="instructor" required>
+<option value="">Choose your instructor...</option>
+</select>
+</div>
+<div class="eval-field">
+<label for="eval-date">Class date <span class="hint">(optional)</span></label>
+<input type="date" id="eval-date" name="session_date">
+</div>
+<div class="eval-field">
+<span class="eval-legend" id="info-clear-legend">Was the date, time, and location information clear?</span>
+<div class="pill-group" role="radiogroup" aria-labelledby="info-clear-legend">
+<label><input type="radio" name="info_clear" value="yes"><span class="pill">Yes</span></label>
+<label><input type="radio" name="info_clear" value="no"><span class="pill">No</span></label>
+</div>
+</div>
+<div class="eval-field">
+<span class="eval-legend" id="ready-legend">Was the instructor ready and on time?</span>
+<div class="pill-group" role="radiogroup" aria-labelledby="ready-legend">
+<label><input type="radio" name="ready_on_time" value="yes"><span class="pill">Yes</span></label>
+<label><input type="radio" name="ready_on_time" value="no"><span class="pill">No</span></label>
+</div>
+</div>
+<div class="eval-field">
+<span class="eval-legend" id="reg-legend">How easy was registration?</span>
+<div class="rate-group" role="radiogroup" aria-labelledby="reg-legend">
+<label><input type="radio" name="registration_ease" value="1"><span class="rate">1</span></label>
+<label><input type="radio" name="registration_ease" value="2"><span class="rate">2</span></label>
+<label><input type="radio" name="registration_ease" value="3"><span class="rate">3</span></label>
+<label><input type="radio" name="registration_ease" value="4"><span class="rate">4</span></label>
+<label><input type="radio" name="registration_ease" value="5"><span class="rate">5</span></label>
+</div>
+<div class="rate-labels"><span>1 = difficult</span><span>5 = easy</span></div>
+</div>
+<div class="eval-field">
+<span class="eval-legend" id="eng-legend">How engaging was the instructor?</span>
+<div class="rate-group" role="radiogroup" aria-labelledby="eng-legend">
+<label><input type="radio" name="instructor_engagement" value="1"><span class="rate">1</span></label>
+<label><input type="radio" name="instructor_engagement" value="2"><span class="rate">2</span></label>
+<label><input type="radio" name="instructor_engagement" value="3"><span class="rate">3</span></label>
+<label><input type="radio" name="instructor_engagement" value="4"><span class="rate">4</span></label>
+<label><input type="radio" name="instructor_engagement" value="5"><span class="rate">5</span></label>
+</div>
+<div class="rate-labels"><span>1 = not engaging</span><span>5 = very engaging</span></div>
+</div>
+<div class="eval-field">
+<span class="eval-legend" id="safe-legend">Was it a professional and safe learning environment?</span>
+<div class="rate-group" role="radiogroup" aria-labelledby="safe-legend">
+<label><input type="radio" name="safe_environment" value="1"><span class="rate">1</span></label>
+<label><input type="radio" name="safe_environment" value="2"><span class="rate">2</span></label>
+<label><input type="radio" name="safe_environment" value="3"><span class="rate">3</span></label>
+<label><input type="radio" name="safe_environment" value="4"><span class="rate">4</span></label>
+<label><input type="radio" name="safe_environment" value="5"><span class="rate">5</span></label>
+</div>
+<div class="rate-labels"><span>1 = not at all</span><span>5 = completely</span></div>
+</div>
+<div class="eval-field">
+<span class="eval-legend" id="rec-legend">How likely are you to recommend this course?</span>
+<div class="rate-group" role="radiogroup" aria-labelledby="rec-legend">
+<label><input type="radio" name="recommend_likelihood" value="1"><span class="rate">1</span></label>
+<label><input type="radio" name="recommend_likelihood" value="2"><span class="rate">2</span></label>
+<label><input type="radio" name="recommend_likelihood" value="3"><span class="rate">3</span></label>
+<label><input type="radio" name="recommend_likelihood" value="4"><span class="rate">4</span></label>
+<label><input type="radio" name="recommend_likelihood" value="5"><span class="rate">5</span></label>
+</div>
+<div class="rate-labels"><span>1 = not likely</span><span>5 = very likely</span></div>
+</div>
+<div class="eval-field">
+<label for="eval-best">What was the best part of the course?</label>
+<textarea id="eval-best" name="best_part" placeholder="Tell us what stood out..."></textarea>
+</div>
+<div class="eval-field">
+<label for="eval-improve">What could we improve?</label>
+<textarea id="eval-improve" name="improvements" placeholder="Any suggestions for us..."></textarea>
+</div>
+<div class="hp" aria-hidden="true">
+<label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+</div>
+<button type="submit" class="mb-btn mb-btn-gold eval-submit" id="eval-submit">Submit evaluation</button>
+</form>
+<div class="eval-thanks" id="eval-thanks">
+<h2>Thank you!</h2>
+<p>Your evaluation has been received. We read every response and use your feedback to make each class better.</p>
+</div>
+</div>
+</div>
+</section>
+
+<footer class="mb-footer">
+<div class="mb-footer-inner">
+<p class="mb-footer-name">Mindful Beginnings LLC</p>
+<nav class="mb-footer-nav" aria-label="Footer">
+<a href="/about">About</a>
+<a href="/classes-catalog">Classes</a>
+<a href="/host-a-class.html">Host a Class</a>
+<a href="/girl-scouts.html">Girl Scouts</a>
+<a href="/after-school-clubs.html">After School Clubs</a>
+<a href="/cpr-certification">CPR Certification</a>
+<a href="/contact.html">Contact</a>
+<a href="/register.html">Register</a>
+</nav>
+<p class="mb-footer-line"><a href="mailto:lindsay@mindfulbeginnings.org">lindsay@mindfulbeginnings.org</a></p>
+<p class="mb-footer-copy">&copy; 2026 Mindful Beginnings LLC. All rights reserved.</p>
+</div>
+</footer>
+
+<script>
+(function(){
+  var form=document.getElementById('eval-form');
+  var thanks=document.getElementById('eval-thanks');
+  var errBox=document.getElementById('eval-error');
+  var submitBtn=document.getElementById('eval-submit');
+
+  // Instructor dropdown from live roster (falls back gracefully).
+  fetch('/api/evaluations/instructors',{cache:'no-store'})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(data){
+      var sel=document.getElementById('eval-instructor');
+      var names=(data&&data.instructors)||[];
+      names.forEach(function(n){
+        var o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);
+      });
+      if(!names.length){
+        var o=document.createElement('option');o.value='';o.textContent='(could not load — please type below)';o.disabled=true;sel.appendChild(o);
+      }
+    })
+    .catch(function(){});
+
+  // Pre-fill from link params (e.g. from a post-course email).
+  try{
+    var q=new URLSearchParams(location.search);
+    if(q.get('course')){
+      var c=document.getElementById('eval-course');
+      for(var i=0;i<c.options.length;i++){if(c.options[i].text===q.get('course')){c.selectedIndex=i;break;}}
+    }
+  }catch(e){}
+
+  function radioVal(name){
+    var el=form.querySelector('input[name="'+name+'"]:checked');
+    return el?el.value:null;
+  }
+
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    errBox.style.display='none';
+    var course=document.getElementById('eval-course').value;
+    var instructor=document.getElementById('eval-instructor').value;
+    if(!course){showError('Please choose the course you completed.');return;}
+    if(!instructor){showError('Please choose your instructor.');return;}
+    submitBtn.disabled=true;
+    submitBtn.textContent='Submitting...';
+    fetch('/api/evaluations/submit',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        course:course,
+        instructor:instructor,
+        session_date:document.getElementById('eval-date').value||null,
+        info_clear:radioVal('info_clear'),
+        ready_on_time:radioVal('ready_on_time'),
+        registration_ease:radioVal('registration_ease'),
+        instructor_engagement:radioVal('instructor_engagement'),
+        safe_environment:radioVal('safe_environment'),
+        recommend_likelihood:radioVal('recommend_likelihood'),
+        best_part:document.getElementById('eval-best').value,
+        improvements:document.getElementById('eval-improve').value,
+        website:form.querySelector('input[name="website"]').value
+      })
+    })
+    .then(function(r){return r.json().then(function(j){return{ok:r.ok,body:j};});})
+    .then(function(res){
+      if(res.ok&&res.body&&res.body.ok){
+        form.style.display='none';
+        thanks.style.display='block';
+        window.scrollTo({top:0,behavior:'smooth'});
+      }else{
+        showError((res.body&&res.body.error)||'Something went wrong. Please try again.');
+      }
+    })
+    .catch(function(){showError('Something went wrong. Please check your connection and try again.');})
+    .finally(function(){submitBtn.disabled=false;submitBtn.textContent='Submit evaluation';});
+  });
+
+  function showError(msg){
+    errBox.textContent=msg;
+    errBox.style.display='block';
+    errBox.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+
+  // Mobile nav toggle (same as other pages).
+  var t=document.querySelector('.mb-nav-toggle');
+  if(t){t.addEventListener('click',function(){
+    var open=t.getAttribute('aria-expanded')==='true';
+    t.setAttribute('aria-expanded',String(!open));
+    document.getElementById('primary-nav').classList.toggle('open',!open);
+  });}
+})();
+</script>
+</body>
+</html>

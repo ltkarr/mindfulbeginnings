@@ -195,19 +195,14 @@
     }
 
     if (kind === 'postCourse') {
-      lines.push('Thank you for trusting Mindful Beginnings with your child. We hope they came home feeling confident, capable, and proud of everything they accomplished.');
-      lines.push('');
-      lines.push('The most important thing your child learned today is the Safety Signal. If you ever receive a text or call that says, "I\'m ready to be picked up now," that is their signal that they feel unsafe. Please go immediately, do not ask questions, and let them explain once they are in the car. This signal works in any situation, not only babysitting.');
-      lines.push('');
-      lines.push('The course is a meaningful achievement, but it does not automatically mean your child is ready to babysit or stay home alone, so please assess their readiness based on their individual maturity. We ask students to take jobs only with friends, neighbors, and others you or they know personally, and never to advertise online. And a quick conversation after each job gives your child helpful guidance while keeping you informed about what they are experiencing.');
-      lines.push('');
-      lines.push('If you have a moment, two small things would mean a great deal to us. A Google review (https://g.page/r/Ca2jsWW-MkfvEAE/review) helps other families find us! And our short program evaluation (https://forms.gle/3YkNJiaJyavjvSu49) helps us improve every session.');
-      lines.push('');
-      lines.push('Thank you again for being part of the Mindful Beginnings community. We are so glad your child is now a certified Safe Sitter!');
+      var draft = (typeof postCourseDraftFor === 'function')
+        ? postCourseDraftFor(course)
+        : { subject: 'Thank you for joining us', body: 'Thank you for choosing Mindful Beginnings.', bodyHtml: '<p>Thank you for choosing Mindful Beginnings.</p>' };
       return {
         field: 'bcc',
-        subject: 'After Safe Sitter\u00ae \u2014 Safety Signal & next steps',
-        body: lines.join('\n')
+        subject: draft.subject,
+        body: draft.body,
+        bodyHtml: draft.bodyHtml
       };
     }
 
