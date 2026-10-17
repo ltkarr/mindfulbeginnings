@@ -4,6 +4,10 @@
     {
       "path": "/api/remind-instructors",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/instructor-eval-report",
+      "schedule": "0 12 * * 1"
     }
   ],
   "redirects": [
