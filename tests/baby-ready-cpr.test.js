@@ -298,7 +298,7 @@ test('the instructor portal does not treat the course as RN-only, Safe Sitter-on
   };
   vm.createContext(who);
   vm.runInContext(
-    ['courseRequiresLeadTeacher', 'sessionRequiresRN', 'sessionRequiresSafeSitter', 'sessionRequiresLeadTeacher', 'sessionWhoCanTeach']
+    ['courseRequiresLeadTeacher', 'sessionRequiresRN', 'sessionRequiresSafeSitter', 'sessionRequiresSpanish', 'sessionRequiresLeadTeacher', 'sessionWhoCanTeach']
       .map((n) => extractFunction(admin, n)).join('\n'),
     who
   );

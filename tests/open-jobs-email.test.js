@@ -57,6 +57,7 @@ function loadEmail() {
       extractFn(admin, 'instrBaseFee'),
       extractFn(admin, 'sessionRequiresRN'),
       extractFn(admin, 'sessionRequiresSafeSitter'),
+      extractFn(admin, 'sessionRequiresSpanish'),
       extractFn(admin, 'sessionWhoCanTeach'),
       extractFn(admin, 'openJobCopyText'),
       extractFn(admin, 'openJobPayIsFlat'),

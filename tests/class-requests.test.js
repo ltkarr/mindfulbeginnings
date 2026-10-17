@@ -527,3 +527,28 @@ test('the public API rejects a bad email without touching the database', async (
   assert.equal(res.statusCode, 400);
   assert.match(JSON.parse(res.body).error, /email/i);
 });
+
+test('a Spanish request on either public form flags the auto-created session', () => {
+  assert.match(hostPage, /name="spanishRequested"/);
+  assert.match(orgPage, /name="spanishRequested"/);
+  assert.match(hostPage, /Do you want this class instructed in Spanish\?/);
+  assert.match(orgPage, /Do you want this class instructed in Spanish\?/);
+  const yes = model.normalizeSubmission(hostBody({ spanishRequested: true }));
+  assert.equal(yes.spanishRequested, true);
+  const plan = model.buildSessionRow(yes, [], { id: 's1', requestId: 'r1', createdAt: 1 });
+  assert.equal(plan.created, true);
+  assert.equal(plan.row.requires_spanish, true);
+  assert.match(plan.row.notes, /Spanish/);
+  const no = model.normalizeSubmission(hostBody());
+  const plan2 = model.buildSessionRow(no, [], { id: 's2', requestId: 'r2', createdAt: 1 });
+  assert.equal(plan2.row.requires_spanish, false);
+});
+
+test('the Spanish session flag has the same column shape as the other requirement flags', () => {
+  const migration = require('fs').readFileSync(require('path').join(__dirname, '..', 'migrations/20261017_spanish_flags.sql'), 'utf8');
+  assert.match(migration, /requires_spanish boolean default false/);
+  assert.match(migration, /speaks_spanish boolean default false/);
+  assert.match(migration, /grant select \(requires_spanish\) on public\.sessions to anon/);
+  assert.match(migration, /instructor_speaks_spanish/);
+  assert.match(migration, /instructor_list_sessions/);
+});

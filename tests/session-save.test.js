@@ -35,6 +35,7 @@ function loadSaver() {
     LEGACY_CREATED_AT: 1785542400000,
     CANCEL_COLS: true,
     REQUIRES_SS_COL: true,
+    REQUIRES_SPANISH_COL: true,
     REQUIRES_RN_COL: true,
     EXTERNAL_URL_COL: true,
     ADMIN_PRIVATE_NOTES_COL: true,

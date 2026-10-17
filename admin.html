@@ -859,7 +859,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -893,6 +893,9 @@ let REQUIRES_RN_COL=true;
 //   grant select (requires_safe_sitter) on public.sessions to anon;
 // instructor.html reads this column to decide whether to show the job on the board.)
 let REQUIRES_SS_COL=true;
+// Per-job Spanish-language restriction. Exact same pattern as requires_rn.
+// (Run in the Supabase SQL editor: migrations/20261017_spanish_flags.sql)
+let REQUIRES_SPANISH_COL=true;
 // Session cancellation (e.g. cancelled for low enrollment). Same graceful-degradation
 // pattern again. Run in the Supabase SQL editor, and remember the standing rule that
 // every sessions column the public pages read needs its own grant to anon:
@@ -993,6 +996,7 @@ function sessionToDB(s){
   if(INSTR_INFO_COL)o.instructor_info=s.instructorInfo||null;
   if(REQUIRES_RN_COL)o.requires_rn=!!s.requiresRN;
   if(REQUIRES_SS_COL)o.requires_safe_sitter=!!s.requiresSS;
+  if(REQUIRES_SPANISH_COL)o.requires_spanish=!!s.requiresSpanish;
   if(CANCEL_COLS){o.is_cancelled=!!s.isCancelled;o.cancel_reason=s.cancelReason||null;o.cancelled_at=s.cancelledAt||null;}
   if(EXTERNAL_URL_COL)o.external_registration_url=s.externalRegistrationUrl?String(s.externalRegistrationUrl).trim():null;
   // Only written when the in-memory session actually has the field, so a
@@ -1008,6 +1012,7 @@ function sessionUpsertRejectColumn(msg){
   msg=String(msg||'');
   if(CANCEL_COLS&&/is_cancelled|cancel_reason|cancelled_at/i.test(msg))return 'cancel';
   if(REQUIRES_SS_COL&&/requires_safe_sitter/i.test(msg))return 'ss';
+  if(REQUIRES_SPANISH_COL&&/requires_spanish/i.test(msg))return 'spanish';
   if(REQUIRES_RN_COL&&/requires_rn/i.test(msg))return 'rn';
   if(EXTERNAL_URL_COL&&/external_registration_url/i.test(msg))return 'external';
   if(ADMIN_PRIVATE_NOTES_COL&&/admin_private_notes/i.test(msg))return 'private';
@@ -1025,6 +1030,7 @@ function sessionUpsertRejectColumn(msg){
 function applySessionUpsertReject(which,flags){
   if(which==='cancel')CANCEL_COLS=false;
   else if(which==='ss'){REQUIRES_SS_COL=false;flags.missingSsCol=true;}
+  else if(which==='spanish'){REQUIRES_SPANISH_COL=false;flags.missingSpanishCol=true;}
   else if(which==='rn'){REQUIRES_RN_COL=false;flags.missingRnCol=true;}
   else if(which==='external'){EXTERNAL_URL_COL=false;flags.missingExternalUrl=true;}
   else if(which==='private'){ADMIN_PRIVATE_NOTES_COL=false;flags.missingPrivateNotes=true;}
@@ -1040,7 +1046,7 @@ function applySessionUpsertReject(which,flags){
   return !!which;
 }
 function blankSessionUpsertFlags(){
-  return{missingRnCol:false,missingSsCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false};
+  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false};
 }
 // Every session write goes through here: course sessions, custom jobs, holds,
 // publish, cancel. One unknown column used to abort custom-job and hold saves
@@ -1063,6 +1069,7 @@ async function upsertSessionRow(s){
   }catch(e){return Object.assign({error:e},flags);}
 }
 const SS_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "Safe Sitter® instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_safe_sitter boolean default false; grant select (requires_safe_sitter) on public.sessions to anon;';
+const SPANISH_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "Spanish-speaking instructor" setting — run migrations/20261017_spanish_flags.sql in the Supabase SQL editor, then re-save this job.';
 const RN_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the "RN instructors only" setting — run this once in the Supabase SQL editor, then re-save this job: alter table sessions add column if not exists requires_rn boolean default false; grant select (requires_rn) on public.sessions to anon;';
 const EXTERNAL_URL_SQL_TOAST='⚠️ Saved, but WITHOUT the external registration link — run migrations/external_registration_url.sql in the Supabase SQL editor, then re-save this session.';
 // Toast when a save landed but an optional column had to be left off. Empty when
@@ -1078,6 +1085,7 @@ function sessionOptionalColToast(f){
   if(f.missingFeeReceived)return FEE_RECEIVED_SQL_TOAST;
   if(f.missingOrgReg)return ORG_REG_SQL_TOAST;
   if(f.missingSsCol)return SS_COL_SQL_TOAST;
+  if(f.missingSpanishCol)return SPANISH_COL_SQL_TOAST;
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
   return '';
@@ -1105,6 +1113,7 @@ function regCreatedTime(r){
 const INSTRUCTOR_LEVELS=['Started','Established','Senior','Lead'];
 let INSTRUCTOR_LEVEL_COL=true;
 let LEAD_TEACHER_COL=true;
+let SPEAKS_SPANISH_COL=true;
 const LEAD_TEACHER_RATE=75;
 const LEAD_COL_SQL_TOAST='⚠️ Saved, but WITHOUT Lead Teacher — run migrations/20261008_lead_teacher.sql in the Supabase SQL editor, then set Lead Teacher again.';
 function normalizeInstructorLevel(v){
@@ -1132,7 +1141,7 @@ function instructorFromDB(r){
   //   alter table instructors add column if not exists archived_at timestamptz;
   //   update instructors set is_active = true where is_active is null;
   //   grant select (is_active) on public.instructors to anon;
-  return{id:r.id,name:r.name,active:(r.is_active===undefined||r.is_active===null)?true:!!r.is_active,archivedAt:r.archived_at||null,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,pinChangeRequired:!!r.pin_change_required,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,isLeadTeacher:!!r.is_lead_teacher,redCrossCertId:r.red_cross_instructor_id||'',redCrossCertExpires:r.red_cross_cert_expires?String(r.red_cross_cert_expires).slice(0,10):'',level:normalizeInstructorLevel(r.instructor_level),createdAt:r.created_at||Date.now()};
+  return{id:r.id,name:r.name,active:(r.is_active===undefined||r.is_active===null)?true:!!r.is_active,archivedAt:r.archived_at||null,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,pinChangeRequired:!!r.pin_change_required,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,speaksSpanish:!!r.speaks_spanish,isLeadTeacher:!!r.is_lead_teacher,redCrossCertId:r.red_cross_instructor_id||'',redCrossCertExpires:r.red_cross_cert_expires?String(r.red_cross_cert_expires).slice(0,10):'',level:normalizeInstructorLevel(r.instructor_level),createdAt:r.created_at||Date.now()};
 }
 // headshot_path is deliberately absent below: only the instructor portal writes it,
 // and including it here would break saving an instructor on databases that have not
@@ -1147,6 +1156,11 @@ function instructorToDB(i){
   if(INSTRUCTOR_LEVEL_COL)row.instructor_level=normalizeInstructorLevel(i.level);
   // Omitted once we know migrations/20261008_lead_teacher.sql has not been run,
   // so the rest of the instructor row can still be saved.
+  // Omitted once we know migrations/20261017_spanish_flags.sql has not been run,
+  // so the rest of the instructor row can still be saved.
+  if(typeof SPEAKS_SPANISH_COL==='undefined'||SPEAKS_SPANISH_COL){
+    row.speaks_spanish=!!i.speaksSpanish;
+  }
   if(typeof LEAD_TEACHER_COL==='undefined'||LEAD_TEACHER_COL){
     row.is_lead_teacher=!!i.isLeadTeacher;
     row.red_cross_instructor_id=i.redCrossCertId?String(i.redCrossCertId).trim():null;
@@ -3106,6 +3120,11 @@ function sessionRequiresSafeSitter(s){
   if(/girl scouts?/i.test(s.course||'')&&/badge/i.test(s.course||''))return false;
   return !!(s.requiresSS||(COURSES[s.course]||{}).requiresSafeSitter);
 }
+// Per-job Spanish restriction. Only ever set per job (no course is
+// Spanish-only) — ticked in admin or requested on the host/org form.
+function sessionRequiresSpanish(s){
+  return !!(s&&s.requiresSpanish);
+}
 // Who may teach this job. Same rules as the instructor board: an RN flag on
 // the session or the course, a Safe Sitter® flag on the session or the course,
 // or every instructor when neither flag is set.
@@ -3114,10 +3133,9 @@ function sessionWhoCanTeach(s){
   if(c.requiresLeadTeacher||c.redCross)return 'Lead Teachers only';
   const rn=sessionRequiresRN(s);
   const ss=sessionRequiresSafeSitter(s);
-  if(rn&&ss)return 'RN and Safe Sitter® instructors only';
-  if(rn)return 'RN instructors only';
-  if(ss)return 'Safe Sitter® instructors only';
-  return 'Any instructor';
+  const sp=sessionRequiresSpanish(s);
+  const base=rn&&ss?'RN and Safe Sitter® instructors only':rn?'RN instructors only':ss?'Safe Sitter® instructors only':'Any instructor';
+  return sp?(base==='Any instructor'?'Spanish-speaking instructors only':base+' + Spanish'):base;
 }
 // Can this instructor see/accept this particular job? Same as instrEligible, plus the
 // per-job RN flag. Mirrors the instructor portal's canTeach().
@@ -3126,6 +3144,7 @@ function instrEligibleForSession(i,s){
   if(sessionRequiresLeadTeacher(s)&&!(i&&i.isLeadTeacher))return false;
   if(sessionRequiresRN(s)&&!(i&&i.isRN))return false;
   if(sessionRequiresSafeSitter(s)&&!instrIsSafeSitter(i))return false;
+  if(sessionRequiresSpanish(s)&&!(i&&i.speaksSpanish))return false;
   return instrEligible(i,s.course);
 }
 function instrEligMarkSession(i,s){
@@ -3133,10 +3152,14 @@ function instrEligMarkSession(i,s){
   if(sessionRequiresLeadTeacher(s)&&!(i&&i.isLeadTeacher))return ' ⚠ not a Lead Teacher - cannot see this Red Cross job';
   if(sessionRequiresRN(s)&&!(i&&i.isRN))return ' ⚠ not an RN — cannot see this job';
   if(sessionRequiresSafeSitter(s)&&!instrIsSafeSitter(i))return ' ⚠ not Safe Sitter® certified — cannot see this job';
+  if(sessionRequiresSpanish(s)&&!(i&&i.speaksSpanish))return ' ⚠ not a Spanish speaker — cannot see this job';
   return ' ⚠ not eligible for this course';
 }
 function refreshSessionInstrMarks(){
   const course=(document.getElementById('m-course')||{}).value||'';
+  const s={course:course,
+    requiresRN:!!(document.getElementById('m-rnonly')||{}).checked,
+    requiresSpanish:!!(document.getElementById('m-spanishonly')||{}).checked};
   ['m-instr','m-instr2'].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel)return;
@@ -3144,7 +3167,7 @@ function refreshSessionInstrMarks(){
       if(!o.value)return;
       const inst=instructors.find(x=>x.id===o.value);
       if(!inst)return;
-      o.textContent=instrSortName(inst.name)+instrEligMarkSession(inst,{course:course})+instrInactiveMark(inst);
+      o.textContent=instrSortName(inst.name)+instrEligMarkSession(inst,s)+instrInactiveMark(inst);
     });
   });
 }
@@ -3181,6 +3204,29 @@ function updateRnNotice(){
     note.innerHTML='⚠️ This course must be taught by a Safe Sitter® trained instructor. Only instructors marked as <strong>Safe Sitter® certified</strong> in their profile will see this job post on their board.';
   }else{
     note.style.display='none';note.innerHTML='';
+  }
+}
+// Advisory when the Spanish box is ticked: warns if no instructor on the roster
+// is flagged as a Spanish speaker, or if the assigned instructor is not one.
+// Assigning still works — you are the admin — but the job will not show on
+// their Open Jobs board.
+function updateSpanishNotice(){
+  const box=document.getElementById('m-spanishonly');
+  const note=document.getElementById('m-spanish-notice');
+  if(!box||!note)return;
+  if(!box.checked){note.style.display='none';note.innerHTML='';return;}
+  const speakers=(typeof instructors!=='undefined'?instructors:[]).filter(i=>i&&i.speaksSpanish&&!i.archivedAt);
+  const sel=document.getElementById('m-instr');
+  const assigned=sel&&sel.value?speakers.find(i=>i.id===sel.value)||(typeof instructors!=='undefined'?instructors.find(i=>i.id===sel.value):null):null;
+  if(!speakers.length){
+    note.style.display='block';
+    note.innerHTML='⚠️ No instructor is flagged as a Spanish speaker yet. Mark at least one on the Instructors tab first, or this job will be invisible on every Open Jobs board.';
+  }else if(assigned&&!assigned.speaksSpanish){
+    note.style.display='block';
+    note.innerHTML='⚠️ '+assigned.name+' is not flagged as a Spanish speaker and will not see this job on their board. Assigning still works — you are the admin.';
+  }else{
+    note.style.display='block';
+    note.innerHTML='✓ '+speakers.length+' Spanish-speaking instructor'+(speakers.length===1?'':'s')+' will see this job on Open Jobs.';
   }
 }
 // Returns array of {id,name} for all instructors assigned to a session (primary + optional second).
@@ -6533,6 +6579,7 @@ function renderSessions(){
         pills.push(pill('Custom job','#f5e6c8','#7a5c1e'));
         if(s.requiresRN)pills.push(pill('RN only','#e2efe7','#2d7a5e','Registered nurse instructors only'));
         if(s.requiresSS)pills.push(pill('Safe Sitter only','#e6eff7','#1a5c8a','Safe Sitter® instructors only'));
+        if(s.requiresSpanish)pills.push(pill('En español','#f3e8d8','#8a5a1a','Spanish-speaking instructor required'));
         if(kit)pills.push(kit);
         // jdi.instrPaid was never written anywhere, so every past custom job read
         // as Unpaid. The wrap-up records payment in payStatus/payDate/paidFee —
@@ -7203,6 +7250,12 @@ function openAddSession(){
         RN instructors only
       </label>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Any job can be limited to registered nurses. Instructors who are not RNs will not see it on Open Jobs and cannot claim it. Courses that are already RN-only stay checked.</div>
+      <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="m-spanishonly" onchange="updateSpanishNotice();refreshSessionInstrMarks()" style="width:16px;height:16px;accent-color:#8a5a1a;cursor:pointer">
+        Spanish-speaking instructor required
+      </label>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Tick when the host or organization asked for the class in Spanish. Only instructors flagged as Spanish speakers will see it on Open Jobs.</div>
+      <div id="m-spanish-notice" style="display:none;font-size:14px;margin-top:6px"></div>
       </div>
     <div class="fg full" style="background:#f3f0fa;border:1px solid #d9d2ec;border-radius:var(--r-sm);padding:12px 14px">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:0;cursor:pointer;font-weight:500">
@@ -7457,6 +7510,7 @@ function fillCjInstrSelect(preferredId){
   const keep=preferredId!==undefined?(preferredId||''):(sel.value||'');
   const rnOnly=!!(document.getElementById('cj-rnonly')||{}).checked;
   const ssOnly=!!(document.getElementById('cj-ssonly')||{}).checked;
+  const spanishOnly=!!(document.getElementById('cj-spanishonly')||{}).checked;
   const placeholder=sel.options.length?sel.options[0].textContent:'— Post as open job —';
   sel.innerHTML='';
   const blank=document.createElement('option');blank.value='';blank.textContent=placeholder;sel.appendChild(blank);
@@ -7465,6 +7519,7 @@ function fillCjInstrSelect(preferredId){
     const warn=[];
     if(rnOnly&&!i.isRN)warn.push('not an RN');
     if(ssOnly&&!instrIsSafeSitter(i))warn.push('not Safe Sitter® certified');
+    if(spanishOnly&&!i.speaksSpanish)warn.push('not a Spanish speaker');
     o.textContent=i.name+(warn.length?('  ⚠ '+warn.join(' · ')+' — cannot see this job'):'');
     if(i.id===keep)o.selected=true;
     sel.appendChild(o);
@@ -7483,6 +7538,9 @@ function updateCjCredNotice(){
   credNotice({boxId:'cj-ssonly',noteId:'cj-ss-notice',assigned,
     has:instrIsSafeSitter,label:'Safe Sitter® certified',short:'Safe Sitter® certified',
     setupHint:'Mark at least one instructor as Safe Sitter® certified on the Instructors screen first, or have them enter their training date in the portal.'});
+  credNotice({boxId:'cj-spanishonly',noteId:'cj-spanish-notice',assigned,
+    has:i=>!!i.speaksSpanish,label:'a Spanish speaker',short:'a Spanish speaker',
+    setupHint:'Mark at least one instructor as a Spanish speaker on the Instructors screen first.'});
 }
 // Shared body for the RN-only and Safe Sitter®-only advisories. Warns when the
 // restriction would hide the job from every instructor, or from the one it is already
@@ -7555,7 +7613,7 @@ async function saveCustomJob(){
   if(!confirmNotDuplicate({course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,isVirtual:false,isCancelled:false},null))return;
   if(_savingSession)return; _savingSession=true;
   try{
-  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,orgHandlesRegistration,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
+  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,orgHandlesRegistration,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
@@ -7620,7 +7678,7 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>Assign to instructor <span style="font-weight:400;color:var(--muted)">(optional — leave blank to post as open job)</span></label>
       <select id="cj-instr" style="width:100%"><option value="">— Post as open job —</option></select>
     </div>
-    <div id="cj-cred-row" class="fg full" data-show="block" style="display:${(s.requiresRN||s.requiresSS)?'block':'none'}">
+    <div id="cj-cred-row" class="fg full" data-show="block" style="display:${(s.requiresRN||s.requiresSS||s.requiresSpanish)?'block':'none'}">
     <div class="fg full" style="background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="cj-rnonly" ${s.requiresRN?'checked':''} onchange="updateCjCredNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
@@ -7636,6 +7694,14 @@ ${lockboxFieldHtml(s)}
       </label>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Restrict this job to instructors marked <strong>Safe Sitter® certified</strong> in their profile. Leave unchecked and every instructor sees it on their board.</div>
       <div id="cj-ss-notice" style="display:none;margin-top:8px;padding:8px 10px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:14px;line-height:1.5"></div>
+    </div>
+    <div class="fg full" style="background:#faf3e8;border:1px solid #e8d3a8;border-radius:var(--r-sm);padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-weight:500;font-size:16px;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="cj-spanishonly" ${s.requiresSpanish?'checked':''} onchange="updateCjCredNotice()" style="width:16px;height:16px;accent-color:#8a5a1a;cursor:pointer">
+        🗣️ Spanish-speaking instructor required
+      </label>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Restrict this job to instructors marked <strong>Spanish speaker</strong> in their profile. Only they will see it on Open Jobs.</div>
+      <div id="cj-spanish-notice" style="display:none;margin-top:8px;padding:8px 10px;border-radius:var(--r-sm);background:#fff7e6;border:1px solid #f0d090;color:#b86a00;font-size:14px;line-height:1.5"></div>
     </div>
     </div>
 </div></details>
@@ -7694,7 +7760,7 @@ ${lockboxFieldHtml(s)}
       <input type="text" id="cj-code" value="${escapeHtml(s.code||'')}" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
     ${sessionCostsFieldHtml()}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
-    <div class="fg full" id="cj-cred-reveal" style="display:${(s.requiresRN||s.requiresSS)?'none':'block'}">
+    <div class="fg full" id="cj-cred-reveal" style="display:${(s.requiresRN||s.requiresSS||s.requiresSpanish)?'none':'block'}">
       <button type="button" class="btn sm" onclick="revealTeachLimit('cj-cred-row','cj-cred-reveal','sess-job-instr')">Limit who can teach</button>
     </div>
     ${externalRegistrationFieldHtml(s)}
@@ -7752,7 +7818,7 @@ async function saveEditCustomJob(id){
   const reservedSeats=holdSeatsRaw&&Number(holdSeatsRaw)>0?Number(holdSeatsRaw):null;
   const holdPayment=isHold?(document.getElementById('cj-hold-payment')?.value||''):'';
   const prevSnapshot={...s};
-  Object.assign(s,{code,orgHandlesRegistration,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
+  Object.assign(s,{code,orgHandlesRegistration,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
   {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;feeReceivedMissing=!!_r.missingFeeReceived;orgRegMissing=!!_r.missingOrgReg;}
@@ -7941,12 +8007,18 @@ ${lockboxFieldHtml(s)}
         <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
-    <div id="m-rn-row" class="fg full" data-show="flex" style="display:${(s.requiresRN||(COURSES[s.course]||{}).requiresRN)?'flex':'none'}">
+    <div id="m-rn-row" class="fg full" data-show="flex" style="display:${(s.requiresRN||s.requiresSpanish||(COURSES[s.course]||{}).requiresRN)?'flex':'none'}">
       <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="m-rnonly" ${s.requiresRN?'checked':''} onchange="updateRnNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
         RN instructors only
       </label>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Any job can be limited to registered nurses. Instructors who are not RNs will not see it on Open Jobs and cannot claim it. Courses that are already RN-only stay checked.</div>
+      <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="m-spanishonly" ${s.requiresSpanish?'checked':''} onchange="updateSpanishNotice();refreshSessionInstrMarks()" style="width:16px;height:16px;accent-color:#8a5a1a;cursor:pointer">
+        Spanish-speaking instructor required
+      </label>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Tick when the host or organization asked for the class in Spanish. Only instructors flagged as Spanish speakers will see it on Open Jobs.</div>
+      <div id="m-spanish-notice" style="display:none;font-size:14px;margin-top:6px"></div>
     </div>
 </div></details>
 <details class="sess-fold" open><summary>Host &amp; families</summary><div class="sess-fold-body form-grid">
@@ -8025,7 +8097,7 @@ ${lockboxFieldHtml(s)}
     </div>
     ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
     ${sessionCostsFieldHtml()}
-    <div class="fg full" id="m-rn-reveal" style="display:${(s.requiresRN||(COURSES[s.course]||{}).requiresRN)?'none':'block'}">
+    <div class="fg full" id="m-rn-reveal" style="display:${(s.requiresRN||s.requiresSpanish||(COURSES[s.course]||{}).requiresRN)?'none':'block'}">
       <button type="button" class="btn sm" onclick="revealTeachLimit('m-rn-row','m-rn-reveal','sess-instr-fold')">Limit who can teach</button>
     </div>
 </div></details>
@@ -8145,6 +8217,7 @@ async function saveSession(editId){
   const feeReceived=readFeeReceived('m-fee-received', editId?(sessions.find(x=>x.id===editId)||{}).feeReceived:null);
   const markInKind=document.getElementById('m-inkind')?.checked||false;
   const requiresRN=!!((document.getElementById('m-rnonly')||{}).checked||(COURSES[course]||{}).requiresRN);
+  const requiresSpanish=!!(document.getElementById('m-spanishonly')||{}).checked;
   const requiresSS=!!(COURSES[course]||{}).requiresSafeSitter;
   // Duplicate check runs while the modal is still open, so backing out leaves
   // everything she typed exactly where it was.
@@ -8155,9 +8228,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish};
     sessions.push(s);
   }
   const matChoice=sessionMaterialsFromForm(editId);
@@ -9565,6 +9638,7 @@ function renderInstructors(){
       if(instrIsSafeSitter(i))creds.push('🧒 Safe Sitter®');
       if(i.isRN)creds.push('🩺 RN');
       if(i.isLeadTeacher)creds.push('⭐ Lead Teacher');
+      if(i.speaksSpanish)creds.push('🗣️ Spanish');
       badges.push(`<span class="tag" title="Controls which job posts this instructor sees in their portal">${creds.length?creds.join(' · '):'Everyone-courses only'}</span>`);
       const tc0=classesTaughtBy(i.id);
       if(tc0>=5)badges.push(`<span class="tag warn" title="Lifetime classes taught (primary or second instructor, past dates only)">🏅 ${tc0} classes taught</span>`);
@@ -9705,7 +9779,8 @@ function openAddInstructor(){
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Instructor type — controls which jobs they see</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-issafesitter" style="width:auto;margin:0"> Safe Sitter® certified — sees Safe Sitter® Babysitting &amp; Grandparents jobs</label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready, Campus Ready, Ready. Period. &amp; Season Ready jobs</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-isrn" style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready, Campus Ready, Ready. Period. &amp; Season Ready jobs</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isspanish" style="width:auto;margin:0"> Speaks Spanish — can take Spanish-required jobs</label>
       <div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">Courses open to everyone (All Kids Welcome, Steady and Ready, My First Babysitters Club, Safe@Home, Safe@Home — Virtual, Safe@Home — Series, Intro to Babysitting) are always visible. Check both boxes if the instructor holds both credentials.</div>
     </div>
     ${leadTeacherFormHtml(null)}
@@ -9730,7 +9805,8 @@ function openEditInstructor(id){
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Instructor type — controls which jobs they see</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-issafesitter" ${instrIsSafeSitter(i)?'checked':''} style="width:auto;margin:0"> Safe Sitter® certified — sees Safe Sitter® Babysitting &amp; Grandparents jobs</label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isrn" ${i.isRN?'checked':''} style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready, Campus Ready, Ready. Period. &amp; Season Ready jobs</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-isrn" ${i.isRN?'checked':''} style="width:auto;margin:0"> Registered Nurse (RN) — sees Stay Ready, Campus Ready, Ready. Period. &amp; Season Ready jobs</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:0"><input type="checkbox" id="m-isspanish" ${i.speaksSpanish?'checked':''} style="width:auto;margin:0"> Speaks Spanish — can take Spanish-required jobs</label>
       <div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">Courses open to everyone (All Kids Welcome, Steady and Ready, My First Babysitters Club, Safe@Home, Safe@Home — Virtual, Safe@Home — Series, Intro to Babysitting) are always visible. Check both boxes if the instructor holds both credentials.</div>
     </div>
     ${leadTeacherFormHtml(i)}
@@ -9752,10 +9828,10 @@ async function saveInstructor(editId){
   let i;
   if(editId){
     i=instructors.find(x=>x.id===editId);
-    Object.assign(i,{name,email:document.getElementById('m-iemail').value.trim(),phone:document.getElementById('m-iphone').value.trim(),zelle:document.getElementById('m-izelle').value.trim(),pin,hourlyRate:Number(document.getElementById('m-irate').value)||50,level:normalizeInstructorLevel(document.getElementById('m-ilevel')?document.getElementById('m-ilevel').value:i.level),safeSitterTrainingDate:document.getElementById('m-itraining')?document.getElementById('m-itraining').value:i.safeSitterTrainingDate,sweatshirtSize:document.getElementById('m-isweat')?document.getElementById('m-isweat').value:i.sweatshirtSize||'',isRN:document.getElementById('m-isrn')?document.getElementById('m-isrn').checked:i.isRN||false,safeSitterCertified:document.getElementById('m-issafesitter')?document.getElementById('m-issafesitter').checked:(i.safeSitterCertified??null),contractType:document.getElementById('m-icontract')?document.getElementById('m-icontract').value:i.contractType||'standard'});
+    Object.assign(i,{name,email:document.getElementById('m-iemail').value.trim(),phone:document.getElementById('m-iphone').value.trim(),zelle:document.getElementById('m-izelle').value.trim(),pin,hourlyRate:Number(document.getElementById('m-irate').value)||50,level:normalizeInstructorLevel(document.getElementById('m-ilevel')?document.getElementById('m-ilevel').value:i.level),safeSitterTrainingDate:document.getElementById('m-itraining')?document.getElementById('m-itraining').value:i.safeSitterTrainingDate,sweatshirtSize:document.getElementById('m-isweat')?document.getElementById('m-isweat').value:i.sweatshirtSize||'',isRN:document.getElementById('m-isrn')?document.getElementById('m-isrn').checked:i.isRN||false,speaksSpanish:document.getElementById('m-isspanish')?document.getElementById('m-isspanish').checked:i.speaksSpanish||false,safeSitterCertified:document.getElementById('m-issafesitter')?document.getElementById('m-issafesitter').checked:(i.safeSitterCertified??null),contractType:document.getElementById('m-icontract')?document.getElementById('m-icontract').value:i.contractType||'standard'});
   }else{
     if(instructors.find(x=>x.pin===pin)){alert('That PIN is already in use.');return;}
-    i={id:sid(),name,email:document.getElementById('m-iemail').value.trim(),phone:document.getElementById('m-iphone').value.trim(),zelle:document.getElementById('m-izelle').value.trim(),pin,hourlyRate:Number(document.getElementById('m-irate').value)||50,level:normalizeInstructorLevel(document.getElementById('m-ilevel')?document.getElementById('m-ilevel').value:'Started'),isRN:document.getElementById('m-isrn')?document.getElementById('m-isrn').checked:false,safeSitterCertified:(document.getElementById('m-issafesitter')&&document.getElementById('m-issafesitter').checked)?true:null,contractType:document.getElementById('m-icontract')?document.getElementById('m-icontract').value:'standard',createdAt:Date.now()};
+    i={id:sid(),name,email:document.getElementById('m-iemail').value.trim(),phone:document.getElementById('m-iphone').value.trim(),zelle:document.getElementById('m-izelle').value.trim(),pin,hourlyRate:Number(document.getElementById('m-irate').value)||50,level:normalizeInstructorLevel(document.getElementById('m-ilevel')?document.getElementById('m-ilevel').value:'Started'),isRN:document.getElementById('m-isrn')?document.getElementById('m-isrn').checked:false,speaksSpanish:document.getElementById('m-isspanish')?document.getElementById('m-isspanish').checked:false,safeSitterCertified:(document.getElementById('m-issafesitter')&&document.getElementById('m-issafesitter').checked)?true:null,contractType:document.getElementById('m-icontract')?document.getElementById('m-icontract').value:'standard',createdAt:Date.now()};
     instructors.push(i);
     sortInstructors();
   }
@@ -9769,6 +9845,7 @@ async function saveInstructor(editId){
     let ssColumnMissing=false;
     let levelColumnMissing=false;
     let leadColumnMissing=false;
+    let spanishColumnMissing=false;
     if(error&&String(error.message||'').includes('safe_sitter_certified')){
       delete row.safe_sitter_certified;
       ({error}=await sb.from('instructors').upsert(row));
@@ -9802,6 +9879,14 @@ async function saveInstructor(editId){
       ({error}=await sb.from('instructors').upsert(row));
       if(!error)leadColumnMissing=true;
     }
+    // Same pattern for speaks_spanish: the rest of the row still saves, and the
+    // toast points at migrations/20261017_spanish_flags.sql.
+    if(error&&/speaks_spanish/i.test(String(error.message||''))){
+      SPEAKS_SPANISH_COL=false;
+      delete row.speaks_spanish;
+      ({error}=await sb.from('instructors').upsert(row));
+      if(!error)spanishColumnMissing=true;
+    }
     if(error)throw new Error(error.message||error.code||JSON.stringify(error));
     // If she set a 6-digit PIN by hand (e.g. an instructor called and could not manage
     // the portal prompt), that satisfies the change — clear the pending flag so the
@@ -9813,7 +9898,7 @@ async function saveInstructor(editId){
       else console.warn('Could not clear pin_change_required:',pcErr.message||pcErr);
     }
     closeModal();renderInstructors();
-    showToast(leadColumnMissing?LEAD_COL_SQL_TOAST:(levelColumnMissing?LEVEL_COL_SQL_TOAST:(ssColumnMissing?'⚠ Saved, but the Safe Sitter® checkbox is NOT stored yet — please run the one-time setup SQL in Supabase.':(editId?'✓ Instructor updated!':'✓ Instructor added!'))));
+    showToast(spanishColumnMissing?'⚠️ Saved, but the Spanish-speaker checkbox is NOT stored yet — run migrations/20261017_spanish_flags.sql in the Supabase SQL editor, then re-save this instructor.':(leadColumnMissing?LEAD_COL_SQL_TOAST:(levelColumnMissing?LEVEL_COL_SQL_TOAST:(ssColumnMissing?'⚠ Saved, but the Safe Sitter® checkbox is NOT stored yet — please run the one-time setup SQL in Supabase.':(editId?'✓ Instructor updated!':'✓ Instructor added!')))));
   }catch(e){
     console.error(e);
     if(!editId)instructors=instructors.filter(x=>x.id!==i.id);

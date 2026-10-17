@@ -178,6 +178,7 @@ test('a Lead Teacher is paid $75/hour, and a frozen paid fee stays frozen', () =
       extractFn(admin, 'leadTeacherAssignmentBlock'),
       extractFn(admin, 'sessionRequiresRN'),
       extractFn(admin, 'sessionRequiresSafeSitter'),
+      extractFn(admin, 'sessionRequiresSpanish'),
       extractFn(admin, 'sessionWhoCanTeach'),
       extractFn(admin, 'instrEligible')
     ].join('\n'),
@@ -229,6 +230,7 @@ test('the instructor portal hides Red Cross jobs from anyone who is not a Lead T
       extractFn(instructor, 'canTeach'),
       extractFn(instructor, 'sessionRequiresRN'),
       extractFn(instructor, 'sessionRequiresSafeSitter'),
+      extractFn(instructor, 'sessionRequiresSpanish'),
       extractFn(instructor, 'canTeachSession'),
       extractFn(instructor, 'instrFee')
     ].join('\n'),

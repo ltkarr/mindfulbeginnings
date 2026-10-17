@@ -493,7 +493,8 @@
       portionText: clip(body.portionText, 200),
       av: Array.isArray(body.av) ? body.av.map(function (x) { return clip(x, 80); }).filter(Boolean).slice(0, 8) : [],
       clubs: Array.isArray(body.clubs) ? body.clubs.map(function (x) { return clip(x, 80); }).filter(Boolean).slice(0, 12) : [],
-      datesText: clip(body.datesText, 4000)
+      datesText: clip(body.datesText, 4000),
+      spanishRequested: !!body.spanishRequested
     };
   }
 
@@ -588,6 +589,7 @@
     if (n.expectedCount) lines.push('Expected participants: ' + n.expectedCount);
     if (n.badge) lines.push('Girl Scout badge: ' + n.badge);
     if (n.instructorRequest) lines.push('Instructor request: ' + n.instructorRequest);
+    if (n.spanishRequested) lines.push('Requested in Spanish — Spanish-speaking instructor required.');
     if (n.billing && n.billing.mode) lines.push('Billing: ' + billingSentence(n));
     var meal = foodSentence(n.food);
     if (meal) lines.push('Food: ' + meal);
@@ -676,6 +678,7 @@
       extra_days: extra.map(function (d) { return { date: d.date, time: d.time || '' }; }),
       requires_rn: !!n.course.requiresRN,
       requires_safe_sitter: !!n.course.requiresSS,
+      requires_spanish: !!n.spanishRequested,
       admin_private_notes: adminNotes(n, ids.requestId),
       instructor_info: n.instructorRequest ? ('Requested instructor: ' + n.instructorRequest) : null,
       max_students_override: null

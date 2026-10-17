@@ -46,6 +46,7 @@ function loadAdmin(extra) {
       extractFn(admin, 'isGirlScoutBadgeCourseName'),
       extractFn(admin, 'sessionRequiresRN'),
       extractFn(admin, 'sessionRequiresSafeSitter'),
+      extractFn(admin, 'sessionRequiresSpanish'),
       extractFn(admin, 'sessionWhoCanTeach'),
       extractFn(admin, 'matNormTitle'),
       extractFn(admin, 'matAliasCourse'),
@@ -195,6 +196,7 @@ test('an unchecked Girl Scout badge job is open to a non-RN, and a checked one i
       extractFn(instructor, 'canTeach'),
       extractFn(instructor, 'sessionRequiresRN'),
       extractFn(instructor, 'sessionRequiresSafeSitter'),
+      extractFn(instructor, 'sessionRequiresSpanish'),
       extractFn(instructor, 'canTeachSession')
     ].join('\n'),
     sandbox

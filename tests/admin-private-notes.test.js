@@ -40,6 +40,7 @@ function loadMappers() {
     INSTR_INFO_COL: false,
     REQUIRES_RN_COL: false,
     REQUIRES_SS_COL: false,
+    REQUIRES_SPANISH_COL: false,
     CANCEL_COLS: false,
     EXTERNAL_URL_COL: false,
     ADMIN_PRIVATE_NOTES_COL: true,

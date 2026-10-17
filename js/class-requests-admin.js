@@ -88,6 +88,7 @@
     add('Portion they wrote', n.portionText);
     add('Girl Scout badge', n.badge);
     add('Instructor request', n.instructorRequest);
+    if (n.spanishRequested) add('Language', 'Requested in Spanish — Spanish-speaking instructor required.');
     add('Hosting checklist', n.checklistAnswer);
     add('Checklist questions', n.checklistQuestions);
     add('Food', n.food);

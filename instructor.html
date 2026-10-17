@@ -458,7 +458,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -1102,7 +1102,7 @@ async function doLogin(){
       btn.disabled=false;btn.textContent='Sign in';return;
     }
     // Keep the PIN client-side so we can authorize subsequent operations. It is also the password the user just typed; we are not learning anything they don't already know.
-    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||'',pinChangeRequired:(profile.pin_change_required===undefined||profile.pin_change_required===null)?null:!!profile.pin_change_required,isLeadTeacher:(profile.is_lead_teacher===undefined||profile.is_lead_teacher===null)?null:!!profile.is_lead_teacher,redCrossCertId:profile.red_cross_instructor_id||'',redCrossCertExpires:profile.red_cross_cert_expires?String(profile.red_cross_cert_expires).slice(0,10):''};
+    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,speaksSpanish:(profile.speaks_spanish===undefined||profile.speaks_spanish===null)?null:!!profile.speaks_spanish,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||'',pinChangeRequired:(profile.pin_change_required===undefined||profile.pin_change_required===null)?null:!!profile.pin_change_required,isLeadTeacher:(profile.is_lead_teacher===undefined||profile.is_lead_teacher===null)?null:!!profile.is_lead_teacher,redCrossCertId:profile.red_cross_instructor_id||'',redCrossCertExpires:profile.red_cross_cert_expires?String(profile.red_cross_cert_expires).slice(0,10):''};
     me.level=normalizeInstructorLevel(profile.instructor_level);
     // instructor_login may predate the column. The helper RPC is the same pattern
     // as instructor_is_rn. If that has not been created yet either, stay on Started
@@ -1179,6 +1179,14 @@ async function doLogin(){
     if(me.isRN===null){
       try{const{data:rn}=await sb.rpc('instructor_is_rn',{p_pin:pin});me.isRN=(typeof rn==='boolean')?rn:false;}
       catch(e){me.isRN=false;}
+    }
+    // Spanish-speaker flag: instructor_login may predate the speaks_spanish
+    // column, so fall back to the helper RPC (created by
+    // migrations/20261017_spanish_flags.sql). If that does not exist either,
+    // fail closed — Spanish-required jobs stay hidden, as before this patch.
+    if(me.speaksSpanish===null){
+      try{const{data:sp}=await sb.rpc('instructor_speaks_spanish',{p_pin:pin});me.speaksSpanish=(typeof sp==='boolean')?sp:false;}
+      catch(e){me.speaksSpanish=false;}
     }
     // Lead Teacher is a separate credential from instructor level. instructor_login
     // may omit the new columns until the migration is applied. The helper RPC
@@ -1357,6 +1365,7 @@ async function loadData(){
       const f=map[x.id];if(!f)return;
       if('requires_rn' in f)x.requiresRN=!!f.requires_rn;
       if('requires_safe_sitter' in f)x.requiresSS=!!f.requires_safe_sitter;
+      if('requires_spanish' in f)x.requiresSpanish=!!f.requires_spanish;
       if('is_cancelled' in f)x.isCancelled=!!f.is_cancelled;
       if('cancel_reason' in f)x.cancelReason=f.cancel_reason||'';
     });
@@ -1809,6 +1818,11 @@ function sessionRequiresSafeSitter(s){
   if(s.requiresSS)return true;
   return !!(COURSES[s.course]||{}).requiresSafeSitter;
 }
+// Per-job Spanish restriction. Only ever set per job in admin (or requested on
+// the host/org form) — no course is Spanish-only.
+function sessionRequiresSpanish(s){
+  return !!(s&&s.requiresSpanish);
+}
 // Which jobs this instructor can see and accept. Use this everywhere instead of
 // canTeach(s.course) so the per-job flag is never skipped.
 //
@@ -1823,6 +1837,7 @@ function canTeachSession(s){
   if((c.requiresLeadTeacher||c.redCross)&&!(me&&me.isLeadTeacher))return false;
   if(sessionRequiresRN(s)&&!me.isRN)return false;
   if(sessionRequiresSafeSitter(s)&&!isSafeSitterCertified())return false;
+  if(sessionRequiresSpanish(s)&&!me.speaksSpanish)return false;
   if(!RN_RESTRICTION_KNOWN&&s.isCustomJob&&!me.isRN)return false;
   return canTeach(s.course);
 }
@@ -1833,6 +1848,7 @@ function credentialPill(s){
   if(c.requiresLeadTeacher||c.redCross)return'<span class="pill pill-rn">Lead Teachers only</span>';
   if(sessionRequiresRN(s))return'<span class="pill pill-rn">🩺 RN instructors only</span>';
   if(sessionRequiresSafeSitter(s))return'<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>';
+  if(sessionRequiresSpanish(s))return'<span class="pill pill-rn">🗣️ En español</span>';
   return'';
 }
 // True when a job another instructor already holds should be left off this

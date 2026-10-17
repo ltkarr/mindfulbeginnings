@@ -83,6 +83,7 @@
       referral: form.referral ? form.referral.value : '',
       days: readDays(form),
       specialInstructions: form.specialInstructions ? form.specialInstructions.value : '',
+      spanishRequested: !!(form.spanishRequested && form.spanishRequested.checked),
       companyWebsite: form.companyWebsite ? form.companyWebsite.value : ''
     };
     if (kind === 'host') {
