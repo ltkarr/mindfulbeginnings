@@ -674,8 +674,10 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <input type="date" id="ev-from" onchange="renderEvaluations()" title="From date">
         <input type="date" id="ev-to" onchange="renderEvaluations()" title="To date">
         <button class="btn sm" onclick="clearEvalFilters()">Clear</button>
+        <button class="btn sm" id="ev-group-btn" onclick="toggleEvalGrouping()">Group by instructor</button>
       </div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="evaluations-table"></table></div></div>
+      <div id="evaluations-by-instructor"></div>
     </div>
 
     <div class="screen" id="screen-instructors">
@@ -14894,8 +14896,10 @@ async function renderEvaluations(){
     '<div class="instr-stat"><b>'+avg('recommend_likelihood')+'</b><span>likely to recommend</span></div>'+
     '<div class="instr-stat"><b>'+(list.length?Math.round(rec/list.length*100)+'%':'—')+'</b><span>would recommend (4-5)</span></div>'+
     '</div>';
+  renderEvalInstructorGroups(list);
   // Table
   const t=document.getElementById('evaluations-table');
+  if(evalGroupByInstructor)return;
   if(!list.length){
     t.innerHTML='<tr><td style="padding:24px;color:var(--muted)">No evaluations yet. Families submit them from the hidden program evaluation page linked in post-course emails.</td></tr>';
     return;
@@ -14918,6 +14922,44 @@ async function renderEvaluations(){
       '<td style="max-width:220px">'+escapeHtml(r.improvements||'—')+'</td>'+
       '<td><button class="btn sm" onclick="deleteEvaluation(\''+r.id+'\')" title="Delete">✕</button></td>'+
     '</tr>').join('')+'</tbody>';
+}
+let evalGroupByInstructor=false;
+function toggleEvalGrouping(){
+  evalGroupByInstructor=!evalGroupByInstructor;
+  document.getElementById('ev-group-btn').textContent=evalGroupByInstructor?'Show all responses':'Group by instructor';
+  renderEvaluations();
+}
+function renderEvalInstructorGroups(list){
+  const box=document.getElementById('evaluations-by-instructor');
+  const tbl=document.getElementById('evaluations-table');
+  if(!evalGroupByInstructor){box.innerHTML='';box.style.display='none';tbl.style.display='';return;}
+  tbl.style.display='none';box.style.display='';
+  const groups={};
+  list.forEach(r=>{const k=(r.instructor||'Unknown').trim()||'Unknown';(groups[k]=groups[k]||[]).push(r);});
+  const names=Object.keys(groups).sort();
+  if(!names.length){box.innerHTML='<div class="card" style="padding:24px;color:var(--muted)">No evaluations yet.</div>';return;}
+  const avg=(rows,k)=>{const v=evalAvg(rows,k);return v==null?'—':v.toFixed(1);};
+  box.innerHTML=names.map(n=>{
+    const rows=groups[n];
+    const rec=rows.filter(r=>Number(r.recommend_likelihood)>=4).length;
+    const comments=rows.filter(r=>(r.best_part&&r.best_part.trim())||(r.improvements&&r.improvements.trim()));
+    return '<div class="card" style="margin-bottom:12px;padding:16px 18px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">'+
+      '<h3 style="margin:0;font-size:17px">'+escapeHtml(n)+'</h3>'+
+      '<span style="color:var(--muted);font-size:13px">'+rows.length+' response'+(rows.length===1?'':'s')+' · '+Math.round(rec/rows.length*100)+'% would recommend</span></div>'+
+      '<div class="instr-stats" style="margin:12px 0">'+
+      '<div class="instr-stat"><b>'+avg(rows,'registration_ease')+'</b><span>registration ease</span></div>'+
+      '<div class="instr-stat"><b>'+avg(rows,'instructor_engagement')+'</b><span>engagement</span></div>'+
+      '<div class="instr-stat"><b>'+avg(rows,'safe_environment')+'</b><span>safe environment</span></div>'+
+      '<div class="instr-stat"><b>'+avg(rows,'recommend_likelihood')+'</b><span>recommend</span></div></div>'+
+      (comments.length?'<div style="font-weight:700;font-size:13px;margin-bottom:6px">Comments</div>'+comments.map(r=>
+        '<div style="border-left:3px solid var(--gold);padding:6px 10px;margin-bottom:8px;background:var(--cream);border-radius:0 8px 8px 0">'+
+        '<div style="font-size:12px;color:var(--muted)">'+escapeHtml((r.created_at||'').slice(0,10))+' · '+escapeHtml(r.course||'')+'</div>'+
+        (r.best_part&&r.best_part.trim()?'<div style="font-size:14px"><b>Best part:</b> '+escapeHtml(r.best_part)+'</div>':'')+
+        (r.improvements&&r.improvements.trim()?'<div style="font-size:14px"><b>Improve:</b> '+escapeHtml(r.improvements)+'</div>':'')+
+        '</div>').join(''):'<div style="color:var(--muted);font-size:13px">No written comments yet.</div>')+
+      '</div>';
+  }).join('');
 }
 async function deleteEvaluation(id){
   if(!confirm('Delete this evaluation?'))return;
