@@ -104,6 +104,7 @@
 <select id="eval-instructor" name="instructor" required>
 <option value="">Choose your instructor...</option>
 </select>
+<input type="text" id="eval-instructor-other" placeholder="Type your instructor's name" style="display:none;margin-top:8px" aria-label="Instructor name if not listed">
 </div>
 <div class="eval-field">
 <label for="eval-date">Class date <span class="hint">(optional)</span></label>
@@ -222,11 +223,19 @@
       names.forEach(function(n){
         var o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);
       });
+      var other=document.createElement('option');other.value='__other';other.textContent='My instructor is not listed';sel.appendChild(other);
       if(!names.length){
         var o=document.createElement('option');o.value='';o.textContent='(could not load — please type below)';o.disabled=true;sel.appendChild(o);
       }
     })
     .catch(function(){});
+  document.getElementById('eval-instructor').addEventListener('change',function(){
+    var show=this.value==='__other';
+    var t=document.getElementById('eval-instructor-other');
+    t.style.display=show?'block':'none';
+    t.required=show;
+    if(!show)t.value='';
+  });
 
   // Pre-fill from link params (e.g. from a post-course email).
   try{
@@ -246,9 +255,11 @@
     e.preventDefault();
     errBox.style.display='none';
     var course=document.getElementById('eval-course').value;
-    var instructor=document.getElementById('eval-instructor').value;
+    var instructorSel=document.getElementById('eval-instructor').value;
+    var instructor=instructorSel==='__other'?document.getElementById('eval-instructor-other').value.trim():instructorSel;
     if(!course){showError('Please choose the course you completed.');return;}
-    if(!instructor){showError('Please choose your instructor.');return;}
+    if(!instructorSel){showError('Please choose your instructor.');return;}
+    if(instructorSel==='__other'&&!instructor){showError('Please type your instructor\'s name.');return;}
     submitBtn.disabled=true;
     submitBtn.textContent='Submitting...';
     fetch('/api/evaluations/submit',{
