@@ -2301,7 +2301,12 @@ async function handleUpload(input,type){
     // Refresh available jobs in case onboarding just completed
     refreshJobViews();
   }catch(e){
-    console.error(e);showToast('Upload failed. Please try again.');
+    console.error(e);
+    const msg=(e&&e.message)||'';
+    // Surface the real reason: "Bucket not found" vs a policy block vs a
+    // network blip need very different fixes, and Lindsay can text the
+    // exact line to support instead of guessing.
+    showToast('Upload failed: '+(msg||'Please try again.')+' If this keeps happening, screenshot this and text it to Lindsay at 703-987-5979.');
   }
 }
 

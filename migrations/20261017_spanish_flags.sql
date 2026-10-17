@@ -93,3 +93,78 @@ end;
 $$;
 
 grant execute on function public.instructor_list_sessions(text) to anon, authenticated, service_role;
+
+-- ----------------------------------------------------------------------------
+--  Fix: instructor_update_self was missing headshot_path, so headshot uploads
+--  saved the file to storage but silently dropped the path (only
+--  headshot_completed was set). This version adds it. Same allow-list as the
+--  live function — instructor_level / Lead Teacher stay admin-only.
+-- ----------------------------------------------------------------------------
+create or replace function public.instructor_update_self(p_pin text, p_changes jsonb)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id instructors.id%type;
+begin
+  if p_changes ? 'instructor_level' then
+    raise exception 'instructor_level can only be changed by an admin'
+      using errcode = '42501';
+  end if;
+  if p_changes ? 'is_lead_teacher'
+     or p_changes ? 'red_cross_instructor_id'
+     or p_changes ? 'red_cross_cert_expires' then
+    raise exception 'Lead Teacher status can only be changed by an admin'
+      using errcode = '42501';
+  end if;
+
+  select id into v_id from instructors where pin::text = p_pin;
+  if v_id is null then
+    return false;
+  end if;
+
+  update instructors set
+    resume_path          = coalesce(p_changes->>'resume_path',          resume_path),
+    cpr_cert_path        = coalesce(p_changes->>'cpr_cert_path',        cpr_cert_path),
+    license_path         = coalesce(p_changes->>'license_path',         license_path),
+    headshot_path        = coalesce(p_changes->>'headshot_path',        headshot_path),
+    contract_signed      = coalesce((p_changes->>'contract_signed')::boolean,    contract_signed),
+    contract_signed_date = coalesce(p_changes->>'contract_signed_date', contract_signed_date),
+    contract_signature   = coalesce(p_changes->>'contract_signature',   contract_signature),
+    w9_submitted         = coalesce((p_changes->>'w9_submitted')::boolean,       w9_submitted),
+    headshot_completed   = coalesce((p_changes->>'headshot_completed')::boolean, headshot_completed),
+    sweatshirt_size      = coalesce(p_changes->>'sweatshirt_size',      sweatshirt_size)
+  where id = v_id;
+
+  return true;
+end;
+$$;
+
+grant execute on function public.instructor_update_self(text, jsonb) to anon;
+
+-- ----------------------------------------------------------------------------
+--  Storage policies for the instructor-docs bucket (created manually in the
+--  dashboard). The portal uses the anon key + PIN, so both upload and
+--  signed-URL reads need anon policies. Files stay private: reads go through
+--  createSignedUrl (5-minute links), never public URLs.
+-- ----------------------------------------------------------------------------
+drop policy if exists "Instructors can upload docs" on storage.objects;
+create policy "Instructors can upload docs"
+  on storage.objects for insert
+  to anon
+  with check (bucket_id = 'instructor-docs');
+
+drop policy if exists "Instructors can read docs" on storage.objects;
+create policy "Instructors can read docs"
+  on storage.objects for select
+  to anon
+  using (bucket_id = 'instructor-docs');
+
+drop policy if exists "Instructors can replace docs" on storage.objects;
+create policy "Instructors can replace docs"
+  on storage.objects for update
+  to anon
+  using (bucket_id = 'instructor-docs')
+  with check (bucket_id = 'instructor-docs');
