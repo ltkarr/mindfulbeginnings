@@ -126,7 +126,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
 .public-card .pprice{font-weight:800;color:var(--navy);font-size:15px;white-space:nowrap}
 .public-card .pseats{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;font-weight:600}
 .public-card .pseats.full,.public-card .pseats.few{color:#7A5C00;font-weight:800}
-.public-card a.public-waitlist{display:block;pointer-events:auto;position:relative;z-index:3;color:#7A5C00;font-weight:800;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.public-card a.public-waitlist,.public-card button.public-waitlist{display:block;pointer-events:auto;position:relative;z-index:3;color:#7A5C00;font-weight:800;text-decoration:underline;text-underline-offset:2px;cursor:pointer;background:none;border:0;padding:0;font:inherit}
 .public-card a.public-waitlist:hover{color:#5C4500}
 .public-card a.public-waitlist:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .public-card .psoldout-banner{display:block;background:#C0392B;color:#fff;font-weight:800;font-size:13px;letter-spacing:0.1em;text-align:center;border-radius:8px;padding:6px 10px;margin-top:6px}
@@ -1123,6 +1123,9 @@ function selectPublicSession(code){
 // (no price; JOIN WAITLIST routes to the native waitlist flow)
 // regardless of seat counts.
 var SOLD_OUT_CODES=['SS-1103'];
+function isSoldOutCode(code){
+  return SOLD_OUT_CODES.indexOf(String(code||'').trim().toUpperCase())!==-1;
+}
 // Sold-out cards route families to the native waitlist flow via selectPublicSession.
 function renderPublicSessions(){
   const box=document.getElementById('public-sessions-list');
@@ -1165,7 +1168,7 @@ function renderPublicSessions(){
     const count=publicSessionCounts&&r.id!=null?publicSessionCounts[r.id]:null;
     const left=count==null?null:helpers.seatsLeft(r,count,caps);
     const externalUrl=helpers.externalRegistrationUrl(r);
-    const soldOut=!externalUrl&&SOLD_OUT_CODES.indexOf(String(r.code||'').trim().toUpperCase())!==-1;
+    const soldOut=!externalUrl&&isSoldOutCode(r.code);
     const full=!soldOut&&!externalUrl&&left!=null&&left<per;
     const seats=soldOut?'SOLD OUT':(externalUrl?'':helpers.seatsLabel(left, per));
     const scarce=!soldOut&&!full&&!!seats&&seats===helpers.FEW_SEATS_LABEL;
@@ -1174,7 +1177,7 @@ function renderPublicSessions(){
     let seatsHtml='';
     if(!soldOut&&seats){
       if(full){
-        seatsHtml='<a class="pseats full public-waitlist" href="'+escapeHtml(helpers.waitlistMailto(r))+'">'+escapeHtml(seats)+'</a>';
+        seatsHtml='<button type="button" class="pseats full public-waitlist" data-waitlist-code="'+escapeHtml(r.code)+'">JOIN WAITLIST</button>';
       }else{
         seatsHtml='<div class="pseats'+(scarce?' few':'')+'" aria-hidden="true">'+escapeHtml(seats)+'</div>';
       }
@@ -1232,9 +1235,9 @@ window.onload=function(){
   const list=document.getElementById('public-sessions-list');
   if(list){
     list.addEventListener('click',function(e){
-      if(e.target.closest&&e.target.closest('.public-waitlist'))return;
       var wlBtn=e.target.closest?e.target.closest('[data-waitlist-code]'):null;
       if(wlBtn){selectPublicSession(wlBtn.getAttribute('data-waitlist-code'));return;}
+      if(e.target.closest&&e.target.closest('.public-waitlist'))return;
       const hit=e.target.closest?e.target.closest('.public-card-hit'):null;
       const btn=hit&&hit.closest?hit.closest('.public-card'):null;
       if(!btn)return;
@@ -1348,7 +1351,7 @@ async function checkCode(){
     rememberSessionCode(val);
     // Check capacity — uses per-session override if set, else course default
     const max=getMaxSpots();
-    const forceWaitlist=new URLSearchParams(window.location.search).get('waitlist')==='1';
+    const forceWaitlist=new URLSearchParams(window.location.search).get('waitlist')==='1'||isSoldOutCode(r.code);
     if((!registrationFits(max, regCount, r.course)||forceWaitlist)&&!compMode&&!auctionMode){
       setBanner('banner-waitlist');
       // Full classes stay on the waitlist screen, without the class size.

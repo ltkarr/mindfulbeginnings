@@ -119,27 +119,30 @@ test('header branding is multi-course, not Safe Sitter-only', () => {
   assert.doesNotMatch(pay, /<div class="tag">Safe Sitter® Courses<\/div>/);
 });
 
-test('full public sessions show WAITLIST ONLY as a mailto, not inside the register button', () => {
+test('full public sessions show a native JOIN WAITLIST button, not a mailto', () => {
   const render = register.slice(register.indexOf('function renderPublicSessions'), register.indexOf('async function loadPublicSessions'));
   assert.match(render, /seatsLabel\(left, per\)/);
   assert.match(render, /FEW_SEATS_LABEL/);
   assert.match(render, /pseats'\+\(scarce\?' few':''\)/);
-  assert.match(render, /waitlistMailto\(r\)/);
-  assert.match(render, /<a class="pseats full public-waitlist"/);
+  assert.match(render, /<button type="button" class="pseats full public-waitlist" data-waitlist-code="/);
+  assert.doesNotMatch(render, /waitlistMailto\(r\)/);
   assert.doesNotMatch(register, /seats left/);
   assert.doesNotMatch(register, /All '\+max\+' spots/);
-  assert.match(register, /\.public-card a\.public-waitlist\{display:block/);
-  assert.match(render, /escapeHtml\(seats\)/);
+  assert.match(register, /\.public-card button\.public-waitlist\{/);
   const card = render.slice(render.indexOf("html+='<div class=\"public-card'"));
   assert.ok(card.indexOf('public-card-hit') >= 0);
-  assert.ok(card.indexOf('</button>') < card.indexOf('seatsHtml'), 'the register hit target closes before the waitlist link is inserted');
   assert.doesNotMatch(render, /<button[^>]*class="public-card"/);
   assert.doesNotMatch(register, /Full — waitlist/);
   const click = register.slice(register.indexOf("list.addEventListener('click'"), register.indexOf("list.addEventListener('click'") + 900);
   assert.match(click, /public-waitlist/);
   assert.match(click, /public-card-hit/);
-  assert.ok(click.indexOf('public-waitlist') < click.indexOf('selectPublicSession'), 'waitlist mailto returns before registration');
-  assert.ok(click.indexOf('openExternalRegistration') < click.indexOf('selectPublicSession'));
+  assert.ok(click.indexOf('[data-waitlist-code]') < click.indexOf('public-card-hit'), 'waitlist button is handled before the card register target');
+});
+
+test('manually sold-out codes always route to the waitlist in checkCode', () => {
+  assert.match(register, /function isSoldOutCode\(code\)/);
+  const check = register.slice(register.indexOf('async function checkCode'), register.indexOf('async function checkCode') + 4000);
+  assert.match(check, /isSoldOutCode\(r\.code\)/);
 });
 
 test('manually sold-out sessions show a red SOLD OUT banner, no price, and a JOIN WAITLIST contact link', () => {

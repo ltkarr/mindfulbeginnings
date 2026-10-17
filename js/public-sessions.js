@@ -220,7 +220,7 @@
     var need = Number(seatsNeeded);
     if (!isFinite(need) || need < 1) need = 1;
     // Not enough room for one more registration. The public card turns this
-    // into a mailto; a session code still opens the on-page waitlist form.
+    // into a native waitlist button; a session code still opens the on-page waitlist form.
     if (left < need) return 'WAITLIST ONLY';
     if (left < SCARCITY_BELOW) return FEW_SEATS_LABEL;
     return '';
