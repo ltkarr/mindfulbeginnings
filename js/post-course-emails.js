@@ -121,11 +121,11 @@
     {
       keys: ['Steady and Ready'],
       subject: 'Steady and Ready',
-      greeting: 'Hello,',
-      taker: 'complete',
+      greeting: 'Hi there,',
+      taker: 'have your child complete',
       paragraphs: [
-        'Thank you for joining Steady and Ready. You focused on staying steady, strong, and safe in everyday life, with practical strategies for preventing falls and moving with confidence.',
-        'Small daily habits make the biggest difference here. Keep practicing what you learned, and share it with a friend who could use it too. It\'s never too late to build steadier habits, and your future self will thank you.'
+        'Thank you for choosing Steady and Ready. Your child built essential emergency readiness skills in a low-pressure, supportive environment designed for how they learn best.',
+        'These skills stick best with gentle repetition. Keep practicing the safety steps together at home, at their pace, and celebrate how far they have come. Thank you for trusting us with your child.'
       ]
     },
     {
@@ -164,8 +164,8 @@
       greeting: 'Hi there,',
       taker: 'have your child complete',
       paragraphs: [
-        'Thank you for choosing Social Ready. Your child practiced handling social situations with confidence: reading the room, speaking up for themselves, and making choices they feel good about.',
-        'These skills transfer everywhere, from the lunch table to group chats. Keep encouraging them to trust their instincts. These are life skills, not just kid skills, and they only get stronger with practice.'
+        'Thank you for choosing Social Ready. Your child practiced staying safe online: phone safety, digital boundaries, handling group chats, and recognizing red flags before they head online.',
+        'The online world moves fast. Keep the conversation going at home about what they are seeing and who they are talking to. Kids who can spot the red flags early are the safest ones in the chat.'
       ]
     },
     {
