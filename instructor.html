@@ -1103,7 +1103,7 @@ async function doLogin(){
       btn.disabled=false;btn.textContent='Sign in';return;
     }
     // Keep the PIN client-side so we can authorize subsequent operations. It is also the password the user just typed; we are not learning anything they don't already know.
-    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,speaksSpanish:(profile.speaks_spanish===undefined||profile.speaks_spanish===null)?null:!!profile.speaks_spanish,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||'',pinChangeRequired:(profile.pin_change_required===undefined||profile.pin_change_required===null)?null:!!profile.pin_change_required,isLeadTeacher:(profile.is_lead_teacher===undefined||profile.is_lead_teacher===null)?null:!!profile.is_lead_teacher,redCrossCertId:profile.red_cross_instructor_id||'',redCrossCertExpires:profile.red_cross_cert_expires?String(profile.red_cross_cert_expires).slice(0,10):''};
+    me={id:profile.id,name:profile.name,email:profile.email||'',phone:profile.phone||'',zelle:profile.zelle||'',pin:pin,hourlyRate:profile.hourly_rate||50,safeSitterTrainingDate:profile.safe_sitter_training_date||'',resumePath:profile.resume_path||'',cprCertPath:profile.cpr_cert_path||'',licensePath:profile.license_path||'',contractSigned:profile.contract_signed||false,contractSignedDate:profile.contract_signed_date||'',contractSignature:profile.contract_signature||'',w9Submitted:profile.w9_submitted||false,w9Path:profile.w9_path||'',headshotCompleted:profile.headshot_completed||false,headshotPath:profile.headshot_path||'',sweatshirtSize:profile.sweatshirt_size||'',isRN:(profile.is_rn===undefined||profile.is_rn===null)?null:!!profile.is_rn,speaksSpanish:(profile.speaks_spanish===undefined||profile.speaks_spanish===null)?null:!!profile.speaks_spanish,safeSitterCertified:(profile.safe_sitter_certified===undefined||profile.safe_sitter_certified===null)?null:!!profile.safe_sitter_certified,contractType:profile.contract_type||'',pinChangeRequired:(profile.pin_change_required===undefined||profile.pin_change_required===null)?null:!!profile.pin_change_required,isLeadTeacher:(profile.is_lead_teacher===undefined||profile.is_lead_teacher===null)?null:!!profile.is_lead_teacher,redCrossCertId:profile.red_cross_instructor_id||'',redCrossCertExpires:profile.red_cross_cert_expires?String(profile.red_cross_cert_expires).slice(0,10):''};
     me.level=normalizeInstructorLevel(profile.instructor_level);
     // instructor_login may predate the column. The helper RPC is the same pattern
     // as instructor_is_rn. If that has not been created yet either, stay on Started
@@ -1704,7 +1704,7 @@ function renderHome(){
   const mine=myUpcomingJobs();
   const next=mine[0];
   const open=openJobs().length;
-  const obSteps=[!!me.contractSigned,!!me.w9Submitted,!!me.cprCertPath,!!me.licensePath,
+  const obSteps=[!!me.contractSigned,!!(me.w9Submitted||me.w9Path),!!me.cprCertPath,!!me.licensePath,
                  !!(me.headshotPath||me.headshotCompleted),hasAnsweredSafeSitter()];
   const obDone=obSteps.filter(Boolean).length;
   const obComplete=isOnboardingComplete();
@@ -1771,7 +1771,7 @@ function openJobs(){
 // board retroactively. It is also set alongside the path on every new upload, so the
 // admin's own onboarding check keeps working with no change.
 function isOnboardingComplete(){
-  return !!(me.contractSigned && me.w9Submitted && me.cprCertPath && me.licensePath && (me.headshotPath || me.headshotCompleted) && hasAnsweredSafeSitter());
+  return !!(me.contractSigned && (me.w9Submitted||me.w9Path) && me.cprCertPath && me.licensePath && (me.headshotPath || me.headshotCompleted) && hasAnsweredSafeSitter());
 }
 // Safe Sitter® instructor training. The instructor answers this themselves in My
 // profile — either a completion date, or "I have not taken this training yet".
@@ -1870,7 +1870,7 @@ function renderOnboardingGate(el){
   if(isOnboardingComplete())return false;
   const steps=[
     {label:'Sign your contractor agreement',done:!!me.contractSigned,sec:'acct-contract'},
-    {label:'Submit your W-9 form',done:!!me.w9Submitted,sec:'acct-w9'},
+    {label:'Submit your W-9 form',done:!!(me.w9Submitted||me.w9Path),sec:'acct-w9'},
     {label:'Upload your CPR certification',done:!!me.cprCertPath,sec:'acct-myprofile'},
     {label:'Upload your driver\'s license / ID',done:!!me.licensePath,sec:'acct-myprofile'},
     {label:'Upload your headshot photo for the website',done:!!(me.headshotPath||me.headshotCompleted),sec:'acct-myprofile'},
@@ -2113,7 +2113,7 @@ async function renderMyProfile(){
         ${licUrl
           ?`<div style="display:flex;align-items:center;gap:8px"><span class="tag paid">✓ Uploaded</span><a href="${licUrl}" target="_blank" class="btn sm">View</a><button class="btn sm" onclick="triggerUpload('license')">Replace</button></div>`
           :`<button class="btn primary" onclick="triggerUpload('license')">Upload license / ID</button>`}
-        <input type="file" id="upload-license" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="handleUpload(this,'license')">
+        <input type="file" id="upload-license" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.heic" onchange="handleUpload(this,'license')">
       </div>
 
       <div>
@@ -2140,7 +2140,7 @@ async function renderMyProfile(){
                 <span style="font-size:14px;color:var(--muted)">We don't have the file yet — please upload it when you can.</span>
               </div>`
             :`<button class="btn primary" onclick="triggerUpload('headshot')">Upload headshot</button>`}
-        <input type="file" id="upload-headshot" style="display:none" accept=".jpg,.jpeg,.png,.webp" onchange="handleUpload(this,'headshot')">
+        <input type="file" id="upload-headshot" style="display:none" accept=".jpg,.jpeg,.png,.webp,.heic" onchange="handleUpload(this,'headshot')">
       </div>
     </div>
 
@@ -2302,12 +2302,25 @@ async function handleUpload(input,type){
     refreshJobViews();
   }catch(e){
     console.error(e);
-    const msg=(e&&e.message)||'';
-    // Surface the real reason: "Bucket not found" vs a policy block vs a
-    // network blip need very different fixes, and Lindsay can text the
-    // exact line to support instead of guessing.
-    showToast('Upload failed: '+(msg||'Please try again.')+' If this keeps happening, screenshot this and text it to Lindsay at 703-987-5979.');
+    // Surface the real reason: "Bucket not found" vs a policy block
+    // (permission denied for table instructors, 42501) vs a missing
+    // headshot_path column (42703). The code often sits on error/code
+    // rather than message. Leave the toast up long enough to screenshot.
+    const msg=uploadErrorText(e);
+    showToast('Upload failed: '+(msg||'Please try again.')+' If this keeps happening, screenshot this and text it to Lindsay at 703-987-5979.',12000);
   }
+}
+function uploadErrorText(e){
+  if(!e)return '';
+  if(typeof e==='string')return e;
+  const bits=[];
+  if(e.message)bits.push(String(e.message));
+  if(e.error&&String(e.error)!==String(e.message))bits.push(String(e.error));
+  if(e.details)bits.push(String(e.details));
+  if(e.hint)bits.push(String(e.hint));
+  if(e.code)bits.push('('+e.code+')');
+  else if(e.statusCode)bits.push('('+e.statusCode+')');
+  return bits.join(' ').trim();
 }
 
 function downloadIncomeSummary(){
@@ -3610,9 +3623,9 @@ const W9_URL='https://www.irs.gov/pub/irs-pdf/fw9.pdf';
 
 function renderW9(){
   const el=document.getElementById('w9-content');
-  if(me.w9Submitted){
+  if(me.w9Path||me.w9Submitted){
     el.innerHTML=`
-      <div class="alert success">✅ &nbsp;<strong>W-9 received.</strong> Your W-9 has been submitted. No further action needed.</div>
+      <div class="alert success">✅ &nbsp;<strong>W-9 on file.</strong> Your W-9 has been submitted. No further action needed.</div>
       <div class="info-card" style="font-size:13px;color:var(--muted)">
         Need to resubmit a corrected W-9? Email it directly to <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--gold-d)">lindsay@mindfulbeginnings.org</a> and Lindsay will update your records.
       </div>`;
@@ -3832,10 +3845,10 @@ function sendJobCancelledNotification(session){
 }
 
 // ─── TOAST ───────────────────────────────────────────────────
-function showToast(msg){
+function showToast(msg,ms){
   const t=document.createElement('div');
   t.style.cssText='position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--navy);color:white;padding:11px 22px;border-radius:22px;font-size:13px;line-height:1.45;text-align:center;z-index:999;max-width:calc(100vw - 40px);box-shadow:0 6px 22px rgba(30,49,97,.32)';
-  t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);
+  t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||2500);
 }
 
 // ─── ERROR TRACKING ──────────────────────────────────────────

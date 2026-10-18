@@ -49,14 +49,20 @@ test('a vendor fair never asks for a badge summary, even with Girl Scouts in the
   assert.equal(sandbox.wrapReportTasks(FAIR).length, 0);
 });
 
-test('vendor-fair wrap-up only counts instructor pay + instructor follow-up', () => {
+test('vendor-fair wrap-up counts instructor pay only', () => {
   const fair = sandbox.wrapProgress(FAIR, {});
-  assert.equal(fair.wrapTotal, 2);
+  assert.equal(fair.wrapTotal, 1);
+  assert.equal(fair.wrapAllDone, false);
   const done = sandbox.wrapProgress(
     FAIR,
-    { instructorId: 'k1', payStatus: 'paid', instrFollowupSent: true }
+    { instructorId: 'k1', payStatus: 'paid' }
   );
   assert.equal(done.wrapAllDone, true);
+  const followupOnly = sandbox.wrapProgress(FAIR, {
+    instrFollowupSent: true,
+    evalSentToHost: true
+  });
+  assert.equal(followupOnly.wrapAllDone, false);
 });
 
 test('custom-job Paid/Unpaid reads the real payment state, not the dead instrPaid field', () => {

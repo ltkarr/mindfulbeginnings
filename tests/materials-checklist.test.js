@@ -248,13 +248,15 @@ test('wrap-up reports follow the class, and a troop Safe Sitter class shows both
     ['Sent course completion to Safe Sitter rep', 'Sent badge summary to host']
   );
 
+  // Instructor follow-up and "eval sent to host" are no longer checklist
+  // items, so they do not add to the total. Baby Ready is parent letter + pay.
   const baby = api.wrapProgress({ course: 'Baby Ready' }, {
     repNotified: false,
     parentLetterSent: true,
-    instrFollowupSent: true,
-    evalSentToHost: true
+    instrFollowupSent: false,
+    evalSentToHost: false
   });
-  assert.equal(baby.wrapTotal, 4);
+  assert.equal(baby.wrapTotal, 2);
   assert.equal(baby.wrapAllDone, true);
   const stuck = api.wrapProgress({ course: 'Safe Sitter®' }, {
     repNotified: false,
@@ -262,8 +264,8 @@ test('wrap-up reports follow the class, and a troop Safe Sitter class shows both
     instrFollowupSent: true,
     evalSentToHost: true
   });
-  assert.equal(stuck.wrapTotal, 5);
-  assert.equal(stuck.wrapDone, 4);
+  assert.equal(stuck.wrapTotal, 3);
+  assert.equal(stuck.wrapDone, 2);
   assert.equal(stuck.wrapAllDone, false);
   const both = api.wrapProgress({ course: 'Safe Sitter®', code: 'GS-34182' }, {
     repNotified: true,
@@ -272,16 +274,16 @@ test('wrap-up reports follow the class, and a troop Safe Sitter class shows both
     instrFollowupSent: true,
     evalSentToHost: true
   });
-  assert.equal(both.wrapTotal, 6);
+  assert.equal(both.wrapTotal, 4);
   assert.equal(both.wrapAllDone, false);
   const red = api.wrapProgress({ course: 'Adult & Pediatric First Aid/CPR/AED Certification' }, {
     repNotified: true,
     redCrossReported: true,
     parentLetterSent: true,
-    instrFollowupSent: true,
-    evalSentToHost: true
+    instrFollowupSent: false,
+    evalSentToHost: false
   });
-  assert.equal(red.wrapTotal, 5);
+  assert.equal(red.wrapTotal, 3);
   assert.equal(red.wrapAllDone, true);
   assert.match(extractFunction(admin, 'openWrapup'), /wrapReportTasks\(s\)/);
   assert.doesNotMatch(admin, /Sent course completion to SafeSitter rep/);
