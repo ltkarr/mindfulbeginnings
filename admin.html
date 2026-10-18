@@ -1114,6 +1114,13 @@ const INSTRUCTOR_LEVELS=['Started','Established','Senior','Lead'];
 let INSTRUCTOR_LEVEL_COL=true;
 let LEAD_TEACHER_COL=true;
 let SPEAKS_SPANISH_COL=true;
+// Turned off after a save reports the column missing, so the rest of the
+// instructor row can still be written before
+// migrations/20261018_fix_instructor_uploads.sql has been run.
+let HEADSHOT_PATH_COL=true;
+let W9_PATH_COL=true;
+let W9_RECEIVED_COL=true;
+const DOC_COL_SQL_TOAST='⚠️ Saved, but WITHOUT the W-9 / headshot file path — run migrations/20261018_fix_instructor_uploads.sql in the Supabase SQL editor, then re-save this instructor.';
 const LEAD_TEACHER_RATE=75;
 const LEAD_COL_SQL_TOAST='⚠️ Saved, but WITHOUT Lead Teacher — run migrations/20261008_lead_teacher.sql in the Supabase SQL editor, then set Lead Teacher again.';
 function normalizeInstructorLevel(v){
@@ -1141,16 +1148,26 @@ function instructorFromDB(r){
   //   alter table instructors add column if not exists archived_at timestamptz;
   //   update instructors set is_active = true where is_active is null;
   //   grant select (is_active) on public.instructors to anon;
-  return{id:r.id,name:r.name,active:(r.is_active===undefined||r.is_active===null)?true:!!r.is_active,archivedAt:r.archived_at||null,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,pinChangeRequired:!!r.pin_change_required,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,speaksSpanish:!!r.speaks_spanish,isLeadTeacher:!!r.is_lead_teacher,redCrossCertId:r.red_cross_instructor_id||'',redCrossCertExpires:r.red_cross_cert_expires?String(r.red_cross_cert_expires).slice(0,10):'',level:normalizeInstructorLevel(r.instructor_level),createdAt:r.created_at||Date.now()};
+  return{id:r.id,name:r.name,active:(r.is_active===undefined||r.is_active===null)?true:!!r.is_active,archivedAt:r.archived_at||null,email:r.email||'',phone:r.phone||'',zelle:r.zelle||'',pin:r.pin,pinChangeRequired:!!r.pin_change_required,bio:r.bio||'',hourlyRate:r.hourly_rate||50,safeSitterCertified:(r.safe_sitter_certified===undefined||r.safe_sitter_certified===null)?null:!!r.safe_sitter_certified,safeSitterTrainingDate:r.safe_sitter_training_date||'',resumePath:r.resume_path||'',cprCertPath:r.cpr_cert_path||'',licensePath:r.license_path||'',contractSigned:r.contract_signed||false,contractSignedDate:r.contract_signed_date||'',contractSignature:r.contract_signature||'',contractType:r.contract_type||'standard',w9Submitted:r.w9_submitted||false,w9Path:r.w9_path||'',w9ReceivedDate:r.w9_received_date?String(r.w9_received_date).slice(0,10):'',headshotCompleted:r.headshot_completed||false,headshotPath:r.headshot_path||'',sweatshirtSize:r.sweatshirt_size||'',isRN:r.is_rn||false,speaksSpanish:!!r.speaks_spanish,isLeadTeacher:!!r.is_lead_teacher,redCrossCertId:r.red_cross_instructor_id||'',redCrossCertExpires:r.red_cross_cert_expires?String(r.red_cross_cert_expires).slice(0,10):'',level:normalizeInstructorLevel(r.instructor_level),createdAt:r.created_at||Date.now()};
 }
-// headshot_path is deliberately absent below: only the instructor portal writes it,
-// and including it here would break saving an instructor on databases that have not
-// had the column added yet. An upsert leaves columns it does not mention untouched.
+// Path columns are sent only when this record has a real value. An empty
+// headshot_path would wipe the file the instructor portal stored, and naming
+// a column that migrations/20261018_fix_instructor_uploads.sql has not added
+// yet would fail the whole upsert. An upsert leaves columns it does not
+// mention untouched.
 function instructorToDB(i){
   const row={id:i.id,name:i.name,email:i.email||null,phone:i.phone||null,zelle:i.zelle||null,pin:i.pin,bio:i.bio||null,hourly_rate:i.hourlyRate||50,safe_sitter_training_date:i.safeSitterTrainingDate||null,resume_path:i.resumePath||null,cpr_cert_path:i.cprCertPath||null,license_path:i.licensePath||null,sweatshirt_size:i.sweatshirtSize||null,contract_type:i.contractType||'standard',is_rn:i.isRN||false};
   // Only send safe_sitter_certified when we have a real value — if the column has not
   // been added to the database yet, including it would make the whole upsert fail.
   if(i.safeSitterCertified!==null&&i.safeSitterCertified!==undefined)row.safe_sitter_certified=!!i.safeSitterCertified;
+  if(i.w9Submitted!==null&&i.w9Submitted!==undefined)row.w9_submitted=!!i.w9Submitted;
+  if(i.headshotCompleted!==null&&i.headshotCompleted!==undefined)row.headshot_completed=!!i.headshotCompleted;
+  const w9Path=String(i.w9Path||'').trim();
+  const w9Received=String(i.w9ReceivedDate||'').trim();
+  const headshotPath=String(i.headshotPath||'').trim();
+  if((typeof W9_PATH_COL==='undefined'||W9_PATH_COL)&&w9Path)row.w9_path=w9Path;
+  if((typeof W9_RECEIVED_COL==='undefined'||W9_RECEIVED_COL)&&w9Received)row.w9_received_date=w9Received.slice(0,10);
+  if((typeof HEADSHOT_PATH_COL==='undefined'||HEADSHOT_PATH_COL)&&headshotPath)row.headshot_path=headshotPath;
   // Omitted once we know the database has not had instructor_level added yet,
   // so the rest of the instructor row can still be saved.
   if(INSTRUCTOR_LEVEL_COL)row.instructor_level=normalizeInstructorLevel(i.level);
@@ -9532,10 +9549,11 @@ window.addEventListener('keydown',function(e){
 },true);
 
 // ─── TOAST ───────────────────────────────────────────────────
-function showToast(msg){
+function showToast(msg,ms){
   const t=document.createElement('div');
-  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;padding:10px 20px;border-radius:100px;font-size:16px;z-index:999;white-space:nowrap';
-  t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);
+  const long=String(msg||'').length>90;
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;padding:10px 20px;border-radius:'+(long?'16px':'100px')+';font-size:16px;z-index:999;max-width:min(520px,calc(100vw - 32px));text-align:center;line-height:1.4;'+(long?'':'white-space:nowrap');
+  t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||(long?9000:2500));
 }
 
 // ─── INSTRUCTORS ─────────────────────────────────────────────
@@ -9625,7 +9643,7 @@ function renderInstructors(){
       if(instrActive(i)){
         const missing=[];
         if(!i.contractSigned)missing.push('contract');
-        if(!i.w9Submitted)missing.push('W-9');
+        if(!(i.w9Submitted||i.w9Path))missing.push('W-9');
         if(!i.cprCertPath)missing.push('CPR cert');
         if(!i.licensePath)missing.push('license/ID');
         if(!(i.headshotPath||i.headshotCompleted))missing.push('headshot');
@@ -9656,6 +9674,7 @@ function renderInstructors(){
           </div>
           <div class="instr-actions">
             <button class="btn sm primary" onclick="openInstructorProfile('${i.id}')">Profile</button>
+            ${!(i.w9Submitted||i.w9Path)?`<button class="btn sm" onclick="openInstructorProfile('${i.id}')">Mark received / Upload</button>`:''}
             <button class="btn sm" onclick="openEditInstructor('${i.id}')">Edit</button>
             ${instrActive(i)
               ?`<button class="btn sm" onclick="setInstructorActive('${i.id}',false)" title="Move off the roster. Keeps their record and pay history.">📁 Make inactive</button>`
@@ -9810,6 +9829,13 @@ function openEditInstructor(id){
       <div style="font-size:14px;color:var(--muted);margin-top:6px;line-height:1.5">Courses open to everyone (All Kids Welcome, Steady and Ready, My First Babysitters Club, Safe@Home, Safe@Home — Virtual, Safe@Home — Series, Intro to Babysitting) are always visible. Check both boxes if the instructor holds both credentials.</div>
     </div>
     ${leadTeacherFormHtml(i)}
+    <div class="fg full" style="background:#f7f3ea;border:1px solid #e2d3b0;border-radius:var(--r-sm);padding:10px 12px">
+      <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Paperwork</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-iw9" ${i.w9Submitted?'checked':''} style="width:auto;margin:0"> W-9 received</label>
+      <div class="fg"><label>W-9 received date</label><input type="date" id="m-iw9date" value="${i.w9ReceivedDate||''}"></div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-top:8px"><input type="checkbox" id="m-iheadshot" ${i.headshotCompleted?'checked':''} style="width:auto;margin:0"> Headshot complete</label>
+      <div style="font-size:14px;color:var(--muted);margin-top:8px">Contract signed ${i.contractSigned&&i.contractSignedDate?escapeHtml(i.contractSignedDate):'—'}</div>
+    </div>
     <div class="fg full"><label>Contractor agreement version</label><select id="m-icontract" style="width:100%"><option value="standard" ${(i.contractType||'standard')==='standard'?'selected':''}>Safe Sitter® instructor agreement</option><option value="proprietary" ${i.contractType==='proprietary'?'selected':''}>RN agreement (Campus Ready / Stay Ready)</option><option value="mb_courses_2026" ${i.contractType==='mb_courses_2026'?'selected':''}>MB Courses instructor agreement (Safe@Home, Intro, My First Babysitters Club, All Kids Welcome, Steady &amp; Ready)</option>${i.contractType==='mb_courses'?'<option value="mb_courses" selected>MB Courses instructor agreement — 2025 version (retired, already signed)</option>':''}<option value="curriculum" ${i.contractType==='curriculum'?'selected':''}>Curriculum Specialist agreement (content development, not teaching)</option></select><div style="font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5">Controls which agreement this person sees and signs on the instructor portal. Changing this does not un-sign an agreement that was already signed.${i.contractType==='mb_courses'?' This person signed the retired 2025 MB Courses agreement — switching them to the current version will make the portal show the new terms as already signed, so only do it after they have actually signed the new one.':''}</div></div>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveInstructor('${id}')">Save</button></div>`);
@@ -9836,6 +9862,12 @@ async function saveInstructor(editId){
     sortInstructors();
   }
   applyLeadTeacherFields(i);
+  const w9Box=document.getElementById('m-iw9');
+  if(w9Box)i.w9Submitted=!!w9Box.checked;
+  const w9DateEl=document.getElementById('m-iw9date');
+  if(w9DateEl)i.w9ReceivedDate=w9DateEl.value||'';
+  const hsDone=document.getElementById('m-iheadshot');
+  if(hsDone)i.headshotCompleted=!!hsDone.checked;
   try{
     let row=instructorToDB(i);
     let {error}=await sb.from('instructors').upsert(row);
@@ -9887,6 +9919,22 @@ async function saveInstructor(editId){
       ({error}=await sb.from('instructors').upsert(row));
       if(!error)spanishColumnMissing=true;
     }
+    // Same pattern for the paperwork file columns. Drop whichever column the
+    // database says is missing and retry, so a name/phone edit still saves
+    // before migrations/20261018_fix_instructor_uploads.sql has been run.
+    let docColumnMissing=false;
+    const docCols=['headshot_path','w9_path','w9_received_date'];
+    for(let n=0;n<docCols.length&&error;n++){
+      const msg=String(error.message||'');
+      const drop=docCols.find(c=>msg.includes(c)&&Object.prototype.hasOwnProperty.call(row,c));
+      if(!drop)break;
+      if(drop==='headshot_path')HEADSHOT_PATH_COL=false;
+      if(drop==='w9_path')W9_PATH_COL=false;
+      if(drop==='w9_received_date')W9_RECEIVED_COL=false;
+      delete row[drop];
+      ({error}=await sb.from('instructors').upsert(row));
+      if(!error)docColumnMissing=true;
+    }
     if(error)throw new Error(error.message||error.code||JSON.stringify(error));
     // If she set a 6-digit PIN by hand (e.g. an instructor called and could not manage
     // the portal prompt), that satisfies the change — clear the pending flag so the
@@ -9898,7 +9946,7 @@ async function saveInstructor(editId){
       else console.warn('Could not clear pin_change_required:',pcErr.message||pcErr);
     }
     closeModal();renderInstructors();
-    showToast(spanishColumnMissing?'⚠️ Saved, but the Spanish-speaker checkbox is NOT stored yet — run migrations/20261017_spanish_flags.sql in the Supabase SQL editor, then re-save this instructor.':(leadColumnMissing?LEAD_COL_SQL_TOAST:(levelColumnMissing?LEVEL_COL_SQL_TOAST:(ssColumnMissing?'⚠ Saved, but the Safe Sitter® checkbox is NOT stored yet — please run the one-time setup SQL in Supabase.':(editId?'✓ Instructor updated!':'✓ Instructor added!')))));
+    showToast(docColumnMissing?DOC_COL_SQL_TOAST:(spanishColumnMissing?'⚠️ Saved, but the Spanish-speaker checkbox is NOT stored yet — run migrations/20261017_spanish_flags.sql in the Supabase SQL editor, then re-save this instructor.':(leadColumnMissing?LEAD_COL_SQL_TOAST:(levelColumnMissing?LEVEL_COL_SQL_TOAST:(ssColumnMissing?'⚠ Saved, but the Safe Sitter® checkbox is NOT stored yet — please run the one-time setup SQL in Supabase.':(editId?'✓ Instructor updated!':'✓ Instructor added!'))))));
   }catch(e){
     console.error(e);
     if(!editId)instructors=instructors.filter(x=>x.id!==i.id);
@@ -9966,6 +10014,137 @@ async function deleteInstructor(id){
 
 
 // ─── INSTRUCTOR PROFILE ──────────────────────────────────────
+// Real storage / PostgREST text, including the code (42501, 42703) when the
+// client puts it on a field other than message.
+function instructorUploadErrorText(e){
+  if(!e)return '';
+  if(typeof e==='string')return e;
+  const bits=[];
+  if(e.message)bits.push(String(e.message));
+  if(e.error&&String(e.error)!==String(e.message))bits.push(String(e.error));
+  if(e.details)bits.push(String(e.details));
+  if(e.hint)bits.push(String(e.hint));
+  if(e.code)bits.push('('+e.code+')');
+  else if(e.statusCode)bits.push('('+e.statusCode+')');
+  return bits.join(' ').trim();
+}
+function instructorDocContentType(file,ext){
+  const given=file&&file.type?String(file.type):'';
+  if(given)return given;
+  if(ext==='pdf')return 'application/pdf';
+  if(ext==='png')return 'image/png';
+  if(ext==='webp')return 'image/webp';
+  if(ext==='heic')return 'image/heic';
+  if(ext==='jpg'||ext==='jpeg')return 'image/jpeg';
+  return 'application/octet-stream';
+}
+// type is w9 | cpr | license | resume | headshot. The file lands at
+// {instructorId}/{type}.{ext} in the instructor-docs bucket. W-9 also marks
+// the form received today. The page never renders a W-9 or a TIN — View is
+// a short-lived signed link only.
+async function adminUploadInstructorDoc(instrId, type, file){
+  const kinds={
+    w9:{col:'w9_path',exts:['pdf','jpg','jpeg','png','heic']},
+    cpr:{col:'cpr_cert_path',exts:['pdf','jpg','jpeg','png','heic']},
+    license:{col:'license_path',exts:['pdf','jpg','jpeg','png','heic']},
+    resume:{col:'resume_path',exts:['pdf','jpg','jpeg','png','heic']},
+    headshot:{col:'headshot_path',exts:['pdf','jpg','jpeg','png','heic','webp']}
+  };
+  const kind=kinds[type];
+  if(!kind){showToast('Unknown document type.');return;}
+  if(!file)return;
+  const ext=(String(file.name||'').split('.').pop()||'').toLowerCase();
+  if(!kind.exts.includes(ext)){
+    showToast(type==='headshot'?'Use a PDF, JPG, PNG, HEIC, or WEBP file.':'Use a PDF, JPG, PNG, or HEIC file.');
+    return;
+  }
+  if(file.size>10*1024*1024){
+    showToast('That file is over 10 MB. Please use a smaller file.');
+    return;
+  }
+  const path=instrId+'/'+type+'.'+ext;
+  const contentType=instructorDocContentType(file,ext);
+  showToast('Uploading…');
+  try{
+    const{error:upErr}=await sb.storage.from('instructor-docs').upload(path,file,{upsert:true,contentType});
+    if(upErr)throw upErr;
+    const patch={[kind.col]:path};
+    let receivedDate='';
+    if(type==='w9'){
+      receivedDate=fmtYMD(new Date());
+      patch.w9_submitted=true;
+      patch.w9_received_date=receivedDate;
+    }
+    if(type==='headshot')patch.headshot_completed=true;
+    let{error}=await sb.from('instructors').update(patch).eq('id',instrId);
+    const dropped=[];
+    for(let n=0;n<3&&error;n++){
+      const msg=String(error.message||'');
+      const col=['headshot_path','w9_path','w9_received_date'].find(c=>msg.includes(c)&&Object.prototype.hasOwnProperty.call(patch,c)&&dropped.indexOf(c)<0);
+      if(!col)break;
+      dropped.push(col);
+      if(col==='headshot_path'&&typeof HEADSHOT_PATH_COL!=='undefined')HEADSHOT_PATH_COL=false;
+      if(col==='w9_path'&&typeof W9_PATH_COL!=='undefined')W9_PATH_COL=false;
+      if(col==='w9_received_date'&&typeof W9_RECEIVED_COL!=='undefined')W9_RECEIVED_COL=false;
+      delete patch[col];
+      ({error}=await sb.from('instructors').update(patch).eq('id',instrId));
+    }
+    if(error)throw error;
+    const i=instructors.find(x=>x.id===instrId);
+    if(i){
+      if(type==='w9'){
+        if(dropped.indexOf('w9_path')<0)i.w9Path=path;
+        i.w9Submitted=true;
+        if(dropped.indexOf('w9_received_date')<0)i.w9ReceivedDate=receivedDate;
+      }else if(type==='cpr')i.cprCertPath=path;
+      else if(type==='license')i.licensePath=path;
+      else if(type==='resume')i.resumePath=path;
+      else if(type==='headshot'){
+        if(dropped.indexOf('headshot_path')<0)i.headshotPath=path;
+        i.headshotCompleted=true;
+      }
+    }
+    if(dropped.length)showToast('File uploaded, but '+dropped.join(', ')+' is not in the database yet — run migrations/20261018_fix_instructor_uploads.sql in the Supabase SQL editor.');
+    else showToast('✓ Document saved');
+    renderInstructors();
+    openInstructorProfile(instrId);
+  }catch(e){
+    console.error(e);
+    showToast('Upload failed: '+(instructorUploadErrorText(e)||'Please try again.'),12000);
+  }
+}
+async function markInstructorW9Received(instrId){
+  const i=instructors.find(x=>x.id===instrId);if(!i)return;
+  const today=fmtYMD(new Date());
+  const patch={w9_submitted:true};
+  if(typeof W9_RECEIVED_COL==='undefined'||W9_RECEIVED_COL)patch.w9_received_date=i.w9ReceivedDate||today;
+  let{error}=await sb.from('instructors').update(patch).eq('id',instrId);
+  if(error&&/w9_received_date/i.test(String(error.message||''))){
+    if(typeof W9_RECEIVED_COL!=='undefined')W9_RECEIVED_COL=false;
+    ({error}=await sb.from('instructors').update({w9_submitted:true}).eq('id',instrId));
+  }
+  if(error){
+    showToast('Could not mark W-9 received: '+(instructorUploadErrorText(error)||'unknown error'),12000);
+    return;
+  }
+  i.w9Submitted=true;
+  if(!i.w9ReceivedDate)i.w9ReceivedDate=today;
+  showToast('✓ W-9 marked received');
+  renderInstructors();
+  openInstructorProfile(instrId);
+}
+function instructorDocRow(i,type,label,url,viewLabel,missingText,extra){
+  const accept=type==='headshot'?'.pdf,.jpg,.jpeg,.png,.heic,.webp':'.pdf,.jpg,.jpeg,.png,.heic';
+  const inputId='admin-up-'+type+'-'+i.id;
+  const view=url?`<a href="${url}" target="_blank" class="btn sm">${viewLabel}</a>`:`<span style="font-size:15px;color:var(--muted);font-style:italic">${missingText}</span>`;
+  return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+    <span style="min-width:110px;font-size:15px;font-weight:500">${label}</span>
+    ${extra||''}
+    ${view}
+    <button type="button" class="btn sm" onclick="document.getElementById('${inputId}').click()">${url?'Replace':'Upload'}</button>
+    <input type="file" id="${inputId}" style="display:none" accept="${accept}" onchange="adminUploadInstructorDoc('${i.id}','${type}',this.files&&this.files[0])">
+  </div>`;
+}
 async function getSignedUrl(path){
   if(!path)return null;
   try{
@@ -9979,7 +10158,7 @@ async function getSignedUrl(path){
 // trying the handful of image extensions the portal accepts. Once the column exists
 // this never runs — the stored path is used directly.
 //   alter table instructors add column if not exists headshot_path text;
-const HEADSHOT_EXTS=['jpg','jpeg','png','webp'];
+const HEADSHOT_EXTS=['jpg','jpeg','png','webp','heic'];
 async function getHeadshotUrl(i){
   if(i.headshotPath)return getSignedUrl(i.headshotPath);
   if(!i.headshotCompleted)return null;
@@ -10000,8 +10179,8 @@ async function openInstructorProfile(id){
     .reduce((sum,s)=>sum+instrDisplayFee(s,i,jobDataCache[s.id]||{}),0);
 
   // Get signed URLs for docs
-  const[resumeUrl,cprUrl,licUrl,headshotUrl]=await Promise.all([
-    getSignedUrl(i.resumePath),getSignedUrl(i.cprCertPath),getSignedUrl(i.licensePath),getHeadshotUrl(i)
+  const[resumeUrl,cprUrl,licUrl,headshotUrl,w9Url]=await Promise.all([
+    getSignedUrl(i.resumePath),getSignedUrl(i.cprCertPath),getSignedUrl(i.licensePath),getHeadshotUrl(i),getSignedUrl(i.w9Path)
   ]);
 
   const trainDate=i.safeSitterTrainingDate?new Date(i.safeSitterTrainingDate+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'Not entered yet';
@@ -10014,6 +10193,8 @@ async function openInstructorProfile(id){
     return`<tr><td style="font-size:15px">${d}</td><td style="font-size:15px">${s.course}</td><td style="font-size:15px">${fmt(fee)}</td><td><span class="tag ${jd.payStatus==='paid'?'paid':'pending'}">${jd.payStatus||'pending'}</span></td></tr>`;
   }).join(''):`<tr><td colspan="4" style="text-align:center;color:var(--muted);font-style:italic;padding:16px">No sessions yet</td></tr>`;
 
+  const headshotPreview=headshotUrl?`<img src="${headshotUrl}" alt="${escapeHtml(i.name)} headshot" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--border)">`:'';
+  const w9Mark=i.w9Submitted?'':`<button type="button" class="btn sm" onclick="markInstructorW9Received('${i.id}')">Mark received</button>`;
   document.getElementById('profile-modal-body').innerHTML=`
     ${instrActive(i)?'':`<div class="alert info" style="margin-bottom:14px;font-size:16px">📁 &nbsp;<strong>${escapeHtml(i.name)} is inactive.</strong> Everything below is kept on file, but they are off the roster and out of assignment dropdowns.
       <button class="btn sm success" style="margin-left:10px" onclick="closeModal();setInstructorActive('${i.id}',true)">↩ Reactivate</button></div>`}
@@ -10033,19 +10214,11 @@ async function openInstructorProfile(id){
 
     <div style="margin-bottom:16px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Documents</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${resumeUrl?`<a href="${resumeUrl}" target="_blank" class="btn sm">📄 View Resume</a>`:'<span style="font-size:15px;color:var(--muted);font-style:italic">Resume not uploaded</span>'}
-        ${cprUrl?`<a href="${cprUrl}" target="_blank" class="btn sm">🩺 View CPR Cert</a>`:'<span style="font-size:15px;color:var(--muted);font-style:italic"> &nbsp;·&nbsp; CPR cert not uploaded</span>'}
-        ${licUrl?`<a href="${licUrl}" target="_blank" class="btn sm">🪪 View License</a>`:'<span style="font-size:15px;color:var(--muted);font-style:italic"> &nbsp;·&nbsp; License not uploaded</span>'}
-      </div>
-      <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        ${headshotUrl
-          ?`<img src="${headshotUrl}" alt="${i.name} headshot" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--border)">
-            <a href="${headshotUrl}" target="_blank" class="btn sm" download>📸 View / download headshot</a>`
-          :i.headshotCompleted
-            ?'<span style="font-size:15px;color:var(--muted);font-style:italic">📸 Headshot marked complete under the old process — no file on record</span>'
-            :'<span style="font-size:15px;color:var(--muted);font-style:italic">📸 Headshot not uploaded</span>'}
-      </div>
+      ${instructorDocRow(i,'resume','Resume',resumeUrl,'View Resume','Resume not uploaded')}
+      ${instructorDocRow(i,'cpr','CPR cert',cprUrl,'View CPR Cert','CPR cert not uploaded')}
+      ${instructorDocRow(i,'license','License / ID',licUrl,'View License','License not uploaded')}
+      ${instructorDocRow(i,'headshot','Headshot',headshotUrl,'View headshot',i.headshotCompleted?'Headshot marked complete — no file on record':'Headshot not uploaded',headshotPreview)}
+      ${instructorDocRow(i,'w9','W-9',w9Url,'View W-9','W-9 not on file',w9Mark)}
     </div>
 
     <div style="margin-bottom:16px">
@@ -10592,14 +10765,13 @@ function wrapReportTasks(s){
 function wrapProgress(s,jdi){
   jdi=jdi||{};
   const paid=typeof isInstructorPaymentDone==='function'&&isInstructorPaymentDone(s,jdi);
-  // Vendor fairs skip the family/host steps: no parent letter, no course
-  // evaluation. What remains is instructor pay + instructor follow-up.
+  // Classes need their report tasks, the parent letter, and instructor pay.
+  // Vendor fairs need instructor pay only. The instructor-follow-up and
+  // "eval sent to host" checkboxes were removed; those flags must not keep
+  // a finished class out of Completed Sessions.
   const fair=typeof isVendorFairSession==='function'&&isVendorFairSession(s);
   const flags=wrapReportTasks(s).map(function(t){return !!jdi[t.field];}).concat(
-    (fair?[]:[!!jdi.parentLetterSent]).concat([
-      !!paid,
-      !!jdi.instrFollowupSent
-    ]).concat(fair?[]:[!!jdi.evalSentToHost])
+    (fair?[]:[!!jdi.parentLetterSent]).concat([!!paid])
   );
   const wrapDone=flags.filter(Boolean).length;
   return {flags:flags,wrapDone:wrapDone,wrapTotal:flags.length,wrapAllDone:wrapDone===flags.length};
@@ -10608,8 +10780,8 @@ function openWrapup(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   const jdi=jobDataCache[sessId];
-  // Vendor fairs get a short wrap-up: instructor pay + instructor follow-up
-  // only. No badge summary, parent letter, or course evaluation.
+  // Vendor fairs get a short wrap-up: instructor pay only.
+  // No badge summary, parent letter, or course evaluation.
   const fair=isVendorFairSession(s);
   const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
