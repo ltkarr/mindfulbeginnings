@@ -2545,6 +2545,11 @@ function participantMaterialAllowance(s){
 //   until a count is entered, same as before. The invoice builder still falls
 //   back to live registrations when it draws a line and the count is blank.
 //   Capacity (max students) is never the billable count.
+//   This roster is the invoice. It takes a seat only when the organization
+//   handles registration. When families register themselves, only real
+//   registrations take seats, and an explicit reserved-seat hold still holds
+//   its seats. See sessionOccupiedSeats. GS-H4782 stays a $30 × 15 = $450
+//   expected invoice while families register into the open seats.
 function orgPortionAmount(s){
   if(!s||s.orgPortion==null||s.orgPortion==='')return null;
   const n=Number(s.orgPortion);
@@ -3036,12 +3041,26 @@ function sessionMaxStudents(s){
   if(s&&s.maxStudentsOverride&&Number(s.maxStudentsOverride)>0)return Number(s.maxStudentsOverride);
   return(COURSES[s.course]||{maxStudents:8}).maxStudents;
 }
-// Participants the organization already committed to, on an org-billed session.
+// Seat rule (people). Occupied seats are the larger of these, never the sum:
+//   1. Real participant registrations (waitlist and cancelled do not count).
+//   2. billedHeadcount, only when the organization handles registration itself.
+//      A billed headcount on a session where families still register is the
+//      invoice roster. It does not take a seat. GS-H4782 bills 15 and shows
+//      the one family who has registered.
+//   3. reservedSeats, an explicit hold. A hold with no reserved number does
+//      not invent a headcount.
 // Blank, zero, and a session with no bill-to name do not reserve seats.
 function orgCommittedParticipants(s){
-  if(!s||!String(s.billToOrg||'').trim())return 0;
+  if(!s||s.orgHandlesRegistration!==true)return 0;
+  if(!String(s.billToOrg||'').trim())return 0;
   if(s.billedHeadcount==null||s.billedHeadcount==='')return 0;
   const n=Number(s.billedHeadcount);
+  if(!isFinite(n)||n<=0)return 0;
+  return Math.floor(n);
+}
+function reservedSeatHold(s){
+  if(!s||s.reservedSeats==null||s.reservedSeats==='')return 0;
+  const n=Number(s.reservedSeats);
   if(!isFinite(n)||n<=0)return 0;
   return Math.floor(n);
 }
@@ -3054,11 +3073,9 @@ function registeredSeatCount(s, extraRows){
   const rows=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length+(isFinite(extra)&&extra>0?extra:0);
   return rows*per;
 }
-// Seats taken for the list and for remaining capacity. A committed roster of 4
-// shows as 4 even before anyone registers. Once those people register they are
-// not added again: the count is the larger of the two, not the sum.
+// Seats taken for the list and for remaining capacity.
 function sessionOccupiedSeats(s, extraRows){
-  return Math.max(registeredSeatCount(s, extraRows), orgCommittedParticipants(s));
+  return Math.max(registeredSeatCount(s, extraRows), orgCommittedParticipants(s), reservedSeatHold(s));
 }
 // ── ACTIVE / INACTIVE INSTRUCTORS ───────────────────────────
 // An inactive instructor is one who is no longer on the roster — someone who never
