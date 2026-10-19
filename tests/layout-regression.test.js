@@ -60,7 +60,7 @@ test('RN-only is a changeable checkbox on standard and custom jobs', () => {
   assert.match(editCustom, /s\.requiresRN\?'checked':''/);
 });
 
-test('Girl Scout Badge Class is a course option with grades K through 8', () => {
+test('Girl Scout Badge Class is a course option with grades K through 12th', () => {
   assert.match(admin, /<option>Girl Scout Badge Class<\/option>/);
   assert.match(extractFn(admin, 'openAddSession'), /<option>Girl Scout Badge Class<\/option>/);
   const sandbox = {};
@@ -71,7 +71,7 @@ test('Girl Scout Badge Class is a course option with grades K through 8', () => 
   const html = sandbox.registrationGradeOptions('Girl Scout Badge Class');
   assert.match(html, /Kindergarten/);
   assert.match(html, /8th grade/);
-  assert.equal(html.includes('9th grade'), false);
+  assert.match(html, /12th grade/);
 });
 
 test('saving an expense never opens a session modal', () => {

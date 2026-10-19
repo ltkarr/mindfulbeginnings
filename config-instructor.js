@@ -23,14 +23,14 @@ const COURSES={
   "Safe Sitter®":{hours:5,maxStudents:16,requiresSafeSitter:true},
   "Safe Sitter® Babysitting Essentials":{hours:4,maxStudents:16,requiresSafeSitter:true},
   "Intro to Babysitting":{hours:1,maxStudents:20},
-  "Safe@Home":{hours:1.5,maxStudents:16},
-  "Safe@Home — Series":{hours:1,maxStudents:16},
-  "Safe@Home — Virtual":{hours:1,maxStudents:16,instrFlatFee:75,virtual:true},
+  "Safe@Home":{hours:1.5,maxStudents:20},
+  "Safe@Home — Series":{hours:1,maxStudents:20},
+  "Safe@Home — Virtual":{hours:1,maxStudents:20,instrFlatFee:75,virtual:true},
   "Grandparents: Getting Started":{hours:3,maxStudents:16,requiresSafeSitter:true,adult:true},
   "Care Ready":{hours:2.5,maxStudents:16,adult:true},
-  "Baby Ready":{hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true},
+  "Baby Ready":{hours:3,maxStudents:12,seatsPerRegistration:2,adult:true},
   "Baby Ready + CPR Certification":{hours:5,maxStudents:12,seatsPerRegistration:2,adult:true},
-  "All Kids Welcome":{hours:1.5,maxStudents:20,instrFlatFee:75,virtual:true},
+  "All Kids Welcome":{hours:1,maxStudents:20,instrFlatFee:75,virtual:true},
   "Stay Ready: Choking Rescue and CPR":{hours:1.25,maxStudents:12,requiresRN:true},
   "Campus Ready: Safety Skills for College Life":{hours:1,maxStudents:12,instrFlatFee:100,requiresRN:true},
   "Steady and Ready":{hours:1,maxStudents:8},
@@ -39,10 +39,10 @@ const COURSES={
   "Ready. Period.":{hours:1.5,maxStudents:18,requiresRN:true},
   "Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes":{hours:1,maxStudents:20,requiresRN:true},
   "Social Ready":{hours:1,maxStudents:20,instrFlatFee:100,virtual:true},
-  "Girl Scouts — First Aid Badge Workshop":{hours:1,maxStudents:15},
-  "Girl Scout Badge Class":{hours:1,maxStudents:15},
+  "Girl Scouts — First Aid Badge Workshop":{hours:1,maxStudents:16},
+  "Girl Scout Badge Class":{hours:1,maxStudents:16},
   "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED":{hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true},
-  "Adult & Pediatric First Aid/CPR/AED Certification":{hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true}
+  "Adult & Pediatric First Aid/CPR/AED Certification":{hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true}
 };
 
 /* Instructor pay constants (an instructor's own hourly rate, set in the admin,

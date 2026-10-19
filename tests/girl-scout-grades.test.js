@@ -38,12 +38,13 @@ function labels(html) {
   return [...html.matchAll(/<option(?: value="")?>([^<]*)<\/option>/g)].map((m) => m[1]).filter((label) => label && label !== 'Select grade...');
 }
 
-test('Girl Scout badge workshops offer Kindergarten through 8th, and grade stays required', () => {
+test('Girl Scout badge workshops offer Kindergarten through 12th, and grade stays required', () => {
   const api = loadGrades();
   const badge = labels(api.registrationGradeOptions('Girl Scouts — First Aid Badge Workshop'));
   assert.deepEqual(badge, [
     'Kindergarten', '1st grade', '2nd grade', '3rd grade', '4th grade',
-    '5th grade', '6th grade', '7th grade', '8th grade'
+    '5th grade', '6th grade', '7th grade', '8th grade', '9th grade',
+    '10th grade', '11th grade', '12th grade'
   ]);
   assert.equal(api.isGirlScoutBadgeCourse('Girl Scouts — Cooking Badge Workshop'), true);
   assert.deepEqual(labels(api.registrationGradeOptions('Girl Scouts — Cooking Badge Workshop')), badge);
@@ -59,12 +60,12 @@ test('other courses keep their existing grade lists', () => {
   const api = loadGrades();
   assert.deepEqual(labels(api.registrationGradeOptions('Safe Sitter®')), ['6th grade', '7th grade', '8th grade']);
   assert.deepEqual(labels(api.registrationGradeOptions('Safe Sitter® Babysitting Essentials')), ['6th grade', '7th grade', '8th grade']);
-  assert.deepEqual(labels(api.registrationGradeOptions('Safe@Home')), ['3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade']);
+  assert.deepEqual(labels(api.registrationGradeOptions('Safe@Home')), ['3rd grade', '4th grade', '5th grade']);
   assert.deepEqual(labels(api.registrationGradeOptions('All Kids Welcome')), ['3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade', '9th grade']);
-  assert.deepEqual(labels(api.registrationGradeOptions('Intro to Babysitting')), ['4th grade', '5th grade', '6th grade', '7th grade', '8th grade']);
-  assert.deepEqual(labels(api.registrationGradeOptions('Social Ready')), ['4th grade', '5th grade', '6th grade', '7th grade', '8th grade']);
+  assert.deepEqual(labels(api.registrationGradeOptions('Intro to Babysitting')), ['4th grade', '5th grade', '6th grade', '7th grade']);
+  assert.deepEqual(labels(api.registrationGradeOptions('Social Ready')), ['3rd grade', '4th grade', '5th grade', '6th grade', '7th grade', '8th grade']);
   assert.deepEqual(labels(api.registrationGradeOptions('Ready. Period.')), ['5th grade', '6th grade', '7th grade']);
-  assert.deepEqual(labels(api.registrationGradeOptions('Stay Ready: Choking Rescue and CPR')), ['7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade']);
+  assert.deepEqual(labels(api.registrationGradeOptions('Stay Ready: Choking Rescue and CPR')), ['6th grade', '7th grade', '8th grade', '9th grade', '10th grade', '11th grade', '12th grade', 'Adult']);
   assert.deepEqual(labels(api.registrationGradeOptions('Campus Ready: Safety Skills for College Life')), ['11th grade', '12th grade', 'College student']);
   assert.equal(api.isGirlScoutBadgeCourse('Girl Scouts — Intro to Babysitting + First Aid (Cadettes, 2 hours)'), false);
   assert.deepEqual(labels(api.registrationGradeOptions('Girl Scouts — Intro to Babysitting + First Aid (Cadettes, 2 hours)')), ['4th grade', '5th grade', '6th grade', '7th grade', '8th grade']);

@@ -15,7 +15,7 @@
                  costs $390. A session price override is still the checkout total.
    Oct 14 2026 · New sessions created from midnight ET: Adult & Pediatric
                  First Aid/CPR/AED Certification $125 (4 hours, bookable) and
-                 Baby Ready $185 per person ($300 per couple, 2.5 hours).
+                 Baby Ready $185 per person ($300 per couple). Length is 3 hours as of Oct 19.
                  Red Cross Babysitter's Training stays $295 and is offered now.
                  Stored session and registration prices are not rewritten.
    Oct 13 2026 · Added Safe Sitter® Babysitting Essentials ($185, 4 hours).
@@ -23,11 +23,18 @@
    Oct 13 2026 · Added Baby Ready + CPR Certification. $275 per person.
                  A couple registration is two people and costs $495 (couplePrice),
                  not $550. It is not RN-only. Same people-cap and couple counting
-                 as Baby Ready.
+                 as Baby Ready. The $275 is this course's Program Guide price.
+                 It is not a My First Babysitter's Club price.
+   Oct 19 2026 · Program Guide alignment. Baby Ready is 3 hours. Adult and
+                 Pediatric First Aid/CPR/AED is 4.25 hours. All Kids Welcome is
+                 60 minutes and still virtual. Safe@Home caps are 20. New
+                 sessions of My First Babysitter's Club are $200 for the 8-week
+                 series and $165 for the 2.5-hour workshop. Girl Scout jobs are
+                 custom-scheduled; 16 is only the typical maximum.
    Oct  8 2026 · Added two American Red Cross courses (redCross + requiresLeadTeacher).
                  New-session prices, same Oct 9 list as the other classes-page prices:
                  Babysitter's Training $295 / 7 hours, Adult & Pediatric First Aid/CPR/AED
-                 $185 / 4 hours. The 4-hour length is the published class. This file
+                 $185. The in-person length is 4.25 hours as of Oct 19 2026. This file
                  does not rewrite a price already stored on a session or registration.
    ════════════════════════════════════════════════════════════════════════
 
@@ -72,86 +79,92 @@ const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
      redCross           → American Red Cross certification course
      requiresLeadTeacher→ only Lead Teachers (Red Cross instructors) see these jobs */
 const COURSES={
-  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
+  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Ages 11 to 14'},
   // 4-hour babysitting course without the CPR module, $185 per person.
   // Every price column is $185, and this name is not in LATER_PRICE_CHANGES,
   // so it never picks up the $225 that belongs to Safe Sitter® (5 hours, CPR module).
-  'Safe Sitter® Babysitting Essentials':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:20.35,hours:4,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
-  'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Grades 4–8'},
-  'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16,audience:'Kids home alone'},
+  'Safe Sitter® Babysitting Essentials':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:20.35,hours:4,maxStudents:16,requiresSafeSitter:true,audience:'Ages 11 to 14'},
+  'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Ages 10 to 12'},
+  'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:20,audience:'Ages 8 to 10'},
   // Program guide (Aug 2026): Safe@Home is $65 as a 90-minute single session,
   // $125 as a multi-week series. Schedule a series under this separate course
   // so the registration page automatically shows the series price.
-  'Safe@Home — Series':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:10,hours:1,maxStudents:16,audience:'Kids home alone · multi-week'},
+  'Safe@Home — Series':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:10,hours:1,maxStudents:20,audience:'Ages 8 to 10 · multi-week'},
   // Safe@Home — Virtual: the 60-minute online version from the program guide, $40.
   // Schedule it under this course so register.html shows the virtual price automatically.
   // Still tick "Virtual session" on the session itself so families get the Zoom link.
-  'Safe@Home — Virtual':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:10,hours:1,instrFlatFee:75,maxStudents:16,virtual:true,audience:'Kids home alone · Virtual'},
-  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true,adult:true,audience:'Grandparents & caregivers'},
+  'Safe@Home — Virtual':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:10,hours:1,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Ages 8 to 10 · Virtual'},
+  'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true,adult:true,audience:'Grandparents and caregivers'},
   // Care Ready (new Sep 2026): 2.5-hour course for nannies and au pairs, $185.
   // Any instructor may teach it; it uses CPR manikins, so the registration form
   // treats it as an adult course (no grade, no parent/guardian fields).
-  'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,adult:true,audience:'Nannies & au pairs'},
-  // Baby Ready: published length is 2.5 hours. Capacity is in people (12).
-  // seatsPerRegistration 2 means each booking is a couple and holds two seats.
-  // Sessions created before Oct 14 2026 midnight ET stay $195 per person
-  // ($390 per couple). Sessions created on/after that moment charge $185
-  // per person and $300 per couple. Price columns stay $195 so a session
-  // with no creation time does not jump to $185. This file does not rewrite
-  // a price already stored on a session or registration.
-  'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:2.5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting or new parents'},
+  'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,adult:true,audience:'Nannies and au pairs'},
+  // Baby Ready: published length is 3 hours. The Program Guide printed 2.5;
+  // the owner set 3 hours in Oct 2026. Capacity is in people (12). The
+  // recommended group is 4 to 12. seatsPerRegistration 2 means each booking
+  // is a couple and holds two seats. Sessions created before Oct 14 2026
+  // midnight ET stay $195 per person ($390 per couple). Sessions created
+  // on/after that moment charge $185 per person and $300 per couple. Price
+  // columns stay $195 so a session with no creation time does not jump to
+  // $185. This file does not rewrite a price already stored on a session
+  // or registration.
+  'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:3,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting and new parents'},
   // Baby Ready plus Pediatric First Aid/CPR certification. $275 per person.
   // couplePrice is the checkout total for one couple registration (2 people),
   // $495, which is less than 2 × $275. Not RN-only. Capacity is people, and
   // each registration holds 2 seats, same as Baby Ready.
   'Baby Ready + CPR Certification':{price:275,price2027:275,priceNew:275,priceNew2027:275,couplePrice:495,matCost:0,hours:5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · $275 per person ($495 per couple)'},
-  'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1.5,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters · Grades 3–9'},
+  'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters'},
+  // Official name: Stay Ready: Choking Rescue, CPR, and Seizure Response.
+  // The stored course key stays "Choking Rescue and CPR" so existing sessions match.
   // 75 minutes. hours is 1.25 so instructor pay matches the published length.
-  'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.25,maxStudents:12,requiresRN:true,audience:'Grades 7–12'},
-  'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'11th–12th grade & college'},
+  'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.25,maxStudents:12,requiresRN:true,audience:'Ages 11 and up'},
+  'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'Teens and college-bound'},
   // Steady and Ready stays $65 on purpose — the Aug 2026 program guide printed
   // $50, which Lindsay confirmed is a typo in the guide, not a price change.
   // Published length is 60 minutes.
-  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1,maxStudents:8,audience:'Family safety workshop'},
-  // My First Babysitters Club: old $40/$50 values were placeholders; the Aug
-  // 2026 program guide confirmed $165 for the 8-week series.
+  'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1,maxStudents:8,audience:'Ages 8 to 12'},
+  // My First Babysitters Club: the 8-week series is $200 per participant for
+  // sessions created on/after Oct 19 2026 (see LATER_PRICE_CHANGES). Earlier
+  // sessions stay at the price they were booked at ($165 after Aug 26 2026).
+  // There is no 10-week series.
   // Material allowance is $30/student — an 8-week series consumes far more supplies
   // than a one-off class, so it does not share the $10 handbook allowance of the
   // short courses. (Corrected from $10, Aug 30 2026, to match admin.html.)
   // Company class profit does not subtract matCost. Handbook orders are overhead
   // expenses in admin. The rate is only the partner-share allowance there.
-  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12,audience:'Younger sitters · 8-week series'},
-  // My First Babysitters Club — Single Session: the one-off 2.5-hour version, $95.
-  // Deliberately a SEPARATE course from the 8-week series above so the series keeps
-  // its own $165 price and $30 material rate. Any instructor may teach it.
-  'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:10,hours:2.5,maxStudents:12,audience:'Younger sitters'},
+  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12,audience:'Ages 8 to 10 · 8-week series'},
+  // My First Babysitters Club — Single Session: the 2.5-hour workshop, $165
+  // for sessions created on/after Oct 19 2026. priceNew stays $95 so sessions
+  // created before that cutover do not reprice. Separate from the 8-week series
+  // so the series keeps its own price and $30 material rate.
+  'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:10,hours:2.5,maxStudents:12,audience:'Ages 8 to 10 · 2.5-hour workshop'},
   // Ready. Period. — 90-minute puberty-prep workshop, $75/participant, up to 18.
   // RN instructors only. No flat fee, so the instructor is paid 1.5 teaching
   // hours + 1 travel hour + the standard extra 30 minutes.
-  'Ready. Period.':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:18,requiresRN:true,audience:'Grades 5–7'},
+  'Ready. Period.':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.5,maxStudents:18,requiresRN:true,audience:'Girls ages 10 to 12'},
   // Season Ready — 60-minute safety, fueling, and injury-prevention workshop for
   // middle and high school athletes, $25/participant, up to 20 in a class.
   // RN instructors only (hands-only CPR, AED trainers, heat-illness and concussion
   // response). No flat fee, so the instructor is paid 1 teaching hour + 1 travel
   // hour + the standard extra 30 minutes.
-  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true,audience:'Student athletes · Grades 6–12'},
-  // Social Ready — 60-minute workshop for grades 4–8, $35/participant, up to 20.
-  // Any instructor may teach it (no Safe Sitter® or RN flag, and it is not an adult course).
-  // The flat instructor fee is $100, the same as the other Girl Scouts virtual workshops.
-  // virtual:true matches Safe@Home — Virtual and All Kids Welcome so Zoom pay has no
-  // travel hour. A session can still be taught in person; Girl Scouts virtual series
-  // may raise the cap to 30 with the session-level max-students override.
-  'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true,audience:'Grades 4–8'},
-  // Girl Scouts — First Aid Badge Workshop: 60-minute in-person badge workshop.
-  // The $45 guide price is the full per-participant amount. A troop split (GS-H4782)
-  // sets the session family price to $15 and the organization flat fee to $30,
-  // so families check out at $15 and the troop is invoiced $30 × the roster.
-  // RN-only is the per-session checkbox, not this course type.
-  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,audience:'Girl Scout troops'},
-  // Girl Scout Badge Class: the job type for a troop badge workshop that is
-  // not a Safe Sitter® class. Same guide price and cap as the First Aid
-  // workshop. Tick "RN instructors only" on a session to limit who can claim it.
-  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,audience:'Girl Scout troops'},
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true,audience:'Student athletes'},
+  // Social Ready: ages 8 to 14, 60 minutes, in person or virtual, up to 20.
+  // Any instructor may teach it. virtual:true so Zoom pay has no travel hour.
+  // A session can still be taught in person. There is no separate Girl Scout
+  // virtual cap.
+  'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true,audience:'Ages 8 to 14'},
+  // Girl Scout badge workshops are custom-scheduled. Lindsay sets the time
+  // and can override the group size per job. hours:1 is only the pay default
+  // when a session has no pay override. maxStudents 16 is the Program Guide's
+  // typical maximum, not a published fixed cap. The $45 checkout amount is the
+  // existing troop price. A troop split (GS-H4782) sets the family price to
+  // $15 and the organization flat fee to $30. The Program Guide lists $65;
+  // that figure is not applied here because these jobs are custom-quoted.
+  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:16,audience:'Girl Scout troops, custom schedule'},
+  // Girl Scout Badge Class: a troop badge workshop that is not a Safe Sitter
+  // class. Same billing and typical maximum as the First Aid workshop.
+  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:16,audience:'Girl Scout troops, custom schedule'},
   // American Red Cross. The public card is "Red Cross Babysitter's Training +
   // Pediatric First Aid/CPR/AED", $295, 7 hours, ages 11–14. Students earn
   // American Red Cross Babysitter's Training and Pediatric First Aid/CPR/AED
@@ -161,13 +174,14 @@ const COURSES={
   // $295 is the new-session price (LATER_PRICE_CHANGES, from Oct 9 2026).
   // The catalog columns match it because no session of this course exists yet.
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11-14'},
-  // Same 4-hour course on the classes page (ages 11-14, high school, and
-  // parents). Lead Teachers only (redCross + requiresLeadTeacher). The
-  // Oct 9 list is $185. Sessions created from Oct 14 2026 midnight ET
-  // charge $125. Price columns stay $185 so a session with no creation
-  // time does not jump to $125. This file does not rewrite a price stored
-  // on a session or registration.
-  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'}
+  // In-person length is 4.25 hours (Program Guide). Lead Teachers only
+  // (redCross + requiresLeadTeacher). The Oct 9 list is $185. Sessions
+  // created from Oct 14 2026 midnight ET charge $125. Price columns stay
+  // $185 so a session with no creation time does not jump to $125. This
+  // file does not rewrite a price stored on a session or registration.
+  // Online + Classroom is a separate offering: about 2 hours online, then
+  // a 2-hour skills session, $115. It is not its own course key.
+  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'}
 };
 
 
@@ -190,6 +204,15 @@ const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
    config.js, register.html, and admin.html.
 */
 const LATER_PRICE_CHANGES=[
+  // PROGRAM GUIDE ALIGNMENT, Oct 19 2026. My First Babysitter's Club 8-week
+  // series is $200. The 2.5-hour workshop is $165. Sessions created before
+  // midnight ET on Oct 19 keep the price they were booked at. There is no
+  // 10-week series.
+  {from:'2026-10-19T04:00:00Z',
+   prices:{
+     'My First Babysitters Club':200,
+     'My First Babysitters Club — Single Session':165
+   }},
   // CATALOG PRICES, Oct 14 2026. Only sessions CREATED from midnight ET on
   // Oct 14 2026 charge these. Anything created earlier keeps its price,
   // including Adult & Pediatric at $185 and Baby Ready at $195 per person
@@ -291,9 +314,9 @@ const MAX_STUDENTS={
   'Safe Sitter®':16,
   'Safe Sitter® Babysitting Essentials':16,
   'Intro to Babysitting':20,
-  'Safe@Home':16,
-  'Safe@Home — Virtual':16,
-  'Safe@Home — Series':16,
+  'Safe@Home':20,
+  'Safe@Home — Virtual':20,
+  'Safe@Home — Series':20,
   'Grandparents: Getting Started':16,
   'Care Ready':16,
   'Baby Ready':12,
@@ -307,8 +330,8 @@ const MAX_STUDENTS={
   'Ready. Period.':18,
   'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,
   'Social Ready':20,
-  'Girl Scouts — First Aid Badge Workshop':15,
-  'Girl Scout Badge Class':15,
+  'Girl Scouts — First Aid Badge Workshop':16,
+  'Girl Scout Badge Class':16,
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,
   'Adult & Pediatric First Aid/CPR/AED Certification':12
 };

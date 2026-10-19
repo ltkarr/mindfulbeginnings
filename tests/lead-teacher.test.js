@@ -67,7 +67,7 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
   const baby = cfg.COURSES[BABYSITTER];
   const adult = cfg.COURSES[ADULT];
   assert.equal(baby.hours, 7);
-  assert.equal(adult.hours, 4);
+  assert.equal(adult.hours, 4.25);
   assert.equal(baby.redCross, true);
   assert.equal(adult.redCross, true);
   assert.equal(baby.requiresLeadTeacher, true);
@@ -76,8 +76,8 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
   assert.equal(adult.price, 185);
   assert.equal(adult.priceNew, 185);
   assert.equal(cfg.COURSES['Stay Ready: Choking Rescue and CPR'].hours, 1.25);
-  assert.equal(cfg.COURSES['Steady and Ready'].hours, 70 / 60);
-  assert.equal(cfg.COURSES['Baby Ready'].hours, 2.5);
+  assert.equal(cfg.COURSES['Steady and Ready'].hours, 1);
+  assert.equal(cfg.COURSES['Baby Ready'].hours, 3);
   assert.equal(cfg.COURSES['Baby Ready'].seatsPerRegistration, 2);
 
   const ESS = 'Safe Sitter® Babysitting Essentials';

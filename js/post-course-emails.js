@@ -44,7 +44,7 @@
       greeting: 'Hi there,',
       taker: 'have your child complete',
       paragraphs: [
-        'Thank you for bringing your child to Intro to Babysitting. They got a first taste of a sitter\'s world: basic child care, safety awareness, and how to stay calm and think clearly when something unexpected happens.',
+        'Thank you for bringing your child to Introduction to Safe Babysitting by Safe Sitter®. They got a first taste of a sitter\'s world: basic child care, safety awareness, and how to stay calm and think clearly when something unexpected happens.',
         'This class plants the seed. When your child turns 11, Safe Sitter is the natural next step, with deeper training in emergencies, rescue skills, and real sitting scenarios. We loved having your child in class and hope they left excited about what\'s ahead.'
       ]
     },
@@ -64,7 +64,7 @@
       greeting: 'Hello,',
       taker: 'complete',
       paragraphs: [
-        'Thank you for spending time with us in Grandparents: Getting Started. So much has changed since your parenting days: car seats, safe sleep, and feeding guidance all look different now, and you learned today\'s best practices.',
+        'Thank you for spending time with us in Safe Sitter® Grandparents: Getting Started. So much has changed since your parenting days: car seats, safe sleep, and feeding guidance all look different now, and you learned today\'s best practices.',
         'Your grandkids are lucky to have a grandparent who shows up prepared. Keep the conversation going with their parents so everyone\'s aligned on routines, rules, and expectations. And don\'t be surprised if the grandkids start quizzing you. They love being the experts.'
       ]
     },
@@ -85,7 +85,7 @@
       taker: 'complete',
       paragraphs: [
         'Thank you for joining Baby Ready. You covered what every new parent needs most: safe sleep, soothing a crying baby, feeding basics, and how to get through those overwhelming first weeks.',
-        'If grandparents or other caregivers will be lending a hand, our Grandparents: Getting Started class brings them up to speed on everything that\'s changed. You\'ve got this, and the fact that you\'re preparing now says everything about the parent you\'re going to be.'
+        'If grandparents or other caregivers will be lending a hand, our Safe Sitter® Grandparents: Getting Started class brings them up to speed on everything that\'s changed. You\'ve got this, and the fact that you\'re preparing now says everything about the parent you\'re going to be.'
       ]
     },
     {
@@ -104,7 +104,7 @@
       greeting: 'Hello,',
       taker: 'complete',
       paragraphs: [
-        'Thank you for joining Stay Ready. In just over an hour you practiced the two skills every adult hopes never to need: choking rescue and CPR, with hands-on time on the manikins.',
+        'Thank you for joining Stay Ready: Choking Rescue, CPR, and Seizure Response. In 75 minutes you practiced choking rescue, CPR, and seizure response, with hands-on time on the manikins.',
         'Skills fade without practice, so review the steps every few months. When you\'re ready for full certification, our American Red Cross First Aid/CPR/AED course is the next step, and it\'s valid for two years. Tell a friend what you learned today. The more adults around a child who know these skills, the safer every kid is.'
       ]
     },
@@ -135,7 +135,7 @@
       taker: 'have your child complete',
       paragraphs: [
         'Thank you for joining My First Babysitters Club. Your child started building real babysitting skills early through fun, hands-on activities: safety basics, child care know-how, and the confidence to step up and help.',
-        'As they grow, Intro to Babysitting and then Safe Sitter at age 11 keep the journey going. Ask them to show you what they practiced. Kids retain so much more when they get to teach it.'
+        'As they grow, Introduction to Safe Babysitting and then Safe Sitter at age 11 keep the journey going. Ask them to show you what they practiced. Kids retain so much more when they get to teach it.'
       ]
     },
     {

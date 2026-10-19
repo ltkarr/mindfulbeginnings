@@ -712,6 +712,14 @@ if(typeof getSessionBasePrice==='undefined'){
   // couple. A couple registration is two people, $390. Keep identical to the
   // LATER_PRICE_CHANGES list in config.js and admin.html.
   const LATER_PRICE_CHANGES=[
+    // PROGRAM GUIDE ALIGNMENT, Oct 19 2026. My First Babysitter's Club 8-week
+    // series is $200. The 2.5-hour workshop is $165. Sessions created before
+    // midnight ET on Oct 19 keep the price they were booked at.
+    {from:'2026-10-19T04:00:00Z',
+     prices:{
+       'My First Babysitters Club':200,
+       'My First Babysitters Club — Single Session':165
+     }},
     // CATALOG PRICES, Oct 14 2026. Only sessions CREATED from midnight ET on
     // Oct 14 2026 charge these. Anything created earlier keeps its price,
     // including Adult & Pediatric at $185 and Baby Ready at $195 per person
@@ -781,7 +789,7 @@ if(typeof getSessionBasePrice==='undefined'){
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':16,'Safe@Home — Virtual':16,'Safe@Home — Series':16,'Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'Baby Ready + CPR Certification':12,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':15,'Girl Scout Badge Class':15,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12};
+  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':20,'Safe@Home — Virtual':20,'Safe@Home — Series':20,'Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'Baby Ready + CPR Certification':12,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':16,'Girl Scout Badge Class':16,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -885,7 +893,7 @@ function showAlreadyRegistered(info){
     : 'Our records show this '+who+' already has a spot in this class, so we did not create a second registration.';
   document.getElementById('dup-conf-box').innerHTML=
     '<div class="crow"><span class="cl">'+(adult?'Participant':'Student')+'</span><span class="cv">'+escapeHtml(currentStudentName())+'</span></div>'+
-    '<div class="crow"><span class="cl">Course</span><span class="cv">'+escapeHtml(currentSession.course)+'</span></div>'+
+    '<div class="crow"><span class="cl">Course</span><span class="cv">'+escapeHtml(publicCourseName(currentSession.course))+'</span></div>'+
     '<div class="crow"><span class="cl">Date</span><span class="cv">'+d+'</span></div>'+
     (when?'<div class="crow"><span class="cl">Registered</span><span class="cv">'+escapeHtml(when)+'</span></div>':'')+
     '<div class="crow"><span class="cl">Payment</span><span class="cv" style="color:'+(paid?'#1d6b42':'#b86a00')+'">'+(paid?'Received':'Awaiting payment')+'</span></div>';
@@ -937,6 +945,11 @@ function getMaxSpots(){
 }
 function bookingApi(){
   return (typeof window!=='undefined'&&window.MBCourseBooking)||null;
+}
+function publicCourseName(course){
+  const helpers=(typeof window!=='undefined'&&window.MBPublicSessions)||null;
+  if(helpers&&typeof helpers.coursePublicName==='function')return helpers.coursePublicName(course);
+  return course||'';
 }
 function isAdultCourseName(course){
   const name=String(course||'');
@@ -1172,7 +1185,8 @@ function renderPublicSessions(){
     const seats=soldOut?'SOLD OUT':(externalUrl?'':helpers.seatsLabel(left, per));
     const scarce=!soldOut&&!full&&!!seats&&seats===helpers.FEW_SEATS_LABEL;
     const goLabel=externalUrl?helpers.externalRegistrationLabel(externalUrl):'Register →';
-    const ariaLabel=soldOut?('Sold out: '+[r.course||'Course',when,place].filter(Boolean).join(', ')+' — Join waitlist'):(externalUrl?goLabel:'Register')+': '+[r.course||'Course',when,place,(!full&&seats)?seats:''].filter(Boolean).join(', ');
+    const shownCourse=publicCourseName(r.course)||'Course';
+    const ariaLabel=soldOut?('Sold out: '+[shownCourse,when,place].filter(Boolean).join(', ')+'. Join waitlist'):(externalUrl?goLabel:'Register')+': '+[shownCourse,when,place,(!full&&seats)?seats:''].filter(Boolean).join(', ');
     let seatsHtml='';
     if(!soldOut&&seats){
       if(full){
@@ -1185,7 +1199,7 @@ function renderPublicSessions(){
     const goHtml=soldOut?'<button type="button" class="pgo-waitlist" data-waitlist-code="'+escapeHtml(r.code)+'">Join waitlist</button>':'<div class="pgo" aria-hidden="true">'+escapeHtml(goLabel)+'</div>';
     html+='<div class="public-card'+(soldOut?' soldout-card':'')+'" data-code="'+escapeHtml(r.code)+'"'+(externalUrl?' data-external="1"':'')+'>'+
       (soldOut?'':'<button type="button" class="public-card-hit" aria-label="'+escapeHtml(ariaLabel)+'"></button>')+
-      '<div class="pmain" aria-hidden="true"><div class="pname">'+escapeHtml(r.course||'Course')+'</div>'+
+      '<div class="pmain" aria-hidden="true"><div class="pname">'+escapeHtml(publicCourseName(r.course)||'Course')+'</div>'+
       (soldOut?'<div class="psoldout-banner">SOLD OUT</div>':'')+
       (audience?'<div class="paudience">'+escapeHtml(audience)+'</div>':'')+
       '<div class="pmeta">'+escapeHtml(when)+'</div>'+
@@ -1367,8 +1381,8 @@ async function checkCode(){
   btn.disabled=false;btn.textContent='Continue →';
 }
 
-// Girl Scout badge workshops (First Aid and any later badge course) include
-// Daisies and Brownies, so the list runs from Kindergarten through 8th grade.
+// Girl Scout badge workshops run Daisy through Ambassador, so the grade list
+// is Kindergarten through 12th. The time and group size are still set per job.
 // Other courses keep their own lists.
 function isGirlScoutBadgeCourse(course){
   const name=String(course||'');
@@ -1381,11 +1395,17 @@ function registrationGradeOptions(course){
   if(name==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
   if(name==='Ready. Period.')return blank+'<option>5th grade</option><option>6th grade</option><option>7th grade</option>';
   if(name==='Safe Sitter®'||name==='Safe Sitter® Babysitting Essentials')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option>';
-  if(/^Safe@Home/.test(name)||name==='All Kids Welcome')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
-  if(name==='Stay Ready: Choking Rescue and CPR')return blank+'<option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
+  if(/^Safe@Home/.test(name))return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option>';
+  if(name==='All Kids Welcome')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
+  if(name==='Steady and Ready')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option>';
+  if(name==='My First Babysitters Club'||name==='My First Babysitters Club — Single Session')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option>';
+  if(name==='Intro to Babysitting')return blank+'<option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option>';
+  if(name==='Social Ready')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
+  if(name==='Stay Ready: Choking Rescue and CPR')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option><option>Adult</option>';
   if(name==="Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED")return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
   if(name==='Adult & Pediatric First Aid/CPR/AED Certification')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option><option>Adult</option>';
-  if(isGirlScoutBadgeCourse(name))return blank+'<option>Kindergarten</option><option>1st grade</option><option>2nd grade</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
+  // Daisy through Ambassador. Lindsay still sets the time and group size per job.
+  if(isGirlScoutBadgeCourse(name))return blank+'<option>Kindergarten</option><option>1st grade</option><option>2nd grade</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
   return blank+'<option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
 }
 function setBanner(id){
@@ -1413,7 +1433,7 @@ function setBanner(id){
         ?priceCore+' <span style="font-size:13px;font-weight:500">per couple</span>'
         :priceCore+' <span style="font-size:13px;font-weight:500">per couple · $'+unitPrice+' per person</span>')
     :priceCore;
-  document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(s.course)}</div><div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div></div><div class="sess-price">${priceHTML}</div>`;
+  document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(publicCourseName(s.course))}</div><div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div></div><div class="sess-price">${priceHTML}</div>`;
   // Show prerequisite notice for All Kids Welcome and Stay Ready
   let prereqNotice=document.getElementById('akw-prereq-notice');
   if(s.course==='All Kids Welcome'||s.course==='Stay Ready: Choking Rescue and CPR'){
@@ -2691,7 +2711,7 @@ function buildPayNowUrl(session, studentName, price, registrationId){
       amount:price,
       registrationId:registrationId||'',
       studentName:studentName,
-      course:session&&session.course,
+      course:publicCourseName(session&&session.course),
       sessionCode:session&&session.code
     });
   }
@@ -2741,7 +2761,7 @@ function sendConfirmationEmail(reg,session,price){
       amount:price,
       registrationId:reg.id,
       studentName:reg.student_name,
-      course:session.course,
+      course:publicCourseName(session.course),
       sessionCode:session.code
     });
   }
@@ -2760,7 +2780,7 @@ function sendConfirmationEmail(reg,session,price){
       to_email: parentEmail,
       to_name: reg.parent_name||reg.student_name,
       student_name: reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''),
-      course: session.course,
+      course: publicCourseName(session.course),
       date: d,
       time: session.time||'TBD',
       location: session.location||'TBD',
@@ -2833,9 +2853,9 @@ function calEventFields(session,studentName,dateStr){
   const location=session.isVirtual
     ?(session.zoomLink||'Virtual class — Mindful Beginnings')
     :[session.location,session.hostAddress,session.city,session.state?session.state+(session.zip?' '+session.zip:''):''].filter(Boolean).join(', ');
-  const title=`${session.course} — Mindful Beginnings`;
+  const title=`${publicCourseName(session.course)}: Mindful Beginnings`;
   const multiDayNote=(session.extraDates&&session.extraDates.length)?`\nThis class meets on: ${fmtSessDates(session,{weekday:'long',month:'long',day:'numeric',year:'numeric'})}`:'';
-  const desc=`${session.course} — Mindful Beginnings\nParticipant: ${studentName}${multiDayNote}\nQuestions? Contact us at lindsay@mindfulbeginnings.org or visit mindfulbeginnings.org`;
+  const desc=`${publicCourseName(session.course)}: Mindful Beginnings\nParticipant: ${studentName}${multiDayNote}\nQuestions? Contact us at lindsay@mindfulbeginnings.org or visit mindfulbeginnings.org`;
   return{start:stamp(startHour,startMin),end:stamp(endHour,endMin),location,title,desc};
 }
 

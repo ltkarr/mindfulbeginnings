@@ -179,5 +179,5 @@ test('earlier layout locks still hold', () => {
   const html = grades.registrationGradeOptions('Girl Scout Badge Class');
   assert.match(html, /Kindergarten/);
   assert.match(html, /8th grade/);
-  assert.equal(html.includes('9th grade'), false);
+  assert.match(html, /12th grade/);
 });

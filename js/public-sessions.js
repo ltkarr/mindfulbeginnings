@@ -28,27 +28,53 @@
 
   // Parent-facing audience / age lines. config.js COURSES.audience wins when set.
   var COURSE_AUDIENCE = {
-    'Safe Sitter®': 'Grades 6–8',
-    'Safe Sitter® Babysitting Essentials': 'Grades 6–8',
-    'Intro to Babysitting': 'Grades 4–8',
-    'Safe@Home': 'Kids home alone',
-    'Safe@Home — Virtual': 'Kids home alone · Virtual',
-    'Safe@Home — Series': 'Kids home alone · multi-week',
-    'Grandparents: Getting Started': 'Grandparents & caregivers',
-    'Care Ready': 'Nannies & au pairs',
-    'Baby Ready': 'Expecting or new parents',
-    'Baby Ready + CPR Certification': 'Expecting parents · $275 per person ($495 per couple)',
-    'All Kids Welcome': 'Experienced sitters · Grades 3–9',
-    'Stay Ready: Choking Rescue and CPR': 'Grades 7–12',
-    'Campus Ready: Safety Skills for College Life': '11th–12th grade & college',
-    'Steady and Ready': 'Family safety workshop',
-    'My First Babysitters Club': 'Younger sitters · 8-week series',
-    'My First Babysitters Club — Single Session': 'Younger sitters',
-    'Ready. Period.': 'Grades 5–7',
-    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 'Student athletes · Grades 6–12',
-    'Social Ready': 'Grades 4–8',
-    'Girl Scouts — First Aid Badge Workshop': 'Girl Scout troops'
+    'Safe Sitter®': 'Ages 11 to 14',
+    'Safe Sitter® Babysitting Essentials': 'Ages 11 to 14',
+    'Intro to Babysitting': 'Ages 10 to 12',
+    'Safe@Home': 'Ages 8 to 10',
+    'Safe@Home — Virtual': 'Ages 8 to 10, virtual',
+    'Safe@Home — Series': 'Ages 8 to 10, multi-week',
+    'Grandparents: Getting Started': 'Grandparents and caregivers',
+    'Care Ready': 'Nannies and au pairs',
+    'Baby Ready': 'Expecting and new parents',
+    'Baby Ready + CPR Certification': 'Expecting parents, $275 per person ($495 per couple)',
+    'All Kids Welcome': 'Experienced sitters',
+    'Stay Ready: Choking Rescue and CPR': 'Ages 11 and up',
+    'Campus Ready: Safety Skills for College Life': 'Teens and college-bound',
+    'Steady and Ready': 'Ages 8 to 12',
+    'My First Babysitters Club': 'Ages 8 to 10, 8-week series',
+    'My First Babysitters Club — Single Session': 'Ages 8 to 10, 2.5-hour workshop',
+    'Ready. Period.': 'Girls ages 10 to 12',
+    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 'Student athletes',
+    'Social Ready': 'Ages 8 to 14',
+    'Girl Scouts — First Aid Badge Workshop': 'Girl Scout troops, custom schedule',
+    'Girl Scout Badge Class': 'Girl Scout troops, custom schedule'
   };
+
+  // Family-facing names. Stored course keys stay unchanged so existing sessions match.
+  var COURSE_PUBLIC_NAME = {
+    'Safe Sitter®': 'Safe Sitter® Babysitting with CPR Module',
+    'Intro to Babysitting': 'Introduction to Safe Babysitting by Safe Sitter®',
+    'Safe@Home': 'Safe@Home: First Steps to Independence',
+    'Grandparents: Getting Started': 'Safe Sitter® Grandparents: Getting Started',
+    'Stay Ready: Choking Rescue and CPR': 'Stay Ready™: Choking Rescue, CPR, and Seizure Response',
+    'My First Babysitters Club': "My First Babysitter's Club™",
+    'My First Babysitters Club — Single Session': "My First Babysitter's Club™ workshop",
+    'All Kids Welcome': 'All Kids Welcome™',
+    'Steady and Ready': 'Steady and Ready™',
+    'Social Ready': 'Social Ready™',
+    'Ready. Period.': 'Ready. Period.™',
+    'Care Ready': 'Care Ready™',
+    'Baby Ready': 'Baby Ready™',
+    'Baby Ready + CPR Certification': 'Baby Ready™ + CPR Certification',
+    'Campus Ready: Safety Skills for College Life': 'Campus Ready™: Safety Skills for College Life',
+    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 'Season Ready™: Safety Skills for Student Athletes'
+  };
+
+  function coursePublicName(course) {
+    var name = String(course || '');
+    return COURSE_PUBLIC_NAME[name] || name;
+  }
 
   function todayLocalISO(now) {
     var d = now ? new Date(now) : new Date();
@@ -367,6 +393,7 @@
     waitlistMailto: waitlistMailto,
     monthLabel: monthLabel,
     courseAudience: courseAudience,
+    coursePublicName: coursePublicName,
     sessionPriceLabel: sessionPriceLabel,
     matchesPriceFilter: matchesPriceFilter,
     uniqueCourses: uniqueCourses,
