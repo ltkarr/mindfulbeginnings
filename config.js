@@ -79,6 +79,7 @@ const PUBLIC_ORIGIN='https://register.mindfulbeginnings.org';
      redCross           → American Red Cross certification course
      requiresLeadTeacher→ only Lead Teachers (Red Cross instructors) see these jobs */
 const COURSES={
+<<<<<<< Updated upstream
   'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Ages 11 to 14'},
   // 4-hour babysitting course without the CPR module, $185 per person.
   // Every price column is $185, and this name is not in LATER_PRICE_CHANGES,
@@ -86,6 +87,15 @@ const COURSES={
   'Safe Sitter® Babysitting Essentials':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:20.35,hours:4,maxStudents:16,requiresSafeSitter:true,audience:'Ages 11 to 14'},
   'Intro to Babysitting':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Ages 10 to 12'},
   'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:20,audience:'Ages 8 to 10'},
+=======
+  'Safe Sitter®':{price:185,price2027:225,priceNew:225,priceNew2027:225,matCost:20.35,hours:5,maxStudents:16,requiresSafeSitter:true,audience:'Ages 11–14'},
+  // 4-hour babysitting course without the CPR module, $185 per person.
+  // Every price column is $185, and this name is not in LATER_PRICE_CHANGES,
+  // so it never picks up the $225 that belongs to Safe Sitter® (5 hours, CPR module).
+  'Safe Sitter® Babysitting Essentials':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:20.35,hours:4,maxStudents:16,requiresSafeSitter:true,audience:'Grades 6–8'},
+  'Introduction to Safe Babysitting by Safe Sitter®':{price:40,price2027:50,priceNew:40,priceNew2027:50,matCost:10,hours:1,maxStudents:20,audience:'Ages 10–12'},
+  'Safe@Home':{price:65,price2027:85,priceNew:65,priceNew2027:85,matCost:10,hours:1.5,maxStudents:16,audience:'Kids home alone'},
+>>>>>>> Stashed changes
   // Program guide (Aug 2026): Safe@Home is $65 as a 90-minute single session,
   // $125 as a multi-week series. Schedule a series under this separate course
   // so the registration page automatically shows the series price.
@@ -93,6 +103,7 @@ const COURSES={
   // Safe@Home — Virtual: the 60-minute online version from the program guide, $40.
   // Schedule it under this course so register.html shows the virtual price automatically.
   // Still tick "Virtual session" on the session itself so families get the Zoom link.
+<<<<<<< Updated upstream
   'Safe@Home — Virtual':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:10,hours:1,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Ages 8 to 10 · Virtual'},
   'Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true,adult:true,audience:'Grandparents and caregivers'},
   // Care Ready (new Sep 2026): 2.5-hour course for nannies and au pairs, $185.
@@ -109,17 +120,44 @@ const COURSES={
   // $185. This file does not rewrite a price already stored on a session
   // or registration.
   'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:3,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting and new parents'},
+=======
+  'Safe@Home — Virtual':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:10,hours:1,instrFlatFee:75,maxStudents:16,virtual:true,audience:'Kids home alone · Virtual'},
+  'Safe Sitter® Grandparents: Getting Started':{price:150,price2027:185,priceNew:155,priceNew2027:185,matCost:15,hours:3,maxStudents:16,requiresSafeSitter:true,adult:true,audience:'Grandparents & caregivers'},
+  // Babysitting Grandkids Workshop (new): 60-minute conversational workshop
+  // for grandparents, $45 per person, 8–20 participants. Any instructor may
+  // teach it; treated as an adult course on the registration form.
+  'Babysitting Grandkids Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:20,adult:true,audience:'Grandparents'},
+  // Care Ready (new Sep 2026): 2.5-hour course for nannies and au pairs, $185.
+  // Any instructor may teach it; it uses CPR manikins, so the registration form
+  // treats it as an adult course (no grade, no parent/guardian fields).
+  'Care Ready':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:2.5,maxStudents:16,adult:true,audience:'Nannies & au pairs'},
+  // Baby Ready: published length is 2.5 hours. Capacity is in people (12).
+  // seatsPerRegistration 2 means each booking is a couple and holds two seats.
+  // Sessions created before Oct 14 2026 midnight ET stay $195 per person
+  // ($390 per couple). Sessions created on/after that moment charge $185
+  // per person and $300 per couple. Price columns stay $195 so a session
+  // with no creation time does not jump to $185. This file does not rewrite
+  // a price already stored on a session or registration.
+  'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:3,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting or new parents'},
+>>>>>>> Stashed changes
   // Baby Ready plus Pediatric First Aid/CPR certification. $275 per person.
   // couplePrice is the checkout total for one couple registration (2 people),
   // $495, which is less than 2 × $275. Not RN-only. Capacity is people, and
   // each registration holds 2 seats, same as Baby Ready.
   'Baby Ready + CPR Certification':{price:275,price2027:275,priceNew:275,priceNew2027:275,couplePrice:495,matCost:0,hours:5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · $275 per person ($495 per couple)'},
+<<<<<<< Updated upstream
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters'},
   // Official name: Stay Ready: Choking Rescue, CPR, and Seizure Response.
   // The stored course key stays "Choking Rescue and CPR" so existing sessions match.
   // 75 minutes. hours is 1.25 so instructor pay matches the published length.
   'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.25,maxStudents:12,requiresRN:true,audience:'Ages 11 and up'},
   'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'Teens and college-bound'},
+=======
+  'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters · Grades 3–9'},
+  // 75 minutes. hours is 1.25 so instructor pay matches the published length.
+  'Stay Ready™: Choking Rescue, CPR, and Seizure Response':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.25,maxStudents:12,requiresRN:true,audience:'Grades 7–12'},
+  'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'11th–12th grade & college'},
+>>>>>>> Stashed changes
   // Steady and Ready stays $65 on purpose — the Aug 2026 program guide printed
   // $50, which Lindsay confirmed is a typo in the guide, not a price change.
   // Published length is 60 minutes.
@@ -133,12 +171,20 @@ const COURSES={
   // short courses. (Corrected from $10, Aug 30 2026, to match admin.html.)
   // Company class profit does not subtract matCost. Handbook orders are overhead
   // expenses in admin. The rate is only the partner-share allowance there.
+<<<<<<< Updated upstream
   'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:12,audience:'Ages 8 to 10 · 8-week series'},
   // My First Babysitters Club — Single Session: the 2.5-hour workshop, $165
   // for sessions created on/after Oct 19 2026. priceNew stays $95 so sessions
   // created before that cutover do not reprice. Separate from the 8-week series
   // so the series keeps its own price and $30 material rate.
   'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:10,hours:2.5,maxStudents:12,audience:'Ages 8 to 10 · 2.5-hour workshop'},
+=======
+  'My First Babysitters Club':{price:40,price2027:50,priceNew:200,priceNew2027:200,matCost:30,hours:1,maxStudents:12,audience:'Younger sitters · 8-week series'},
+  // My First Babysitters Club — Single Session: the one-off 2.5-hour version, $95.
+  // Deliberately a SEPARATE course from the 8-week series above so the series keeps
+  // its own $165 price and $30 material rate. Any instructor may teach it.
+  'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:165,priceNew2027:165,matCost:10,hours:2.5,maxStudents:12,audience:'Younger sitters'},
+>>>>>>> Stashed changes
   // Ready. Period. — 90-minute puberty-prep workshop, $75/participant, up to 18.
   // RN instructors only. No flat fee, so the instructor is paid 1.5 teaching
   // hours + 1 travel hour + the standard extra 30 minutes.
@@ -148,6 +194,7 @@ const COURSES={
   // RN instructors only (hands-only CPR, AED trainers, heat-illness and concussion
   // response). No flat fee, so the instructor is paid 1 teaching hour + 1 travel
   // hour + the standard extra 30 minutes.
+<<<<<<< Updated upstream
   'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true,audience:'Student athletes'},
   // Social Ready: ages 8 to 14, 60 minutes, in person or virtual, up to 20.
   // Any instructor may teach it. virtual:true so Zoom pay has no travel hour.
@@ -165,6 +212,25 @@ const COURSES={
   // Girl Scout Badge Class: a troop badge workshop that is not a Safe Sitter
   // class. Same billing and typical maximum as the First Aid workshop.
   'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:16,audience:'Girl Scout troops, custom schedule'},
+=======
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:20,requiresRN:true,audience:'Student athletes · Grades 6–12'},
+  // Social Ready — 60-minute workshop for grades 4–8, $35/participant, up to 20.
+  // Any instructor may teach it (no Safe Sitter® or RN flag, and it is not an adult course).
+  // The flat instructor fee is $100, the same as the other Girl Scouts virtual workshops.
+  // virtual:true matches Safe@Home — Virtual and All Kids Welcome so Zoom pay has no
+  // travel hour. A session can still be taught in person.
+  'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true,audience:'Ages 8–14'},
+  // Girl Scouts — First Aid Badge Workshop: 60-minute in-person badge workshop.
+  // The $45 guide price is the full per-participant amount. A troop split (GS-H4782)
+  // sets the session family price to $15 and the organization flat fee to $30,
+  // so families check out at $15 and the troop is invoiced $30 × the roster.
+  // RN-only is the per-session checkbox, not this course type.
+  'Girl Scouts — First Aid Badge Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,audience:'Girl Scout troops'},
+  // Girl Scout Badge Class: the job type for a troop badge workshop that is
+  // not a Safe Sitter® class. Same guide price and cap as the First Aid
+  // workshop. Tick "RN instructors only" on a session to limit who can claim it.
+  'Girl Scout Badge Class':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:15,audience:'Girl Scout troops'},
+>>>>>>> Stashed changes
   // American Red Cross. The public card is "Red Cross Babysitter's Training +
   // Pediatric First Aid/CPR/AED", $295, 7 hours, ages 11–14. Students earn
   // American Red Cross Babysitter's Training and Pediatric First Aid/CPR/AED
@@ -174,6 +240,7 @@ const COURSES={
   // $295 is the new-session price (LATER_PRICE_CHANGES, from Oct 9 2026).
   // The catalog columns match it because no session of this course exists yet.
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11-14'},
+<<<<<<< Updated upstream
   // In-person length is 4.25 hours (Program Guide). Lead Teachers only
   // (redCross + requiresLeadTeacher). The Oct 9 list is $185. Sessions
   // created from Oct 14 2026 midnight ET charge $125. Price columns stay
@@ -181,8 +248,21 @@ const COURSES={
   // file does not rewrite a price stored on a session or registration.
   // Online + Classroom is a separate offering: about 2 hours online, then
   // a 2-hour skills session, $115. It is not its own course key.
+=======
+  // Same 4-hour course on the classes page (ages 11-14, high school, and
+  // parents). Lead Teachers only (redCross + requiresLeadTeacher). The
+  // Oct 9 list is $185. Sessions created from Oct 14 2026 midnight ET
+  // charge $125. Price columns stay $185 so a session with no creation
+  // time does not jump to $125. This file does not rewrite a price stored
+  // on a session or registration.
+>>>>>>> Stashed changes
   'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'}
 };
+// Old course names keep working for sessions created before the renames.
+// They point at the same entries, so prices, caps, and display info match.
+COURSES['Stay Ready: Choking Rescue and CPR']=COURSES['Stay Ready™: Choking Rescue, CPR, and Seizure Response'];
+COURSES['Grandparents: Getting Started']=COURSES['Safe Sitter® Grandparents: Getting Started'];
+COURSES['Intro to Babysitting']=COURSES['Introduction to Safe Babysitting by Safe Sitter®'];
 
 
 /* ─── PROGRAM-GUIDE PRICING CUTOVER (August 2026) ──────────────────────
@@ -236,7 +316,9 @@ const LATER_PRICE_CHANGES=[
    prices:{
      'Social Ready':45,
      'Stay Ready: Choking Rescue and CPR':85,
+     'Stay Ready™: Choking Rescue, CPR, and Seizure Response':85,
      'Grandparents: Getting Started':185,
+     'Safe Sitter® Grandparents: Getting Started':185,
      'Care Ready':175,
      'Baby Ready':195,
      'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':295,
@@ -254,7 +336,7 @@ const LATER_PRICE_CHANGES=[
      'Safe@Home':85,
      'Safe@Home — Virtual':40,
      'Safe@Home — Series':125,
-     'My First Babysitters Club':165,
+     'My First Babysitters Club':200,
      'Grandparents: Getting Started':185,
      'Care Ready':185,
      'Baby Ready':195,
@@ -313,16 +395,25 @@ function getPriceForSession(course,dateStr){
 const MAX_STUDENTS={
   'Safe Sitter®':16,
   'Safe Sitter® Babysitting Essentials':16,
+<<<<<<< Updated upstream
   'Intro to Babysitting':20,
   'Safe@Home':20,
   'Safe@Home — Virtual':20,
   'Safe@Home — Series':20,
   'Grandparents: Getting Started':16,
+=======
+  'Introduction to Safe Babysitting by Safe Sitter®':20,
+  'Safe@Home':20,
+  'Safe@Home — Virtual':16,
+  'Safe@Home — Series':16,
+  'Safe Sitter® Grandparents: Getting Started':16,
+  'Babysitting Grandkids Workshop':20,
+>>>>>>> Stashed changes
   'Care Ready':16,
   'Baby Ready':12,
   'Baby Ready + CPR Certification':12,
   'All Kids Welcome':20,
-  'Stay Ready: Choking Rescue and CPR':12,
+  'Stay Ready™: Choking Rescue, CPR, and Seizure Response':12,
   'Campus Ready: Safety Skills for College Life':12,
   'Steady and Ready':8,
   'My First Babysitters Club':12,
@@ -335,6 +426,10 @@ const MAX_STUDENTS={
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,
   'Adult & Pediatric First Aid/CPR/AED Certification':12
 };
+// Old names resolve to the same caps.
+MAX_STUDENTS['Stay Ready: Choking Rescue and CPR']=MAX_STUDENTS['Stay Ready™: Choking Rescue, CPR, and Seizure Response'];
+MAX_STUDENTS['Grandparents: Getting Started']=MAX_STUDENTS['Safe Sitter® Grandparents: Getting Started'];
+MAX_STUDENTS['Intro to Babysitting']=MAX_STUDENTS['Introduction to Safe Babysitting by Safe Sitter®'];
 
 
 /* ─── PROMO / DISCOUNT CODES ───────────────────────────────────────────
