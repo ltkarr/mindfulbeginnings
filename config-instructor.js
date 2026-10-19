@@ -22,29 +22,16 @@
 const COURSES={
   "Safe Sitter®":{hours:5,maxStudents:16,requiresSafeSitter:true},
   "Safe Sitter® Babysitting Essentials":{hours:4,maxStudents:16,requiresSafeSitter:true},
-<<<<<<< Updated upstream
   "Intro to Babysitting":{hours:1,maxStudents:20},
   "Safe@Home":{hours:1.5,maxStudents:20},
   "Safe@Home — Series":{hours:1,maxStudents:20},
   "Safe@Home — Virtual":{hours:1,maxStudents:20,instrFlatFee:75,virtual:true},
   "Grandparents: Getting Started":{hours:3,maxStudents:16,requiresSafeSitter:true,adult:true},
-=======
-  "Introduction to Safe Babysitting by Safe Sitter®":{hours:1,maxStudents:20},
-  "Safe@Home":{hours:1.5,maxStudents:16},
-  "Safe@Home — Series":{hours:1,maxStudents:16},
-  "Safe@Home — Virtual":{hours:1,maxStudents:16,instrFlatFee:75,virtual:true},
-  "Safe Sitter® Grandparents: Getting Started":{hours:3,maxStudents:16,requiresSafeSitter:true,adult:true},
->>>>>>> Stashed changes
   "Care Ready":{hours:2.5,maxStudents:16,adult:true},
   "Baby Ready":{hours:3,maxStudents:12,seatsPerRegistration:2,adult:true},
   "Baby Ready + CPR Certification":{hours:5,maxStudents:12,seatsPerRegistration:2,adult:true},
-<<<<<<< Updated upstream
   "All Kids Welcome":{hours:1,maxStudents:20,instrFlatFee:75,virtual:true},
   "Stay Ready: Choking Rescue and CPR":{hours:1.25,maxStudents:12,requiresRN:true},
-=======
-  "All Kids Welcome":{hours:1.5,maxStudents:20,instrFlatFee:75,virtual:true},
-  "Stay Ready™: Choking Rescue, CPR, and Seizure Response":{hours:1.25,maxStudents:12,requiresRN:true},
->>>>>>> Stashed changes
   "Campus Ready: Safety Skills for College Life":{hours:1,maxStudents:12,instrFlatFee:100,requiresRN:true},
   "Steady and Ready":{hours:1,maxStudents:8},
   "My First Babysitters Club":{hours:1,maxStudents:12},
