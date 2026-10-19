@@ -11338,7 +11338,7 @@ function openJobWhenText(s, dateText){
   return (dateText||'')+(s&&s.time?' · '+s.time:'');
 }
 function openJobDigestLine(s,idx,dateText){
-  const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed'));
+  const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.hostAddress,[s&&s.city,s&&s.state,s&&s.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')||'Location to be confirmed'));
   const when=openJobCopyText(openJobWhenText(s, dateText));
   const title=openJobCopyText((s&&s.course)||'Session');
   const pay=openJobCopyText(openJobPayText(s));
@@ -11346,7 +11346,7 @@ function openJobDigestLine(s,idx,dateText){
   return (idx+1)+'. '+title+' - '+pay+' - '+who+'\n   '+when+'\n   '+loc;
 }
 function openJobDigestHtml(s,idx,dateText){
-  const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.city].filter(Boolean).join(', ')||'Location to be confirmed'));
+  const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.hostAddress,[s&&s.city,s&&s.state,s&&s.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')||'Location to be confirmed'));
   const title=openJobCopyText((s&&s.course)||'Session');
   const when=escapeHtml(openJobCopyText(openJobWhenText(s, dateText)));
   const pay=openJobCopyText(openJobPayText(s));
