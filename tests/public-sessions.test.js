@@ -161,7 +161,7 @@ test('a dated private troop session stays off the public list and still has a fa
   });
   assert.equal(isPublicSession(troop, TODAY), false);
   assert.equal(sessionPrice(troop, () => 45), 15);
-  assert.equal(courseAudience('Girl Scouts — First Aid Badge Workshop'), 'Girl Scout troops');
+  assert.equal(courseAudience('Girl Scouts — First Aid Badge Workshop'), 'Girl Scout troops, custom schedule');
 });
 
 test('organization registration stays off the public list even when a code is still on the row', () => {
@@ -311,7 +311,7 @@ test('sessionPriceLabel is parent-facing (Free / whole dollars / cents)', () => 
 });
 
 test('courseAudience prefers config.audience then the built-in map', () => {
-  assert.equal(courseAudience('Safe Sitter®'), 'Grades 6–8');
+  assert.equal(courseAudience('Safe Sitter®'), 'Ages 11 to 14');
   assert.equal(courseAudience('Safe Sitter®', { 'Safe Sitter®': { audience: 'Grades 4–8' } }), 'Grades 4–8');
   assert.equal(courseAudience('Unknown Course'), '');
 });

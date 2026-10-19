@@ -480,14 +480,14 @@ if(typeof COURSES==='undefined'){
     'Safe Sitter®':{hours:5, maxStudents:16, requiresSafeSitter:true},
     'Safe Sitter® Babysitting Essentials':{hours:4, maxStudents:16, requiresSafeSitter:true},
     'Intro to Babysitting':{hours:1, maxStudents:20},
-    'Safe@Home':{hours:1.5, maxStudents:16},
-    'Safe@Home — Series':{hours:1, maxStudents:16},
-    'Safe@Home — Virtual':{hours:1, maxStudents:16, instrFlatFee:75, virtual:true},
+    'Safe@Home':{hours:1.5, maxStudents:20},
+    'Safe@Home — Series':{hours:1, maxStudents:20},
+    'Safe@Home — Virtual':{hours:1, maxStudents:20, instrFlatFee:75, virtual:true},
     'Grandparents: Getting Started':{hours:3, maxStudents:16, requiresSafeSitter:true, adult:true},
     'Care Ready':{hours:2.5, maxStudents:16, adult:true},
-    'Baby Ready':{hours:2.5, maxStudents:12, seatsPerRegistration:2, adult:true},
+    'Baby Ready':{hours:3, maxStudents:12, seatsPerRegistration:2, adult:true},
     'Baby Ready + CPR Certification':{hours:5, maxStudents:12, seatsPerRegistration:2, adult:true},
-    'All Kids Welcome':{hours:1.5, maxStudents:20, instrFlatFee:75, virtual:true},
+    'All Kids Welcome':{hours:1, maxStudents:20, instrFlatFee:75, virtual:true},
     'Stay Ready: Choking Rescue and CPR':{hours:1.25, maxStudents:12, requiresRN:true},
     'Campus Ready: Safety Skills for College Life':{hours:1, maxStudents:12, instrFlatFee:100, requiresRN:true},
     'Steady and Ready':{hours:1, maxStudents:8},
@@ -496,10 +496,10 @@ if(typeof COURSES==='undefined'){
     'Ready. Period.':{hours:1.5, maxStudents:18, requiresRN:true},
     'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{hours:1, maxStudents:20, requiresRN:true},
     'Social Ready':{hours:1, maxStudents:20, instrFlatFee:100, virtual:true},
-    'Girl Scouts — First Aid Badge Workshop':{hours:1, maxStudents:15},
-    'Girl Scout Badge Class':{hours:1, maxStudents:15},
+    'Girl Scouts — First Aid Badge Workshop':{hours:1, maxStudents:16},
+    'Girl Scout Badge Class':{hours:1, maxStudents:16},
     'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{hours:7, maxStudents:12, redCross:true, requiresLeadTeacher:true},
-    'Adult & Pediatric First Aid/CPR/AED Certification':{hours:4, maxStudents:12, redCross:true, requiresLeadTeacher:true}
+    'Adult & Pediatric First Aid/CPR/AED Certification':{hours:4.25, maxStudents:12, redCross:true, requiresLeadTeacher:true}
   };
   console.warn('config-instructor.js did not define COURSES — using built-in fallback. Check that /config-instructor.js is deploying correctly.');
 }
@@ -3365,19 +3365,23 @@ const FAQ_SECTIONS=[
   {items:[
     ['','Your approved course list reflects the credentials and training on file with Mindful Beginnings. If you believe you are eligible for an additional certification, contact Lindsay.']
   ]},
+  {sub:'Flexible scheduling',items:[
+    ['','Any class can be split into shorter sessions. For example, the 5-hour babysitting class can be taught as two 2.5-hour sessions, and the 7-hour Babysitter\'s Training + Pediatric First Aid/CPR/AED can be split across two days of 3.5 hours each.']
+  ]},
   {sub:'Recommended class sizes',items:[
-    ['6\u20138 students.','Steady and Ready\u2122.'],
-    ['6\u201312 students / participants.','All American Red Cross certification courses (Adult and Pediatric First Aid/CPR/AED, Adult First Aid/CPR/AED, Basic Life Support, Babysitter\u2019s Training, and Babysitter\u2019s Training + Pediatric First Aid/CPR/AED), Campus Ready\u2122, Stay Ready\u2122.'],
-    ['6\u201316 students.','Safe Sitter\u00ae Babysitting Essentials and Safe Sitter\u00ae Babysitting with CPR Module \u2014 1 instructor up to 8 students, 2 instructors up to 16.'],
-    ['8\u201316 students.','Care Ready\u2122 and Safe Sitter\u00ae Grandparents: Getting Started \u2014 1 instructor up to 8 students, 2 instructors up to 16.'],
-    ['6\u201318 students.','Ready. Period.\u2122.'],
-    ['6\u201320 students / participants.','Safe@Home by Safe Sitter\u00ae, All Kids Welcome\u2122, Introduction to Safe Babysitting by Safe Sitter\u00ae.'],
-    ['Up to 12 students.','My First Babysitter\u2019s Club\u2122.'],
-    ['Up to 12 participants.','Baby Ready\u2122 and Baby Ready\u2122 + CPR Certification.'],
-    ['Up to 15 scouts.','Girl Scout Badge Workshops.'],
-    ['Up to 20 students.','Social Ready\u2122 (Girl Scout virtual sessions up to 30) and Season Ready\u2122.'],
-    ['8\u201320 participants.','Babysitting Grandkids Workshop.'],
-    ['Custom group size.','Group CPR Certification for Workplaces \u2014 sized to the client; confirm with Lindsay.']
+    ['6 to 8 students.','Steady and Ready\u2122. Ages 8 to 12. 60 minutes. In person or virtual.'],
+    ['6 to 12 students.','American Red Cross certification courses (Adult and Pediatric First Aid/CPR/AED, Adult First Aid/CPR/AED, Basic Life Support, Babysitter\'s Training, and Babysitter\'s Training + Pediatric First Aid/CPR/AED), Campus Ready\u2122, and Stay Ready\u2122: Choking Rescue, CPR, and Seizure Response. Adult and Pediatric First Aid/CPR/AED is 4.25 hours in person. The online plus classroom option is about 2 hours online, then a 2-hour skills session.'],
+    ['6 to 16 students.','Safe Sitter\u00ae Babysitting Essentials and Safe Sitter\u00ae Babysitting with CPR Module. Ages 11 to 14.'],
+    ['8 to 16 students.','Care Ready\u2122 and Safe Sitter\u00ae Grandparents: Getting Started.'],
+    ['6 to 18 students.','Ready. Period.\u2122. Girls ages 10 to 12. 90 minutes. In person or virtual.'],
+    ['6 to 20 students.','Safe@Home by Safe Sitter\u00ae (ages 8 to 10), All Kids Welcome\u2122 (experienced sitters, 60 minutes, in person or virtual), and Introduction to Safe Babysitting by Safe Sitter\u00ae (ages 10 to 12, 60 minutes, in person or virtual).'],
+    ['8 to 12 students.','My First Babysitter\'s Club\u2122. Ages 8 to 10. The series is 8 weeks, one hour a week. The separate workshop is 2.5 hours. Same group size for both.'],
+    ['4 to 12 participants.','Baby Ready\u2122 (3 hours) and Baby Ready\u2122 + CPR Certification (5 hours, and the Baby Ready portion is 3 hours).'],
+    ['6 to 20 students.','Social Ready\u2122. Ages 8 to 14. 60 minutes. In person or virtual.'],
+    ['Up to 20 students.','Season Ready\u2122. 60 minutes. In person.'],
+    ['8 to 20 participants.','Babysitting Grandkids Workshop. 60 minutes. In person.'],
+    ['Typical group, 6 to 16 scouts.','Girl Scout badge workshops are custom-scheduled. Lindsay sets the time, and the group size, for each job. Daisy through Ambassador. Do not plan on a fixed length.'],
+    ['Custom group size.','Group CPR Certification for Workplaces. Sized to the client. Confirm with Lindsay.']
   ]}
 ]},
 {title:'2. Before class',blocks:[
@@ -3488,14 +3492,14 @@ const FAQ_SECTIONS=[
 ]},
 {title:'10. After School Clubs',blocks:[
   {sub:'How clubs run',items:[
-    ['Ten clubs, grades K\u20135.','My First Babysitter\u2019s Club, Little Medics, Pet Sitter\u2019s Club, Snack Squad, Kid Boss Club, Middle School Here I Come, Big Sibling Club, My First Phone, Walk and Roll Ready, and Calm and Ready.'],
-    ['Schedule.','One hour a week after dismissal, for an 8- or 10-week session. More than one club can run at the same time in different rooms.'],
-    ['Group size.','8\u201316 children per club. A minimum of 6 students is needed to run a club \u2014 if the minimum is not met, the club does not run.'],
+    ['Ten clubs.','My First Babysitter\'s Club (ages 8 to 10), Little Medics (ages 5 to 8), Pet Sitter\'s Club (ages 8 to 11), Snack Squad (ages 7 to 11), Kid Boss Club (ages 9 to 11), Middle School, Here I Come (ages 10 to 11), Big Sibling Club (ages 5 to 9), My First Phone (ages 9 to 11), Walk and Roll Ready (ages 7 to 11), and Calm and Ready (ages 5 to 11).'],
+    ['Schedule.','One hour a week after dismissal. My First Babysitter\'s Club is an 8-week series only. The other clubs run 8 or 10 weeks. More than one club can run at the same time in different rooms.'],
+    ['Group size.','My First Babysitter\'s Club is 8 to 12 children. The other clubs are 8 to 16. A minimum of 6 students is needed to run a club. If the minimum is not met, the club does not run.'],
     ['Staffing.','Clubs are taught by certified teachers and registered nurses.'],
     ['What we bring.','Everything: the instructor, materials, props, handbooks, and take-home pages.'],
     ['What the school provides.','A classroom, dismissal of students to the instructor, and a pickup plan.'],
     ['Also in Spanish.','Every club is also offered in Spanish.'],
-    ['Pricing.','$200 per participant. My First Babysitter\u2019s Club 8-week series is $165.']
+    ['Pricing.','$200 per participant for every club series, including the My First Babysitter\'s Club 8-week series. The separate 2.5-hour My First Babysitter\'s Club workshop is $165 per participant.']
   ]}
 ]}
 ];
@@ -3543,26 +3547,48 @@ const RESOURCE_LINKS={
 
 const RESOURCE_GROUPS=[
 {title:'Babysitting & Child Care',rows:[
-  ['Safe Sitter\u00ae Babysitting Course','A 5-hour course that gives participants in grades 6 through 9 the skills and confidence needed to begin their babysitting careers. Students learn CPR, choking rescue, first aid, emergency preparedness, infant care, diapering, and the key ages and stages of child development.',[['Open Page',RESOURCE_LINKS.safesitter]],'Safe Sitter\u00ae instructor login required'],
-  ['Intro to Safe Babysitting','A 60-minute course for students who are interested in learning how to safely care for children. Students learn tips to manage behavior that will help them stay in control of themselves and the children in their care. Students also learn the ages and stages of child development, as well as practice diapering.',[['Open Page',RESOURCE_LINKS.safesitter]],''],
-  ['My First Babysitter\u2019s Club\u2122','Introductory babysitting series for younger students, with slide deck, facilitator guide, and student handbook. 8-week, 10-week, and 2.5-hour workshop options.',[['Open Folder','https://drive.google.com/drive/folders/17pyFSwZBcmm_2XPeXiqIQbU6foKqp16q?usp=drive_link']],''],
-  ['All Kids Welcome\u2122','A 60-minute advanced course for sitters who want to confidently care for children with diverse needs. Students learn proper communication language, sensory difference awareness, and essential pre-job screening questions. Featuring a proven, step-by-step calming sequence, this course prepares students to become highly trusted, in-demand caregivers. Virtual option.',[['Open Folder','https://drive.google.com/drive/folders/18gshpb_HJIwadlmSd3fEgHCaJQOWNtpM?usp=drive_link']],'']
+  ['Safe Sitter\u00ae Babysitting with CPR Module','Youth gain the skills and confidence to begin babysitting safely: CPR, choking rescue, first aid, infant care, and child development. Ages 11 to 14. 5 hours. In person. 6 to 16 participants.',[['Open Page',RESOURCE_LINKS.safesitter]],'Safe Sitter\u00ae instructor login required'],
+  ['Safe Sitter\u00ae Babysitting Essentials','Tweens learn safety, child care basics, and behavior management for beginning babysitters. Ages 11 to 14. 4 hours. In person. 6 to 16 participants.',[['Open Page',RESOURCE_LINKS.safesitter]],'Safe Sitter\u00ae instructor login required'],
+  ['Introduction to Safe Babysitting by Safe Sitter\u00ae','A 60-minute intro for participants curious about babysitting. Ages 10 to 12. In person or virtual. 6 to 20 participants. Students practice behavior basics, ages and stages, and diapering.',[['Open Page',RESOURCE_LINKS.safesitter]],''],
+  ['My First Babysitter\u2019s Club\u2122','The first step toward babysitting. Members learn to be a Parent\'s Helper: a trusted extra set of hands while a parent is home, with safety lessons and real practice each week. Ages 8 to 10. 8-week series, 1 hour a week, at the school, 8 to 12 participants, $200 per participant. A separate 2.5-hour workshop is $165 per participant. There is no 10-week series.',[['Open Folder','https://drive.google.com/drive/folders/17pyFSwZBcmm_2XPeXiqIQbU6foKqp16q?usp=drive_link']],''],
+  ['All Kids Welcome\u2122','An advanced course for sitters who want to confidently and inclusively care for participants with diverse needs. Experienced sitters. 60 minutes. In person or virtual. 6 to 20 participants.',[['Open Folder','https://drive.google.com/drive/folders/18gshpb_HJIwadlmSd3fEgHCaJQOWNtpM?usp=drive_link']],'']
 ]},
 {title:'Kids & Teens: Safety and Health',rows:[
-  ['Safe@Home','A 90-minute program for students in grades 3\u20135 that prepares them to be safe when they are home alone. Students learn how to prevent unsafe situations and respond to emergencies, and how to use a first aid chart to systematically assess and treat basic injuries. The course prepares students for their initial steps toward independence. Virtual option.',[['Open Page',RESOURCE_LINKS.safesitter],['Open Folder','https://drive.google.com/drive/folders/1-T8ohiy-SXIWZJEy9cT_YhJ6nWQq5dsR?usp=drive_link']],''],
-  ['Steady and Ready\u2122','A 60-minute neurodivergent-affirming safety class for kids and teens that builds essential emergency readiness skills. Students learn home safety basics, unexpected visitor protocols, and proper 911 emergency communication. Featuring a built-in calming sequence and custom safety plans, this low-pressure course empowers students to stay steady, present, and safe, their way.',[['Open Folder','https://drive.google.com/drive/folders/1-PEdtFV8rITqciqUIw_sC5n3U5tIyJZ9?usp=drive_link']],''],
-  ['Social Ready\u2122','A 60-minute interactive workshop for grades 4\u20138 on safety skills for life online: what to post, what to protect, who to trust, how to handle a group chat that turns mean, and what to do the moment something feels off. Every student moves, votes, sorts, and practices. In person or live on Zoom. Virtual option.',[['Open Folder','https://drive.google.com/drive/folders/1MOenERkeZwMyGVplbDzuad2jsr_AcDOB?usp=drive_link']],''],
-  ['Ready. Period.\u2122','A 90-minute workshop for girls in grades 5 through 7 to navigate puberty with confidence. Participants design and decorate a custom period pouch, stock it with essential supplies, and get clear answers from a registered nurse. Topics include physical body changes, period basics, hygiene, emotional shifts, and when to consult a doctor, all in a relaxed, supportive environment. Virtual option.',[['Open Folder','https://drive.google.com/drive/folders/1dG0eJgzkuQUjZz-4eNyzj5PIKqKzidPp?usp=drive_link']],''],
-  ['First Aid Badge','A hands-on first aid training session taught by a registered nurse, designed for Girl Scouts (Brownies through Ambassadors) to earn their official level-specific First Aid badges. 60-minute core workshop, with an optional 120-minute scenario circuit.',[['Open Folder','https://drive.google.com/drive/folders/19668Bt8GNilK9aXJQDKMZeN-oxEXzfiS?usp=drive_link']],''],
-  ['Stay Ready\u2122','A 75-minute hands-on practice session that helps students reinforce critical emergency response skills, build muscle memory, and gain the confidence to act swiftly during real-life crises. Participants practice infant and child CPR, infant and child choking rescue, and essential seizure awareness and response. Taught by registered nurses. Virtual option.',[['Open Folder','https://drive.google.com/drive/folders/1lpyaT-Tb7Ay-V8_6KA-ZL63d31pSJxw1?usp=drive_link']],''],
-  ['Season Ready\u2122','A 60-minute safety, fueling, and injury-prevention workshop for student athletes in grades 6\u201312. Students practice hands-only CPR and AED use and learn to respond to heat illness and concussion. Taught by registered nurses. Virtual option.',[['Open Folder','https://drive.google.com/drive/folders/1P3lIGmMPLdGZSckEDoODi0Z0At1gCkRM?usp=drive_link']],''],
-  ['Campus Ready\u2122','A 60-minute hands-on safety class. Students learn to recognize alcohol poisoning and overdose, perform CPR and the recovery position, administer Narcan, recognize and respond to a seizure, and know when to call 911. The class also covers night-out safety, the buddy system, drink safety, getting home, and campus medical policies, and prepares students to step in and help a friend in an emergency. Taught by registered nurses.',[['Open Folder','https://drive.google.com/drive/folders/1uJ1WI6NDg6GDphmX2fXWN9_-_fzZ9Y3j?usp=drive_link']],'']
+  ['Safe@Home: First Steps to Independence','Designed to prepare upper-elementary participants to be safe when they are home alone for short periods. Ages 8 to 10. 90 minutes. In person or virtual. 6 to 20 participants.',[['Open Page',RESOURCE_LINKS.safesitter],['Open Folder','https://drive.google.com/drive/folders/1-T8ohiy-SXIWZJEy9cT_YhJ6nWQq5dsR?usp=drive_link']],''],
+  ['Steady and Ready\u2122','A neurodivergent-affirming safety class designed to build essential emergency readiness skills in a low-pressure environment. Kids and teens, ages 8 to 12. 60 minutes. In person or virtual. 6 to 8 participants.',[['Open Folder','https://drive.google.com/drive/folders/1-PEdtFV8rITqciqUIw_sC5n3U5tIyJZ9?usp=drive_link']],''],
+  ['Social Ready\u2122','An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online. Ages 8 to 14. 60 minutes. In person or virtual. 6 to 20 participants.',[['Open Folder','https://drive.google.com/drive/folders/1MOenERkeZwMyGVplbDzuad2jsr_AcDOB?usp=drive_link']],''],
+  ['Ready. Period.\u2122','Girls build confidence around puberty: they design their own period kit while learning body literacy and self-advocacy in a supportive setting. Girls ages 10 to 12. 90 minutes. In person or virtual. 6 to 18 participants.',[['Open Folder','https://drive.google.com/drive/folders/1dG0eJgzkuQUjZz-4eNyzj5PIKqKzidPp?usp=drive_link']],''],
+  ['Girl Scout Badge Workshops','First Aid, Babysitting, and Safety badge workshops for every Girl Scout level, Daisy through Ambassador. Custom-scheduled: Lindsay sets the time for each job. Typical group: 6 to 16 scouts. In person.',[['Open Folder','https://drive.google.com/drive/folders/19668Bt8GNilK9aXJQDKMZeN-oxEXzfiS?usp=drive_link']],''],
+  ['Stay Ready\u2122: Choking Rescue, CPR, and Seizure Response','A hands-on refresher for choking rescue, CPR, and seizure response. Ages 11 and up. 75 minutes. In person. 6 to 12 participants. Taught by registered nurses.',[['Open Folder','https://drive.google.com/drive/folders/1lpyaT-Tb7Ay-V8_6KA-ZL63d31pSJxw1?usp=drive_link']],''],
+  ['Season Ready\u2122','A 60-minute hands-on class for student athletes. In person. Up to 20 participants. Taught by registered nurses.',[['Open Folder','https://drive.google.com/drive/folders/1P3lIGmMPLdGZSckEDoODi0Z0At1gCkRM?usp=drive_link']],''],
+  ['Campus Ready\u2122','A hands-on safety class taught by registered nurses. Teens and college-bound. 60 minutes. In person. 6 to 12 participants. Students learn to recognize alcohol poisoning and overdose, perform CPR and the recovery position, administer Narcan, recognize and respond to a seizure, and know when to call 911.',[['Open Folder','https://drive.google.com/drive/folders/1uJ1WI6NDg6GDphmX2fXWN9_-_fzZ9Y3j?usp=drive_link']],'']
+]},
+{title:'Red Cross certification',rows:[
+  ['Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED','Teens learn child care, safety, and leadership skills, practice infant and child CPR on manikins, and earn American Red Cross Babysitter\'s Training and Pediatric First Aid/CPR/AED certifications. Ages 11 to 14. 7 hours. In person. 6 to 12 participants. $295. Lead Teachers.',[],'Ask Lindsay if you need the Red Cross materials'],
+  ['Babysitter\'s Training','Teens learn child care, safety, and leadership skills for beginning babysitters, with hands-on practice. Ages 11 to 15. 4.25 hours. In person. 6 to 12 participants. $250. This standalone class is separate from the 7-hour certification combo above.',[],'Ask Lindsay if you need the Red Cross materials'],
+  ['Adult and Pediatric First Aid/CPR/AED','A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Ages 11 and up, including high school juniors and seniors, parents, nannies, au pairs, and grandparents. 4.25 hours. In person. 6 to 12 participants. $125. Also available as Online + Classroom: about 2 hours online at your own pace, then a 2-hour in-person skills session. Same 2-year certificate. $115.',[],'Lead Teachers. Ask Lindsay for the Red Cross materials'],
+  ['Adult First Aid/CPR/AED','A hands-on course covering adult CPR, choking rescue, AED use, and first aid. Adults: workplaces, coaches, and community members. 3.25 hours. In person. 6 to 12 participants. $125.',[],'Ask Lindsay for the Red Cross materials'],
+  ['Basic Life Support (BLS)','For healthcare providers and public safety staff: high-quality CPR, AED use, and response to cardiac arrest and life-threatening emergencies. 4.25 hours. In person. 6 to 12 participants. $125. Also available as Online + Classroom: online course at your own pace, then an in-person skills session. Same 2-year certificate. $95.',[],'Ask Lindsay for the Red Cross materials'],
+  ['Group CPR Certification for Workplaces','Official Red Cross CPR certification for a team, taught at the workplace. Workplaces, childcare teams, and scout leaders. 4 hours. In person. Custom group size and a custom group quote. Confirm the plan with Lindsay.',[],'']
 ]},
 {title:'Adults & Caregivers',rows:[
-  ['Care Ready\u2122','A hands-on workshop for nannies, au pairs, household caregivers, postpartum helpers, and any adult paid or trusted to care for infants and children in a family\u2019s home. It assumes competence and fills the gaps. Most working caregivers can settle a toddler and run a nap schedule. What they usually have not had is training for the low-frequency, high-stakes moments: a choking infant, an unresponsive child, an allergic reaction, a head injury on the playground.',[['Open Folder','https://drive.google.com/drive/folders/1wzXx3sXS6rgyV8b65pOrelPMfNnFVOec?usp=drive_link']],''],
-  ['Baby Ready\u2122','A 3-hour, hands-on newborn care class for expectant and new parents, grandparents, and caregivers of babies from birth to 3 months. Participants practice swaddling, diapering, and safe sleep setup, learn when to call the pediatrician and when to call 911, and practice infant choking rescue and infant CPR. Taught by registered nurses.',[['Open Folder','https://drive.google.com/drive/folders/1hCxlb7BU4Y649oKibAy_MBUdS0gFkYuR?usp=drive_link']],''],
-  ['Grandparents: Getting Started','A 3-hour course where participants learn the latest information on infant care, age-appropriate behavior management, and basic first aid skills. Participants also practice critical life-saving techniques, including choking rescue and CPR. Ideal for grandparents, nannies, au pairs, and other adult caregivers.',[['Open Page',RESOURCE_LINKS.safesitter]],'Safe Sitter\u00ae instructor login required'],
-  ['Grandparents: 1 Hour Workshop','Condensed single-session workshop for grandparents and caregivers, with large-print materials.',[['Open Folder','https://drive.google.com/drive/folders/1zLe9iHVgTVQPhYdz_JeTwROpmKQHZ0z5?usp=drive_link']],'']
+  ['Care Ready\u2122','Professional training for nannies and caregivers: child development, safety, emergency response, and communication with families. Nannies and au pairs. 2.5 hours. In person. 8 to 16 participants. The class assumes day-to-day competence and fills the gaps: a choking infant, an unresponsive child, an allergic reaction, a head injury on the playground.',[['Open Folder','https://drive.google.com/drive/folders/1wzXx3sXS6rgyV8b65pOrelPMfNnFVOec?usp=drive_link']],''],
+  ['Baby Ready\u2122','A 3-hour hands-on newborn care class taught by a registered nurse, covering feeding, diapering, bathing, safe sleep, soothing, and infant choking rescue and CPR skills practice on manikins. Expecting and new parents. In person. 4 to 12 participants.',[['Open Folder','https://drive.google.com/drive/folders/1hCxlb7BU4Y649oKibAy_MBUdS0gFkYuR?usp=drive_link']],''],
+  ['Baby Ready\u2122 + CPR Certification','Baby Ready plus American Red Cross Pediatric First Aid/CPR/AED certification. Expecting parents. The Baby Ready portion is 3 hours. The full class is 5 hours. In person. 4 to 12 participants.',[],'Ask Lindsay for the certification materials'],
+  ['Safe Sitter\u00ae Grandparents: Getting Started','A focused 3-hour program for grandparents and adult family caregivers. Participants learn current infant care, age-appropriate behavior, and basic first aid, and practice choking rescue and CPR. In person. 8 to 16 participants.',[['Open Page',RESOURCE_LINKS.safesitter]],'Safe Sitter\u00ae instructor login required'],
+  ['Babysitting Grandkids Workshop','A 60-minute conversational workshop for grandparents of kids from infancy to about age 10. In person. 8 to 20 participants. Large-print materials are in the folder.',[['Open Folder','https://drive.google.com/drive/folders/1zLe9iHVgTVQPhYdz_JeTwROpmKQHZ0z5?usp=drive_link']],'']
+]},
+{title:'After School Clubs',rows:[
+  ['How clubs run','Clubs are $200 per participant. Each club meets one hour a week after dismissal. A minimum of 6 participants is needed. My First Babysitter\'s Club is 8 weeks and 8 to 12 children. The other clubs are 8 or 10 weeks and 8 to 16 children. Every club is also offered in Spanish. The 2.5-hour My First Babysitter\'s Club workshop is a separate class at $165, not a club week.',[],''],
+  ['Little Medics','A first aid club for the youngest helpers: what an emergency is, how to get help fast, and care for scrapes, bumps, bug bites, and nosebleeds. Ages 5 to 8.',[],''],
+  ['Pet Sitter\'s Club','For kids who want to care for animals: what pets need, staying safe around unfamiliar animals, and running a pet sitting job from first visit to final payment. Ages 8 to 11.',[],''],
+  ['Snack Squad','A no-stove kitchen club: kitchen safety, food allergies, reading labels, and building a balanced snack every week. Ages 7 to 11.',[],''],
+  ['Kid Boss Club','Young entrepreneurs turn an idea into a real product: simple budgets, pricing, pitches, and a final pop-up market for families. Ages 9 to 11.',[],''],
+  ['Middle School, Here I Come','A head start on the biggest school change yet: lockers, schedules, planners, keeping track of six teachers, and speaking up. Ages 10 to 11.',[],''],
+  ['Big Sibling Club','For kids with a baby or little sibling: gentle, safe ways to help, what babies need, and handling big feelings about a new sibling. Ages 5 to 9.',[],''],
+  ['My First Phone','For kids getting a first phone: passwords, privacy, group chats, screen time, and what to do the moment something online feels wrong. Ages 9 to 11.',[],''],
+  ['Walk and Roll Ready','Getting around the neighborhood safely on foot, bike, or scooter: road rules, helmets, hand signals, and planning a safe route. Ages 7 to 11.',[],''],
+  ['Calm and Ready','A feelings toolbox for every kid: naming emotions, breathing and calm-down tools that work in the moment, at school and at home. Ages 5 to 11.',[],'']
 ]}
 ];
 
@@ -3606,7 +3632,7 @@ function renderMaterials(){
     html+=`</div>`;
   });
   html+=`<div class="info-card"><div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Safe Sitter\u00ae program materials</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Digital presentations, facilitator guides, registration forms, and certificates for the Safe Sitter\u00ae Babysitting Course, Intro to Safe Babysitting, Safe@Home, and Grandparents: Getting Started.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Digital presentations, facilitator guides, registration forms, and certificates for Safe Sitter\u00ae Babysitting with CPR Module, Safe Sitter\u00ae Babysitting Essentials, Introduction to Safe Babysitting by Safe Sitter\u00ae, Safe@Home, and Safe Sitter\u00ae Grandparents: Getting Started.</div>
     <a href="${RESOURCE_LINKS.safesitter}" target="_blank" rel="noopener" class="btn" style="text-decoration:none">Open Page</a></div>`;
   html+=`<div class="info-card"><div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Videos</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Save these to the laptop in case Wi-Fi is not strong. They play in any media player.</div>

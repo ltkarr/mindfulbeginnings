@@ -11,41 +11,41 @@
   // prices were stale; the intake shows these amounts so a new session matches
   // what families are charged everywhere else.
   var COURSES = [
-    { key: 'safe-sitter', course: 'Safe Sitter®', abbr: 'SS', price: 225, hours: '5 hours', audience: 'Grades 6–8', where: 'in person', requiresSS: true, host: true, org: true },
-    { key: 'safe-sitter-essentials', course: 'Safe Sitter® Babysitting Essentials', abbr: 'SSBE', price: 185, hours: '4 hours', audience: 'Grades 6–8', where: 'in person', requiresSS: true, host: true, org: true },
-    { key: 'safe-at-home', course: 'Safe@Home', abbr: 'SAH', price: 85, hours: '90 minutes', audience: 'Grades 3–5', where: 'in person', host: true, org: true },
-    { key: 'safe-at-home-virtual', course: 'Safe@Home — Virtual', abbr: 'SAHV', price: 40, hours: '60 minutes', audience: 'Grades 3–5', where: 'virtual', virtual: true, host: true, org: true },
-    { key: 'care-ready', course: 'Care Ready', abbr: 'CRE', price: 175, hours: '2.5 hours', audience: 'Adult caregivers', where: 'in person', host: true, org: true },
-    { key: 'grandparents', course: 'Grandparents: Getting Started', abbr: 'GP', price: 185, hours: '3 hours', audience: 'Adults', where: 'in person', requiresSS: true, host: true, org: true },
-    { key: 'mfbc-single', course: 'My First Babysitters Club — Single Session', abbr: 'MFBC1', price: 95, hours: '2.5 hours', audience: 'Grades 4–5', where: 'in person', host: true, org: true },
-    { key: 'mfbc-series', course: 'My First Babysitters Club', abbr: 'MFBC', price: 165, hours: '1 hour a week', audience: 'Younger sitters · multi-week', where: 'in person', host: false, org: true },
-    { key: 'campus-ready', course: 'Campus Ready: Safety Skills for College Life', abbr: 'CR', price: 75, hours: '1 hour', audience: 'Ages 16+', where: 'in person', requiresRN: true, host: true, org: true },
-    { key: 'ready-period', course: 'Ready. Period.', abbr: 'RP', price: 75, hours: '90 minutes', audience: 'Grades 5–8', where: 'in person', requiresRN: true, host: true, org: true },
-    { key: 'stay-ready', course: 'Stay Ready: Choking Rescue and CPR', abbr: 'SR', price: 85, hours: '75 minutes', audience: 'Grades 8+', where: 'in person', requiresRN: true, host: true, org: true },
-    { key: 'steady-ready', course: 'Steady and Ready', abbr: 'STR', price: 65, hours: '60 minutes', audience: 'Ages 8+', where: 'in person', host: true, org: true },
-    { key: 'intro', course: 'Intro to Babysitting', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Grades 6–8', where: 'in person', host: true, org: true },
-    { key: 'intro-virtual', course: 'Intro to Babysitting', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Grades 6–8', where: 'virtual', virtual: true, host: true, org: true },
-    { key: 'all-kids-welcome', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '1 hour', audience: 'Experienced sitters', where: 'in person', host: true, org: true },
-    { key: 'all-kids-welcome-virtual', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '1 hour', audience: 'Experienced sitters', where: 'virtual', virtual: true, host: true, org: true },
-    // Social Ready matches config.js: $45/kid (classes page, Oct 2026), 1 hour, grades 4–8, code SOC.
-    // In person and virtual are separate choices, same as All Kids Welcome.
-    { key: 'social-ready', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Grades 4–8', where: 'in person', host: true, org: true },
-    { key: 'social-ready-virtual', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Grades 4–8', where: 'virtual', virtual: true, host: true, org: true },
-    { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 185, hours: '2.5 hours', audience: 'Expecting or new parents · $185 per person ($300 per couple)', where: 'in person', host: false, org: true },
-    { key: 'baby-ready-cpr', course: 'Baby Ready + CPR Certification', abbr: 'BRCPR', price: 275, hours: '5 hours', audience: 'Expecting or new parents · $275 per person ($495 per couple)', where: 'in person', host: false, org: true },
+    { key: 'safe-sitter', course: 'Safe Sitter®', title: 'Safe Sitter® Babysitting with CPR Module', abbr: 'SS', price: 225, hours: '5 hours', audience: 'Ages 11 to 14', where: 'in person', requiresSS: true, host: true, org: true },
+    { key: 'safe-sitter-essentials', course: 'Safe Sitter® Babysitting Essentials', abbr: 'SSBE', price: 185, hours: '4 hours', audience: 'Ages 11 to 14', where: 'in person', requiresSS: true, host: true, org: true },
+    { key: 'safe-at-home', course: 'Safe@Home', title: 'Safe@Home: First Steps to Independence', abbr: 'SAH', price: 85, hours: '90 minutes', audience: 'Ages 8 to 10', where: 'in person', host: true, org: true },
+    { key: 'safe-at-home-virtual', course: 'Safe@Home — Virtual', title: 'Safe@Home: First Steps to Independence, virtual', abbr: 'SAHV', price: 40, hours: '60 minutes', audience: 'Ages 8 to 10', where: 'virtual', virtual: true, host: true, org: true },
+    { key: 'care-ready', course: 'Care Ready', abbr: 'CRE', price: 185, hours: '2.5 hours', audience: 'Nannies and au pairs', where: 'in person', host: true, org: true },
+    { key: 'grandparents', course: 'Grandparents: Getting Started', title: 'Safe Sitter® Grandparents: Getting Started', abbr: 'GP', price: 185, hours: '3 hours', audience: 'Grandparents and caregivers', where: 'in person', requiresSS: true, host: true, org: true },
+    { key: 'mfbc-single', course: 'My First Babysitters Club — Single Session', title: "My First Babysitter's Club workshop", abbr: 'MFBC1', price: 165, hours: '2.5 hours', audience: 'Ages 8 to 10', where: 'in person', host: true, org: true },
+    { key: 'mfbc-series', course: 'My First Babysitters Club', title: "My First Babysitter's Club, 8-week series", abbr: 'MFBC', price: 200, hours: '1 hour a week', audience: 'Ages 8 to 10', where: 'in person', host: false, org: true },
+    { key: 'campus-ready', course: 'Campus Ready: Safety Skills for College Life', abbr: 'CR', price: 75, hours: '1 hour', audience: 'Teens and college-bound', where: 'in person', requiresRN: true, host: true, org: true },
+    { key: 'ready-period', course: 'Ready. Period.', abbr: 'RP', price: 75, hours: '90 minutes', audience: 'Girls ages 10 to 12', where: 'in person', requiresRN: true, host: true, org: true },
+    { key: 'ready-period-virtual', course: 'Ready. Period.', abbr: 'RP', price: 75, hours: '90 minutes', audience: 'Girls ages 10 to 12', where: 'virtual', virtual: true, requiresRN: true, host: true, org: true },
+    { key: 'stay-ready', course: 'Stay Ready: Choking Rescue and CPR', title: 'Stay Ready: Choking Rescue, CPR, and Seizure Response', abbr: 'SR', price: 85, hours: '75 minutes', audience: 'Ages 11 and up', where: 'in person', requiresRN: true, host: true, org: true },
+    { key: 'steady-ready', course: 'Steady and Ready', abbr: 'STR', price: 65, hours: '60 minutes', audience: 'Ages 8 to 12', where: 'in person', host: true, org: true },
+    { key: 'steady-ready-virtual', course: 'Steady and Ready', abbr: 'STR', price: 65, hours: '60 minutes', audience: 'Ages 8 to 12', where: 'virtual', virtual: true, host: true, org: true },
+    { key: 'intro', course: 'Intro to Babysitting', title: 'Introduction to Safe Babysitting by Safe Sitter®', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Ages 10 to 12', where: 'in person', host: true, org: true },
+    { key: 'intro-virtual', course: 'Intro to Babysitting', title: 'Introduction to Safe Babysitting by Safe Sitter®', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Ages 10 to 12', where: 'virtual', virtual: true, host: true, org: true },
+    { key: 'all-kids-welcome', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '60 minutes', audience: 'Experienced sitters', where: 'in person', host: true, org: true },
+    { key: 'all-kids-welcome-virtual', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '60 minutes', audience: 'Experienced sitters', where: 'virtual', virtual: true, host: true, org: true },
+    // Social Ready: ages 8 to 14, $45, 60 minutes, in person or virtual.
+    { key: 'social-ready', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Ages 8 to 14', where: 'in person', host: true, org: true },
+    { key: 'social-ready-virtual', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Ages 8 to 14', where: 'virtual', virtual: true, host: true, org: true },
+    { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 185, hours: '3 hours', audience: 'Expecting and new parents, $185 per person ($300 per couple), 4 to 12 participants', where: 'in person', host: false, org: true },
+    { key: 'baby-ready-cpr', course: 'Baby Ready + CPR Certification', abbr: 'BRCPR', price: 275, hours: '5 hours', audience: 'Expecting parents, $275 per person ($495 per couple), Baby Ready portion is 3 hours', where: 'in person', host: false, org: true },
     { key: 'season-ready', course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', abbr: 'SEAR', price: 25, hours: '60 minutes', audience: 'Student athletes', where: 'in person', requiresRN: true, host: false, org: true },
-    // First Aid badge: $45 guide price, 60 minutes, RN only. A troop split is
-    // entered on the session (family price + organization flat fee), not here.
-    { key: 'gs-first-aid', course: 'Girl Scouts — First Aid Badge Workshop', abbr: 'GSFA', price: 45, hours: '1 hour', audience: 'Girl Scout troops', where: 'in person', requiresRN: true, host: false, org: true },
-    // New-session catalog prices. Babysitter's Training is $295 and bookable.
-    // Adult & Pediatric is $125 for sessions created from Oct 14 2026.
-    { key: 'rc-babysitter', course: "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED", abbr: 'RCB', price: 295, hours: '7 hours', audience: 'Ages 11-14', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
-    { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 125, hours: '4 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
-    // After School Clubs: 10 themed clubs for grades K-5, multi-week series at
-    // schools. $200 per participant. Organization form only.
-    { key: 'after-school-clubs', course: 'After School Clubs', abbr: 'ASC', price: 200, hours: 'multi-week series', audience: 'Grades K–5', where: 'in person', host: false, org: true },
-    { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet — I would like guidance' },
-    { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course — we will follow up with pricing' }
+    // Badge workshops are custom-scheduled. The stored course key stays the
+    // First Aid workshop so existing requests match. $45 is the current troop
+    // checkout amount, not a published fixed length.
+    { key: 'gs-first-aid', course: 'Girl Scouts — First Aid Badge Workshop', title: 'Girl Scout badge workshops', abbr: 'GSFA', price: 45, hours: 'custom schedule, time set per job', audience: 'Daisy through Ambassador, typical group 6 to 16', where: 'in person', requiresRN: true, host: false, org: true },
+    { key: 'rc-babysitter', course: "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED", abbr: 'RCB', price: 295, hours: '7 hours', audience: 'Ages 11 to 14', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 125, hours: '4.25 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    // After School Clubs: $200 per participant. My First Babysitter's Club is
+    // 8 weeks. Other clubs are 8 or 10 weeks. Organization form only.
+    { key: 'after-school-clubs', course: 'After School Clubs', abbr: 'ASC', price: 200, hours: '1 hour a week, 8 weeks for My First Babysitter\'s Club, 8 or 10 weeks for the others', audience: 'Elementary clubs', where: 'in person', host: false, org: true },
+    { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet: I would like guidance' },
+    { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course: we will follow up with pricing' }
   ];
 
   var BILLING_OPTIONS = [
@@ -88,13 +88,14 @@
 
   function courseOptionLabel(c) {
     if (c.label) return c.label;
+    var name = c.title || c.course;
     var bits = [];
     if (c.audience) bits.push(c.audience);
     if (c.hours) bits.push(c.hours);
     if (c.where) bits.push(c.where);
     var detail = bits.join(', ');
     var price = c.price == null ? '' : ' ($' + c.price + ')';
-    return c.course + (detail ? ' — ' + detail : '') + price;
+    return name + (detail ? ', ' + detail : '') + price;
   }
 
   function blankChecklist() {
