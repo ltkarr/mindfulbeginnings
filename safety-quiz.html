@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Are You Safety Smart? Take the Quiz | Mindful Beginnings</title>
+<meta name="description" content="Test your safety smarts with 10 quick questions from our Safe@Home and babysitting classes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',Arial,sans-serif;background:#F5F2EA;color:#1E3161;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px}
+.quiz{width:100%;max-width:560px}
+.brand{text-align:center;margin-bottom:20px}
+.brand .logo{font-weight:800;font-size:20px;color:#1E3161}
+.brand .tag{font-family:'Caveat',cursive;font-size:22px;color:#C7A24A;font-weight:700}
+.card{background:#fff;border-radius:20px;box-shadow:0 8px 30px rgba(30,49,97,.12);padding:28px 24px;margin-bottom:16px}
+h1{font-size:28px;text-align:center;margin-bottom:8px}
+.sub{text-align:center;color:#5a6b8c;font-size:15px;margin-bottom:20px;line-height:1.6}
+.qnum{font-size:13px;font-weight:700;color:#C7A24A;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.q{font-size:19px;font-weight:700;margin-bottom:18px;line-height:1.45}
+.opt{display:block;width:100%;text-align:left;background:#F5F2EA;border:2px solid #e2ddd0;border-radius:14px;padding:14px 16px;font-size:16px;font-family:inherit;color:#1E3161;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.opt:active{transform:scale(.98)}
+.opt.correct{background:#e6f4ea;border-color:#34a853;color:#1E3161}
+.opt.wrong{background:#fce8e6;border-color:#ea4335;color:#1E3161}
+.opt:disabled{cursor:default;opacity:1}
+.opt.dim{opacity:.55}
+.explain{display:none;background:#1E3161;color:#fff;border-radius:14px;padding:16px;margin-top:6px;font-size:15px;line-height:1.6}
+.explain.show{display:block}
+.explain strong{color:#C7A24A}
+.nextbtn{display:none;width:100%;margin-top:16px;background:#1E3161;color:#fff;border:none;border-radius:999px;padding:15px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer}
+.nextbtn.show{display:block}
+.bigbtn{display:block;width:100%;background:#C7A24A;color:#1E3161;border:none;border-radius:999px;padding:16px;font-size:18px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:8px}
+.bigbtn:active{transform:scale(.98)}
+.score{font-size:56px;font-weight:800;text-align:center;color:#1E3161;margin:8px 0}
+.scoremsg{text-align:center;font-size:17px;line-height:1.6;margin-bottom:20px}
+.field{margin-bottom:12px}
+.field input{width:100%;padding:14px 16px;border:2px solid #e2ddd0;border-radius:12px;font-size:16px;font-family:inherit;color:#1E3161}
+.field input:focus{outline:none;border-color:#C7A24A}
+.fineprint{text-align:center;font-size:12px;color:#8a94a8;margin-top:12px;line-height:1.5}
+.progress{height:8px;background:#e2ddd0;border-radius:99px;margin-bottom:20px;overflow:hidden}
+.progress>div{height:100%;background:#C7A24A;border-radius:99px;transition:width .3s}
+.hidden{display:none!important}
+.stars{text-align:center;font-size:28px;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="quiz">
+<div class="brand">
+<div class="logo">Mindful Beginnings</div>
+<div class="tag">are you safety smart?</div>
+</div>
+
+<div class="card" id="screen-start">
+<h1>Are You Safety Smart?</h1>
+<p class="sub">10 quick questions from our Safe@Home and babysitting classes. See how you'd do in a real emergency — answers revealed instantly!</p>
+<button class="bigbtn" onclick="startQuiz()">Start the Quiz</button>
+</div>
+
+<div class="card hidden" id="screen-quiz">
+<div class="progress"><div id="pbar" style="width:0%"></div></div>
+<div class="qnum" id="qnum"></div>
+<div class="q" id="qtext"></div>
+<div id="opts"></div>
+<div class="explain" id="explain"></div>
+<button class="nextbtn" id="nextbtn" onclick="nextQ()">Next Question</button>
+</div>
+
+<div class="card hidden" id="screen-done">
+<div class="stars">⭐</div>
+<div class="score" id="score"></div>
+<p class="scoremsg" id="scoremsg"></p>
+<div id="emailwrap">
+<p style="text-align:center;font-weight:700;margin-bottom:12px;">Want to learn these skills hands-on?</p>
+<p class="sub" style="margin-bottom:14px;">Drop your email and we'll send you info about upcoming classes near you.</p>
+<div class="field"><input type="text" id="quiz-name" placeholder="Your name" autocomplete="name"></div>
+<div class="field"><input type="email" id="quiz-email" placeholder="Email address" autocomplete="email"></div>
+<button class="bigbtn" onclick="submitEmail()">Send Me Class Info</button>
+<p class="fineprint">We'll only email about Mindful Beginnings classes. No spam, ever.</p>
+<p style="text-align:center;margin-top:10px;"><a href="https://mindfulbeginnings.org/classes-catalog.html" style="color:#1E3161;font-weight:600;font-size:14px;">Or browse all of our classes now →</a></p>
+</div>
+<div id="thanksmsg" class="hidden" style="text-align:center;padding:12px 0;">
+<p style="font-size:18px;font-weight:700;color:#1E3161;">You're on the list! 🎉</p>
+<p class="sub">Watch your inbox for upcoming classes.</p>
+</div>
+<div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid #e2ddd0;">
+<a href="https://mindfulbeginnings.org/classes-catalog.html" style="color:#1E3161;font-weight:700;font-size:16px;">Learn more about all of our classes →</a>
+</div>
+</div>
+</div>
+
+<script>
+const QS=[
+{q:"You're home alone and someone knocks on the door. What should you do?",a:["Open the door to see who it is","Don't answer — text or call a parent to let them know","Yell \"I'm home alone!\" through the door","Hide in your bedroom"],c:1,e:"Never open the door when you're home alone. Let a trusted adult know someone is there."},
+{q:"You smell gas in the kitchen. What's the first thing to do?",a:["Try to find where the smell is coming from","Turn on the stove fan to clear the air","Leave the house right away and call 911 from outside","Open all the windows"],c:2,e:"Leave immediately — don't touch switches or appliances. Call 911 from a safe place outside."},
+{q:"When you call 911, what's the most important thing to tell the dispatcher first?",a:["Your name","What happened","Your address / location","Your phone number"],c:2,e:"They need to know WHERE to send help first. Then explain what happened."},
+{q:"A baby you're babysitting is choking and can't cry or cough. What do you do?",a:["Give 5 back slaps, then 5 chest thrusts, and call 911","Stick your finger in their mouth to fish it out","Hold them upside down and shake","Wait to see if it clears on its own"],c:0,e:"For an infant, alternate 5 back slaps and 5 chest thrusts. Call 911. Never do a blind finger sweep."},
+{q:"Where is the safest place for a baby to sleep?",a:["On their tummy in a crib with blankets","On their back in a crib with nothing else in it","In a car seat overnight","On a couch next to you"],c:1,e:"Back to sleep, on a firm flat surface with no blankets, pillows, or toys — every time."},
+{q:"You're babysitting and a child gets a bloody nose. What should you do?",a:["Tilt their head back","Have them lean forward and pinch the soft part of the nose","Put ice on the back of their neck","Stuff tissue deep into the nostril"],c:1,e:"Lean forward (not back) and pinch the soft part of the nose for about 10 minutes."},
+{q:"Before the parents leave, what's the most important thing to ask the family?",a:["What's the WiFi password","Where's the TV remote","Emergency contacts, allergies, and where they'll be","What time the kids go to bed"],c:2,e:"Always get emergency numbers, allergy and medical info, and how to reach the parents — before they walk out the door."},
+{q:"The power goes out while you're home alone at night. What should you do?",a:["Light candles in every room","Go outside to check the neighborhood","Use a flashlight, stay inside, and let a parent know","Try to fix the circuit breaker yourself"],c:2,e:"Use a flashlight (not candles — fire risk), stay inside, and tell a trusted adult."},
+{q:"A toddler you're watching keeps putting small toys in their mouth. What's the best prevention?",a:["Only give large toys and keep small objects out of reach","Let them explore — they'll learn","Only watch them closely at mealtimes","Give them a pacifier instead"],c:0,e:"If it fits through a toilet paper tube, it's a choking hazard. Scan the room at their eye level."},
+{q:"You're home alone and get a text from an unknown number asking for your address. What do you do?",a:["Reply and ask who it is","Send your address so they stop asking","Don't reply — block the number and tell a parent","Forward it to your friends to ask what to do"],c:2,e:"Never share personal info with strangers. Don't engage — block the number and tell a trusted adult."}
+];
+let qi=0,score=0,answered=false;
+function startQuiz(){document.getElementById('screen-start').classList.add('hidden');document.getElementById('screen-quiz').classList.remove('hidden');showQ();}
+function showQ(){
+  answered=false;
+  const q=QS[qi];
+  document.getElementById('pbar').style.width=((qi)/QS.length*100)+'%';
+  document.getElementById('qnum').textContent='Question '+(qi+1)+' of '+QS.length;
+  document.getElementById('qtext').textContent=q.q;
+  document.getElementById('explain').classList.remove('show');
+  document.getElementById('nextbtn').classList.remove('show');
+  const box=document.getElementById('opts');box.innerHTML='';
+  q.a.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=t;
+    b.onclick=()=>answer(i,b);
+    box.appendChild(b);
+  });
+}
+function answer(i,btn){
+  if(answered)return;answered=true;
+  const q=QS[qi];
+  const btns=document.querySelectorAll('#opts .opt');
+  btns.forEach((b,j)=>{
+    b.disabled=true;
+    if(j===q.c)b.classList.add('correct');
+    else if(j===i)b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  if(i===q.c){score++;}
+  const ex=document.getElementById('explain');
+  ex.innerHTML=(i===q.c?'<strong>✓ Correct!</strong> ':'<strong>Not quite.</strong> ')+q.e;
+  ex.classList.add('show');
+  const nb=document.getElementById('nextbtn');
+  nb.textContent=(qi===QS.length-1)?'See My Score':'Next Question';
+  nb.classList.add('show');
+  document.getElementById('pbar').style.width=((qi+1)/QS.length*100)+'%';
+}
+function nextQ(){
+  qi++;
+  if(qi>=QS.length){finish();}
+  else{showQ();}
+}
+function finish(){
+  document.getElementById('screen-quiz').classList.add('hidden');
+  document.getElementById('screen-done').classList.remove('hidden');
+  document.getElementById('score').textContent=score+'/'+QS.length;
+  let m;
+  if(score===10)m="Perfect score! You should be teaching this class. 🏆";
+  else if(score>=8)m="Great job! You've got strong safety instincts. Our classes would make you unstoppable.";
+  else if(score>=5)m="Not bad! A few of these could really matter in an emergency — our classes cover them all hands-on.";
+  else m="Good news: every one of these is teachable! Our hands-on classes make them second nature.";
+  document.getElementById('scoremsg').textContent=m;
+}
+async function submitEmail(){
+  const name=document.getElementById('quiz-name').value.trim();
+  const email=document.getElementById('quiz-email').value.trim();
+  if(!email||email.indexOf('@')<0){alert('Please enter a valid email address.');return;}
+  try{
+    await fetch('https://formspree.io/f/mnpnnebe',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({name:name,email:email,source:'Safety Quiz at vendor fair',score:score+'/10',_subject:'New Safety Quiz lead: '+email})});
+  }catch(e){}
+  document.getElementById('emailwrap').classList.add('hidden');
+  document.getElementById('thanksmsg').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
