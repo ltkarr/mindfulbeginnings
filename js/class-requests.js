@@ -515,7 +515,10 @@
     if ((n.phone.match(/\d/g) || []).length < 7) add('phone', 'Please add a phone number.');
     if (!n.course) add('courseKey', 'Please choose a course.');
     if (n.kind === 'organization' && !n.organizationName) add('organizationName', 'Please add the organization name.');
-    if (!n.place.raw && !n.isVirtual) add('address', 'Please add the address or choose virtual.');
+    if (!n.isVirtual) {
+      if (!n.place.raw) add('address', 'Please add the address or choose virtual.');
+      else if (!n.place.hostAddress || !n.place.city || !n.place.state || !n.place.zip) add('address', 'Please include the full street address, city, state, and ZIP code (for example: 123 Maple St, Bethesda, MD 20814).');
+    }
     if (n.kind === 'host' && !n.checklistAnswer) add('checklistAnswer', 'Please answer the hosting checklist.');
     if (n.kind === 'organization' && !n.billing.mode) add('billing', 'Please choose how registration and payment should work.');
     if (n.kind === 'organization' && n.billing.mode === 'split' && !n.portionText) {
