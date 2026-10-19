@@ -29,7 +29,8 @@ module.exports = async function handler(req, res) {
   const results = [];
   try {
     const tok = await token(e);
-    const batchNums = Object.keys(BATCHES).sort((a,b) => Number(a)-Number(b));
+    const startFrom = req.query.from || '9';
+    const batchNums = Object.keys(BATCHES).sort((a,b) => Number(a)-Number(b)).filter(n => Number(n) >= Number(startFrom));
     for (const num of batchNums) {
       const emails = BATCHES[num];
       const payload = {
