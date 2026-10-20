@@ -859,7 +859,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -896,6 +896,10 @@ let REQUIRES_SS_COL=true;
 // Per-job Spanish-language restriction. Exact same pattern as requires_rn.
 // (Run in the Supabase SQL editor: migrations/20261017_spanish_flags.sql)
 let REQUIRES_SPANISH_COL=true;
+// Per-session class length and paid travel hours for instructor pay.
+// Null keeps today's formula. See migrations/20261020_paid_travel_hours.sql.
+let TEACHING_HOURS_COL=true;
+let PAID_TRAVEL_HOURS_COL=true;
 // Session cancellation (e.g. cancelled for low enrollment). Same graceful-degradation
 // pattern again. Run in the Supabase SQL editor, and remember the standing rule that
 // every sessions column the public pages read needs its own grant to anon:
@@ -994,6 +998,10 @@ function sessionToDB(s){
   if(EXTRA_DAYS_COL)o.extra_days=(s.extraDays||[]).filter(x=>x&&x.date).map(x=>({date:x.date,time:x.time||''}));
   if(CLOSURES_COL)o.closures=(s.closures||[]).filter(x=>x&&x.date).map(x=>({date:x.date,reason:x.reason||''}));
   if(INSTR_INFO_COL)o.instructor_info=s.instructorInfo||null;
+  // Only sent once the pay-hours columns exist. A session object that never
+  // loaded them must not blank a value already stored.
+  if((typeof TEACHING_HOURS_COL==='undefined'||TEACHING_HOURS_COL)&&s.teachingHours!==undefined)o.teaching_hours=s.teachingHours==null||s.teachingHours===''?null:Number(s.teachingHours);
+  if((typeof PAID_TRAVEL_HOURS_COL==='undefined'||PAID_TRAVEL_HOURS_COL)&&s.paidTravelHours!==undefined)o.paid_travel_hours=s.paidTravelHours==null||s.paidTravelHours===''?null:Number(s.paidTravelHours);
   if(REQUIRES_RN_COL)o.requires_rn=!!s.requiresRN;
   if(REQUIRES_SS_COL)o.requires_safe_sitter=!!s.requiresSS;
   if(REQUIRES_SPANISH_COL)o.requires_spanish=!!s.requiresSpanish;
@@ -1025,6 +1033,8 @@ function sessionUpsertRejectColumn(msg){
   if(EXTRA_DATES_COL&&/extra_dates/i.test(msg))return 'extra_dates';
   if(CLOSURES_COL&&/closures/i.test(msg))return 'closures';
   if(INSTR_INFO_COL&&/instructor_info/i.test(msg))return 'instructor_info';
+  if((typeof PAID_TRAVEL_HOURS_COL==='undefined'||PAID_TRAVEL_HOURS_COL)&&/paid_travel_hours/i.test(msg))return 'paid_travel';
+  if((typeof TEACHING_HOURS_COL==='undefined'||TEACHING_HOURS_COL)&&/teaching_hours/i.test(msg))return 'teaching_hours';
   return '';
 }
 function applySessionUpsertReject(which,flags){
@@ -1043,10 +1053,12 @@ function applySessionUpsertReject(which,flags){
   else if(which==='extra_dates'){EXTRA_DATES_COL=false;flags.missingDays=true;}
   else if(which==='closures'){CLOSURES_COL=false;flags.missingDetail=true;}
   else if(which==='instructor_info'){INSTR_INFO_COL=false;flags.missingDetail=true;}
+  else if(which==='paid_travel'){PAID_TRAVEL_HOURS_COL=false;flags.missingPaidTravel=true;}
+  else if(which==='teaching_hours'){TEACHING_HOURS_COL=false;flags.missingTeachingHours=true;}
   return !!which;
 }
 function blankSessionUpsertFlags(){
-  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false};
+  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false};
 }
 // Every session write goes through here: course sessions, custom jobs, holds,
 // publish, cancel. One unknown column used to abort custom-job and hold saves
@@ -1056,7 +1068,7 @@ async function upsertSessionRow(s){
   const flags=blankSessionUpsertFlags();
   try{
     let error=null;
-    for(let attempt=0;attempt<12;attempt++){
+    for(let attempt=0;attempt<16;attempt++){
       let res;
       try{res=await sb.from('sessions').upsert(sessionToDB(s));}
       catch(e){return Object.assign({error:e},flags);}
@@ -1086,6 +1098,7 @@ function sessionOptionalColToast(f){
   if(f.missingOrgReg)return ORG_REG_SQL_TOAST;
   if(f.missingSsCol)return SS_COL_SQL_TOAST;
   if(f.missingSpanishCol)return SPANISH_COL_SQL_TOAST;
+  if(f.missingPaidTravel||f.missingTeachingHours)return '⚠️ Saved, but WITHOUT class length / paid travel hours — run migrations/20261020_paid_travel_hours.sql in the Supabase SQL editor, then re-save this session.';
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
   return '';
@@ -1433,8 +1446,11 @@ const COURSES={
   // virtual cap of 30.
   'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true},
   // Girl Scout badge workshops are custom-scheduled. hours:1 is the pay
-  // default when a session has no pay override. maxStudents 16 is the typical
-  // Program Guide maximum, and Lindsay can override it per job. The $45
+  // default when a session has no class-length override, so the open-jobs
+  // line is "your hourly pay × 2.5 hours (1 hour of class + 1.5 hours travel)".
+  // A session can set its own class length (a 90-minute badge class is 1.5)
+  // and paid travel hours. Those replace this default for that session only.
+  // maxStudents 16 is the typical Program Guide maximum, and Lindsay can override it per job. The $45
   // checkout amount is the existing troop price. A troop split (GS-H4782)
   // sets Family price to $15 and Organization flat fee to $30 per participant.
   // RN-only is the per-session checkbox, not the course type.
@@ -2183,28 +2199,74 @@ function isInstructorPaymentDone(s,jdi){
   return primaryDone&&secondDone;
 }
 
+// Paid travel hours on this session, or null when the usual travel stipend
+// and extra 30 minutes still apply. Zero is a real setting (no travel pay).
+function paidTravelHoursOf(s){
+  if(!s||s.paidTravelHours==null||s.paidTravelHours==='')return null;
+  const n=Number(s.paidTravelHours);
+  if(!isFinite(n)||n<0)return null;
+  return Math.round(n*100)/100;
+}
+// Class length used for pay. A session value wins over the course default,
+// so one 90-minute Girl Scout workshop can be 1.5 hours while the course
+// stays 1 hour for every other session.
+function sessionTeachingHours(s){
+  if(s&&s.teachingHours!=null&&s.teachingHours!==''){
+    const n=Number(s.teachingHours);
+    if(isFinite(n)&&n>=0)return Math.round(n*100)/100;
+  }
+  const c=(typeof COURSES!=='undefined'&&COURSES[s&&s.course])||{};
+  const h=Number(c.hours);
+  return isFinite(h)?h:0;
+}
+function payHourShort(n){
+  const v=Math.round(Number(n)*100)/100;
+  const num=Number.isInteger(v)?String(v):String(v);
+  return num+(v===1?' hr':' hrs');
+}
+// Empty unless this session replaces the usual travel hour and extra 30
+// minutes, and a flat instr_pay_override is not set. Example:
+// "4 paid hours (1 hr class + 3 hrs travel) at your rate".
+function paidHoursBreakdown(s){
+  if(!s)return '';
+  if(s.instrPayOverride!=null&&s.instrPayOverride!==''&&isFinite(Number(s.instrPayOverride)))return '';
+  const travel=paidTravelHoursOf(s);
+  if(travel==null)return '';
+  const teach=sessionTeachingHours(s);
+  const total=Math.round((teach+travel)*100)/100;
+  const totalNum=Number.isInteger(total)?String(total):String(total);
+  const totalLabel=totalNum+(total===1?' paid hour':' paid hours');
+  return totalLabel+' ('+payHourShort(teach)+' class + '+payHourShort(travel)+' travel) at your rate';
+}
 // Per-instructor pay for a session. If the session has a custom instructor-pay amount
 // set (entered in the session form), that amount is what each instructor is paid.
-// Otherwise fall back to the course flat fee, or hours × the instructor's hourly rate + travel.
-// Every non-override job also gets an extra 30 minutes of pay (INSTR_EXTRA_HOURS) at the
-// instructor's own hourly rate — added on top of both flat fees and hourly pay.
+// Otherwise, when paid travel hours is set, pay is the instructor's own hourly
+// rate times (class hours + those travel hours). That replaces the flat travel
+// stipend and the extra 30 minutes, and it also replaces a course flat fee.
+// When paid travel hours is blank, fall back to the course flat fee, or hours
+// × the instructor's hourly rate + one travel hour. Every one of those jobs
+// also gets an extra 30 minutes of pay (INSTR_EXTRA_HOURS) at the instructor's
+// own hourly rate.
 function instrBaseFee(s,instr){
   if(s&&s.instrPayOverride!=null&&s.instrPayOverride!=='')return Number(s.instrPayOverride);
   const c=COURSES[s.course]||{};
   // A Lead Teacher is paid $75/hour for every session, whatever the course's
   // usual flat fee or the rate on their profile. An unassigned Red Cross
   // session is estimated the same way, because only a Lead Teacher can teach it.
-  // Travel and the extra 30 minutes stay, at that $75 rate. A session pay
-  // override above still wins. Paid jobs keep the frozen amount in instrDisplayFee.
+  // A session pay override above still wins. Paid jobs keep the frozen amount
+  // in instrDisplayFee.
   const leadRate=(typeof LEAD_TEACHER_RATE!=='undefined')?LEAD_TEACHER_RATE:75;
   const lead=!!((instr&&instr.isLeadTeacher)||(!instr&&(c.requiresLeadTeacher||c.redCross)));
   const rate=lead?leadRate:((instr&&instr.hourlyRate)?instr.hourlyRate:INSTR_RATE);
+  const teach=sessionTeachingHours(s);
+  const travelHours=paidTravelHoursOf(s);
+  if(travelHours!=null)return (teach+travelHours)*rate;
   // Travel is paid as one hour at the instructor's own hourly rate. Virtual courses
   // (All Kids Welcome) have no travel.
   const travel=(c.virtual||s.isVirtual)?0:rate;
   const extra=INSTR_EXTRA_HOURS*rate; // extra 30 minutes of pay on every job
-  if(lead)return (c.hours||0)*rate+travel+extra;
-  return c.instrFlatFee!==undefined?c.instrFlatFee+extra:(c.hours||0)*rate+travel+extra;
+  if(lead)return teach*rate+travel+extra;
+  return c.instrFlatFee!==undefined?c.instrFlatFee+extra:teach*rate+travel+extra;
 }
 function usualInstrPayAmount(course,virtual){
   return instrBaseFee({course:course,isVirtual:!!virtual},null);
@@ -6050,7 +6112,7 @@ function upcomingCommittedExpenses(now){
     if(customJobPayMissing(s))unset++;
     const owed=instructorPayStillOwed(s);
     if(!(owed>0))return;
-    const row={id:s.id,code:s.code||'',course:s.course||'',date:s.date||sessionEndDate(s)||'',amount:owed,inThisMonth:financeSlotIsCurrentMonth(s, n)};
+    const row={id:s.id,code:s.code||'',course:s.course||'',date:s.date||sessionEndDate(s)||'',amount:owed,inThisMonth:financeSlotIsCurrentMonth(s, n),breakdown:(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):''};
     if(isVendorFairSession(s))vendorRows.push(row);
     else if(isNoFeeJob(s))noFeeRows.push(row);
     else classRows.push(row);
@@ -6115,7 +6177,7 @@ function cashForecast30(now){
     if(typeof customJobPayMissing==='function'&&customJobPayMissing(s))unset++;
     const owed=(typeof instructorPayStillOwed==='function')?instructorPayStillOwed(s):0;
     if(!(owed>0))return;
-    rows.push({date:d,course:s.course||'',names:(typeof sessionInstructorNames==='function')?sessionInstructorNames(s):'',amount:owed});
+    rows.push({date:d,course:s.course||'',names:(typeof sessionInstructorNames==='function')?sessionInstructorNames(s):'',amount:owed,breakdown:(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):''});
   });
   rows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const total=round2(rows.reduce((a,r)=>a+r.amount,0));
@@ -6145,7 +6207,7 @@ function renderCashForecast(now){
     ?`<div style="font-size:17px;font-weight:700;color:var(--danger);margin-top:8px">Move over ${fmt(need)} to cover it.</div>`
     :`<div style="font-size:17px;font-weight:700;color:var(--success);margin-top:8px">You are covered \u2014 ${fmt(cushion)} cushion.</div>`;
   const rows=fc.rows.length?fc.rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:15px">
-      <div style="min-width:0"><span style="color:var(--muted)">${fmtD(r.date)}</span> <span style="font-weight:600">${escapeHtml(r.course)}</span><div style="color:var(--muted);font-size:14px">${escapeHtml(r.names)}</div></div>
+      <div style="min-width:0"><span style="color:var(--muted)">${fmtD(r.date)}</span> <span style="font-weight:600">${escapeHtml(r.course)}</span><div style="color:var(--muted);font-size:14px">${escapeHtml(r.names)}</div>${r.breakdown?`<div style="color:var(--muted);font-size:14px">${escapeHtml(r.breakdown)}</div>`:''}</div>
       <div style="font-weight:650;white-space:nowrap">${fmt(r.amount)}</div>
     </div>`).join('')
     :'<div style="font-size:15px;color:var(--muted);padding:8px 0">No instructor pay due in the next 30 days.</div>';
@@ -6183,18 +6245,19 @@ function renderUpcomingExpenses(now){
     return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   };
   const rowHtml=(r)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:15px">
-      <div style="min-width:0"><span style="color:var(--muted)">${when(r.date)}</span> <span style="font-weight:600">${escapeHtml(r.course||r.code||'Session')}</span><div style="color:var(--muted);font-size:14px">${upcomingWhenNote(r.inThisMonth)}</div></div>
+      <div style="min-width:0"><span style="color:var(--muted)">${when(r.date)}</span> <span style="font-weight:600">${escapeHtml(r.course||r.code||'Session')}</span><div style="color:var(--muted);font-size:14px">${upcomingWhenNote(r.inThisMonth)}</div>${r.breakdown?`<div style="color:var(--muted);font-size:14px">${escapeHtml(r.breakdown)}</div>`:''}</div>
       <div style="font-weight:650;color:var(--danger);white-space:nowrap">${money(r.amount)}</div>
     </div>`;
   const vendorBlock=ahead.vendorRows.length?`<div style="font-size:14px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px">Vendor fairs · ${money(ahead.vendor)}</div>${ahead.vendorRows.map(rowHtml).join('')}`:'';
   const noFeeBlock=ahead.noFeeRows.length?`<div style="font-size:14px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px">Jobs with no class fee · ${money(ahead.noFee)}</div>${ahead.noFeeRows.map(rowHtml).join('')}`:'';
   const classLine=ahead.classes?`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:15px"><div>Classes and other jobs still to pay <span style="color:var(--muted)">(${ahead.classRows.length})</span></div><div style="font-weight:650;color:var(--danger)">${money(ahead.classes)}</div></div>`:'';
+  const classTravel=ahead.classRows.filter(r=>r.breakdown).map(r=>`<div style="font-size:14px;color:var(--muted);padding:2px 0 6px">${escapeHtml(r.course||r.code||'Session')}: ${escapeHtml(r.breakdown)}. ${money(r.amount)}. Already inside the classes total.</div>`).join('');
   const billLine=ahead.bills?`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:15px"><div>Bills tied to a session and dated ahead</div><div style="font-weight:650;color:var(--danger)">${money(ahead.bills)}</div></div>`:'';
   const unsetLine=ahead.unset?`<div style="font-size:15px;color:var(--warn);margin-top:8px">Pay is not set yet on ${ahead.unset} upcoming job${ahead.unset===1?'':'s'}, so ${ahead.unset===1?'that one is':'those are'} not in this total.</div>`:'';
   el.innerHTML=`<div class="card" style="padding:14px 16px">
     <div class="card-title">Upcoming expenses</div>
     <div style="font-size:15px;color:var(--muted);line-height:1.45;margin-top:-2px">Instructor pay that has not been sent yet, for sessions that are still ahead. ${money(ahead.alreadyInMonth)} is already inside class costs above. ${money(ahead.later)} is for later and is not in this month's profit.</div>
-    ${vendorBlock}${noFeeBlock}${classLine}${billLine}${unsetLine}
+    ${vendorBlock}${noFeeBlock}${classLine}${classTravel}${billLine}${unsetLine}
   </div>`;
 }
 function renderDashboard(){
@@ -7010,7 +7073,8 @@ function sessionAboutPayHtml(s){
   if(amount==null||!isFinite(Number(amount))){
     return '<div class="about-empty">Pay isn\'t set yet</div>';
   }
-  return '<div class="about-value">'+escapeHtml(fmt(amount))+'</div>';
+  const note=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
+  return '<div class="about-value">'+escapeHtml(fmt(amount))+'</div>'+(note?'<div style="font-size:14px;color:var(--muted);margin-top:4px">'+escapeHtml(note)+'</div>':'');
 }
 function sessionAboutBodyHtml(s){
   const who=sessionAboutInstructors(s);
@@ -7424,6 +7488,7 @@ function openAddSession(){
         <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
+    ${paidHoursFieldsHtml(null)}
     <div class="fg full"><label>Notes for instructors <span style="font-weight:400;color:var(--muted)">(shown on the job board)</span></label>
       <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Anything an instructor needs in order to decide and prepare. Visible before they accept, so leave host phone numbers out — those are shared automatically once the job is claimed.</div>
@@ -7981,27 +8046,66 @@ function updatePricePreview(){
   updateOrgSplitPreview();
 }
 
+function readOptionalHours(id){
+  const el=document.getElementById(id);
+  if(!el)return null;
+  const raw=String(el.value==null?'':el.value).trim();
+  if(raw==='')return null;
+  const n=Number(raw);
+  if(!isFinite(n)||n<0)return NaN;
+  return Math.round(n*100)/100;
+}
+function paidHoursFieldsHtml(s){
+  s=s||{};
+  const teach=s.teachingHours!=null&&s.teachingHours!==''?s.teachingHours:'';
+  const travel=s.paidTravelHours!=null&&s.paidTravelHours!==''?s.paidTravelHours:'';
+  const inputStyle="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none";
+  return `<div class="fg"><label>Class length for pay <span style="font-weight:400;color:var(--muted)">(hours)</span></label>
+      <input type="number" id="m-teaching-hours" value="${teach}" placeholder="Course default" min="0" step="0.25" oninput="updateInstrPayPreview()" style="${inputStyle}">
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Leave blank to use this course's usual length. A 90-minute class is 1.5. Other sessions of the same course stay on the course default.</div>
+    </div>
+    <div class="fg"><label>Paid travel hours</label>
+      <input type="number" id="m-paid-travel-hours" value="${travel}" placeholder="Usual" min="0" step="0.25" oninput="updateInstrPayPreview()" style="${inputStyle}">
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Leave blank for the usual paid travel hour plus 30 minutes. When set, each instructor is paid their own hourly rate times class hours plus these hours. That replaces the flat travel stipend and the extra 30 minutes. A flat amount in the box above still wins.</div>
+    </div>`;
+}
 function updateInstrPayPreview(){
   const courseEl=document.getElementById('m-course');
   const payEl=document.getElementById('m-instr-pay-override');
   const out=document.getElementById('m-instr-pay-preview');
   if(!courseEl||!payEl||!out)return;
   const virtual=(document.getElementById('m-virtual')||{}).value==='yes';
-  const base=usualInstrPayAmount(courseEl.value,virtual);
-  const raw=payEl.value;
-  if(raw===''){
-    out.style.color='var(--muted)';
-    out.textContent='Using usual fee of '+fmt(base)+' per instructor';
+  const raw=String(payEl.value==null?'':payEl.value).trim();
+  const teachingHours=readOptionalHours('m-teaching-hours');
+  const paidTravelHours=readOptionalHours('m-paid-travel-hours');
+  if(Number.isNaN(teachingHours)||Number.isNaN(paidTravelHours)){
+    out.style.color='var(--warn)';
+    out.textContent='Enter hours as a number that is zero or more, or leave the box blank.';
     return;
   }
-  const v=Number(raw);
-  if(v===base){
-    out.style.color='var(--muted)';
-    out.textContent='Same as usual — you can leave this blank';
-  }else{
-    out.style.color='var(--warn)';
-    out.textContent='⚠ Custom pay: '+fmt(v)+' per instructor (usual is '+fmt(base)+')';
+  const draft={course:courseEl.value,isVirtual:virtual,teachingHours:teachingHours,paidTravelHours:paidTravelHours,instrPayOverride:raw===''?null:Number(raw)};
+  const usual=instrBaseFee({course:courseEl.value,isVirtual:virtual},null);
+  const phrase=paidHoursBreakdown(draft);
+  const standard=instrBaseFee(draft,{isLeadTeacher:false,hourlyRate:(typeof INSTR_RATE!=='undefined')?INSTR_RATE:50});
+  const leadFee=instrBaseFee(draft,{isLeadTeacher:true});
+  if(raw!==''){
+    const v=Number(raw);
+    out.style.color=v===usual?'var(--muted)':'var(--warn)';
+    out.textContent=(v===usual?'Same as usual — you can leave this blank. ':'Custom pay: '+fmt(v)+' per instructor (usual is '+fmt(usual)+'). ')+'This flat amount wins over paid travel hours.';
+    return;
   }
+  if(phrase){
+    out.style.color='var(--navy)';
+    out.textContent=phrase+'. $'+((typeof INSTR_RATE!=='undefined')?INSTR_RATE:50)+'/hr is '+fmt(standard)+'. A Lead Teacher at $75/hr is '+fmt(leadFee)+'.';
+    return;
+  }
+  if(teachingHours!=null){
+    out.style.color='var(--muted)';
+    out.textContent='Using '+fmt(standard)+' per instructor at $'+((typeof INSTR_RATE!=='undefined')?INSTR_RATE:50)+'/hr for '+teachingHours+' class hours, plus the usual travel and 30 minutes'+(virtual?' (no travel hour on a virtual class)':'')+'.';
+    return;
+  }
+  out.style.color='var(--muted)';
+  out.textContent='Using usual fee of '+fmt(usual)+' per instructor';
 }
 
 function openEditSession(id){
@@ -8083,6 +8187,7 @@ ${lockboxFieldHtml(s)}
         <span id="m-instr-pay-preview" style="font-size:15px;font-weight:500"></span>
       </div>
     </div>
+    ${paidHoursFieldsHtml(s)}
     <div id="m-rn-row" class="fg full" data-show="flex" style="display:${(s.requiresRN||s.requiresSpanish||(COURSES[s.course]||{}).requiresRN)?'flex':'none'}">
       <label style="display:flex;align-items:center;gap:8px;margin:10px 0 0;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="m-rnonly" ${s.requiresRN?'checked':''} onchange="updateRnNotice()" style="width:16px;height:16px;accent-color:#2d7a5e;cursor:pointer">
@@ -8186,7 +8291,7 @@ ${lockboxFieldHtml(s)}
   updateInstrPayPreview();
   toggleVirtualFields(s.isVirtual?'yes':'no');
   toggleInstrSelect(s.ownerTaught?'yes':'no');
-  document.getElementById('m-course').addEventListener('change',()=>{updateRnNotice();renderSeriesWarning();refreshSessionInstrMarks();});
+  document.getElementById('m-course').addEventListener('change',()=>{updateRnNotice();renderSeriesWarning();refreshSessionInstrMarks();updateInstrPayPreview();});
   updateRnNotice();
   refreshSessionInstrMarks();
   renderSeriesWarning();
@@ -8261,6 +8366,12 @@ async function saveSession(editId){
   const priceOverride=priceOverrideRaw===''?null:Number(priceOverrideRaw);
   const instrPayRaw=document.getElementById('m-instr-pay-override').value;
   const instrPayOverride=instrPayRaw===''?null:Number(instrPayRaw);
+  const teachingHours=readOptionalHours('m-teaching-hours');
+  const paidTravelHours=readOptionalHours('m-paid-travel-hours');
+  if(Number.isNaN(teachingHours)||Number.isNaN(paidTravelHours)){
+    alert('Class length and paid travel hours need to be blank, or a number that is zero or more.');
+    return;
+  }
   const isVirtual=document.getElementById('m-virtual')?.value==='yes';
   const allowWaitlist=document.getElementById('m-waitlist')?.checked!==false;
   const zoomLink=(document.getElementById('m-zoom')?.value||'').trim();
@@ -8304,9 +8415,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,paidTravelHours,teachingHours,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,paidTravelHours,teachingHours,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish};
     sessions.push(s);
   }
   const matChoice=sessionMaterialsFromForm(editId);
@@ -9330,7 +9441,7 @@ function renderProfitBySession(){
       <td style="white-space:nowrap">${escapeHtml(d)}</td>
       <td>${course}</td>
       <td>${fmt(r.rev)}</td>
-      <td style="color:var(--danger)">${fmt(r.instr)}</td>
+      <td style="color:var(--danger)">${fmt(r.instr)}${((typeof paidHoursBreakdown==='function')&&paidHoursBreakdown(s))?`<div style="font-size:13px;color:var(--muted);font-weight:400">${escapeHtml(paidHoursBreakdown(s))}</div>`:''}</td>
       <td style="color:var(--danger)">${fmt(r.linked)}</td>
       <td style="color:var(--danger)">${fmt(r.legacy)}</td>
       <td style="font-weight:600;color:${r.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(r.profit)}</td>
@@ -9690,11 +9801,12 @@ function renderInstructors(){
         const bonus=jd.referralBonus||0;
         const fee=baseFee+bonus;
         const feeDisplay=bonus>0?`${fmt(fee)} <span style="font-size:13px;color:var(--muted)">(Base ${fmt(baseFee)} + Bonus ${fmt(bonus)})</span>`:fmt(fee);
+        const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
         const payPill=jd.payStatus==='paid'
           ?`<span class="tag paid">Paid</span>`
           :`<span class="tag pending">Pending</span>`;
         const pd=jd.payDate?(()=>{const dt=new Date(/^\d{4}-\d{2}-\d{2}$/.test(jd.payDate)?jd.payDate+'T12:00:00':jd.payDate);return isNaN(dt)?jd.payDate:dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});})():'';
-        return`<div class="instr-job"><span class="ij-course">${escapeHtml(s.course)}</span> <span class="ij-meta">· ${d}${s.location?' · '+escapeHtml(s.location):''}${s.city?', '+escapeHtml(s.city):''}</span><br>${payPill} <span style="font-size:14px">${feeDisplay}</span>${pd?` <span style="font-size:13px;color:var(--muted)">${pd}</span>`:''}</div>`;
+        return`<div class="instr-job"><span class="ij-course">${escapeHtml(s.course)}</span> <span class="ij-meta">· ${d}${s.location?' · '+escapeHtml(s.location):''}${s.city?', '+escapeHtml(s.city):''}</span><br>${payPill} <span style="font-size:14px">${feeDisplay}</span>${hoursNote?` <span style="font-size:13px;color:var(--muted)">${escapeHtml(hoursNote)}</span>`:''}${pd?` <span style="font-size:13px;color:var(--muted)">${pd}</span>`:''}</div>`;
       }).join(''):`<div style="padding:8px 0;font-size:14px;color:var(--muted);font-style:italic">No jobs assigned yet.</div>`;
       // Status badges under the name
       const badges=[];
@@ -9779,7 +9891,7 @@ function toggleInstructorPin(btn){
   btn.textContent=open?'Show':'Hide';
 }
 function exportInstructorsCSV(){
-  const rows=[['Status','Name','Level','Email','Phone','Zelle','Rate/hr','PIN','Training Date','Sweatshirt Size','Contract Signed','Classes Taught','Classes Pending','Pending Pay','Total Paid','--- Job Details ---','Course','Date','Location','Base Fee','Referral Bonus','Total Fee','Pay Status','Pay Date']];
+  const rows=[['Status','Name','Level','Email','Phone','Zelle','Rate/hr','PIN','Training Date','Sweatshirt Size','Contract Signed','Classes Taught','Classes Pending','Pending Pay','Total Paid','--- Job Details ---','Course','Date','Location','Base Fee','Referral Bonus','Total Fee','Pay Status','Pay Date','Hours breakdown']];
   // Everyone is exported, active first, with a Status column — the CSV is the record
   // of who has ever taught for you, not just who is on the roster today.
   instructors.slice().sort((a,b)=>(instrActive(a)===instrActive(b))?byInstrName(a,b):(instrActive(a)?-1:1)).forEach(i=>{
@@ -9790,7 +9902,7 @@ function exportInstructorsCSV(){
       .reduce((sum,s)=>{const jd=jobDataCache[s.id]||{};return sum+instrDisplayFee(s,i,jd)+(jd.referralBonus||0);},0);
     const trainDate=i.safeSitterTrainingDate||'';
     // Summary row
-    rows.push([instrActive(i)?'Active':'Inactive',i.name,normalizeInstructorLevel(i.level),i.email||'',i.phone||'',i.zelle||'',i.isLeadTeacher?'$75/hr':('$'+(i.hourlyRate||50)+'/hr'),i.pin,trainDate,i.sweatshirtSize||'',i.contractSigned?'Yes':'No',classesTaughtBy(i.id),classesPendingBy(i.id),'$'+pendingAmt.toFixed(2),'$'+paidAmt.toFixed(2),'','','','','','','','','']);
+    rows.push([instrActive(i)?'Active':'Inactive',i.name,normalizeInstructorLevel(i.level),i.email||'',i.phone||'',i.zelle||'',i.isLeadTeacher?'$75/hr':('$'+(i.hourlyRate||50)+'/hr'),i.pin,trainDate,i.sweatshirtSize||'',i.contractSigned?'Yes':'No',classesTaughtBy(i.id),classesPendingBy(i.id),'$'+pendingAmt.toFixed(2),'$'+paidAmt.toFixed(2),'','','','','','','','','','']);
     // Job detail rows
     myJobs.forEach(s=>{
       const jd=jobDataCache[s.id]||{};
@@ -9799,7 +9911,8 @@ function exportInstructorsCSV(){
       const bonus=jd.referralBonus||0;
       const fee=baseFee+bonus;
       const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-      rows.push(['','','','','','','','','','','','','','','','',s.course,d,(s.location||'')+(s.city?', '+s.city:''),'$'+baseFee.toFixed(2),'$'+bonus.toFixed(2),'$'+fee.toFixed(2),jd.payStatus==='paid'?'Paid':'Pending',jd.payDate||'']);
+      const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
+      rows.push(['','','','','','','','','','','','','','','','',s.course,d,(s.location||'')+(s.city?', '+s.city:''),'$'+baseFee.toFixed(2),'$'+bonus.toFixed(2),'$'+fee.toFixed(2),jd.payStatus==='paid'?'Paid':'Pending',jd.payDate||'',hoursNote]);
     });
     rows.push([]); // spacer
   });
@@ -10249,7 +10362,8 @@ async function openInstructorProfile(id){
     const d=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     const c=COURSES[s.course]||{};
     const fee=instrDisplayFee(s,i,jd);
-    return`<tr><td style="font-size:15px">${d}</td><td style="font-size:15px">${s.course}</td><td style="font-size:15px">${fmt(fee)}</td><td><span class="tag ${jd.payStatus==='paid'?'paid':'pending'}">${jd.payStatus||'pending'}</span></td></tr>`;
+    const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
+    return`<tr><td style="font-size:15px">${d}</td><td style="font-size:15px">${s.course}</td><td style="font-size:15px">${fmt(fee)}${hoursNote?`<div style="font-size:13px;color:var(--muted)">${escapeHtml(hoursNote)}</div>`:''}</td><td><span class="tag ${jd.payStatus==='paid'?'paid':'pending'}">${jd.payStatus||'pending'}</span></td></tr>`;
   }).join(''):`<tr><td colspan="4" style="text-align:center;color:var(--muted);font-style:italic;padding:16px">No sessions yet</td></tr>`;
 
   const headshotPreview=headshotUrl?`<img src="${headshotUrl}" alt="${escapeHtml(i.name)} headshot" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--border)">`:'';
@@ -10879,7 +10993,9 @@ function openWrapup(sessId){
       function payCallout(inst,slot,paid,payDate,fallbackName){
         const amount=wrapupPayAmount(s,inst,jdi,slot);
         const bonus=slot==='second'?0:(Number(jdi.referralBonus)||0);
-        return wrapupPayCallout(inst,amount,{paid,payDate,bonus,fallbackName})+wrapupMaterialsNote(s,inst);
+        const hours=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
+        const hoursHtml=hours?`<div class="pay-send-sub">${escapeHtml(hours)}</div>`:'';
+        return wrapupPayCallout(inst,amount,{paid,payDate,bonus,fallbackName})+hoursHtml+wrapupMaterialsNote(s,inst);
       }
 
       // ── PRIMARY SLOT ────────────────────────────────────────
@@ -11316,14 +11432,19 @@ function hourLabel(n){
 // Paid hours on an hourly job, same split as instrBaseFee. In person that is
 // the course length plus 1.5 hours (one travel hour + the extra 30 minutes).
 // A virtual class has no travel hour, so only the extra 30 minutes is added.
+// A session with paid travel hours uses class hours + those hours exactly.
 function openJobHourlyHours(s){
   const c=(typeof COURSES!=='undefined'&&COURSES[s&&s.course])||{};
-  const teach=Number(c.hours);
-  const courseHours=isFinite(teach)?teach:0;
+  const courseHours=sessionTeachingHours(s);
   const virtual=!!(c.virtual||(s&&s.isVirtual));
+  const paidTravel=paidTravelHoursOf(s);
+  if(paidTravel!=null){
+    const total=Math.round((courseHours+paidTravel)*100)/100;
+    return {courseHours:courseHours,add:paidTravel,total:total,virtual:virtual,paidTravel:true};
+  }
   const extra=(typeof INSTR_EXTRA_HOURS!=='undefined')?INSTR_EXTRA_HOURS:0.5;
   const add=(virtual?0:1)+extra;
-  return {courseHours:courseHours,add:add,total:courseHours+add,virtual:virtual};
+  return {courseHours:courseHours,add:add,total:courseHours+add,virtual:virtual,paidTravel:false};
 }
 // Pay line for one job in the open-jobs email.
 // A custom amount or instr_pay_override is a flat total, the same for every
@@ -11339,13 +11460,19 @@ function openJobPayText(s,instr){
   if(openJobPayIsFlat(s))return 'Instructor pay: '+fmt(Number(s.instrPayOverride));
   if(s&&s.isCustomJob)return "Pay isn't set yet";
   const c=(typeof COURSES!=='undefined'&&COURSES[s&&s.course])||{};
+  const breakdown=paidHoursBreakdown(s);
   // Red Cross jobs are only offered to Lead Teachers, and every Lead Teacher
   // is paid $75/hour, so the note can show one dollar amount.
   if((instr&&instr.isLeadTeacher)||c.requiresLeadTeacher||c.redCross){
     const person=(instr&&instr.isLeadTeacher)?instr:{isLeadTeacher:true};
-    return 'Instructor pay: '+fmt(instrBaseFee(s,person));
+    const line='Instructor pay: '+fmt(instrBaseFee(s,person));
+    return breakdown?line+'. '+breakdown:line;
   }
   const perPerson=!!(instr&&isFinite(Number(instr.hourlyRate))&&Number(instr.hourlyRate)>0);
+  if(breakdown){
+    if(perPerson)return 'Instructor pay: '+fmt(instrBaseFee(s,instr))+'. '+breakdown;
+    return 'Instructor pay: '+breakdown;
+  }
   if(c.instrFlatFee!==undefined){
     if(perPerson)return 'Instructor pay: '+fmt(instrBaseFee(s,instr));
     return 'Instructor pay: '+fmt(c.instrFlatFee)+' plus 30 minutes at your hourly pay';
@@ -16175,7 +16302,7 @@ function printMonthReport(){
       <td style="text-align:center">${p.sess?f.totalCount:'-'}</td>
       <td style="text-align:center">${p.sess?p.students:'-'}</td>
       <td style="text-align:right;font-weight:500">${fmtN(p.rev)}</td>
-      <td style="text-align:right;color:#c0392b">${dash(p.instr)}</td>
+      <td style="text-align:right;color:#c0392b">${dash(p.instr)}${((typeof paidHoursBreakdown==='function')&&paidHoursBreakdown(s))?`<div style="font-size:12px;color:#6b7a99;font-weight:400">${escapeHtml(paidHoursBreakdown(s))}</div>`:''}</td>
       <td style="text-align:right;color:#c0392b">${dash(linkedHere)}</td>
       <td style="text-align:right;color:#c0392b">${dash(p.legacy)}</td>
       <td style="text-align:right;font-weight:600;color:${profitColor(rowProfit)}">${fmtS(rowProfit)}</td>

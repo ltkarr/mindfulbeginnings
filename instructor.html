@@ -459,7 +459,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -562,22 +562,65 @@ let CANCEL_STATE_KNOWN=false;
 // about whose browser is running stale cached code.
 const PORTAL_VERSION='v2026-09-20.2';
 
+// Paid travel hours on this session, or null when the usual travel stipend
+// and extra 30 minutes still apply. Zero is a real setting (no travel pay).
+// Same rules as admin.html paidTravelHoursOf.
+function paidTravelHoursOf(s){
+  if(!s||s.paidTravelHours==null||s.paidTravelHours==='')return null;
+  const n=Number(s.paidTravelHours);
+  if(!isFinite(n)||n<0)return null;
+  return Math.round(n*100)/100;
+}
+// Class length used for pay. A session value wins over the course default.
+function sessionTeachingHours(s){
+  if(s&&s.teachingHours!=null&&s.teachingHours!==''){
+    const n=Number(s.teachingHours);
+    if(isFinite(n)&&n>=0)return Math.round(n*100)/100;
+  }
+  const c=(typeof COURSES!=='undefined'&&COURSES[s&&s.course])||{};
+  const h=Number(c.hours);
+  return isFinite(h)?h:0;
+}
+function payHourShort(n){
+  const v=Math.round(Number(n)*100)/100;
+  const num=Number.isInteger(v)?String(v):String(v);
+  return num+(v===1?' hr':' hrs');
+}
+// Empty unless this session replaces the usual travel hour and extra 30
+// minutes, and a flat instr_pay_override is not set.
+function paidHoursBreakdown(s){
+  if(!s)return '';
+  if(s.instrPayOverride!=null&&s.instrPayOverride!==''&&isFinite(Number(s.instrPayOverride)))return '';
+  const travel=paidTravelHoursOf(s);
+  if(travel==null)return '';
+  const teach=sessionTeachingHours(s);
+  const total=Math.round((teach+travel)*100)/100;
+  const totalNum=Number.isInteger(total)?String(total):String(total);
+  const totalLabel=totalNum+(total===1?' paid hour':' paid hours');
+  return totalLabel+' ('+payHourShort(teach)+' class + '+payHourShort(travel)+' travel) at your rate';
+}
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
-// 2) otherwise the course flat fee plus 30 minutes of pay at the instructor's hourly rate,
-// 3) otherwise hours × hourly rate, plus one paid hour of travel at that same rate (no travel
+// 2) when paid travel hours is set, this instructor's rate times
+//    (class hours + those travel hours). That replaces the usual travel hour,
+//    the extra 30 minutes, and a course flat fee,
+// 3) otherwise the course flat fee plus 30 minutes of pay at the instructor's hourly rate,
+// 4) otherwise hours × hourly rate, plus one paid hour of travel at that same rate (no travel
 //    for virtual sessions), plus 30 minutes of pay at the instructor's hourly rate.
 function instrFee(s){
   if(s&&s.instrPayOverride!=null&&s.instrPayOverride!=='')return Number(s.instrPayOverride);
   const c=COURSES[s&&s.course]||{};
   const lead=!!(me&&me.isLeadTeacher);
   const rate=lead?((typeof LEAD_TEACHER_RATE!=='undefined')?LEAD_TEACHER_RATE:75):(me?me.hourlyRate:INSTR_RATE);
+  const teach=sessionTeachingHours(s);
+  const travelHours=paidTravelHoursOf(s);
+  if(travelHours!=null)return (teach+travelHours)*rate;
   const extra=INSTR_EXTRA_HOURS*rate; // extra 30 minutes of pay on every job
   const travel=(c.virtual||(s&&s.isVirtual))?0:rate;
-  if(lead)return (c.hours||0)*rate+travel+extra;
+  if(lead)return teach*rate+travel+extra;
   if(c.instrFlatFee!==undefined)return c.instrFlatFee+extra;
   // Travel is paid as one hour at the instructor's own rate (no travel for virtual sessions).
-  return(c.hours||0)*rate+travel+extra;
+  return teach*rate+travel+extra;
 }
 // Fee to show for a job. Once a job is paid, the admin freezes the exact amount paid
 // (jdi.paidFee); use it so the instructor's own records and 1099 summary match what they
@@ -853,8 +896,9 @@ function heroStripHTML(s,fee){
   const meetings=sessMeetings(s);
   const hours=sessTotalHours(s);
   const span=sessWeekSpan(s);
+  const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
   const cells=[
-    {v:fmt(fee),l:'Total pay',sub:meetings.length>1?fmt(fee/meetings.length)+' per class':''},
+    {v:fmt(fee),l:'Total pay',sub:hoursNote||(meetings.length>1?fmt(fee/meetings.length)+' per class':'')},
     {v:meetings.length>1?meetings.length+' classes':'1 class',l:'Commitment',sub:meetings.length>1?'over '+span+' weeks':(sessTimeSummary(s)||'')},
     {v:fmtHours(hours),l:'Teaching time',sub:(()=>{
       if(meetings.length<2)return'total';
@@ -906,6 +950,7 @@ function fitChecksHTML(s,idx){
 // Plain-language answer to "what am I signing up for once I tap accept?" — removes the
 // fear of an unknown process, which is a real reason people hesitate on a first job.
 function whatHappensHTML(s){
+  const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
   const items=[
     'Lindsay is emailed straight away and the job moves to your <strong>My jobs</strong> tab.',
     s.isCustomJob?'':'Your teaching materials are arranged — either shipped to the host or ready to pick up. You will see which on the job card.',
@@ -913,7 +958,9 @@ function whatHappensHTML(s){
     s.isVirtual?'The Zoom link is sent to you and to registered families before the first class.':'The exact address, host cell and WiFi details unlock on your job card.',
     s.isCustomJob
       ?`Payment of <strong>${fmt(instrFee(s))}</strong> is sent by Zelle after the event.`
-      :'Payment is sent by Zelle once the host submits their evaluation after the final class.',
+      :(hoursNote
+        ?`Payment of <strong>${fmt(instrFee(s))}</strong> (${escapeHtml(hoursNote)}) is sent by Zelle once the host submits their evaluation after the final class.`
+        :'Payment is sent by Zelle once the host submits their evaluation after the final class.'),
     'Plans change — you can hand a job back from My jobs. Lindsay is emailed, and the job opens again for every eligible instructor.'
   ].filter(Boolean);
   return`<details class="wh"><summary>What happens after I accept?</summary>
@@ -2021,6 +2068,8 @@ function renderMyJobs(){
     const baseFee=instrFeeForJob(s,jdi);
     const bonus=jdi.referralBonus||0;
     const fee=baseFee+bonus;
+    const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
+    const hoursBit=hoursNote?` ${escapeHtml(hoursNote)}`:'';
     const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
     const upcoming=new Date(lastSessDate(s)+'T12:00:00')>=startOfToday;
     // Cancelled by the office. The card stays visible so the instructor can see what
@@ -2034,14 +2083,14 @@ function renderMyJobs(){
     else{matHtml='<span class="pill pill-taken">Materials delivery TBD</span>';}
     let payHtml='';
     if(cx){payHtml='';}
-    else if(jdi.payStatus==='paid'){payHtml=`<div class="alert success">✓ &nbsp;Payment sent via Zelle on ${jdi.payDate||''}. Amount: ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}</div>`;}
-    else if(jdi.evalReceived){payHtml=`<div class="alert info">🎉 &nbsp;Evaluation received! Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''} will be sent to your Zelle shortly.</div>`;}
+    else if(jdi.payStatus==='paid'){payHtml=`<div class="alert success">✓ &nbsp;Payment sent via Zelle on ${jdi.payDate||''}. Amount: ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit}</div>`;}
+    else if(jdi.evalReceived){payHtml=`<div class="alert info">🎉 &nbsp;Evaluation received! Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit} will be sent to your Zelle shortly.</div>`;}
     else if(!upcoming){payHtml=s.isCustomJob
-      ?`<div class="alert warn">⏳ &nbsp;Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''} will be sent to your Zelle after the event.</div>`
-      :`<div class="alert warn">⏳ &nbsp;Waiting for host evaluation to be submitted. Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''} will process once received.</div>`;}
+      ?`<div class="alert warn">⏳ &nbsp;Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit} will be sent to your Zelle after the event.</div>`
+      :`<div class="alert warn">⏳ &nbsp;Waiting for host evaluation to be submitted. Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit} will process once received.</div>`;}
     const earningsHtml=bonus>0
-      ?`<div class="jc-detail-val">${fmt(fee)}</div><div style="font-size:13px;color:var(--muted);margin-top:2px">Base ${fmt(baseFee)} + Bonus ${fmt(bonus)}</div>`
-      :`<div class="jc-detail-val">${fmt(fee)}</div>`;
+      ?`<div class="jc-detail-val">${fmt(fee)}</div><div style="font-size:13px;color:var(--muted);margin-top:2px">Base ${fmt(baseFee)} + Bonus ${fmt(bonus)}</div>${hoursNote?`<div style="font-size:13px;color:var(--muted);margin-top:2px">${escapeHtml(hoursNote)}</div>`:''}`
+      :`<div class="jc-detail-val">${fmt(fee)}</div>${hoursNote?`<div style="font-size:13px;color:var(--muted);margin-top:2px">${escapeHtml(hoursNote)}</div>`:''}`;
     // Pull the private site details for jobs still to come (address, host cell, WiFi).
     if(upcoming&&!s.isVirtual)ensurePrivate(s.id);
     const meetings=sessMeetings(s);
@@ -2343,7 +2392,8 @@ function downloadIncomeSummary(){
       totalBonusEarned+=bonus;
     }
     const d=fmtSessDates(s,{month:'short',day:'numeric',year:'numeric'});
-    return`<tr><td>${d}</td><td>${escapeHtml(s.course)}</td><td>${escapeHtml(s.location||'')}${s.city?', '+escapeHtml(s.city):''}</td><td>$${baseFee}</td><td>${bonus>0?'$'+bonus:'—'}</td><td>$${fee}</td><td>${jd.payStatus==='paid'?'Paid':'Pending'}</td></tr>`;
+    const hours=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
+    return`<tr><td>${d}</td><td>${escapeHtml(s.course)}</td><td>${escapeHtml(s.location||'')}${s.city?', '+escapeHtml(s.city):''}</td><td>$${baseFee}</td><td>${bonus>0?'$'+bonus:'—'}</td><td>${escapeHtml(hours)||'—'}</td><td>$${fee}</td><td>${jd.payStatus==='paid'?'Paid':'Pending'}</td></tr>`;
   }).join('');
 
   const html=`<!DOCTYPE html><html><head><title>Income Summary ${year} — ${escapeHtml(me.name)}</title>
@@ -2377,9 +2427,9 @@ function downloadIncomeSummary(){
     <div class="kpi-box"><div class="kpi-label">Total paid income</div><div class="kpi-val" style="color:#2d7a5e">$${totalEarned}</div></div>
   </div>
   <table>
-    <thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Base fee</th><th>Referral bonus</th><th>Total</th><th>Status</th></tr></thead>
-    <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#aaa;padding:20px">No sessions for this year</td></tr>'}</tbody>
-    <tfoot><tr class="total"><td colspan="3">Total paid</td><td>$${totalBaseEarned}</td><td>$${totalBonusEarned}</td><td>$${totalEarned}</td><td></td></tr></tfoot>
+    <thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Base fee</th><th>Referral bonus</th><th>Hours</th><th>Total</th><th>Status</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:#aaa;padding:20px">No sessions for this year</td></tr>'}</tbody>
+    <tfoot><tr class="total"><td colspan="3">Total paid</td><td>$${totalBaseEarned}</td><td>$${totalBonusEarned}</td><td></td><td>$${totalEarned}</td><td></td></tr></tfoot>
   </table>
   <div class="footer">This document is provided for your personal tax records. Mindful Beginnings is not a tax advisor. Please consult a tax professional for 1099 reporting guidance.</div>
   </body></html>`;
@@ -3808,6 +3858,8 @@ const TPL_LINDSAY_JOB_CANCEL='template_c94yuzm';
 function sendJobAcceptedNotification(session){
   const jd=jobDataCache[session.id]||{};
   const fee=instrFee(session)+(jd.referralBonus||0);
+  const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(session):'';
+  const feeText=hoursNote?fmt(fee)+'. '+hoursNote:fmt(fee);
   const when=fmtSessDates(session)+(session.time?' at '+session.time:'');
   const where=(session.location||'TBD')+(session.city?', '+session.city:'');
   const who=isAdultCourse(session.course)?'Participants':'Students';
@@ -3815,10 +3867,10 @@ function sendJobAcceptedNotification(session){
     instructor_name:me.name,instructor_email:me.email||'not on file',instructor_phone:me.phone||'not on file',
     course:session.course,date:fmtSessDates(session),time:session.time||'TBD',
     location:where,
-    fee:fmt(fee),students:filledSeats(session)
+    fee:feeText,students:filledSeats(session)
   };
-  const lindsayMessage=`${me.name} accepted the ${session.course} session on ${when}.\n\nLocation: ${where}\n${who} registered: ${filledSeats(session)}\nInstructor fee: ${fmt(fee)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}`;
-  const instructorMessage=`You are confirmed to teach ${session.course} on ${when}.\n\nLocation: ${where}\n${who} registered: ${filledSeats(session)}\nYour fee: ${fmt(fee)}\n\nIf this is wrong, contact Lindsay at lindsay@mindfulbeginnings.org.`;
+  const lindsayMessage=`${me.name} accepted the ${session.course} session on ${when}.\n\nLocation: ${where}\n${who} registered: ${filledSeats(session)}\nInstructor fee: ${feeText}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}`;
+  const instructorMessage=`You are confirmed to teach ${session.course} on ${when}.\n\nLocation: ${where}\n${who} registered: ${filledSeats(session)}\nYour fee: ${feeText}\n\nIf this is wrong, contact Lindsay at lindsay@mindfulbeginnings.org.`;
   // 1) Notify Lindsay. Her wording stays off the instructor template.
   emailjs.send('service_delt0r4',TPL_LINDSAY_JOB_NOTIFY,Object.assign({},shared,{message:lindsayMessage}))
     .then(() => {
@@ -3854,6 +3906,8 @@ function sendJobAcceptedNotification(session){
 
 function sendJobCancelledNotification(session){
   const fee=instrFee(session);
+  const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(session):'';
+  const feeText=hoursNote?fmt(fee)+'. '+hoursNote:fmt(fee);
   const waitNote='\n\nThe job is open to every eligible instructor.';
   const params={
     instructor_name:me.name,
@@ -3863,7 +3917,7 @@ function sendJobCancelledNotification(session){
     date:fmtSessDates(session),
     time:session.time||'TBD',
     location:(session.location||'TBD')+(session.city?', '+session.city:''),
-    fee:fmt(fee),
+    fee:feeText,
     students:filledSeats(session),
     message:`🚨 JOB CANCELLED 🚨\n\n${me.name} has cancelled their acceptance of the ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''}.\n\nLocation: ${(session.location||'TBD')+(session.city?', '+session.city:'')}\n${isAdultCourse(session.course)?'Participants':'Students'} registered: ${filledSeats(session)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}\n\nCoverage is needed for this session.${waitNote}`
   };

@@ -46,6 +46,10 @@ function loadAbout() {
     [
       extractFn(admin, 'escapeHtml'),
       extractFn(admin, 'fmt'),
+      extractFn(admin, 'paidTravelHoursOf'),
+      extractFn(admin, 'sessionTeachingHours'),
+      extractFn(admin, 'payHourShort'),
+      extractFn(admin, 'paidHoursBreakdown'),
       extractFn(admin, 'instrBaseFee'),
       extractFn(admin, 'instrDisplayFee'),
       extractFn(admin, 'secondInstrDisplayFee'),
@@ -55,6 +59,7 @@ function loadAbout() {
       extractFn(admin, 'sessionRequiresSafeSitter'),
       extractFn(admin, 'sessionJobNotesText'),
       extractFn(admin, 'sessionAboutWhereText'),
+      extractFn(admin, 'sessionEndTime'),
       extractFn(admin, '_aboutDateLabel'),
       extractFn(admin, 'sessionAboutWhenText'),
       extractFn(admin, 'sessionAboutInstructors'),

@@ -33,7 +33,7 @@ const names = [
   'isPerStudentMaterialLine', 'isLegacyCostResolved', 'sessionExtraCosts',
   'expenseLedger', 'linkedExpenses', 'linkedExpenseTotal',
   'isLiveReg', 'regEffectivePrice', 'processingFee',
-  'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
+  'paidTravelHoursOf', 'sessionTeachingHours', 'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'holdPaymentReceived', 'orgOrJobFeeReceived',
   'splitBillCaption', 'sessionRevenueNotes',

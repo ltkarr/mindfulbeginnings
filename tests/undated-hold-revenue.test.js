@@ -32,7 +32,7 @@ const names = [
   'financeSessionFigures', 'financeRevenueSlot',
   'participantMaterialAllowance',
   'processingFee', 'isLiveReg', 'regEffectivePrice',
-  'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
+  'paidTravelHoursOf', 'sessionTeachingHours', 'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'calcFin',
   'holdPaymentReceived', 'undatedHoldMoneyIn',
