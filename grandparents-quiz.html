@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Are You Grandparent Ready? Take the Quiz | Mindful Beginnings</title>
+<meta name="description" content="Test your grandparent safety smarts with 10 quick questions from our Grandparents classes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',Arial,sans-serif;background:#F5F2EA;color:#1E3161;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px}
+.quiz{width:100%;max-width:560px}
+.brand{text-align:center;margin-bottom:20px}
+.brand .logo{font-weight:800;font-size:20px;color:#1E3161}
+.brand .tag{font-family:'Caveat',cursive;font-size:22px;color:#C7A24A;font-weight:700}
+.card{background:#fff;border-radius:20px;box-shadow:0 8px 30px rgba(30,49,97,.12);padding:28px 24px;margin-bottom:16px}
+h1{font-size:28px;text-align:center;margin-bottom:8px}
+.sub{text-align:center;color:#5a6b8c;font-size:15px;margin-bottom:20px;line-height:1.6}
+.qnum{font-size:13px;font-weight:700;color:#C7A24A;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.q{font-size:19px;font-weight:700;margin-bottom:18px;line-height:1.45}
+.opt{display:block;width:100%;text-align:left;background:#F5F2EA;border:2px solid #e2ddd0;border-radius:14px;padding:14px 16px;font-size:16px;font-family:inherit;color:#1E3161;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.opt:active{transform:scale(.98)}
+.opt.correct{background:#e6f4ea;border-color:#34a853;color:#1E3161}
+.opt.wrong{background:#fce8e6;border-color:#ea4335;color:#1E3161}
+.opt:disabled{cursor:default;opacity:1}
+.opt.dim{opacity:.55}
+.explain{display:none;background:#1E3161;color:#fff;border-radius:14px;padding:16px;margin-top:6px;font-size:15px;line-height:1.6}
+.explain.show{display:block}
+.explain strong{color:#C7A24A}
+.nextbtn{display:none;width:100%;margin-top:16px;background:#1E3161;color:#fff;border:none;border-radius:999px;padding:15px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer}
+.nextbtn.show{display:block}
+.bigbtn{display:block;width:100%;background:#C7A24A;color:#1E3161;border:none;border-radius:999px;padding:16px;font-size:18px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:8px}
+.bigbtn:active{transform:scale(.98)}
+.score{font-size:56px;font-weight:800;text-align:center;color:#1E3161;margin:8px 0}
+.scoremsg{text-align:center;font-size:17px;line-height:1.6;margin-bottom:20px}
+.field{margin-bottom:12px}
+.field input{width:100%;padding:14px 16px;border:2px solid #e2ddd0;border-radius:12px;font-size:16px;font-family:inherit;color:#1E3161}
+.field input:focus{outline:none;border-color:#C7A24A}
+.fineprint{text-align:center;font-size:12px;color:#8a94a8;margin-top:12px;line-height:1.5}
+.progress{height:8px;background:#e2ddd0;border-radius:99px;margin-bottom:20px;overflow:hidden}
+.progress>div{height:100%;background:#C7A24A;border-radius:99px;transition:width .3s}
+.hidden{display:none!important}
+.stars{text-align:center;font-size:28px;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="quiz">
+<div class="brand">
+<div class="logo">Mindful Beginnings</div>
+<div class="tag">are you grandparent ready?</div>
+</div>
+
+<div class="card" id="screen-start">
+<h1>Are You Grandparent Ready?</h1>
+<p class="sub">10 quick questions from our Grandparents classes. A lot has changed since you were a parent — see how you'd do, with answers revealed instantly!</p>
+<button class="bigbtn" onclick="startQuiz()">Start the Quiz</button>
+</div>
+
+<div class="card hidden" id="screen-quiz">
+<div class="progress"><div id="pbar" style="width:0%"></div></div>
+<div class="qnum" id="qnum"></div>
+<div class="q" id="qtext"></div>
+<div id="opts"></div>
+<div class="explain" id="explain"></div>
+<button class="nextbtn" id="nextbtn" onclick="nextQ()">Next Question</button>
+</div>
+
+<div class="card hidden" id="screen-done">
+<div class="stars">⭐</div>
+<div class="score" id="score"></div>
+<p class="scoremsg" id="scoremsg"></p>
+<div id="emailwrap">
+<p style="text-align:center;font-weight:700;margin-bottom:12px;">Want to learn these skills hands-on?</p>
+<p class="sub" style="margin-bottom:14px;">Drop your email and we'll send you info about upcoming Grandparents classes near you.</p>
+<div class="field"><input type="text" id="quiz-name" placeholder="Your name" autocomplete="name"></div>
+<div class="field"><input type="email" id="quiz-email" placeholder="Email address" autocomplete="email"></div>
+<button class="bigbtn" onclick="submitEmail()">Send Me Class Info</button>
+<p class="fineprint">We'll only email about Mindful Beginnings classes. No spam, ever.</p>
+<p style="text-align:center;margin-top:10px;"><a href="https://mindfulbeginnings.org/classes-catalog.html" style="color:#1E3161;font-weight:600;font-size:14px;">Or browse all of our classes now →</a></p>
+</div>
+<div id="thanksmsg" class="hidden" style="text-align:center;padding:12px 0;">
+<p style="font-size:18px;font-weight:700;color:#1E3161;">You're on the list! 🎉</p>
+<p class="sub">Watch your inbox for upcoming classes.</p>
+</div>
+<div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid #e2ddd0;">
+<a href="https://mindfulbeginnings.org/classes-catalog.html" style="color:#1E3161;font-weight:700;font-size:16px;">Learn more about all of our classes →</a>
+</div>
+</div>
+</div>
+
+<script>
+const QS=[
+{q:"What's the safest sleep position for a baby?",a:["On their tummy","On their side","On their back","In a swing overnight"],c:2,e:"Back to sleep, every time. And the crib should hold nothing but the baby — no blankets, pillows, bumpers, or toys."},
+{q:"How long should babies stay rear-facing in their car seat?",a:["Until age 1","Until they hit 20 pounds","As long as possible, at minimum until age 2","Until they can see out the window"],c:2,e:"Keep them rear-facing as long as the seat allows — at minimum to age 2. Longer is safer."},
+{q:"A grandbaby is choking and can't cry or cough. What do you do?",a:["Give 5 back slaps, then 5 chest thrusts, and call 911","Sweep your finger through their mouth","Give them a sip of water","Hold them upside down and shake"],c:0,e:"Alternate 5 back slaps and 5 chest thrusts for an infant. Call 911. Never do a blind finger sweep."},
+{q:"Which of these should NEVER be given to a baby under 1 year old?",a:["Mashed banana","Honey","Oatmeal cereal","Pureed sweet potato"],c:1,e:"Honey can cause infant botulism, a serious illness. No honey before age 1."},
+{q:"You're warming a bottle for the baby. What's the safest way?",a:["Microwave it for 30 seconds","Warm it in water, then test a few drops on your wrist","Leave it on the counter for an hour","Heat it on the stovetop on high"],c:1,e:"Microwaves heat unevenly and can create dangerous hot spots. Warm in water and test on your wrist."},
+{q:"Where's the most dangerous place for a toddler to be unsupervised, even briefly?",a:["The living room","Near any water — bathtub, pool, even a bucket","The backyard","The kitchen"],c:1,e:"Drowning is fast and silent. Never leave a child alone near water — not even for a moment."},
+{q:"Your grandchild's car seat was in a minor fender bender. What should you do?",a:["Keep using it if it looks fine","Replace it — most seats must be replaced after any crash","Only replace it if the baby was in it","Wash the cover and keep using it"],c:1,e:"Most car seats must be replaced after any crash, even a minor one. Check your seat's manual."},
+{q:"What's changed about crib safety since you were a new parent?",a:["Bumpers are now recommended","Nothing in the crib — no blankets, pillows, bumpers, or toys","Babies should sleep with a stuffed animal","Drop-side cribs are the safest"],c:1,e:"Bare is best. No blankets, pillows, bumpers, or toys — just baby on their back."},
+{q:"A toddler grabs a small coin off the floor. Why is this so dangerous?",a:["It's dirty","It's a choking hazard — their airway is tiny","They might lose it","It could scratch them"],c:1,e:"If it fits through a toilet paper tube, it's a choking hazard. Get down to their eye level and scan the room."},
+{q:"Your daughter asks you to babysit overnight. What's the most important thing to have ready?",a:["A fully stocked toy box","Emergency contacts, pediatrician number, and allergy/medical info","A new outfit for the baby","Your favorite lullaby playlist"],c:1,e:"Emergency numbers, the pediatrician, allergies, and medications — have them written down and handy before they walk out the door."}
+];
+let qi=0,score=0,answered=false;
+function startQuiz(){document.getElementById('screen-start').classList.add('hidden');document.getElementById('screen-quiz').classList.remove('hidden');showQ();}
+function showQ(){
+  answered=false;
+  const q=QS[qi];
+  document.getElementById('pbar').style.width=((qi)/QS.length*100)+'%';
+  document.getElementById('qnum').textContent='Question '+(qi+1)+' of '+QS.length;
+  document.getElementById('qtext').textContent=q.q;
+  document.getElementById('explain').classList.remove('show');
+  document.getElementById('nextbtn').classList.remove('show');
+  const box=document.getElementById('opts');box.innerHTML='';
+  q.a.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=t;
+    b.onclick=()=>answer(i,b);
+    box.appendChild(b);
+  });
+}
+function answer(i,btn){
+  if(answered)return;answered=true;
+  const q=QS[qi];
+  const btns=document.querySelectorAll('#opts .opt');
+  btns.forEach((b,j)=>{
+    b.disabled=true;
+    if(j===q.c)b.classList.add('correct');
+    else if(j===i)b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  if(i===q.c){score++;}
+  const ex=document.getElementById('explain');
+  ex.innerHTML=(i===q.c?'<strong>✓ Correct!</strong> ':'<strong>Not quite.</strong> ')+q.e;
+  ex.classList.add('show');
+  const nb=document.getElementById('nextbtn');
+  nb.textContent=(qi===QS.length-1)?'See My Score':'Next Question';
+  nb.classList.add('show');
+  document.getElementById('pbar').style.width=((qi+1)/QS.length*100)+'%';
+}
+function nextQ(){
+  qi++;
+  if(qi>=QS.length){finish();}
+  else{showQ();}
+}
+function finish(){
+  document.getElementById('screen-quiz').classList.add('hidden');
+  document.getElementById('screen-done').classList.remove('hidden');
+  document.getElementById('score').textContent=score+'/'+QS.length;
+  let m;
+  if(score===10)m="Perfect score! The grandkids are in great hands. 🏆";
+  else if(score>=8)m="Wonderful! You're almost grandparent-ready. Our class fills in the rest.";
+  else if(score>=5)m="Not bad — but a lot has changed since you were a new parent! Our class covers it all hands-on.";
+  else m="Good news: every one of these is teachable! Our Grandparents class makes them second nature.";
+  document.getElementById('scoremsg').textContent=m;
+}
+async function submitEmail(){
+  const name=document.getElementById('quiz-name').value.trim();
+  const email=document.getElementById('quiz-email').value.trim();
+  if(!email||email.indexOf('@')<0){alert('Please enter a valid email address.');return;}
+  try{
+    await fetch('https://formspree.io/f/mnpnnebe',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({name:name,email:email,source:'Grandparents Quiz',score:score+'/10',_subject:'New Grandparents Quiz lead: '+email})});
+  }catch(e){}
+  document.getElementById('emailwrap').classList.add('hidden');
+  document.getElementById('thanksmsg').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
