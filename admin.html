@@ -6900,6 +6900,25 @@ function _aboutDateLabel(iso){
   if(isNaN(dt))return String(iso||'');
   return dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 }
+function sessionEndTime(startTime,courseName){
+  if(!startTime||!courseName)return '';
+  const c=(typeof COURSES!=='undefined'&&COURSES[courseName])||null;
+  const hrs=c&&c.hours?Number(c.hours):null;
+  if(!hrs||!isFinite(hrs))return '';
+  // Parse "12:45 PM" -> minutes since midnight
+  const m=String(startTime).trim().match(/^(\d{1,2}):(\d{2})\s*([AP]M)?/i);
+  if(!m)return '';
+  let h=Number(m[1]),min=Number(m[2]);
+  const ap=(m[3]||'').toUpperCase();
+  if(ap==='PM'&&h<12)h+=12;
+  if(ap==='AM'&&h===12)h=0;
+  let total=h*60+min+Math.round(hrs*60);
+  total=total%1440;
+  let eh=Math.floor(total/60),emin=total%60;
+  const eap=eh>=12?'PM':'AM';
+  let dh=eh%12;if(dh===0)dh=12;
+  return dh+':'+String(emin).padStart(2,'0')+' '+eap;
+}
 function sessionAboutWhenText(s){
   if(!s)return '';
   const meetings=[];
@@ -6919,7 +6938,14 @@ function sessionAboutWhenText(s){
     lines.push(String(s.holdTerm||'').trim()||'Date TBD');
     if(String(s.time||'').trim())lines.push(String(s.time).trim());
   }else{
-    meetings.forEach(m=>lines.push(m.time?(_aboutDateLabel(m.date)+' · '+m.time):_aboutDateLabel(m.date)));
+    meetings.forEach(m=>{
+      let t=m.time||'';
+      if(t){
+        const end=sessionEndTime(t,s.course);
+        if(end)t=t+' – '+end;
+      }
+      lines.push(t?(_aboutDateLabel(m.date)+' · '+t):_aboutDateLabel(m.date));
+    });
   }
   if(s.isRecurring&&typeof recurLabel==='function'){
     const label=recurLabel(s);
