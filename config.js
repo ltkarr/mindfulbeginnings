@@ -155,8 +155,12 @@ const COURSES={
   // virtual cap.
   'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true,audience:'Ages 8 to 14'},
   // Girl Scout badge workshops are custom-scheduled. Lindsay sets the time
-  // and can override the group size per job. hours:1 is only the pay default
-  // when a session has no pay override. maxStudents 16 is the Program Guide's
+  // and can override the group size per job. hours:1 is the course default,
+  // which is why an unset session's job post says 2.5 paid hours (1 hour of
+  // class + 1.5 hours travel). A 90-minute workshop sets teaching hours to
+  // 1.5 on that session only. Paid travel hours, when set, replace the usual
+  // travel hour and extra 30 minutes. Do not change this course default.
+  // maxStudents 16 is the Program Guide's
   // typical maximum, not a published fixed cap. The $45 checkout amount is the
   // existing troop price. A troop split (GS-H4782) sets the family price to
   // $15 and the organization flat fee to $30. The Program Guide lists $65;

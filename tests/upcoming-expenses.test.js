@@ -30,7 +30,7 @@ const names = [
   'paidOutInstructorFee', 'legacyLineHasDatePaid', 'financeLegacyCosts',
   'participantMaterialAllowance',
   'processingFee', 'isLiveReg', 'regEffectivePrice',
-  'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
+  'paidTravelHoursOf', 'sessionTeachingHours', 'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'calcFin', 'round2', 'financeSessionFigures', 'financeRevenueSlot',
   'holdPaymentReceived', 'undatedHoldMoneyIn', 'holdTermYear', 'sessionClassDate', 'sessionRevenueSlot',

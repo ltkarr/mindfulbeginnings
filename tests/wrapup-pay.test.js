@@ -26,7 +26,7 @@ function extractFunction(src, name) {
 
 const names = [
   'escapeHtml', 'fmt',
-  'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
+  'paidTravelHoursOf', 'sessionTeachingHours', 'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
   'wrapupPayAmount', 'wrapupPayCallout'
 ];
 

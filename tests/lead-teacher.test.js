@@ -170,6 +170,8 @@ test('a Lead Teacher is paid $75/hour, and a frozen paid fee stays frozen', () =
   };
   vm.runInNewContext(
     [
+      extractFn(admin, 'paidTravelHoursOf'),
+      extractFn(admin, 'sessionTeachingHours'),
       extractFn(admin, 'instrBaseFee'),
       extractFn(admin, 'usualInstrPayAmount'),
       extractFn(admin, 'instrDisplayFee'),
@@ -232,6 +234,8 @@ test('the instructor portal hides Red Cross jobs from anyone who is not a Lead T
       extractFn(instructor, 'sessionRequiresSafeSitter'),
       extractFn(instructor, 'sessionRequiresSpanish'),
       extractFn(instructor, 'canTeachSession'),
+      extractFn(instructor, 'paidTravelHoursOf'),
+      extractFn(instructor, 'sessionTeachingHours'),
       extractFn(instructor, 'instrFee')
     ].join('\n'),
     sandbox
