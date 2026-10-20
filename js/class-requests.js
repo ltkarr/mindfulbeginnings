@@ -41,9 +41,9 @@
     { key: 'gs-first-aid', course: 'Girl Scouts — First Aid Badge Workshop', title: 'Girl Scout badge workshops', abbr: 'GSFA', price: 45, hours: 'custom schedule, time set per job', audience: 'Daisy through Ambassador, typical group 6 to 16', where: 'in person', requiresRN: true, host: false, org: true },
     { key: 'rc-babysitter', course: "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED", abbr: 'RCB', price: 295, hours: '7 hours', audience: 'Ages 11 to 14', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 125, hours: '4.25 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
-    // After School Clubs: $200 per participant. My First Babysitter's Club is
-    // 8 weeks. Other clubs are 8 or 10 weeks. Organization form only.
-    { key: 'after-school-clubs', course: 'After School Clubs', abbr: 'ASC', price: 200, hours: '1 hour a week, 8 weeks for My First Babysitter\'s Club, 8 or 10 weeks for the others', audience: 'Elementary clubs', where: 'in person', host: false, org: true },
+    // After School Clubs: $200 per participant, all clubs. Typically 8-10 weeks
+    // but any number of weeks available. 8-16 kids. Organization form only.
+    { key: 'after-school-clubs', course: 'After School Clubs', abbr: 'ASC', price: 200, hours: '1 hour a week, typically 8-10 weeks (any number available)', audience: 'Elementary clubs, 8-16 kids', where: 'in person', host: false, org: true },
     { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet: I would like guidance' },
     { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course: we will follow up with pricing' }
   ];
