@@ -58,6 +58,16 @@
           "value": "register.mindfulbeginnings.org"
         }
       ]
+    },
+    {
+      "source": "/host-a-class-1",
+      "destination": "/host-a-class",
+      "permanent": true
+    },
+    {
+      "source": "/host-a-class-1.html",
+      "destination": "/host-a-class",
+      "permanent": true
     }
   ],
   "rewrites": [
