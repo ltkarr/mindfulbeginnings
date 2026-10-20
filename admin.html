@@ -3294,6 +3294,10 @@ function sessionInstructorNames(s,fallback){
 // The person hosting this class, using the same records already on the session:
 // the contact name (host or org contact), then a registration marked host, then
 // the community-partner contact. Empty when none of those is set.
+function sessionIsOrganization(s){
+  if(!s)return false;
+  return s.hasHost===false || !!s.hostedFor || !!s.billToOrg;
+}
 function sessionHostDisplayName(s){
   if(!s)return '';
   const contact=String(s.contactName||'').trim();
@@ -3311,6 +3315,11 @@ function sessionHostDisplayName(s){
       const who=String(p.contactName||'').trim()||String(p.name||'').trim();
       if(who)return who;
     }
+  }
+  // Fallback: for organization sessions, use the location/venue name
+  if(sessionIsOrganization(s)){
+    const loc=String(s.location||'').trim();
+    if(loc&&loc!=='Host home'&&loc!=='Virtual')return loc;
   }
   return '';
 }
@@ -6370,7 +6379,7 @@ function renderDashboard(){
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin:0 0 6px;font-size:15px;line-height:1.45">
             ${roleLine('Instructor',instrLabel,'No instructor')}
-            ${roleLine('Host',hostLabel,'No host')}
+            ${roleLine(sessionIsOrganization(s)?'Organization':'Host',hostLabel,sessionIsOrganization(s)?'No organization':'No host')}
           </div>
           ${items.join('')}
         </div>`;
