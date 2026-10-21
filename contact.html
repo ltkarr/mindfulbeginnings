@@ -34,7 +34,7 @@
 
 <section class="mb-section mb-section-white">
 <div class="mb-wrap">
-<form class="mb-form" action="https://formspree.io/f/mnpnnebe" method="POST">
+<form class="mb-form" id="contact-form" novalidate>
 <input type="hidden" name="_subject" value="New website contact - Mindful Beginnings">
 <div class="mb-field">
 <label for="contact-name">Name</label>
@@ -48,10 +48,49 @@
 <label for="contact-message">Message</label>
 <textarea id="contact-message" name="message" required placeholder="Tell us what you need..."></textarea>
 </div>
+<div id="contact-error" class="mb-form-error" hidden></div>
 <div>
-<button class="mb-btn mb-btn-navy" type="submit">Send message</button>
+<button class="mb-btn mb-btn-navy" type="submit" id="contact-submit">Send message</button>
 </div>
 </form>
+<div id="contact-success" class="mb-form-success" hidden>
+<h2 class="mb-script-title">message received</h2>
+<p>Thanks for reaching out. We read every message and reply within one business day.</p>
+<p><a href="/classes-catalog.html">Browse our classes</a> while you wait.</p>
+</div>
+<script>
+(function(){
+  var form = document.getElementById('contact-form');
+  var errBox = document.getElementById('contact-error');
+  var okBox = document.getElementById('contact-success');
+  var btn = document.getElementById('contact-submit');
+  function showErr(msg){
+    errBox.hidden = false; errBox.textContent = msg; errBox.focus();
+  }
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    errBox.hidden = true;
+    var name = document.getElementById('contact-name').value.trim();
+    var email = document.getElementById('contact-email').value.trim();
+    var msg = document.getElementById('contact-message').value.trim();
+    if(!name){ showErr('Please add your name.'); return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ showErr('Please add a valid email address.'); return; }
+    if(!msg){ showErr('Please add your message.'); return; }
+    btn.disabled = true; btn.textContent = 'Sending...';
+    fetch('https://formspree.io/f/mnpnnebe', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, email: email, message: msg, _subject: 'New website contact - Mindful Beginnings' })
+    }).then(function(r){
+      if(!r.ok) throw new Error('send failed');
+      form.hidden = true; okBox.hidden = false; okBox.scrollIntoView({behavior:'smooth', block:'center'});
+    }).catch(function(){
+      btn.disabled = false; btn.textContent = 'Send message';
+      showErr('Something went wrong sending your message. Please try again or email us at lindsay@mindfulbeginnings.org.');
+    });
+  });
+})();
+</script>
 </div>
 </section>
 

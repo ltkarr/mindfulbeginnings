@@ -141,6 +141,10 @@ p:last-child{margin-bottom:0}
 .mb-field textarea{min-height:140px;resize:vertical}
 .mb-field input:focus,.mb-field textarea:focus{outline:3px solid var(--btn-gold);outline-offset:2px}
 .mb-form-note{font-size:14px}
+.mb-form-error{background:#fdecea;color:#a02020;border:2px solid #e8a0a0;border-radius:12px;padding:12px 16px;font-weight:600}
+.mb-form-success{background:#f5f3f1;border-radius:16px;padding:32px;text-align:center;max-width:640px}
+.mb-form-success p{margin:12px 0;font-size:16px}
+.mb-form-success a{color:#1E3161;font-weight:700}
 
 /* ---------- review placeholders ---------- */
 .mb-review-slot{
