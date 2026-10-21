@@ -33,7 +33,7 @@
     { key: 'social-ready', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Ages 8 to 14', where: 'in person', host: true, org: true },
     { key: 'social-ready-virtual', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Ages 8 to 14', where: 'virtual', virtual: true, host: true, org: true },
     { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 185, hours: '3 hours', audience: 'Expecting and new parents, $185 per person ($300 per couple), 4 to 12 participants', where: 'in person', host: false, org: true },
-    { key: 'baby-ready-cpr', course: 'Baby Ready + CPR Certification', abbr: 'BRCPR', price: 275, hours: '5 hours', audience: 'Expecting parents, $275 per person ($495 per couple), Baby Ready portion is 3 hours', where: 'in person', host: false, org: true },
+    { key: 'baby-ready-cpr', course: 'Baby Ready + CPR Certification', abbr: 'BRCPR', price: 275, hours: '5 hours', audience: 'Expecting parents, $275 per person ($495 per couple), Baby Ready portion is 3 hours', where: 'in person', host: true, org: true },
     { key: 'season-ready', course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', abbr: 'SEAR', price: 25, hours: '60 minutes', audience: 'Student athletes', where: 'in person', requiresRN: true, host: false, org: true },
     // Badge workshops are custom-scheduled. The stored course key stays the
     // First Aid workshop so existing requests match. $45 is the current troop
