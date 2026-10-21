@@ -278,10 +278,10 @@
         if (typeof showToast === 'function') showToast('Sign in again, then approve the request.');
         return;
       }
-      var res = await fetch('/api/class-requests-approve', {
+      var res = await fetch('/api/class-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ id: id })
+        body: JSON.stringify({ action: 'approve', id: id })
       });
       var body = {};
       try { body = await res.json(); } catch (e) { body = {}; }

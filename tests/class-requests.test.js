@@ -680,19 +680,39 @@ test('a Spanish request on either public form flags the auto-created session', (
 });
 
 test('approving requires an admin and does not create a session when unauthenticated', async () => {
-  delete require.cache[require.resolve('../api/class-requests-approve')];
-  const handler = require('../api/class-requests-approve');
+  delete require.cache[require.resolve('../api/class-requests')];
+  const handler = require('../api/class-requests');
   const res = { statusCode: 0, headers: {}, body: '', setHeader: function (k, v) { this.headers[k] = v; }, end: function (b) { this.body = b || ''; } };
-  await handler({ method: 'POST', headers: {} }, res);
+  const req = {
+    method: 'POST',
+    headers: {},
+    on: function (ev, cb) {
+      if (ev === 'data') cb(Buffer.from(JSON.stringify({ action: 'approve', id: 'req-1' })));
+      if (ev === 'end') cb();
+    }
+  };
+  await handler(req, res);
   assert.equal(res.statusCode, 401);
   const adminSrc = fs.readFileSync(path.join(root, 'js/class-requests-admin.js'), 'utf8');
   const submitSrc = fs.readFileSync(path.join(root, 'lib/class-request-submit.js'), 'utf8');
   const approveSrc = fs.readFileSync(path.join(root, 'lib/class-request-approve.js'), 'utf8');
+  const apiSrc = fs.readFileSync(path.join(root, 'api/class-requests.js'), 'utf8');
   assert.match(adminSrc, /Approve and create session/);
-  assert.match(adminSrc, /\/api\/class-requests-approve/);
+  assert.match(adminSrc, /action: 'approve'/);
+  assert.match(apiSrc, /body\.action === 'approve'/);
+  assert.equal(fs.existsSync(path.join(root, 'api/class-requests-approve.js')), false);
   assert.doesNotMatch(submitSrc, /insertSession|buildSessionRow/);
   assert.doesNotMatch(approveSrc, /sessions\?id=eq/);
   assert.match(fs.readFileSync(path.join(root, 'migrations/20261021_class_request_pending.sql'), 'utf8'), /'pending'/);
+  const apiFiles = [];
+  (function walk(dir) {
+    for (const name of fs.readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (fs.statSync(full).isDirectory()) walk(full);
+      else if (name.endsWith('.js') && !name.startsWith('_')) apiFiles.push(full);
+    }
+  })(path.join(root, 'api'));
+  assert.ok(apiFiles.length <= 12, 'Hobby plan allows 12 Serverless Functions, found ' + apiFiles.length);
 });
 
 test('the Spanish session flag has the same column shape as the other requirement flags', () => {
