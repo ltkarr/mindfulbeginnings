@@ -39,6 +39,7 @@
     // First Aid workshop so existing requests match. $45 is the current troop
     // checkout amount, not a published fixed length.
     { key: 'gs-first-aid', course: 'Girl Scouts — First Aid Badge Workshop', title: 'Girl Scout badge workshops', abbr: 'GSFA', price: 45, hours: 'custom schedule, time set per job', audience: 'Daisy through Ambassador, typical group 6 to 16', where: 'in person', requiresRN: true, host: false, org: true },
+    { key: 'rc-babysitter-training', course: "Red Cross Babysitter's Training", abbr: 'RCBT', price: 250, hours: '5 hours', audience: 'Ages 11 to 14', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     { key: 'rc-babysitter', course: "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED", abbr: 'RCB', price: 295, hours: '7 hours', audience: 'Ages 11 to 14', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 125, hours: '4.25 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     // After School Clubs: $200 per participant, all clubs. Typically 8-10 weeks
