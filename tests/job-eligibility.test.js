@@ -35,8 +35,11 @@ function extractFn(src, name) {
 }
 
 // Portal's canTeachSession, evaluated in a sandbox with a controllable `me`.
+// Uses config-instructor.js (the live portal config) — the same source the
+// portal itself loads. The safety patch is extracted from instructor.html.
 function portalCanTeach(sessionCamel, me) {
-  const coursesSrc = extractBraced(portal, 'window.COURSES={').replace('window.COURSES={', 'var COURSES={');
+  const liveConfig = fs.readFileSync(path.join(__dirname, '..', 'config-instructor.js'), 'utf8');
+  const coursesSrc = extractBraced(liveConfig, 'const COURSES={').replace('const COURSES={', 'var COURSES={');
   // Safety-patch block: slice from its start through its closing "});"
   // (brace-matching would drop the forEach's closing paren).
   const patchStart = portal.indexOf('Object.keys(COURSES).forEach(c=>');
@@ -71,7 +74,7 @@ function portalCanTeach(sessionCamel, me) {
 const SESSIONS = [
   { name: 'safe sitter course', course: 'Safe Sitter®', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'stay ready (RN pattern)', course: 'Stay Ready: Choking Rescue and CPR', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
-  { name: 'red cross standalone', course: "Red Cross Babysitter's Training", requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
+  { name: 'babysitters training', course: "Babysitter's Training", requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'red cross course', course: 'Adult & Pediatric First Aid/CPR/AED Certification', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'plain course', course: 'All Kids Welcome', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'custom spanish job', course: 'Custom Workshop', requires_rn: false, requires_safe_sitter: false, requires_spanish: true, is_custom_job: true },
@@ -141,8 +144,8 @@ test('spot checks: restricted jobs hidden from uncredentialed instructors', () =
   assert.strictEqual(elig.canTeachSession(byName('safe sitter course'), sitter), true);
   assert.strictEqual(elig.canTeachSession(byName('red cross course'), rn), false, 'RN without Lead Teacher cannot teach Red Cross');
   assert.strictEqual(elig.canTeachSession(byName('red cross course'), lead), true);
-  assert.strictEqual(elig.canTeachSession(byName('red cross standalone'), general), false, 'standalone RC Babysitter Training is Lead Teacher-only');
-  assert.strictEqual(elig.canTeachSession(byName('red cross standalone'), lead), true);
+  assert.strictEqual(elig.canTeachSession(byName('babysitters training'), general), false, 'Babysitter Training is Lead Teacher-only');
+  assert.strictEqual(elig.canTeachSession(byName('babysitters training'), lead), true);
   assert.strictEqual(elig.canTeachSession(byName('custom spanish job'), general), false);
   assert.strictEqual(elig.canTeachSession(byName('girl scout first aid badge'), general), true, 'badge workshops stay open (no RN rule)');
   assert.strictEqual(elig.canTeachSession(byName('baby ready + CPR'), general), true, 'Baby Ready + CPR is not Lead-only');
