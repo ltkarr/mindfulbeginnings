@@ -27,7 +27,9 @@ Location: {{location_text}}
 
 You do not need to attend. Please take the date off your calendar, and thank you so much for your flexibility.
 
-— Lindsay
+Instructor portal: {{portal_url}}
+
+Lindsay
 Mindful Beginnings
 703-987-5979
 ```

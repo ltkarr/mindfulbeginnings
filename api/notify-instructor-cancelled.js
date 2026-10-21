@@ -24,6 +24,7 @@
 //      this route. Defaults to lindsay@mindfulbeginnings.org.
 
 const { sendJson } = require('../lib/http');
+const INSTRUCTOR_PORTAL_URL = require('../lib/instructor-portal-url');
 
 const SUPABASE_URL = 'https://evninlytzhtacanrguhx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2bmlubHl0emh0YWNhbnJndWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTE1MzQsImV4cCI6MjA5MzIyNzUzNH0.7sr0P9BmcPW_cJgWZwndVtaHsZXsbVCcE0Pk1gm3VP8';
@@ -85,6 +86,7 @@ async function sendCancellationEmail(instr, sess, templateId, privateKey) {
         class_time: sess.time || 'TBD',
         location_text: sess.location || 'TBD',
         cancel_reason: sess.cancel_reason || 'low enrollment',
+        portal_url: INSTRUCTOR_PORTAL_URL,
       },
     }),
   });

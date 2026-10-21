@@ -22,6 +22,7 @@ create table if not exists public.class_requests (
   kind text not null check (kind in ('host', 'organization')),
   status text not null default 'received' check (
     status in (
+      'pending',
       'received',
       'session_created',
       'draft_ready',

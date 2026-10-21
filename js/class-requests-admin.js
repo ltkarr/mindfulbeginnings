@@ -50,7 +50,7 @@
     var c = checks(row);
     var status = statusOf(row);
     if (filter === 'done') return !!c.done;
-    if (filter === 'received') return status === 'received';
+    if (filter === 'received' || filter === 'pending') return status === 'pending' || status === 'received';
     if (filter === 'all') return true;
     return !c.done && !c.email_sent;
   }
@@ -88,7 +88,7 @@
     add('Portion they wrote', n.portionText);
     add('Girl Scout badge', n.badge);
     add('Instructor request', n.instructorRequest);
-    if (n.spanishRequested) add('Language', 'Requested in Spanish — Spanish-speaking instructor required.');
+    if (n.spanishRequested) add('Language', 'Requested in Spanish. A Spanish-speaking instructor is required.');
     add('Hosting checklist', n.checklistAnswer);
     add('Checklist questions', n.checklistQuestions);
     add('Food', n.food);
@@ -131,7 +131,9 @@
     }).join('');
     var sessionBtn = row.session_id
       ? '<button class="btn sm" type="button" onclick="openRequestSession(\'' + esc(row.id) + '\')">Open ' + esc(row.session_code || 'session') + '</button>'
-      : '<span style="font-size:14px;color:var(--warn)">No session yet</span>';
+      : (c.done
+        ? '<span style="font-size:14px;color:var(--warn)">No session yet</span>'
+        : '<button class="btn sm" type="button" onclick="approveClassRequest(\'' + esc(row.id) + '\')">Approve and create session</button>');
     var outlook = row.outlook_web_link
       ? '<a class="btn sm" href="' + esc(row.outlook_web_link) + '" target="_blank" rel="noopener">Open Outlook draft</a>'
       : '';
@@ -257,5 +259,63 @@
     var nav = document.querySelector('.nav-item[title="Sessions"]');
     if (typeof showScreen === 'function') showScreen('sessions', nav);
     openEditSession(row.session_id);
+  };
+
+  root._approveLocks = root._approveLocks || {};
+
+  root.approveClassRequest = async function (id) {
+    if (!id) return;
+    if (root._approveLocks[id]) return;
+    root._approveLocks[id] = true;
+    try {
+      if (typeof sb === 'undefined' || !sb.auth || !sb.auth.getSession) {
+        if (typeof showToast === 'function') showToast('Sign in again, then approve the request.');
+        return;
+      }
+      var sess = await sb.auth.getSession();
+      var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+      if (!token) {
+        if (typeof showToast === 'function') showToast('Sign in again, then approve the request.');
+        return;
+      }
+      var res = await fetch('/api/class-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ action: 'approve', id: id })
+      });
+      var body = {};
+      try { body = await res.json(); } catch (e) { body = {}; }
+      if (!res.ok || !body.ok) {
+        if (typeof showToast === 'function') showToast(body.error || 'The session was not created. Please try again.');
+        return;
+      }
+      var row = (typeof classRequests !== 'undefined' ? classRequests : []).find(function (r) { return r.id === id; });
+      if (row) {
+        row.session_id = body.sessionId || row.session_id;
+        row.session_code = body.sessionCode || row.session_code;
+        row.status = body.status || 'session_created';
+        if (body.checklist) row.checklist = body.checklist;
+        if (body.draft_body) row.draft_body = body.draft_body;
+        if (body.draft_subject) row.draft_subject = body.draft_subject;
+        if (body.outlook_web_link) row.outlook_web_link = body.outlook_web_link;
+        row.session_error = null;
+      }
+      if (typeof loadData === 'function') {
+        await loadData();
+      } else if (body.session && typeof sessions !== 'undefined' && typeof sessionFromDB === 'function') {
+        var mapped = sessionFromDB(body.session);
+        if (mapped && !sessions.some(function (s) { return s.id === mapped.id; })) sessions.push(mapped);
+      }
+      if (typeof showToast === 'function') {
+        var code = body.sessionCode || (row && row.session_code) || 'the session';
+        showToast(body.created === false ? ('Session ' + code + ' was already created.') : ('Session ' + code + ' created.'));
+      }
+      if (root.renderClassRequests) root.renderClassRequests();
+      if (root.renderClassRequestBanner) root.renderClassRequestBanner();
+    } catch (err) {
+      if (typeof showToast === 'function') showToast('The session was not created. Please try again.');
+    } finally {
+      root._approveLocks[id] = false;
+    }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

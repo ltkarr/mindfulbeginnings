@@ -225,3 +225,15 @@ test('the migration adds the columns and does not write either session', () => {
   assert.match(admin, /paidHoursFieldsHtml\(s\)/);
   assert.match(admin, /classTravel/);
 });
+
+test('instructors see total pay hours only, plus the pay policy on open jobs', () => {
+  assert.match(instructor, /id="pay-policy"/);
+  assert.match(instructor, /<div style="font-weight:700;font-size:18px;margin-bottom:6px">Pay policy<\/div>/);
+  assert.match(instructor, /Pay for each job is listed as your hourly rate times a set number of hours\. That total usually includes at least 1\.5 hours beyond the class time, and we may add more depending on the job's location\. Pay hours are set at Mindful Beginnings' discretion\. Please do not ask for additional pay for any course\. If the listed pay doesn't work for you, simply don't claim the job\./);
+  const policy = instructor.slice(instructor.indexOf('id="pay-policy"'), instructor.indexOf('id="open-list"'));
+  assert.doesNotMatch(policy, /\u2014/);
+  const emailFn = admin.slice(admin.indexOf('function openJobPayText'), admin.indexOf('function openJobMeetings'));
+  assert.doesNotMatch(emailFn, /of class|hours travel|no travel hour/);
+  const portalPay = instructor.slice(instructor.indexOf('function paidHoursBreakdown'), instructor.indexOf('function instrFee'));
+  assert.doesNotMatch(portalPay, /of class|hours travel/);
+});

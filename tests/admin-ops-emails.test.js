@@ -105,7 +105,7 @@ test('host letter is the initial confirm and drops the free spot when there is n
   assert.doesNotMatch(draft.body, /Estimated total/);
   assert.match(draft.body, /Registration link: https:\/\/register\.mindfulbeginnings\.org\/register\.html\?code=SS-1010/);
   assert.match(draft.body, /Session code: SS-1010/);
-  assert.match(draft.body, /TBD — as we get closer to the date, I will share your instructor's name/);
+  assert.match(draft.body, /TBD\. As we get closer to the date, I will share your instructor's name/);
   assert.match(draft.body, /I am the host for this session/);
 
   const named = emails.draft('hostLetter', sample({ mealText: 'I will provide a meal.' }));

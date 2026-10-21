@@ -23,8 +23,30 @@
           "value": "register.mindfulbeginnings.org"
         }
       ],
-      "destination": "https://instructorportal.mindfulbeginnings.org/",
+      "destination": "https://instructorportal.mindfulbeginnings.org/instructor",
       "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "instructorportal.mindfulbeginnings.org"
+        }
+      ],
+      "destination": "/instructor",
+      "permanent": false
+    },
+    {
+      "source": "/index.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "instructorportal.mindfulbeginnings.org"
+        }
+      ],
+      "destination": "/instructor",
+      "permanent": false
     },
     {
       "source": "/",
@@ -74,16 +96,6 @@
     {
       "source": "/configinstructor.js",
       "destination": "/config-instructor.js"
-    },
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "instructorportal.mindfulbeginnings.org"
-        }
-      ],
-      "destination": "/instructor.html"
     },
     {
       "source": "/cpr-certification",

@@ -546,7 +546,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 
     <div class="screen" id="screen-requests">
       <div class="page-header">
-        <div><div class="page-title">Class requests</div><div class="page-sub">Private host and organization forms. Confirmation emails stay drafts until you send them.</div></div>
+        <div><div class="page-title">Class requests</div><div class="page-sub">Private host and organization forms stay pending until you approve them. Approving creates the session. Confirmation emails stay drafts until you send them.</div></div>
       </div>
       <div class="filter-row">
         <select id="cr-filter" onchange="renderClassRequests()">
@@ -689,7 +689,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <button class="btn primary" onclick="openAddInstructor()">+ Add instructor</button>
         </div>
       </div>
-      <div class="alert info">Each instructor signs in at <strong>instructorportal.mindfulbeginnings.org</strong> with their PIN. Share the PIN privately.</div>
+      <div class="alert info">Each instructor signs in at <strong><a href="https://instructorportal.mindfulbeginnings.org/instructor">instructorportal.mindfulbeginnings.org/instructor</a></strong> with their PIN. Share the PIN privately.</div>
       <div class="instr-tabs">
         <button class="itg active" id="itg-active" onclick="setInstrTab('active',this)">Active</button>
         <button class="itg" id="itg-inactive" onclick="setInstrTab('inactive',this)">Inactive</button>
@@ -1447,7 +1447,7 @@ const COURSES={
   'Social Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,instrFlatFee:100,maxStudents:20,virtual:true},
   // Girl Scout badge workshops are custom-scheduled. hours:1 is the pay
   // default when a session has no class-length override, so the open-jobs
-  // line is "your hourly pay × 2.5 hours (1 hour of class + 1.5 hours travel)".
+  // line is "your hourly pay × 2.5 hours" (total hours only, no class-plus-travel split).
   // A session can set its own class length (a 90-minute badge class is 1.5)
   // and paid travel hours. Those replace this default for that session only.
   // maxStudents 16 is the typical Program Guide maximum, and Lindsay can override it per job. The $45
@@ -11411,7 +11411,7 @@ function emailClass(sessId){
 }
 
 // Where instructors claim a job. The open-jobs email includes this link.
-const INSTRUCTOR_PORTAL_URL='https://instructorportal.mindfulbeginnings.org/';
+const INSTRUCTOR_PORTAL_URL='https://instructorportal.mindfulbeginnings.org/instructor';
 // Lindsay does not use em dashes. The open-jobs note she copies (subject,
 // headings, job lines, pay, eligibility, portal line) uses a hyphen instead.
 // Course titles stored with an em dash are rewritten only in this email.
@@ -11479,7 +11479,7 @@ function openJobPayText(s,instr){
   }
   const h=openJobHourlyHours(s);
   if(perPerson)return 'Instructor pay: '+fmt(Number(instr.hourlyRate)*h.total);
-  if(h.virtual)return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + '+hourLabel(h.add)+', virtual, no travel hour)';
+  // Instructors see the total paid hours only. Do not split class time and travel.
   return 'Instructor pay: your hourly pay × '+hourLabel(h.total);
 }
 // A two-day class stores day one on the session and the later day in extra_days

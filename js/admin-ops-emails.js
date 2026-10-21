@@ -254,7 +254,7 @@
       var cost = val(info, 'priceText', '');
       if (!cost || cost === '$0') cost = '[Cost]';
       var regLink = val(info, 'regLink', 'https://register.mindfulbeginnings.org/register.html');
-      var instrLine = instructor || 'TBD \u2014 as we get closer to the date, I will share your instructor\'s name, cell phone number, and a short bio!';
+      var instrLine = instructor || 'TBD. As we get closer to the date, I will share your instructor\'s name, cell phone number, and a short bio!';
       lines.push('Hi ' + host + ',');
       lines.push('');
       lines.push('Thank you so much for hosting an upcoming Mindful Beginnings course! We are so excited to bring this experience to your group.');

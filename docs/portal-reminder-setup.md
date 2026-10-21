@@ -30,6 +30,8 @@ Students registered: {{student_count}}
 Please make sure your materials are packed and ready to go. If anything has
 come up, call or text Lindsay at 703-987-5979.
 
+Instructor portal: {{portal_url}}
+
 Thank you so much! We really appreciate you.
 ```
 
