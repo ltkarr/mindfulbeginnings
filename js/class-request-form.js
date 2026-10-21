@@ -185,9 +185,7 @@
         if (hello) hello.textContent = name ? ('Thank you, ' + name + '.') : 'Thank you.';
         var extra = $('success-extra');
         if (extra) {
-          extra.textContent = json.sessionCreated
-            ? 'We have the details. We will confirm the date. Nothing is sent automatically from this form.'
-            : 'We have your request. A date, time, or billing detail still needs a look before a registration link is ready, and we will follow up. Nothing is sent automatically from this form.';
+          extra.textContent = 'We have your request. We will confirm the date. Nothing is sent automatically from this form.';
         }
       }
     } catch (err) {

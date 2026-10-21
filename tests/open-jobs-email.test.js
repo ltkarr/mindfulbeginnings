@@ -47,11 +47,11 @@ function loadEmail() {
     },
     INSTR_RATE: 50,
     INSTR_EXTRA_HOURS: 0.5,
-    INSTRUCTOR_PORTAL_URL: 'https://instructorportal.mindfulbeginnings.org/'
+    INSTRUCTOR_PORTAL_URL: 'https://instructorportal.mindfulbeginnings.org/instructor'
   };
   vm.runInNewContext(
     [
-      'var INSTRUCTOR_PORTAL_URL="https://instructorportal.mindfulbeginnings.org/";',
+      'var INSTRUCTOR_PORTAL_URL="https://instructorportal.mindfulbeginnings.org/instructor";',
       extractFn(admin, 'escapeHtml'),
       extractFn(admin, 'fmt'),
       extractFn(admin, 'paidTravelHoursOf'),
@@ -156,8 +156,8 @@ test('a custom job with a flat fee shows that total, and an hourly job does not 
 
   const sitter = { course: 'Safe Sitter®', time: '9:00 AM', location: 'Library', city: 'Bethesda' };
   const group = api.openJobPayText(sitter);
-  assert.match(group, /Instructor pay: your hourly pay × 6\.5 hours/);
-  assert.match(group, /5 hours of class \+ 1\.5 hours travel/);
+  assert.equal(group, 'Instructor pay: your hourly pay × 6.5 hours');
+  assert.doesNotMatch(group, /of class|travel/);
   assert.equal(api.sessionWhoCanTeach(sitter), 'Safe Sitter® instructors only');
   assert.match(api.openJobDigestLine(sitter, 0, 'Saturday, October 18, 2026'), /Safe Sitter® instructors only/);
   assert.doesNotMatch(group, /\$325|\$260|\$50/);
@@ -167,7 +167,8 @@ test('a custom job with a flat fee shows that total, and an hourly job does not 
   assert.equal(api.instrBaseFee(sitter, dana), 260);
 
   const care = { course: 'Care Ready' };
-  assert.match(api.openJobPayText(care), /your hourly pay × 4 hours \(2\.5 hours of class \+ 1\.5 hours travel\)/);
+  assert.equal(api.openJobPayText(care), 'Instructor pay: your hourly pay × 4 hours');
+  assert.doesNotMatch(api.openJobPayText(care), /of class|travel/);
   assert.equal(api.sessionWhoCanTeach(care), 'Any instructor');
 });
 
@@ -180,9 +181,8 @@ test('a course flat fee is not rewritten as hourly times 1.5 travel, and a virtu
   assert.equal(api.instrBaseFee(kids, { hourlyRate: 40 }), 95);
 
   const virtualHourly = { course: 'Ready. Period.', isVirtual: true };
-  assert.match(api.openJobPayText(virtualHourly), /your hourly pay × 2 hours/);
-  assert.match(api.openJobPayText(virtualHourly), /no travel hour/);
-  assert.doesNotMatch(api.openJobPayText(virtualHourly), /1\.5 hours travel/);
+  assert.equal(api.openJobPayText(virtualHourly), 'Instructor pay: your hourly pay × 2 hours');
+  assert.doesNotMatch(api.openJobPayText(virtualHourly), /of class|travel/);
   assert.equal(api.sessionWhoCanTeach(virtualHourly), 'RN instructors only');
   assert.equal(api.openJobPayText(virtualHourly, { hourlyRate: 60 }), 'Instructor pay: $120');
   assert.equal(api.instrBaseFee(virtualHourly, { hourlyRate: 60 }), 120);
@@ -234,7 +234,7 @@ test('the admin open-jobs email is the Jobs open right now list, with a portal l
   assert.doesNotMatch(admin.slice(admin.indexOf('Mindful Beginnings jobs available now'), admin.indexOf('function opsEmailsApi')), /babysitting/i);
   const api = loadEmail();
   const portal = api.openJobPortalText();
-  assert.equal(portal, 'Claim a job in the instructor portal: https://instructorportal.mindfulbeginnings.org/');
+  assert.equal(portal, 'Claim a job in the instructor portal: https://instructorportal.mindfulbeginnings.org/instructor');
   assert.doesNotMatch(portal, /\u2014/);
   assert.doesNotMatch(api.openJobPayText({ course: 'Ready. Period.', isVirtual: true }), /\u2014/);
   const pasted = [

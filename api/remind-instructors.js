@@ -16,11 +16,12 @@
 //
 // The EmailJS template receives these variables:
 //   instructor_name, instructor_email, course, class_date, class_time,
-//   location_text, student_count
+//   location_text, student_count, portal_url
 //
 // One-time setup for Lindsay is in docs/portal-reminder-setup.md.
 
 const { sendJson } = require('../lib/http');
+const INSTRUCTOR_PORTAL_URL = require('../lib/instructor-portal-url');
 
 const SUPABASE_URL = 'https://evninlytzhtacanrguhx.supabase.co';
 // Reminder lookup returns instructor names and emails. After the lockdown
@@ -65,6 +66,7 @@ async function sendReminderEmail(m, templateId, privateKey) {
         class_time: m.class_time || 'TBD',
         location_text: m.location_text || 'TBD',
         student_count: String(m.student_count || 0),
+        portal_url: INSTRUCTOR_PORTAL_URL,
       },
     }),
   });

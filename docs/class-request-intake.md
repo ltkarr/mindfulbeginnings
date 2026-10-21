@@ -1,6 +1,12 @@
 # Class request intake
 
-Home hosts and organizations submit on the registration site instead of the two Google Forms. Each submission is stored in Supabase, a private session is created when the date, time, place, course, and billing are all known, and Lindsay gets a confirmation **draft**. The draft is never sent for her.
+Home hosts and organizations submit on the registration site instead of the two Google Forms. Each submission is stored in Supabase as a **pending** class request. It does not create a session, so it does not show up in the instructor portal or in job emails. Lindsay gets a confirmation **draft**. The draft is never sent for her.
+
+In ADMIN, open Class requests and choose **Approve and create session** on a pending request. That creates one private session and saves its id and code on the request. A second click does not create another session.
+
+The draft written at submit time has no session code and no private registration link, because the session does not exist yet. Approving rewrites that saved draft with the session code and the private link, and creates a new Outlook draft with the complete text. Send that newer draft. The first Outlook draft stays in Drafts without a registration link.
+
+Run `migrations/20261021_class_request_pending.sql` once in the Supabase SQL editor so `pending` is an allowed status. Until that runs, new submissions cannot be saved.
 
 ## Pages
 
@@ -42,4 +48,4 @@ If Graph is not available, an EmailJS template can notify Lindsay only. Set `EMA
 
 ## Checklist
 
-Received → session created → confirmation drafted → email sent (you mark this) → instructor claimed or still open → done / archived.
+Pending (no session yet) → Approve and create session → confirmation drafted → email sent (you mark this) → done.

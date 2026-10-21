@@ -110,12 +110,13 @@
   function statusFromChecklist(c) {
     c = c || {};
     if (c.done) return 'done';
-    if (!c.session_created) return 'received';
+    if (!c.session_created) return 'pending';
     if (!c.email_sent) return 'session_created';
     return 'email_sent';
   }
 
   var STATUS_LABELS = {
+    pending: 'Pending',
     received: 'Received',
     session_created: 'Session created',
     email_sent: 'Email sent',
@@ -611,13 +612,13 @@
     if (n.expectedCount) lines.push('Expected participants: ' + n.expectedCount);
     if (n.badge) lines.push('Girl Scout badge: ' + n.badge);
     if (n.instructorRequest) lines.push('Instructor request: ' + n.instructorRequest);
-    if (n.spanishRequested) lines.push('Requested in Spanish — Spanish-speaking instructor required.');
+    if (n.spanishRequested) lines.push('Requested in Spanish. A Spanish-speaking instructor is required.');
     if (n.billing && n.billing.mode) lines.push('Billing: ' + billingSentence(n));
     var meal = foodSentence(n.food);
     if (meal) lines.push('Food: ' + meal);
     if (n.checklistAnswer === 'questions' && n.checklistQuestions) lines.push('Host checklist questions: ' + n.checklistQuestions);
     else if (n.checklistAnswer === 'yes') lines.push('Host confirmed the home can meet the hosting checklist.');
-    else if (n.checklistAnswer === 'virtual-na') lines.push('Virtual class — home hosting checklist marked N/A.');
+    else if (n.checklistAnswer === 'virtual-na') lines.push('Virtual class. Home hosting checklist marked N/A.');
     if (n.av && n.av.length) lines.push('AV on site: ' + n.av.join(', '));
     if (n.parking) lines.push('Parking: ' + n.parking);
     if (n.arrival) lines.push('Arrival and access: ' + n.arrival);
@@ -767,19 +768,21 @@
   function paymentParagraph(n, code) {
     var b = n.billing || {};
     var price = n.course && n.course.price != null ? dollars(n.course.price) : 'the course price';
-    var link = regLink(code);
     var count = participantCount(n);
+    var linkLine = code
+      ? ('Registration link: ' + regLink(code))
+      : 'I will send the private registration link when the class is confirmed.';
     if (b.mode === 'org_full_external') {
       return orgInvoicePriceLine(price, count) + '\nPayment: your organization is covering the full cost and handling registration. Participants sign up through you at no charge. I will invoice the organization after the course. There is no family payment link for this class.';
     }
     if (b.mode === 'org_full_link') {
-      return orgInvoicePriceLine(price, count) + '\nPayment: your organization is covering the full cost. Participants register on this private link at no charge, and I will invoice the organization after the course.\nRegistration link: ' + link;
+      return orgInvoicePriceLine(price, count) + '\nPayment: your organization is covering the full cost. Participants register on this private link at no charge, and I will invoice the organization after the course.\n' + linkLine;
     }
     if (b.mode === 'individual') {
-      return 'Price: ' + price + ' per participant.\nPayment: each participant registers and pays that amount on this private link.\nRegistration link: ' + link;
+      return 'Price: ' + price + ' per participant.\nPayment: each participant registers and pays that amount on this private link.\n' + linkLine;
     }
     if (b.mode === 'split') {
-      return orgInvoicePriceLine(dollars(b.orgPortion), count) + '\nPayment: each participant pays ' + dollars(b.priceOverride) + ' at registration. I will invoice the organization ' + dollars(b.orgPortion) + ' per participant after the course.\nRegistration link: ' + link;
+      return orgInvoicePriceLine(dollars(b.orgPortion), count) + '\nPayment: each participant pays ' + dollars(b.priceOverride) + ' at registration. I will invoice the organization ' + dollars(b.orgPortion) + ' per participant after the course.\n' + linkLine;
     }
     return 'Payment: I still need to confirm the billing arrangement before I send a registration link.';
   }
@@ -822,7 +825,11 @@
         body += '\n\n' + extras.join('\n\n');
       }
       if (!code) {
-        body += '\n\nI will send the registration link as soon as the date is confirmed.';
+        if (/Registration link:/.test(body)) {
+          body = body.replace(/Registration link:.*$/m, 'Registration link: I will send the private link when the class is confirmed.');
+        } else {
+          body += '\n\nI will send the private registration link when the class is confirmed.';
+        }
       }
       return {
         to: to,
@@ -848,7 +855,7 @@
     if (n.expectedCount) lines.push('Participants expected: ' + n.expectedCount);
     if (code) lines.push('Session code: ' + code);
     lines.push(paymentParagraph(n, code));
-    if (n.instructorRequest) lines.push('Instructor request: ' + n.instructorRequest + ' — I will confirm who is teaching as we get closer.');
+    if (n.instructorRequest) lines.push('Instructor request: ' + n.instructorRequest + '. I will confirm who is teaching as we get closer.');
     else lines.push('I will share your instructor\'s name as we get closer to the date.');
     var notes = [];
     if (n.parking) notes.push('Parking: ' + n.parking);

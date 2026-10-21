@@ -358,6 +358,10 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     <div class="screen" id="tab-open">
       <div class="section-title">Open jobs</div>
       <div class="section-sub">Jobs you can claim. <span title="Every job listed here is unclaimed and ready to accept. Taken jobs never appear on this board. You only see jobs for the courses you're eligible to teach.">?</span></div>
+      <div id="pay-policy" style="background:#fff7e6;border:2px solid #e0b050;border-radius:12px;padding:14px 16px;margin:0 0 16px;font-size:16px;line-height:1.55;color:#1E3161">
+        <div style="font-weight:700;font-size:18px;margin-bottom:6px">Pay policy</div>
+        <div>Pay for each job is listed as your hourly rate times a set number of hours. That total usually includes at least 1.5 hours beyond the class time, and we may add more depending on the job's location. Pay hours are set at Mindful Beginnings' discretion. Please do not ask for additional pay for any course. If the listed pay doesn't work for you, simply don't claim the job.</div>
+      </div>
       <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px">
         <button class="btn" style="font-size:14px;padding:6px 14px" onclick="refreshData(true)">Refresh</button>
         <span id="refresh-status" style="font-size:14px;color:var(--muted)"></span>
@@ -560,7 +564,7 @@ let CANCEL_STATE_KNOWN=false;
 // Bump this string on every deploy. It is displayed on the login screen and next to
 // the Refresh button, so "what version does your screen say?" replaces guessing
 // about whose browser is running stale cached code.
-const PORTAL_VERSION='v2026-09-20.2';
+const PORTAL_VERSION='v2026-10-21.1';
 
 // Paid travel hours on this session, or null when the usual travel stipend
 // and extra 30 minutes still apply. Zero is a real setting (no travel pay).

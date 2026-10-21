@@ -12,8 +12,6 @@ module.exports = async function handler(req, res) {
   try {
     const body = await readJson(req);
     const result = await submitClassRequest(body, {
-      listSessionCodes: store.listSessionCodes,
-      insertSession: store.insertSession,
       insertRequest: store.insertRequest,
       updateRequest: store.updateRequest,
       createOutlookDraft: createOutlookDraft,

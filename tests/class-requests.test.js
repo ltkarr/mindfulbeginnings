@@ -8,6 +8,7 @@ const assert = require('node:assert/strict');
 const model = require('../js/class-requests');
 const adminUi = require('../js/class-requests-admin');
 const { submitClassRequest } = require('../lib/class-request-submit');
+const { approveClassRequest } = require('../lib/class-request-approve');
 const { createOutlookDraft } = require('../lib/outlook-draft');
 const { notifyLindsay, LINDSAY } = require('../lib/class-request-notify');
 
@@ -130,7 +131,7 @@ test('organization course choices match the catalog, including Girl Scout badge 
     assert.match(orgPage, new RegExp('value="' + course.key + '"'));
   });
   assert.match(orgPage, /href="https:\/\/mindfulbeginnings\.org\/girl-scouts"/);
-  assert.match(orgPage, />https:\/\/mindfulbeginnings\.org\/girl-scouts</);
+  assert.match(orgPage, /see badge descriptions/);
   assert.doesNotMatch(orgPage, /gsnc/);
   assert.doesNotMatch(hostPage, /gsnc/);
   assert.doesNotMatch(hostPage, /lindsay/i);
@@ -155,7 +156,7 @@ test('After School Clubs is a $200/participant organization option with a club p
   assert.equal(asc.course, 'After School Clubs');
   assert.ok(!model.coursesFor('host').some(function (c) { return c.key === 'after-school-clubs'; }), 'not on the home host form');
   assert.match(orgPage, /value="after-school-clubs"/);
-  assert.match(orgPage, /After School Clubs, Elementary clubs, 1 hour a week, 8 weeks for My First Babysitter's Club, 8 or 10 weeks for the others, in person \(\$200\)/);
+  assert.match(orgPage, /After School Clubs \(please list the club you want below\), Elementary clubs, 1 hour a week, typically 8-10 weeks, in person \(\$200 per participant\)/);
   assert.match(orgPage, /\$200 per participant/);
   assert.match(orgPage, /id="clubs-wrap"/);
   ['My First Babysitter\'s Club', 'Little Medics', 'Pet Sitter\'s Club', 'Snack Squad', 'Kid Boss Club',
@@ -333,7 +334,7 @@ test('a home form filled out for an organization is refused and pointed at the o
   assert.equal(errors[0].redirect, '/organization.html');
 });
 
-test('checklist starts at received, advances only when Lindsay marks a step, and never marks the email sent on its own', () => {
+test('checklist stays pending until a session is approved, then advances only when Lindsay marks a step', () => {
   const fresh = model.checklistAfterSubmit(true);
   assert.equal(fresh.checklist.received, true);
   assert.equal(fresh.checklist.session_created, true);
@@ -341,7 +342,8 @@ test('checklist starts at received, advances only when Lindsay marks a step, and
   assert.equal(fresh.status, 'session_created');
 
   const waiting = model.checklistAfterSubmit(false);
-  assert.equal(waiting.status, 'received');
+  assert.equal(waiting.status, 'pending');
+  assert.equal(waiting.checklist.session_created, false);
 
   const sent = model.applyChecklistUpdate(fresh.checklist, { email_sent: true });
   assert.equal(sent.status, 'done');
@@ -385,6 +387,22 @@ test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
   assert.doesNotMatch(html, /Archived/);
   assert.match(html, /Open confirmation draft/);
   assert.match(html, /SS-261102/);
+  assert.doesNotMatch(html, /Approve and create session/);
+  const pendingHtml = adminUi.renderList([{
+    id: 'req-pending',
+    kind: 'organization',
+    status: 'pending',
+    submitter_name: 'Alex Brown',
+    course: 'Safe Sitter®',
+    session_id: null,
+    session_code: null,
+    checklist: model.checklistAfterSubmit(false).checklist,
+    payload: orgBody(),
+    created_at: '2026-10-05T12:00:00Z'
+  }], 'open', []);
+  assert.match(pendingHtml, /Approve and create session/);
+  assert.match(pendingHtml, /Pending/);
+  assert.doesNotMatch(pendingHtml, /\u2014/);
   assert.equal(adminUi.openCount([{ checklist: { done: false } }, { checklist: { done: false, email_sent: true } }, { checklist: { done: true } }]), 1);
   assert.match(admin, /<option value="open" selected>Open<\/option>/);
   assert.match(admin, /<option value="done">Done<\/option>/);
@@ -408,43 +426,160 @@ test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
   assert.doesNotMatch(outlookSrc, /sendMail/);
 });
 
-test('submit stores the request, creates the session, keeps the confirmation a draft, and notifies only Lindsay', async () => {
+test('submitting creates no session, stores a pending request, keeps the confirmation a draft, and notifies only Lindsay', async () => {
   const saved = [];
-  const sessions = [];
   const notices = [];
   const drafts = [];
   const result = await submitClassRequest(orgBody(), {
-    listSessionCodes: async function () { return ['SS-261030']; },
-    insertSession: async function (row) { sessions.push(row); return row; },
+    listSessionCodes: async function () { throw new Error('submit must not read sessions'); },
+    insertSession: async function () { throw new Error('submit must not create a session'); },
     insertRequest: async function (row) { saved.push(row); return row; },
     updateRequest: async function () { return {}; },
     createOutlookDraft: async function (draft) { drafts.push(draft); return { created: false, reason: 'missing_credentials' }; },
     notifyLindsay: async function (record) { notices.push(record); return { sent: false, reason: 'missing_credentials' }; }
   });
   assert.equal(result.status, 200);
-  assert.equal(result.body.sessionCreated, true);
+  assert.equal(result.body.ok, true);
+  assert.equal(result.body.sessionCreated, false);
   assert.equal(result.body.outlookDraftCreated, false);
   assert.equal(result.body.draftStored, true);
-  assert.equal(sessions[0].code, 'SS-261102');
-  assert.equal(sessions[0].is_private, true);
-  assert.equal(sessions[0].price_override, 0);
-  assert.equal(sessions[0].extra_dates.length, 1);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].status, 'pending');
+  assert.equal(saved[0].session_id, null);
+  assert.equal(saved[0].session_code, null);
+  assert.equal(saved[0].checklist.session_created, false);
   assert.equal(saved[0].checklist.email_sent, false);
-  assert.equal(saved[0].status, 'session_created');
   assert.equal(drafts[0].to, 'alex@example.org');
   assert.match(drafts[0].body, /Warmly/);
+  assert.doesNotMatch(drafts[0].body, /SS-261102/);
+  assert.match(drafts[0].body, /I will send the private registration link when the class is confirmed/);
+  assert.doesNotMatch(drafts[0].body, /\u2014/);
   assert.equal(notices.length, 1);
+  assert.match(notices[0].draft_body, /not sent|Warmly|private registration link/i);
+  assert.equal(notices[0].session_code, null);
 
-  const skipped = await submitClassRequest(orgBody({ billing: 'split', portionText: 'call me' }), {
-    listSessionCodes: async function () { return []; },
-    insertSession: async function () { throw new Error('should not create a session'); },
+  const honeypot = await submitClassRequest(orgBody({ companyWebsite: 'http://spam.example' }), {
+    insertSession: async function () { throw new Error('spam must not create a session'); },
+    insertRequest: async function () { throw new Error('spam must not be saved'); },
+    createOutlookDraft: async function () { throw new Error('spam must not draft mail'); },
+    notifyLindsay: async function () { throw new Error('spam must not notify'); }
+  });
+  assert.equal(honeypot.status, 200);
+  assert.equal(honeypot.body.ok, true);
+  assert.equal(honeypot.body.id, null);
+  assert.equal(honeypot.body.sessionCreated, false);
+
+  const unclear = await submitClassRequest(orgBody({ billing: 'split', portionText: 'call me' }), {
+    insertSession: async function () { throw new Error('submit must not create a session'); },
     insertRequest: async function (row) { return row; },
     createOutlookDraft: async function () { return { created: false, reason: 'missing_credentials' }; },
     notifyLindsay: async function () { return { sent: false, reason: 'missing_credentials' }; }
   });
-  assert.equal(skipped.status, 200);
-  assert.equal(skipped.body.sessionCreated, false);
-  assert.equal(skipped.body.sessionSkippedReason, 'billing');
+  assert.equal(unclear.status, 200);
+  assert.equal(unclear.body.sessionCreated, false);
+  assert.equal(unclear.body.sessionSkippedReason, null);
+});
+
+function approvalMemory(payload) {
+  const row = {
+    id: 'req-1',
+    status: 'pending',
+    checklist: model.checklistAfterSubmit(false).checklist,
+    payload: payload,
+    session_id: null,
+    session_code: null,
+    draft_body: 'Draft before approval'
+  };
+  const sessions = [];
+  let chain = Promise.resolve();
+  const deps = {
+    getRequest: async function () { return Object.assign({}, row); },
+    claimRequest: async function (id, patch) {
+      let release;
+      const prev = chain;
+      chain = new Promise(function (resolve) { release = resolve; });
+      await prev;
+      try {
+        if (row.session_id) return null;
+        Object.assign(row, patch);
+        return Object.assign({}, row);
+      } finally {
+        release();
+      }
+    },
+    releaseClaim: async function (id, sessionId) {
+      if (row.session_id === sessionId) {
+        row.session_id = null;
+        row.session_code = null;
+      }
+      return Object.assign({}, row);
+    },
+    listSessionCodes: async function () {
+      return ['SS-EXISTING'].concat(sessions.map(function (s) { return s.code; }));
+    },
+    insertSession: async function (session) {
+      sessions.push(session);
+      return session;
+    },
+    updateSession: async function () { throw new Error('approving must not change an existing session'); },
+    updateRequest: async function (id, patch) {
+      Object.assign(row, patch);
+      return Object.assign({}, row);
+    },
+    createOutlookDraft: async function (draft) {
+      row.outlook_web_link = 'https://outlook.office.com/mail/draft/approved';
+      return { created: true, id: 'draft-approved', webLink: row.outlook_web_link, body: draft.body };
+    }
+  };
+  return { row: row, sessions: sessions, deps: deps };
+}
+
+test('approving a pending request creates exactly one session and a second click does not create another', async () => {
+  const mem = approvalMemory(hostBody());
+  const first = await approveClassRequest('req-1', mem.deps);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.ok, true);
+  assert.equal(first.body.created, true);
+  assert.equal(mem.sessions.length, 1);
+  assert.equal(mem.sessions[0].code, 'SS-261102');
+  assert.equal(mem.sessions[0].is_private, true);
+  assert.equal(mem.sessions[0].price_override, null);
+  assert.equal(mem.sessions[0].id, first.body.sessionId);
+  assert.equal(mem.row.session_id, first.body.sessionId);
+  assert.equal(mem.row.session_code, 'SS-261102');
+  assert.equal(mem.row.status, 'session_created');
+  assert.equal(mem.row.checklist.session_created, true);
+  assert.match(mem.row.draft_body, /SS-261102/);
+  assert.match(mem.row.draft_body, /register\.html\?code=SS-261102/);
+  assert.doesNotMatch(mem.row.draft_body, /\u2014/);
+  assert.equal(mem.row.outlook_web_link, 'https://outlook.office.com/mail/draft/approved');
+
+  const second = await approveClassRequest('req-1', mem.deps);
+  assert.equal(second.status, 200);
+  assert.equal(second.body.created, false);
+  assert.equal(second.body.sessionId, first.body.sessionId);
+  assert.equal(second.body.sessionCode, 'SS-261102');
+  assert.equal(mem.sessions.length, 1);
+
+  const raced = approvalMemory(orgBody());
+  const both = await Promise.all([
+    approveClassRequest('req-1', raced.deps),
+    approveClassRequest('req-1', raced.deps)
+  ]);
+  assert.equal(raced.sessions.length, 1);
+  assert.equal(raced.sessions[0].code, 'SS-261102');
+  assert.equal(raced.sessions[0].price_override, 0);
+  assert.equal(raced.sessions[0].is_private, true);
+  const createdFlags = both.map(function (result) { return result.body.created; }).sort();
+  assert.deepEqual(createdFlags, [false, true]);
+  assert.equal(both[0].body.sessionId, both[1].body.sessionId);
+
+  const blocked = approvalMemory(orgBody({ billing: 'split', portionText: 'call me' }));
+  const denied = await approveClassRequest('req-1', blocked.deps);
+  assert.equal(denied.status, 400);
+  assert.equal(denied.body.reason, 'billing');
+  assert.equal(blocked.sessions.length, 0);
+  assert.equal(blocked.row.session_id, null);
 });
 
 test('Graph draft creation posts a message and does not send it', async () => {
@@ -542,6 +677,22 @@ test('a Spanish request on either public form flags the auto-created session', (
   const no = model.normalizeSubmission(hostBody());
   const plan2 = model.buildSessionRow(no, [], { id: 's2', requestId: 'r2', createdAt: 1 });
   assert.equal(plan2.row.requires_spanish, false);
+});
+
+test('approving requires an admin and does not create a session when unauthenticated', async () => {
+  delete require.cache[require.resolve('../api/class-requests-approve')];
+  const handler = require('../api/class-requests-approve');
+  const res = { statusCode: 0, headers: {}, body: '', setHeader: function (k, v) { this.headers[k] = v; }, end: function (b) { this.body = b || ''; } };
+  await handler({ method: 'POST', headers: {} }, res);
+  assert.equal(res.statusCode, 401);
+  const adminSrc = fs.readFileSync(path.join(root, 'js/class-requests-admin.js'), 'utf8');
+  const submitSrc = fs.readFileSync(path.join(root, 'lib/class-request-submit.js'), 'utf8');
+  const approveSrc = fs.readFileSync(path.join(root, 'lib/class-request-approve.js'), 'utf8');
+  assert.match(adminSrc, /Approve and create session/);
+  assert.match(adminSrc, /\/api\/class-requests-approve/);
+  assert.doesNotMatch(submitSrc, /insertSession|buildSessionRow/);
+  assert.doesNotMatch(approveSrc, /sessions\?id=eq/);
+  assert.match(fs.readFileSync(path.join(root, 'migrations/20261021_class_request_pending.sql'), 'utf8'), /'pending'/);
 });
 
 test('the Spanish session flag has the same column shape as the other requirement flags', () => {
