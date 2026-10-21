@@ -17,6 +17,7 @@ main{max-width:760px;margin:0 auto;padding:40px 6vw 72px}
 .card h2{font-family:'Montserrat',sans-serif;font-size:20px;margin:0 0 8px;color:#1E3161;font-weight:800;line-height:1.25}
 .lead{color:var(--text);margin:0 0 16px;font-size:16px;line-height:1.55}
 .lead a{color:#1E3161;font-weight:700}
+[hidden]{display:none!important}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .field label,.check-title{font-size:14px;font-weight:700;color:#1E3161}
 .hint{font-size:13px;color:var(--muted);font-weight:500}
