@@ -82,8 +82,14 @@
     return null;
   }
 
+  // Host inquiries never offer virtual courses (Oct 2026: Lindsay removed all
+  // virtual options from the host-a-class form). Organizations can still book
+  // virtual courses through the organization form.
   function coursesFor(kind) {
-    return COURSES.filter(function (c) { return kind === 'organization' ? c.org : c.host; });
+    return COURSES.filter(function (c) {
+      if (kind === 'organization') return c.org;
+      return c.host && !c.virtual;
+    });
   }
 
   function courseOptionLabel(c) {

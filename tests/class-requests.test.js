@@ -86,7 +86,7 @@ test('host course choices on the page match the catalog, and organizations are s
   assert.match(register, /Need help finding a class\? <a href="mailto:lindsay@mindfulbeginnings\.org">Contact us<\/a>\./);
 });
 
-test('Social Ready is $45 per kid on both the home host and organization course menus', () => {
+test('Social Ready is $45 per kid; virtual courses are organization-only, never on the home host menu', () => {
   ['social-ready', 'social-ready-virtual'].forEach(function (key) {
     const course = model.courseByKey(key);
     assert.equal(course.course, 'Social Ready');
@@ -96,13 +96,17 @@ test('Social Ready is $45 per kid on both the home host and organization course 
     assert.equal(course.abbr, 'SOC');
     const label = model.courseOptionLabel(course);
     assert.match(label, /\$45/);
-    assert.match(hostPage, new RegExp('value="' + key + '"'));
     assert.match(orgPage, new RegExp('value="' + key + '"'));
-    assert.match(hostPage, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(orgPage, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
   assert.equal(model.courseByKey('social-ready').virtual, undefined);
   assert.equal(model.courseByKey('social-ready-virtual').virtual, true);
+  // Oct 2026: virtual options removed from host inquiries — the in-person
+  // course stays on the host menu, no virtual course appears there.
+  assert.match(hostPage, /value="social-ready"/);
+  assert.doesNotMatch(hostPage, /value="[a-z0-9-]*-virtual"/);
+  assert.equal(model.coursesFor('host').filter(c => c.virtual).length, 0);
+  assert.ok(model.coursesFor('organization').some(c => c.virtual), 'org form keeps virtual courses');
 
   const host = model.normalizeSubmission(hostBody({ courseKey: 'social-ready' }));
   assert.equal(model.validate(host).length, 0);
