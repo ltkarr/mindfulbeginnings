@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instructor Application</title>
+<meta name="description" content="Apply to become a Mindful Beginnings instructor.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/site.css?v=3">
+</head>
+<body>
+<header class="mb-header">
+<a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo-navy.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark"><span class="mb-lockup">Mindful <span class="mb-lockup-script">Beginnings</span></span><span class="mb-tagline">Safety and Confidence for All Ages</span></span></a>
+<button class="mb-nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+<nav class="mb-nav" id="primary-nav" aria-label="Primary">
+<a href="/">Home</a>
+<a href="/about">About</a>
+<a href="/classes-catalog">Classes</a>
+<a href="/host-a-class.html">Host a Class</a>
+<a href="/girl-scouts.html">Girl Scouts</a>
+<a href="/after-school-clubs.html">After School Clubs</a>
+<a href="/cpr-certification">CPR Certification</a>
+<a href="/contact.html">Contact</a>
+<a class="mb-btn mb-btn-gold mb-btn-sm" href="/register.html">Register</a>
+</nav>
+</header>
+
+<section class="mb-hero">
+<div class="mb-hero-inner">
+<h1 class="mb-script-title">join our team</h1>
+<p class="mb-hero-sub">Instructor Application</p>
+</div>
+</section>
+
+<section class="mb-section mb-section-white">
+<div class="mb-wrap">
+
+<div class="mb-callout">
+<p><strong>Before you apply, please note our requirements:</strong></p>
+<ul>
+<li>A college degree is required.</li>
+<li>A background in education and/or nursing is strongly preferred.</li>
+<li>Two professional references are required.</li>
+<li>A cover letter or résumé is required.</li>
+</ul>
+<p>Applications missing any of the above will not be considered. Should you be invited to interview with us, we will contact you.</p>
+</div>
+
+<form class="mb-form" id="instructor-app-form" novalidate>
+<input type="hidden" name="_subject" value="New instructor application - Mindful Beginnings">
+
+<h2 class="mb-form-h2">About you</h2>
+<div class="mb-field">
+<label for="app-name">Full name</label>
+<input id="app-name" name="name" type="text" required autocomplete="name">
+</div>
+<div class="mb-field">
+<label for="app-email">Email</label>
+<input id="app-email" name="email" type="email" required autocomplete="email">
+</div>
+<div class="mb-field">
+<label for="app-phone">Cell phone</label>
+<input id="app-phone" name="phone" type="tel" required autocomplete="tel">
+</div>
+
+<h2 class="mb-form-h2">Education and background</h2>
+<div class="mb-field">
+<label for="app-degree">College degree <span class="hint">School, degree, and major (required)</span></label>
+<input id="app-degree" name="degree" type="text" required placeholder="e.g. University of Maryland, B.S. Elementary Education">
+</div>
+<div class="mb-field">
+<label for="app-background">Background in education and/or nursing <span class="hint">Tell us about your relevant experience (required)</span></label>
+<textarea id="app-background" name="background" required placeholder="Teaching, nursing, childcare, curriculum development..."></textarea>
+</div>
+
+<h2 class="mb-form-h2">References <span class="hint">Two professional references required</span></h2>
+<div class="mb-ref">
+<h3>Reference 1</h3>
+<div class="mb-field">
+<label for="app-ref1-name">Name</label>
+<input id="app-ref1-name" name="ref1_name" type="text" required>
+</div>
+<div class="mb-field">
+<label for="app-ref1-rel">Relationship <span class="hint">e.g. former supervisor, colleague</span></label>
+<input id="app-ref1-rel" name="ref1_relationship" type="text" required>
+</div>
+<div class="mb-field">
+<label for="app-ref1-phone">Phone</label>
+<input id="app-ref1-phone" name="ref1_phone" type="tel" required>
+</div>
+<div class="mb-field">
+<label for="app-ref1-email">Email</label>
+<input id="app-ref1-email" name="ref1_email" type="email" required>
+</div>
+</div>
+<div class="mb-ref">
+<h3>Reference 2</h3>
+<div class="mb-field">
+<label for="app-ref2-name">Name</label>
+<input id="app-ref2-name" name="ref2_name" type="text" required>
+</div>
+<div class="mb-field">
+<label for="app-ref2-rel">Relationship <span class="hint">e.g. former supervisor, colleague</span></label>
+<input id="app-ref2-rel" name="ref2_relationship" type="text" required>
+</div>
+<div class="mb-field">
+<label for="app-ref2-phone">Phone</label>
+<input id="app-ref2-phone" name="ref2_phone" type="tel" required>
+</div>
+<div class="mb-field">
+<label for="app-ref2-email">Email</label>
+<input id="app-ref2-email" name="ref2_email" type="email" required>
+</div>
+</div>
+
+<h2 class="mb-form-h2">Cover letter or résumé <span class="hint">At least one required</span></h2>
+<div class="mb-field">
+<label for="app-cover">Cover letter <span class="hint">Tell us why you want to teach with Mindful Beginnings</span></label>
+<textarea id="app-cover" name="cover_letter" placeholder="Dear Mindful Beginnings..."></textarea>
+</div>
+<div class="mb-field">
+<label for="app-resume">Résumé <span class="hint">Paste your résumé here</span></label>
+<textarea id="app-resume" name="resume" placeholder="Paste your résumé text here..."></textarea>
+</div>
+
+<div class="mb-field">
+<label for="app-else">Anything else you would like us to know? <span class="hint">Optional</span></label>
+<textarea id="app-else" name="anything_else"></textarea>
+</div>
+
+<div id="app-error" class="mb-form-error" hidden></div>
+<div>
+<button class="mb-btn mb-btn-navy" type="submit" id="app-submit">Submit application</button>
+</div>
+</form>
+<div id="app-success" class="mb-form-success" hidden>
+<h2 class="mb-script-title">thank you</h2>
+<p>Your application has been received. Should you be invited to interview with us, we will contact you.</p>
+<p><a href="/">Back to the homepage</a></p>
+</div>
+
+</div>
+</section>
+
+<footer class="mb-footer">
+<div class="mb-footer-inner">
+<p class="mb-footer-name">Serving the DC metro area</p>
+<p class="mb-footer-tag">Mindful Beginnings LLC</p>
+</div>
+</footer>
+
+<script src="/nav.js" defer></script>
+<script>
+(function(){
+  var form = document.getElementById('instructor-app-form');
+  var errBox = document.getElementById('app-error');
+  var okBox = document.getElementById('app-success');
+  var btn = document.getElementById('app-submit');
+  function val(id){ return document.getElementById(id).value.trim(); }
+  function showErr(msg){ errBox.hidden = false; errBox.textContent = msg; errBox.focus(); window.scrollTo({top: errBox.offsetTop - 100, behavior: 'smooth'}); }
+  function okEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    errBox.hidden = true;
+
+    var name = val('app-name'), email = val('app-email'), phone = val('app-phone');
+    var degree = val('app-degree'), background = val('app-background');
+    var r1n = val('app-ref1-name'), r1r = val('app-ref1-rel'), r1p = val('app-ref1-phone'), r1e = val('app-ref1-email');
+    var r2n = val('app-ref2-name'), r2r = val('app-ref2-rel'), r2p = val('app-ref2-phone'), r2e = val('app-ref2-email');
+    var cover = val('app-cover'), resume = val('app-resume');
+
+    if(!name) return showErr('Please add your full name.');
+    if(!okEmail(email)) return showErr('Please add a valid email address.');
+    if((phone.match(/\d/g)||[]).length < 7) return showErr('Please add your phone number.');
+    if(!degree) return showErr('Please add your college degree. A degree is required.');
+    if(!background) return showErr('Please tell us about your background in education and/or nursing.');
+    if(!r1n || !r1r || !r1p || !r1e) return showErr('Please complete all fields for Reference 1.');
+    if(!okEmail(r1e)) return showErr('Please add a valid email for Reference 1.');
+    if(!r2n || !r2r || !r2p || !r2e) return showErr('Please complete all fields for Reference 2.');
+    if(!okEmail(r2e)) return showErr('Please add a valid email for Reference 2.');
+    if(!cover && !resume) return showErr('Please add a cover letter or paste your résumé. At least one is required.');
+
+    btn.disabled = true; btn.textContent = 'Submitting...';
+    var data = {
+      _subject: 'New instructor application - Mindful Beginnings',
+      name: name, email: email, phone: phone,
+      degree: degree, background: background,
+      ref1_name: r1n, ref1_relationship: r1r, ref1_phone: r1p, ref1_email: r1e,
+      ref2_name: r2n, ref2_relationship: r2r, ref2_phone: r2p, ref2_email: r2e,
+      cover_letter: cover, resume: resume,
+      anything_else: val('app-else')
+    };
+    fetch('https://formspree.io/f/mnpnnebe', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function(r){
+      if(!r.ok) throw new Error('send failed');
+      form.hidden = true; okBox.hidden = false; okBox.scrollIntoView({behavior:'smooth', block:'center'});
+    }).catch(function(){
+      btn.disabled = false; btn.textContent = 'Submit application';
+      showErr('Something went wrong. Please try again or email your application to lindsay@mindfulbeginnings.org.');
+    });
+  });
+})();
+</script>
+</body>
+</html>
