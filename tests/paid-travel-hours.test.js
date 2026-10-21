@@ -14,8 +14,8 @@ const sql = fs.readFileSync(path.join(root, 'migrations/20261020_paid_travel_hou
 
 const GSFA = 'Girl Scouts — First Aid Badge Workshop';
 const INTRO = 'Intro to Babysitting';
-const PHRASE_IB = '4 paid hours (1 hr class + 3 hrs travel) at your rate';
-const PHRASE_GSFA = '4 paid hours (1.5 hrs class + 2.5 hrs travel) at your rate';
+const PHRASE_IB = '4 paid hours at your rate';
+const PHRASE_GSFA = '4 paid hours at your rate';
 
 function extractFn(src, name) {
   const start = src.indexOf('function ' + name + '(');
@@ -110,7 +110,7 @@ test('a Girl Scout workshop stays on the 2.5-hour job post until this session se
   assert.equal(api.sessionTeachingHours(s), 1);
   assert.equal(api.instrBaseFee(s, standard), 125);
   assert.equal(api.paidHoursBreakdown(s), '');
-  assert.match(api.openJobPayText(s), /your hourly pay × 2\.5 hours \(1 hour of class \+ 1\.5 hours travel\)/);
+  assert.match(api.openJobPayText(s), /your hourly pay \u00d7 2\.5 hours/);
   assert.match(config, /'Girl Scouts — First Aid Badge Workshop':\{[^}]*hours:1/);
   assert.match(config, /'Intro to Babysitting':\{[^}]*hours:1/);
 });

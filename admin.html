@@ -2226,7 +2226,7 @@ function payHourShort(n){
 }
 // Empty unless this session replaces the usual travel hour and extra 30
 // minutes, and a flat instr_pay_override is not set. Example:
-// "4 paid hours (1 hr class + 3 hrs travel) at your rate".
+// "4 paid hours at your rate".
 function paidHoursBreakdown(s){
   if(!s)return '';
   if(s.instrPayOverride!=null&&s.instrPayOverride!==''&&isFinite(Number(s.instrPayOverride)))return '';
@@ -2236,7 +2236,7 @@ function paidHoursBreakdown(s){
   const total=Math.round((teach+travel)*100)/100;
   const totalNum=Number.isInteger(total)?String(total):String(total);
   const totalLabel=totalNum+(total===1?' paid hour':' paid hours');
-  return totalLabel+' ('+payHourShort(teach)+' class + '+payHourShort(travel)+' travel) at your rate';
+  return totalLabel+' at your rate';
 }
 // Per-instructor pay for a session. If the session has a custom instructor-pay amount
 // set (entered in the session form), that amount is what each instructor is paid.
@@ -11480,7 +11480,7 @@ function openJobPayText(s,instr){
   const h=openJobHourlyHours(s);
   if(perPerson)return 'Instructor pay: '+fmt(Number(instr.hourlyRate)*h.total);
   if(h.virtual)return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + '+hourLabel(h.add)+', virtual, no travel hour)';
-  return 'Instructor pay: your hourly pay × '+hourLabel(h.total)+' ('+hourLabel(h.courseHours)+' of class + 1.5 hours travel)';
+  return 'Instructor pay: your hourly pay × '+hourLabel(h.total);
 }
 // A two-day class stores day one on the session and the later day in extra_days
 // (older rows only have extra_dates). A blank extra-day time means "same as day one".

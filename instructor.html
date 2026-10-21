@@ -597,7 +597,7 @@ function paidHoursBreakdown(s){
   const total=Math.round((teach+travel)*100)/100;
   const totalNum=Number.isInteger(total)?String(total):String(total);
   const totalLabel=totalNum+(total===1?' paid hour':' paid hours');
-  return totalLabel+' ('+payHourShort(teach)+' class + '+payHourShort(travel)+' travel) at your rate';
+  return totalLabel+' at your rate';
 }
 // Per-instructor pay for a session. Mirrors admin.html's instrBaseFee():
 // 1) a session-level pay override (always set for custom jobs) wins,
