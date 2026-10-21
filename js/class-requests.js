@@ -308,11 +308,41 @@
   }
 
   function parseUsAddress(raw) {
-    var text = clip(raw, 1000);
+    var text = clip(raw, 1000).trim();
     if (!text) return { location: '', hostAddress: '', city: '', state: '', zip: '', isVirtual: false, raw: '' };
     if (/^virtual\b/i.test(text) && text.length < 80) {
       return { location: 'Virtual', hostAddress: '', city: '', state: '', zip: '', isVirtual: true, raw: text };
     }
+    // Work backwards: ZIP, then state, then split the rest into street + city.
+    // Handles "123 Maple St, Bethesda, MD 20814", "123 Maple St Bethesda MD 20814",
+    // "123 Maple St\nBethesda, MD 20814", etc.
+    var zip = '', state = '', city = '', street = text;
+    var zipM = text.match(/(\d{5}(?:-\d{4})?)\s*$/);
+    if (zipM) {
+      zip = zipM[1];
+      street = text.slice(0, zipM.index).trim().replace(/[,\s]+$/, '');
+    }
+    var stM = street.match(/([A-Za-z]{2})\s*$/);
+    if (stM) {
+      state = stM[1].toUpperCase();
+      street = street.slice(0, stM.index).trim().replace(/[,\s]+$/, '');
+    }
+    var commaIdx = street.lastIndexOf(',');
+    if (commaIdx >= 0) {
+      city = street.slice(commaIdx + 1).trim();
+      street = street.slice(0, commaIdx).trim();
+    } else if (street) {
+      // No comma: take the last word as the city (multi-word cities need a comma).
+      var parts = street.split(/\s+/);
+      if (parts.length >= 2) {
+        city = parts.pop();
+        street = parts.join(' ');
+      }
+    }
+    if (street && city && state && zip) {
+      return { location: street, hostAddress: street, city: city, state: state, zip: zip, isVirtual: false, raw: text };
+    }
+    // Fallback: keep the old comma-strict parse for anything unusual.
     var m = text.match(/^(.*?)(?:,|\n)\s*([^,\n]+?),\s*([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)?\s*$/);
     if (m) {
       return {
@@ -325,19 +355,7 @@
         raw: text
       };
     }
-    var tail = text.match(/^(.*?)[,\s]+([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)\s*$/);
-    if (tail && tail[1].trim()) {
-      return {
-        location: tail[1].trim(),
-        hostAddress: tail[1].trim(),
-        city: '',
-        state: tail[2].toUpperCase(),
-        zip: tail[3] || '',
-        isVirtual: false,
-        raw: text
-      };
-    }
-    return { location: text, hostAddress: text, city: '', state: '', zip: '', isVirtual: false, raw: text };
+    return { location: text, hostAddress: text, city: '', state: '', zip: zip, isVirtual: false, raw: text };
   }
 
   function splitPrices(catalog, orgRaw) {
