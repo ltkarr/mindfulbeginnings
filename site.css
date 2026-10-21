@@ -2,6 +2,15 @@
    Montserrat, navy #1E3161, brand gold #C7A24A, button gold #EFC75A,
    cream #F5F2EA. Sentence-case headings, no forced uppercase. */
 
+/* Self-hosted Caveat (was flaky via Google Fonts on iOS) */
+@font-face{
+  font-family:'Caveat';
+  font-style:normal;
+  font-weight:600 700;
+  font-display:swap;
+  src:url('/fonts/caveat-latin.woff2') format('woff2');
+}
+
 :root{
   --navy:#1E3161;
   --navy-dark:#0F1D3F;
