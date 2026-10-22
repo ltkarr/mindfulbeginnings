@@ -292,6 +292,19 @@ test('the public forms offer Vanessa in Vienna and still store a referral answer
   assert.match(register, /<option>Vanessa in Vienna<\/option>/);
   assert.match(host, /<option>Vanessa in Vienna<\/option>/);
   assert.match(organization, /<option>Vanessa in Vienna<\/option>/);
+  const optionLists = [];
+  (function walk(dir) {
+    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (ent.name === 'node_modules' || ent.name === '.git' || ent.name === 'tests') continue;
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) walk(full);
+      else if (/\.(html|js|json)$/.test(ent.name)) optionLists.push(full);
+    }
+  })(root);
+  for (const file of optionLists) {
+    const src = fs.readFileSync(file, 'utf8');
+    assert.doesNotMatch(src, /<option[^>]*>\s*Nextdoor\s*<\/option>/i, path.relative(root, file));
+  }
   assert.match(host, /name="referral"/);
   assert.match(organization, /name="referral"/);
   assert.match(form, /function referralAnswer/);
