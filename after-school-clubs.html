@@ -21,15 +21,17 @@
 .glance strong{color:#1E3161;font-size:13px;text-transform:uppercase;letter-spacing:.5px;line-height:1.5}
 .glance li span{line-height:1.55}
 @media(max-width:640px){.glance{grid-template-columns:1fr}.glance li{grid-template-columns:96px 1fr}}
-.price-band{background:#1E3161;color:#fff;border-radius:14px;padding:22px 26px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.price-band{background:#1E3161;color:#fff;border-radius:14px;padding:14px 20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .price-band .amt{font-size:30px;font-weight:800;color:#EFC75A}
 .price-band p{margin:0;max-width:640px}
 @media(max-width:640px){.club-card{flex-direction:column}.club-badge{width:120px;height:120px}}
 .tight{padding-top:30px!important;padding-bottom:30px!important}
 .club-card h3{margin-top:6px}
-.step-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:0 0 26px;padding:0;list-style:none}
-.step-grid li{background:#fff;border-radius:16px;padding:18px;display:flex;gap:14px;align-items:flex-start;box-shadow:0 1px 4px rgba(30,49,97,.08)}
-.step-num{width:38px;height:38px;flex:none;border-radius:50%;background:#1E3161;color:#EFC75A;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center}
+.step-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 32px;margin:0 0 20px;padding:0;list-style:none;max-width:860px}
+.step-grid li{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(30,49,97,.12)}
+.step-grid li p{margin:0;line-height:1.55}
+.step-num{width:30px;height:30px;flex:none;border-radius:50%;background:#1E3161;color:#EFC75A;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+@media(max-width:640px){.step-grid{grid-template-columns:1fr}}
 .step-grid p{margin:0}
 </style>
 </head>
