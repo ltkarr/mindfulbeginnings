@@ -108,27 +108,27 @@ test('couple roster lists both adults from the partner note', () => {
   ], { when: 'Saturday' });
   assert.match(html, /Alex Rivera/);
   assert.match(html, /Jordan Lee/);
-  assert.match(html, /2 participants registered/);
+  assert.match(html, /1 participant registered/);
   assert.equal(sandbox.partnerNameOf({ notes: '[Partner: Jordan Lee]' }), 'Jordan Lee');
   assert.equal(sandbox.notesWithoutPartner('[Partner: Jordan Lee] allergy'), 'allergy');
   assert.equal(sandbox.notesWithPartner('allergy', 'Jordan Lee'), '[Partner: Jordan Lee] allergy');
 });
 
-test('Baby Ready is $195 per person, $390 per couple, and consumes two people-seats', () => {
-  assert.equal(booking.seatsPerRegistration('Baby Ready'), 2);
+test('Baby Ready is $195 per person before the Oct 14 catalog and one registration is one person', () => {
+  assert.equal(booking.seatsPerRegistration('Baby Ready'), 1);
   assert.equal(booking.seatsPerRegistration('Care Ready'), 1);
-  assert.equal(booking.seatsUsed(1, 'Baby Ready'), 2);
-  assert.equal(booking.seatsUsed(5, 'Baby Ready'), 10);
-  assert.equal(booking.seatsRemaining(12, 5, 'Baby Ready'), 2);
+  assert.equal(booking.seatsUsed(1, 'Baby Ready'), 1);
+  assert.equal(booking.seatsUsed(5, 'Baby Ready'), 5);
+  assert.equal(booking.seatsRemaining(12, 5, 'Baby Ready'), 7);
   assert.equal(booking.bookingFits(12, 5, 'Baby Ready'), true);
-  assert.equal(booking.bookingFits(12, 6, 'Baby Ready'), false);
+  assert.equal(booking.bookingFits(12, 12, 'Baby Ready'), false);
   assert.equal(booking.bookingFits(12, 6, 'Safe Sitter®'), true);
-  assert.equal(booking.registrationRowCap(12, 'Baby Ready'), 6);
-  assert.equal(booking.registrationRowCap(11, 'Baby Ready'), 5);
+  assert.equal(booking.registrationRowCap(12, 'Baby Ready'), 12);
+  assert.equal(booking.registrationRowCap(11, 'Baby Ready'), 11);
   assert.equal(booking.registrationRowCap(16, 'Care Ready'), 16);
   assert.equal(booking.peopleCount([
     { studentName: 'Alex Rivera', notes: '[Partner: Jordan Lee]' }
-  ], 'Baby Ready'), 2);
+  ], 'Baby Ready'), 1);
   assert.equal(booking.isAdultCourse('Grandparents: Getting Started'), true);
   assert.equal(booking.isAdultCourse('Care Ready'), true);
   assert.equal(booking.isAdultCourse('Baby Ready'), true);
@@ -140,20 +140,20 @@ test('Baby Ready is $195 per person, $390 per couple, and consumes two people-se
   assert.equal(baby.price, 195);
   assert.equal(baby.priceNew, 195);
   assert.equal(baby.maxStudents, 12);
-  assert.equal(baby.seatsPerRegistration, 2);
+  assert.equal(baby.seatsPerRegistration, undefined);
   assert.equal(baby.adult, true);
   assert.equal(cfg.MAX_STUDENTS['Baby Ready'], 12);
   assert.equal(cfg.MAX_STUDENTS['Care Ready'], 16);
   const beforeCatalog = Date.parse('2026-10-14T04:00:00Z') - 1;
   const person = cfg.getSessionBasePrice('Baby Ready', '2026-10-04', beforeCatalog);
   assert.equal(person, 195);
-  assert.equal(person * booking.seatsPerRegistration('Baby Ready'), 390);
+  assert.equal(person * booking.seatsPerRegistration('Baby Ready'), 195);
   assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-12-01', Date.parse('2026-10-14T04:00:00Z')), 185);
   assert.equal(cfg.getSessionBasePrice('Baby Ready', '2027-03-01', Date.parse('2026-01-01')), 195);
   assert.equal(cfg.getSessionBasePrice('Baby Ready', '2026-11-01', Date.parse('2026-08-27T04:00:00Z')), 195);
 });
 
-test('Baby Ready revenue and checkout use $195 per person and $390 per couple', () => {
+test('Baby Ready revenue and checkout use the per-person rate', () => {
   const names = [
     'regEffectivePrice', 'sessionListPrice', 'sessionBasePrice', 'familyPrice', 'orgPortionAmount',
     'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount', 'isLiveReg'
@@ -168,8 +168,8 @@ test('Baby Ready revenue and checkout use $195 per person and $390 per couple', 
 
   const session = { id: 'br', course: 'Baby Ready', date: '2026-11-01', createdAt: Date.now(), priceOverride: null };
   assert.equal(sandbox.familyPrice(session), 195);
-  assert.equal(sandbox.sessionListPrice(session), 390);
-  assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: null }, session), 390);
+  assert.equal(sandbox.sessionListPrice(session), 195);
+  assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: null }, session), 195);
   assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: 225 }, session), 225);
 
   const overridden = Object.assign({}, session, { priceOverride: 100 });
@@ -186,8 +186,8 @@ test('Baby Ready revenue and checkout use $195 per person and $390 per couple', 
     { sessionId: 'br', payStatus: 'paid' },
     { sessionId: 'br', payStatus: 'host' }
   ];
-  assert.equal(sandbox.orgRevenueHeadcount(orgLive), 2);
-  assert.equal(sandbox.orgBillAmount(orgLive), 100);
+  assert.equal(sandbox.orgRevenueHeadcount(orgLive), 1);
+  assert.equal(sandbox.orgBillAmount(orgLive), 50);
 
   const regSandbox = {
     currentSession: { course: 'Baby Ready', date: '2026-11-01', createdAt: Date.now(), priceOverride: null },
@@ -197,7 +197,7 @@ test('Baby Ready revenue and checkout use $195 per person and $390 per couple', 
   };
   vm.createContext(regSandbox);
   vm.runInContext(extractFunction(register, 'getEffectivePrice'), regSandbox);
-  assert.equal(regSandbox.getEffectivePrice(), 390);
+  assert.equal(regSandbox.getEffectivePrice(), 195);
   regSandbox.currentSession = Object.assign({}, regSandbox.currentSession, { priceOverride: 250 });
   assert.equal(regSandbox.getEffectivePrice(), 250);
   regSandbox.currentSession = { course: 'Safe Sitter®', date: '2026-11-01', createdAt: Date.now(), priceOverride: null };
@@ -213,10 +213,10 @@ test('session codes keep Care Ready off Campus Ready\'s CR abbreviation', () => 
   assert.notEqual(sandbox.courseAbbr('Care Ready'), sandbox.courseAbbr('Campus Ready: Safety Skills for College Life'));
 });
 
-test('register and instructor pages book Baby Ready as an adult couple', () => {
+test('register and instructor pages book Baby Ready as one adult', () => {
   assert.match(register, /id="p2-first"/);
   assert.match(register, /id="couple-notice"/);
-  assert.match(register, /One registration, two adults/);
+  assert.doesNotMatch(register, /One registration, two adults/);
   assert.match(register, /registrationRowCap\(peopleCap/);
   assert.match(register, /'Baby Ready':195/);
   assert.doesNotMatch(register, /'Baby Ready':225/);
@@ -231,6 +231,6 @@ test('register and instructor pages book Baby Ready as an adult couple', () => {
   assert.match(admin, /id="m-partner-wrap"/);
   assert.match(admin, /id="m-par-label"/);
   assert.match(instructor, /\$\{adult\?'':'<th>Grade<\/th><th>Parent \/ guardian<\/th>'\}/);
-  assert.match(instructor, /seatsPerRegistration:2/);
+  assert.doesNotMatch(instructor, /seatsPerRegistration:2/);
   assert.match(instructor, /function printRoster/);
 });

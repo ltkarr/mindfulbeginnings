@@ -230,7 +230,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
 
   <div class="screen" id="screen-info">
   <div class="sess-banner" id="banner-info"></div>
-  <div id="couple-notice" class="notice-box" style="display:none;margin-bottom:16px"><strong>One registration, two adults.</strong> The price is $195 per person. A couple registration is two people and costs $390. Enter both names so both adults appear on the class roster.</div>
+  <div id="couple-notice" class="notice-box" style="display:none;margin-bottom:16px"></div>
   <div id="virtual-class-notice" class="notice-box" style="display:none;margin-bottom:16px"></div>
   <div class="trust-box" id="trust-box">
     <div class="trust-title">Before you continue</div>
@@ -769,12 +769,33 @@ if(typeof getSessionBasePrice==='undefined'){
     {from:'2026-08-12T04:00:00Z',   // midnight ET, night of Aug 11 2026
      prices:{'Safe@Home':85,'Grandparents: Getting Started':185}}
   ];
+  const PRICE_ALIASES={
+    'Safe Sitter® Grandparents: Getting Started':'Grandparents: Getting Started',
+    'Stay Ready™: Choking Rescue, CPR, and Seizure Response':'Stay Ready: Choking Rescue and CPR',
+    'Season Ready™: Safety Skills for Student Athletes':'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes'
+  };
+  const CUSTOM_QUOTE_FROM='2026-10-22T04:00:00Z';
+  const CUSTOM_QUOTE={'Girl Scouts — First Aid Badge Workshop':true,'Girl Scout Badge Class':true,'Group CPR Certification for Workplaces':true};
+  function priceKey(course){
+    const n=String(course||'');
+    return PRICE_ALIASES[n]||n;
+  }
   window.getSessionBasePrice=function(course,dateStr,createdAt){
+    const key=priceKey(course);
+    if(key==='Group CPR Certification for Workplaces')return null;
+    if(CUSTOM_QUOTE[key]&&createdAt!=null){
+      const qt=typeof createdAt==='number'?createdAt:Date.parse(createdAt);
+      if(!isNaN(qt)&&qt>=Date.parse(CUSTOM_QUOTE_FROM))return null;
+    }
+    const names=[course,key];
     if(createdAt!=null){
       const ct=typeof createdAt==='number'?createdAt:Date.parse(createdAt);
       if(!isNaN(ct)){
         for(const chg of LATER_PRICE_CHANGES){
-          if(ct>=Date.parse(chg.from)&&chg.prices[course]!=null)return chg.prices[course];
+          if(ct<Date.parse(chg.from))continue;
+          for(let i=0;i<names.length;i++){
+            if(chg.prices[names[i]]!=null)return chg.prices[names[i]];
+          }
         }
       }
     }
@@ -785,11 +806,12 @@ if(typeof getSessionBasePrice==='undefined'){
       isNew=!isNaN(t)&&t>=Date.parse(NEW_PRICING_EFFECTIVE);
     }
     const table=isNew?(year>=2027?NEW_PRICES_2027:NEW_PRICES_2026):(year>=2027?OLD_PRICES_2027:OLD_PRICES_2026);
+    if(table[key]!=null)return table[key];
     return table[course]||0;
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':20,'Safe@Home — Virtual':20,'Safe@Home — Series':20,'Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'Baby Ready + CPR Certification':12,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':12,'My First Babysitters Club — Single Session':12,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':16,'Girl Scout Badge Class':16,'Babysitter\'s Training':12,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12};
+  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':20,'Safe@Home — Virtual':20,'Safe@Home — Series':20,'Grandparents: Getting Started':16,'Safe Sitter® Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'Baby Ready + CPR Certification':12,'Babysitting Grandkids Workshop':20,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Stay Ready™: Choking Rescue, CPR, and Seizure Response':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'My First Babysitters Club':16,'My First Babysitters Club — Single Session':16,'Little Medics':16,'Pet Sitter\'s Club':16,'Snack Squad':16,'Kid Boss Club':16,'Middle School, Here I Come':16,'Big Sibling Club':16,'My First Phone':16,'Walk and Roll Ready':16,'Calm and Ready':16,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Season Ready™: Safety Skills for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':16,'Girl Scout Badge Class':16,'Babysitter\'s Training':12,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12,'Adult First Aid/CPR/AED Certification':12,'Basic Life Support (BLS) Certification':12};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -941,7 +963,10 @@ function toggleReferralOther(){
 function getMaxSpots(){
   if(!currentSession)return 8;
   if(currentSession.maxStudentsOverride&&Number(currentSession.maxStudentsOverride)>0)return Number(currentSession.maxStudentsOverride);
-  return MAX_STUDENTS[currentSession.course]||8;
+  const c=(typeof COURSES!=='undefined'&&COURSES[currentSession.course])||null;
+  if(c&&c.customSize)return Infinity;
+  if(MAX_STUDENTS[currentSession.course]!=null)return MAX_STUDENTS[currentSession.course];
+  return 8;
 }
 function bookingApi(){
   return (typeof window!=='undefined'&&window.MBCourseBooking)||null;
@@ -955,13 +980,13 @@ function isAdultCourseName(course){
   const name=String(course||'');
   const booking=bookingApi();
   if(booking)return booking.isAdultCourse(name, typeof COURSES!=='undefined'?COURSES:null);
-  return name==='Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready'||name==='Baby Ready + CPR Certification';
+  return name==='Grandparents: Getting Started'||name==='Safe Sitter® Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready'||name==='Baby Ready + CPR Certification'||name==='Babysitting Grandkids Workshop'||name==='Adult First Aid/CPR/AED Certification'||name==='Basic Life Support (BLS) Certification'||name==='Group CPR Certification for Workplaces';
 }
 function seatsPerCourse(course){
   const name=String(course||'');
   const booking=bookingApi();
   if(booking)return booking.seatsPerRegistration(name, typeof COURSES!=='undefined'?COURSES:null);
-  return name==='Baby Ready'||name==='Baby Ready + CPR Certification'?2:1;
+  return 1;
 }
 function registrationFits(peopleCap, regCount, course){
   const booking=bookingApi();
@@ -986,16 +1011,8 @@ function couplePartnerName(){
   return (f.value.trim()+' '+l.value.trim()).trim();
 }
 
-// Couple package total, when one registration of two people costs less than
-// the per-person rate times two. Baby Ready has no package price ($195 × 2).
-// Baby Ready + CPR Certification is $495 for the couple, not $275 × 2.
+// Couple package prices are retired. One registration is one person.
 function couplePackagePrice(course, unit){
-  // $300 per couple applies only when this session's per-person rate is the
-  // Oct 14 catalog price ($185). Earlier Baby Ready sessions stay $195 × 2.
-  if(String(course||'')==='Baby Ready'&&Number(unit)===185)return 300;
-  const c=(typeof COURSES!=='undefined'&&COURSES&&COURSES[course])||null;
-  if(c&&c.couplePrice!=null&&c.couplePrice!=='')return Number(c.couplePrice);
-  if(String(course||'')==='Baby Ready + CPR Certification')return 495;
   return null;
 }
 function registrationCheckoutTotal(course, unit, seats){
@@ -1007,17 +1024,14 @@ function registrationCheckoutTotal(course, unit, seats){
   return Math.max(0,(Number(unit)||0)*per);
 }
 // Checkout total for the current session. A price override is that total.
-// The course default is per person, so a Baby Ready couple (2 seats) is
-// $195 × 2 = $390. Baby Ready + CPR Certification is $495 per couple.
-// Floored at $0.
+// The course default is per person. null means a custom quote is not set yet
+// (it is not a free class).
 function getEffectivePrice(){
   if(!currentSession)return 0;
-  if(currentSession.priceOverride!=null)return Math.max(0,Number(currentSession.priceOverride));
-  const unit=getSessionBasePrice(currentSession.course, currentSession.date, currentSession.createdAt)||0;
-  const per=Number(seatsPerCourse(currentSession.course));
-  const seats=(isFinite(per)&&per>=1)?Math.floor(per):1;
-  if(typeof registrationCheckoutTotal==='function')return registrationCheckoutTotal(currentSession.course, unit, seats);
-  return Math.max(0,(Number(unit)||0)*seats);
+  if(currentSession.priceOverride!=null&&currentSession.priceOverride!=='')return Math.max(0,Number(currentSession.priceOverride));
+  const unit=getSessionBasePrice(currentSession.course, currentSession.date, currentSession.createdAt);
+  if(unit==null)return null;
+  return Math.max(0,Number(unit)||0);
 }
 
 // ── PROMO / DISCOUNT CODE ────────────────────────────────────
@@ -1171,11 +1185,7 @@ function renderPublicSessions(){
     const unitPrice=helpers.sessionPrice(r,priceFn);
     const hasOverride=(r.price_override!=null&&r.price_override!=='')||(r.priceOverride!=null&&r.priceOverride!=='');
     const shown=(!hasOverride&&per>1&&unitPrice!=null&&!isNaN(Number(unitPrice)))?((typeof registrationCheckoutTotal==='function')?registrationCheckoutTotal(r.course, Number(unitPrice), per):Number(unitPrice)*per):unitPrice;
-    let priceLabel=helpers.sessionPriceLabel(shown);
-    if(per>1&&priceLabel&&priceLabel!=='Free'){
-      priceLabel=priceLabel+' / couple';
-      if(!hasOverride&&unitPrice!=null)priceLabel=priceLabel+' · $'+unitPrice+' per person';
-    }
+    const priceLabel=helpers.sessionPriceLabel(shown);
     const audience=helpers.courseAudience(r.course);
     const count=publicSessionCounts&&r.id!=null?publicSessionCounts[r.id]:null;
     const left=count==null?null:helpers.seatsLeft(r,count,caps);
@@ -1392,16 +1402,19 @@ function registrationGradeOptions(course){
   const blank='<option value="">Select grade...</option>';
   const name=String(course||'');
   if(name==='Campus Ready: Safety Skills for College Life')return blank+'<option>11th grade</option><option>12th grade</option><option>College student</option>';
-  if(name==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
+  if(name==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes'||name==='Season Ready™: Safety Skills for Student Athletes')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
   if(name==='Ready. Period.')return blank+'<option>5th grade</option><option>6th grade</option><option>7th grade</option>';
   if(name==='Safe Sitter®'||name==='Safe Sitter® Babysitting Essentials')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option>';
   if(/^Safe@Home/.test(name))return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option>';
   if(name==='All Kids Welcome')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
   if(name==='Steady and Ready')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option>';
-  if(name==='My First Babysitters Club'||name==='My First Babysitters Club — Single Session')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option>';
+  if(name==='My First Babysitters Club'||name==='My First Babysitters Club — Single Session')return blank+'<option>4th grade</option><option>5th grade</option>';
   if(name==='Intro to Babysitting')return blank+'<option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option>';
   if(name==='Social Ready')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
-  if(name==='Stay Ready: Choking Rescue and CPR')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option><option>Adult</option>';
+  if(name==='Stay Ready: Choking Rescue and CPR'||name==='Stay Ready™: Choking Rescue, CPR, and Seizure Response')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option><option>Adult</option>';
+  if(name==='Little Medics')return blank+'<option>Kindergarten</option><option>1st grade</option><option>2nd grade</option><option>3rd grade</option>';
+  if(name==='Big Sibling Club'||name==='Calm and Ready')return blank+'<option>Kindergarten</option><option>1st grade</option><option>2nd grade</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option>';
+  if(name==='Pet Sitter\'s Club'||name==='Snack Squad'||name==='Kid Boss Club'||name==='Middle School, Here I Come'||name==='My First Phone'||name==='Walk and Roll Ready')return blank+'<option>2nd grade</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option>';
   if(name==="Babysitter's Training")return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option>';
   if(name==="Red Cross Babysitter's Training")return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
   if(name==="Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED")return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
@@ -1412,12 +1425,11 @@ function registrationGradeOptions(course){
 }
 function setBanner(id){
   const s=currentSession;
-  const unitPrice=getSessionBasePrice(s.course, s.date, s.createdAt)||0;
-  const per=Number(seatsPerCourse(s.course));
-  const seats=(isFinite(per)&&per>=1)?Math.floor(per):1;
-  const defaultTotal=(typeof registrationCheckoutTotal==='function')?registrationCheckoutTotal(s.course, unitPrice, seats):unitPrice*seats;
+  const unitRaw=getSessionBasePrice(s.course, s.date, s.createdAt);
+  const unitPrice=unitRaw==null?null:Number(unitRaw);
+  const defaultTotal=unitPrice==null?null:((typeof registrationCheckoutTotal==='function')?registrationCheckoutTotal(s.course, unitPrice, 1):unitPrice);
   const price=getEffectivePrice();
-  const isDiscounted=price<defaultTotal;
+  const isDiscounted=price!=null&&defaultTotal!=null&&price<defaultTotal;
   const d=fmtSessDates(s,{weekday:'short',month:'long',day:'numeric',year:'numeric'});
   const addrLine=[s.hostAddress,s.city,s.state?(s.state+(s.zip?' '+s.zip:'')):''].filter(Boolean).join(', ');
   const locationLine=s.isVirtual
@@ -1426,20 +1438,16 @@ function setBanner(id){
   const metaAddr=s.isVirtual
     ?(s.zoomLink?`<br><span style="font-size:12px;color:var(--navy)">🔗 Zoom link will be sent in your confirmation email</span>`:'')
     :(addrLine?'<br>'+escapeHtml(addrLine):'');
-  const couple=seats>1;
-  const priceCore=isDiscounted
+  const couple=false;
+  const priceCore=price==null?'Custom quote':(isDiscounted
     ?`<span style="text-decoration:line-through;color:#9aa5b8;font-weight:400;font-size:14px;margin-right:6px">$${defaultTotal}</span>$${price}`
-    :`$${price}`;
-  const priceHTML=couple
-    ?(s.priceOverride!=null
-        ?priceCore+' <span style="font-size:13px;font-weight:500">per couple</span>'
-        :priceCore+' <span style="font-size:13px;font-weight:500">per couple · $'+unitPrice+' per person</span>')
-    :priceCore;
+    :`$${price}`);
+  const priceHTML=priceCore;
   document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(publicCourseName(s.course))}</div><div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div></div><div class="sess-price">${priceHTML}</div>`;
   // Show prerequisite notice for All Kids Welcome and Stay Ready
   let prereqNotice=document.getElementById('akw-prereq-notice');
-  if(s.course==='All Kids Welcome'||s.course==='Stay Ready: Choking Rescue and CPR'){
-    const noticeText=s.course==='Stay Ready: Choking Rescue and CPR'
+  if(s.course==='All Kids Welcome'||s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response'){
+    const noticeText=(s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response')
       ?'<strong>Prerequisite:</strong> This session is designed for students who have already completed the Safe Sitter® Babysitting Course and/or a CPR and First Aid course. Enrollment confirms the prerequisite has been met.'
       :'<strong>Prerequisite:</strong> This is an advanced course for experienced babysitters. Participants must have previously completed the Safe Sitter® Babysitting Course.';
     if(!prereqNotice){
@@ -1456,7 +1464,7 @@ function setBanner(id){
   }else{
     if(prereqNotice)prereqNotice.style.display='none';
   }
-  const isGP=s.course==='Grandparents: Getting Started';
+  const isGP=s.course==='Grandparents: Getting Started'||s.course==='Safe Sitter® Grandparents: Getting Started';
   const isCareReady=s.course==='Care Ready';
   const isBabyReady=s.course==='Baby Ready';
   const isBabyReadyCpr=s.course==='Baby Ready + CPR Certification';
@@ -1464,15 +1472,7 @@ function setBanner(id){
   // grade field and the parent/guardian framing entirely.
   const isAdult=isAdultCourseName(s.course);
   const coupleNotice=document.getElementById('couple-notice');
-  if(coupleNotice){
-    coupleNotice.style.display=couple?'':'none';
-    if(couple){
-      const priceLine=s.priceOverride!=null
-        ?'The registration price is $'+price+' and holds two seats.'
-        :'The price is $'+unitPrice+' per person. A couple registration is two people and costs $'+defaultTotal+'.';
-      coupleNotice.innerHTML='<strong>One registration, two adults.</strong> '+priceLine+' Enter both names so both adults appear on the class roster.';
-    }
-  }
+  if(coupleNotice)coupleNotice.style.display='none';
   ['partner-first-field','partner-last-field'].forEach(function(fid){
     const el=document.getElementById(fid);
     if(el)el.style.display=couple?'':'none';
@@ -1488,7 +1488,7 @@ function setBanner(id){
   // Season Ready and Ready. Period. are Mindful Beginnings workshops, not Safe Sitter®
   // courses, so each one shows its own release instead of the standard babysitting terms.
   // Season Ready DOES use an adult manikin (hands-only CPR, AED); Ready. Period. uses none.
-  const isSeasonReady=s.course==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes';
+  const isSeasonReady=s.course==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes'||s.course==='Season Ready™: Safety Skills for Student Athletes';
   const isPeriod=s.course==='Ready. Period.';
   const isOwnRelease=isCampusReady||isSeasonReady||isPeriod;
   const isGirlScout=isGirlScoutBadgeCourse(s.course);
@@ -1546,7 +1546,7 @@ function setBanner(id){
       cprNotice.style.display='none';
     }else{
       cprNotice.style.display='';
-      const isStayReady=s.course==='Stay Ready: Choking Rescue and CPR';
+      const isStayReady=s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response';
       cprNotice.innerHTML=isSeasonReady
         ?'<strong>📋 Please note:</strong> This workshop is taught by a registered nurse and includes hands-on practice of hands-only CPR on a manikin and practice with an AED trainer. <strong>This workshop is educational only and does not certify the participant in CPR, AED use, or first aid.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
         :isCampusReady
@@ -1575,7 +1575,7 @@ function setBanner(id){
         ?'This workshop includes hands-on practice of hands-only CPR on a manikin. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikin?'
       :isCampusReady
         ?'This class includes hands-on practice of CPR and rescue skills on manikins. Manikins require strict standards for controlling infection. Do you give permission for the participant to practice on the manikins?'
-      :(s.course==='Stay Ready: Choking Rescue and CPR'
+      :(s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response'
         ?'This session includes hands-on practice of choking rescue and CPR on manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?'
         :isGirlScout
         ?'This Girl Scout badge workshop may include hands-on safety practice. Do you give permission for your child to take part?'
@@ -1608,7 +1608,7 @@ function setBanner(id){
   if(rpTerms)rpTerms.style.display=isPeriod?'':'none';
   // Show Stay Ready prerequisite clause only for that course
   const srPrereq=document.getElementById('terms-stay-ready');
-  if(srPrereq)srPrereq.style.display=(s.course==='Stay Ready: Choking Rescue and CPR'&&!isGP)?'':'none';
+  if(srPrereq)srPrereq.style.display=((s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response')&&!isGP)?'':'none';
   // Hide CPR-specific clauses for courses without manikin use
   const cprTerms=document.getElementById('terms-cpr');
   if(cprTerms)cprTerms.style.display=isNoCPR?'none':'';
@@ -1766,12 +1766,18 @@ async function goToPayment(){
     liveCount=Number(cnt)||0;
   }catch(e){console.warn('Count RPC failed:',e);}
   if(!reservedDone&&!isHost&&!compMode&&!auctionMode&&!registrationFits(getMaxSpots(), liveCount, currentSession.course)){goToWaitlist();return;}
+  const quotedPrice=getEffectivePrice();
+  if(quotedPrice==null&&!isHost&&!compMode&&!auctionMode){
+    alert('This class is custom-priced and the price is not set yet. Please contact Mindful Beginnings.');
+    return;
+  }
   setBanner('banner-pay');
   // A genuinely free session ($0 effective price, not host/comp/auction) is treated as
   // no-charge: skip every payment button and use the "confirm your spot" flow instead.
-  freeSession=!isHost&&!compMode&&!auctionMode&&getEffectivePrice()<=0;
+  // A missing custom quote is null, not $0, and is stopped above.
+  freeSession=!isHost&&!compMode&&!auctionMode&&quotedPrice<=0;
   const noCharge=isHost||compMode||auctionMode||freeSession;
-  document.getElementById('pay-course-lbl').textContent=currentSession.course+(seatsPerCourse(currentSession.course)>1?' (couple registration, two people)':'')+(isHost?' (host — complimentary)':(compMode?' (already paid)':(auctionMode?' (auction prize — no charge)':'')));
+  document.getElementById('pay-course-lbl').textContent=currentSession.course+(isHost?' (host — complimentary)':(compMode?' (already paid)':(auctionMode?' (auction prize — no charge)':'')));
   document.getElementById('host-free-msg').style.display=noCharge?'flex':'none';
   document.getElementById('host-confirm-wrap').style.display=noCharge?'block':'none';
   // The promo box only makes sense when the family is actually paying (not host/comp).
@@ -2392,7 +2398,7 @@ function buildRegistration(method,txId){
     payment_ref:payRef,
     payment_detail:null,
     registration_token:method==='auction'?'AUCTION-2026':(method==='comp'?'REREG-2026':null),
-    notes:partnerNote+sitterListNote+(method==='free'?'[FREE registration — $0, no payment required] ':'')+(method==='auction'?'[AUCTION — IN-KIND DONATION: $'+getEffectivePrice()+'] ':'')+(promoApplied?'[Promo '+PROMO_CODE+' applied: −$'+PROMO_DISCOUNT+' off '+getEffectivePrice()+' → '+getPayablePrice()+'] ':'')+(method==='comp'?'[Re-registration — already paid via PayPal] ':(method==='paypal'?'[Paid via PayPal] ':(method==='already-paid'?'[Family marked ALREADY PAID — confirm against PayPal] ':(method==='venmo'?'[Family marked VENMO sent — confirm in Venmo app] ':(method==='zelle'?'[Family marked ZELLE sent — confirm in Zelle app] ':(method==='paypal-link'?'[Family marked PAYPAL checkout paid — confirm against PayPal receipt] ':(method==='pending'?'[Registered — awaiting payment] ':'')))))))+(s.course==='Stay Ready: Choking Rescue and CPR'?'[Prereq confirmed: child has completed Safe Sitter® and/or CPR & First Aid course] ':'')+document.getElementById('p-notes').value.trim(),
+    notes:partnerNote+sitterListNote+(method==='free'?'[FREE registration — $0, no payment required] ':'')+(method==='auction'?'[AUCTION — IN-KIND DONATION: $'+getEffectivePrice()+'] ':'')+(promoApplied?'[Promo '+PROMO_CODE+' applied: −$'+PROMO_DISCOUNT+' off '+getEffectivePrice()+' → '+getPayablePrice()+'] ':'')+(method==='comp'?'[Re-registration — already paid via PayPal] ':(method==='paypal'?'[Paid via PayPal] ':(method==='already-paid'?'[Family marked ALREADY PAID — confirm against PayPal] ':(method==='venmo'?'[Family marked VENMO sent — confirm in Venmo app] ':(method==='zelle'?'[Family marked ZELLE sent — confirm in Zelle app] ':(method==='paypal-link'?'[Family marked PAYPAL checkout paid — confirm against PayPal receipt] ':(method==='pending'?'[Registered — awaiting payment] ':'')))))))+((s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response')?'[Prereq confirmed: child has completed Safe Sitter® and/or CPR & First Aid course] ':'')+document.getElementById('p-notes').value.trim(),
     created_at:Date.now()
   };
 }

@@ -272,14 +272,14 @@ test('seatsLeft uses override cap, then course cap', () => {
   assert.doesNotMatch(seatsLabel(12), /\d/);
 });
 
-test('Baby Ready couple bookings consume two seats each', () => {
+test('Baby Ready bookings consume one seat each', () => {
   const baby = row({ course: 'Baby Ready', code: 'BR-1001' });
-  assert.equal(seatsPerRegistration('Baby Ready'), 2);
+  assert.equal(seatsPerRegistration('Baby Ready'), 1);
   assert.equal(seatsPerRegistration('Safe Sitter®'), 1);
   assert.equal(seatsLeft(baby, 0, { 'Baby Ready': 12 }), 12);
-  assert.equal(seatsLeft(baby, 1, { 'Baby Ready': 12 }), 10);
-  assert.equal(seatsLeft(baby, 5, { 'Baby Ready': 12 }), 2);
-  assert.equal(seatsLeft(baby, 6, { 'Baby Ready': 12 }), 0);
+  assert.equal(seatsLeft(baby, 1, { 'Baby Ready': 12 }), 11);
+  assert.equal(seatsLeft(baby, 5, { 'Baby Ready': 12 }), 7);
+  assert.equal(seatsLeft(baby, 12, { 'Baby Ready': 12 }), 0);
   assert.equal(seatsLabel(2, 2), 'FEW SEATS LEFT');
   assert.equal(seatsLabel(4, 2), 'FEW SEATS LEFT');
   assert.equal(seatsLabel(6, 2), '');

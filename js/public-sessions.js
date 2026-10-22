@@ -35,15 +35,31 @@
     'Safe@Home — Virtual': 'Ages 8 to 10, virtual',
     'Safe@Home — Series': 'Ages 8 to 10, multi-week',
     'Grandparents: Getting Started': 'Grandparents and caregivers',
+    'Safe Sitter® Grandparents: Getting Started': 'Grandparents and caregivers',
     'Care Ready': 'Nannies and au pairs',
     'Baby Ready': 'Expecting and new parents',
-    'Baby Ready + CPR Certification': 'Expecting parents, $275 per person ($495 per couple)',
+    'Baby Ready + CPR Certification': 'Expecting and new parents',
+    'Babysitting Grandkids Workshop': 'Grandparents of kids from infancy to about age 10',
     'All Kids Welcome': 'Experienced sitters',
     'Stay Ready: Choking Rescue and CPR': 'Ages 11 and up',
+    'Stay Ready™: Choking Rescue, CPR, and Seizure Response': 'Ages 11 and up',
     'Campus Ready: Safety Skills for College Life': 'Teens and college-bound',
     'Steady and Ready': 'Ages 8 to 12',
-    'My First Babysitters Club': 'Ages 8 to 10, 8-week series',
-    'My First Babysitters Club — Single Session': 'Ages 8 to 10, 2.5-hour workshop',
+    'My First Babysitters Club': 'Grades 4 to 5, 8-week series',
+    'My First Babysitters Club — Single Session': 'Grades 4 to 5, 2.5-hour workshop',
+    'Little Medics': 'Ages 5 to 8, 8-week series',
+    'Pet Sitter\'s Club': 'Ages 8 to 11, 8-week series',
+    'Snack Squad': 'Ages 7 to 11, 8-week series',
+    'Kid Boss Club': 'Ages 9 to 11, 8-week series',
+    'Middle School, Here I Come': 'Ages 10 to 11, 8-week series',
+    'Big Sibling Club': 'Ages 5 to 9, 8-week series',
+    'My First Phone': 'Ages 9 to 11, 8-week series',
+    'Walk and Roll Ready': 'Ages 7 to 11, 8-week series',
+    'Calm and Ready': 'Ages 5 to 11, 8-week series',
+    'Babysitter\'s Training': 'Ages 11 to 15',
+    'Adult First Aid/CPR/AED Certification': 'Adults',
+    'Basic Life Support (BLS) Certification': 'Healthcare providers',
+    'Group CPR Certification for Workplaces': 'Workplaces, custom quote',
     'Ready. Period.': 'Girls ages 10 to 12',
     'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 'Student athletes',
     'Social Ready': 'Ages 8 to 14',
@@ -58,7 +74,9 @@
     'Safe@Home': 'Safe@Home: First Steps to Independence',
     'Safe@Home — Virtual': 'Safe@Home',
     'Grandparents: Getting Started': 'Safe Sitter® Grandparents: Getting Started',
+    'Safe Sitter® Grandparents: Getting Started': 'Safe Sitter® Grandparents: Getting Started',
     'Stay Ready: Choking Rescue and CPR': 'Stay Ready™: Choking Rescue, CPR, and Seizure Response',
+    'Stay Ready™: Choking Rescue, CPR, and Seizure Response': 'Stay Ready™: Choking Rescue, CPR, and Seizure Response',
     'My First Babysitters Club': "My First Babysitter's Club™",
     'My First Babysitters Club — Single Session': "My First Babysitter's Club™ workshop",
     'All Kids Welcome': 'All Kids Welcome™',
@@ -69,7 +87,8 @@
     'Baby Ready': 'Baby Ready™',
     'Baby Ready + CPR Certification': 'Baby Ready™ + CPR Certification',
     'Campus Ready: Safety Skills for College Life': 'Campus Ready™: Safety Skills for College Life',
-    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 'Season Ready™: Safety Skills for Student Athletes'
+    'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes': 'Season Ready™: Safety Skills for Student Athletes',
+    'Season Ready™: Safety Skills for Student Athletes': 'Season Ready™: Safety Skills for Student Athletes'
   };
 
   function coursePublicName(course) {
@@ -218,13 +237,11 @@
     return null;
   }
 
-  // People held by one registration. Baby Ready is a couple booking (2) even
-  // when COURSES is not on this page; MBCourseBooking wins when it is loaded.
+  // People held by one registration. MBCourseBooking wins when it is loaded.
   function seatsPerRegistration(course) {
     if (root.MBCourseBooking && typeof root.MBCourseBooking.seatsPerRegistration === 'function') {
       return root.MBCourseBooking.seatsPerRegistration(course);
     }
-    if (course === 'Baby Ready' || course === 'Baby Ready + CPR Certification') return 2;
     return 1;
   }
 

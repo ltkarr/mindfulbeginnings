@@ -61,7 +61,7 @@ test('the removed jobs screen is a no-op and the stale instructor config lists n
   assert.match(jobs, /Jobs & materials screen was removed/);
   assert.doesNotMatch(jobs, /jobs-list/);
   assert.match(staleCfg, /"Care Ready":\{hours:2\.5,maxStudents:16,adult:true\}/);
-  assert.match(staleCfg, /"Baby Ready":\{hours:3,maxStudents:12,seatsPerRegistration:2,adult:true\}/);
+  assert.match(staleCfg, /"Baby Ready":\{hours:3,maxStudents:12,adult:true\}/);
 });
 
 test('instructor portal login, type size, and merged tabs', () => {

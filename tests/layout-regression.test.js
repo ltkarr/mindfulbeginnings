@@ -62,7 +62,8 @@ test('RN-only is a changeable checkbox on standard and custom jobs', () => {
 
 test('Girl Scout Badge Class is a course option with grades K through 12th', () => {
   assert.match(admin, /<option>Girl Scout Badge Class<\/option>/);
-  assert.match(extractFn(admin, 'openAddSession'), /<option>Girl Scout Badge Class<\/option>/);
+  assert.match(extractFn(admin, 'openAddSession'), /adminCourseSelectHtml\(''\)/);
+  assert.match(admin, /'Girl Scout Badge Class'/);
   const sandbox = {};
   vm.runInNewContext(
     [extractFn(register, 'isGirlScoutBadgeCourse'), extractFn(register, 'registrationGradeOptions')].join('\n'),

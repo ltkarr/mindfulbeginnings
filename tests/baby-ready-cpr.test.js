@@ -57,10 +57,10 @@ test('Baby Ready + CPR Certification is $275 per person on every price table', (
   assert.equal(row.price2027, 275);
   assert.equal(row.priceNew, 275);
   assert.equal(row.priceNew2027, 275);
-  assert.equal(row.couplePrice, 495);
+  assert.equal(row.couplePrice, undefined);
   assert.equal(row.hours, 5);
   assert.equal(row.maxStudents, 12);
-  assert.equal(row.seatsPerRegistration, 2);
+  assert.equal(row.seatsPerRegistration, undefined);
   assert.equal(row.adult, true);
   assert.equal(row.requiresRN, undefined);
   assert.equal(row.requiresLeadTeacher, undefined);
@@ -85,11 +85,12 @@ test('Baby Ready + CPR Certification is $275 per person on every price table', (
 });
 
 test('admin can select the course and does not mark it RN-only', () => {
-  assert.match(admin, /'Baby Ready \+ CPR Certification':\{price:275,price2027:275,priceNew:275,priceNew2027:275,couplePrice:495,matCost:0,hours:5,maxStudents:12,seatsPerRegistration:2,adult:true\}/);
+  assert.match(admin, /'Baby Ready \+ CPR Certification':\{price:275,price2027:275,priceNew:275,priceNew2027:275,matCost:0,hours:5,maxStudents:12,adult:true\}/);
   assert.doesNotMatch(admin, /'Baby Ready \+ CPR Certification':\{[^}\n]*requiresRN/);
-  assert.equal((admin.match(/<option>Baby Ready \+ CPR Certification<\/option>/g) || []).length, 2);
-  assert.match(admin, /\$\{s\.course==='Baby Ready \+ CPR Certification'\?'selected':''\}>Baby Ready \+ CPR Certification<\/option>/);
-  assert.match(admin, /'Baby Ready','Baby Ready \+ CPR Certification','All Kids Welcome'/);
+  assert.equal((admin.match(/<option>Baby Ready \+ CPR Certification<\/option>/g) || []).length, 1);
+  assert.match(admin, /ADMIN_COURSE_OPTIONS/);
+  assert.match(admin, /'Baby Ready \+ CPR Certification','Babysitting Grandkids Workshop'/);
+  assert.match(admin, /'Baby Ready','Baby Ready \+ CPR Certification','Babysitting Grandkids Workshop'/);
   assert.match(admin, /'Baby Ready \+ CPR Certification':'BRCPR'/);
   assert.match(admin, /\[\/baby ready\.\{0,20\}cpr\|cpr certification\/i,'BRCPR'\]/);
   assert.match(extractFunction(admin, 'updatePricePreview'), /registrationCheckoutTotal\(courseEl\.value, unit, seats\)/);
@@ -109,8 +110,8 @@ test('checkout and revenue charge $495 per couple and keep Baby Ready at $390', 
   ];
   const sandbox = {
     COURSES: {
-      'Baby Ready': { price: 195, price2027: 195, priceNew: 195, priceNew2027: 195, hours: 2.5, maxStudents: 12, seatsPerRegistration: 2, adult: true },
-      [COURSE]: { price: 275, price2027: 275, priceNew: 275, priceNew2027: 275, couplePrice: 495, hours: 5, maxStudents: 12, seatsPerRegistration: 2, adult: true },
+      'Baby Ready': { price: 195, price2027: 195, priceNew: 195, priceNew2027: 195, hours: 3, maxStudents: 12, adult: true },
+      [COURSE]: { price: 275, price2027: 275, priceNew: 275, priceNew2027: 275, hours: 5, maxStudents: 12, adult: true },
       'Safe Sitter®': { price: 225, price2027: 225, priceNew: 225, priceNew2027: 225, hours: 5, maxStudents: 16 }
     },
     registrations: [],
@@ -122,16 +123,16 @@ test('checkout and revenue charge $495 per couple and keep Baby Ready at $390', 
   const session = { id: 'cpr', course: COURSE, date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
   assert.equal(sandbox.getCoursePrice(COURSE, '2026-12-01', BEFORE), 275);
   assert.equal(sandbox.getCoursePrice(COURSE, '2027-03-01', CUTOVER), 275);
-  assert.equal(sandbox.couplePackagePrice(COURSE), 495);
+  assert.equal(sandbox.couplePackagePrice(COURSE), null);
   assert.equal(sandbox.couplePackagePrice('Baby Ready'), null);
-  assert.equal(sandbox.registrationCheckoutTotal(COURSE, 275, 2), 495);
-  assert.equal(sandbox.registrationCheckoutTotal('Baby Ready', 195, 2), 390);
+  assert.equal(sandbox.registrationCheckoutTotal(COURSE, 275, 1), 275);
+  assert.equal(sandbox.registrationCheckoutTotal('Baby Ready', 195, 1), 195);
   assert.equal(sandbox.familyPrice(session), 275);
-  assert.equal(sandbox.sessionListPrice(session), 495);
-  assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: null }, session), 495);
+  assert.equal(sandbox.sessionListPrice(session), 275);
+  assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: null }, session), 275);
   assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: 400 }, session), 400);
-  assert.equal(sandbox.courseCheckoutDefaultLabel(COURSE, '2026-12-01', Date.now()), '275 per person ($495 per couple)');
-  assert.match(sandbox.familyForwardMoney(session).familyPayLine, /\$495/);
+  assert.equal(sandbox.courseCheckoutDefaultLabel(COURSE, '2026-12-01', Date.now()), '275');
+  assert.match(sandbox.familyForwardMoney(session).familyPayLine, /\$275/);
 
   const overridden = Object.assign({}, session, { priceOverride: 100 });
   assert.equal(sandbox.sessionListPrice(overridden), 100);
@@ -142,20 +143,20 @@ test('checkout and revenue charge $495 per couple and keep Baby Ready at $390', 
   assert.equal(sandbox.orgBillAmount(orgPeople), 550);
 
   const baby = { id: 'br', course: 'Baby Ready', date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
-  // Sessions created on/after the Oct 14 2026 catalog are $185 per person, $300 per couple.
-  assert.equal(sandbox.sessionListPrice(baby), 300);
+  // Sessions created on/after the Oct 14 2026 catalog are $185 per person. Older sessions stay $195 per person.
+  assert.equal(sandbox.sessionListPrice(baby), 185);
   assert.equal(sandbox.familyPrice(baby), 185);
   const babyBeforeCatalog = { id: 'br-old', course: 'Baby Ready', date: '2026-12-01', createdAt: Date.parse('2026-10-13T12:00:00Z'), priceOverride: null };
-  assert.equal(sandbox.sessionListPrice(babyBeforeCatalog), 390);
+  assert.equal(sandbox.sessionListPrice(babyBeforeCatalog), 195);
   assert.equal(sandbox.familyPrice(babyBeforeCatalog), 195);
 
   const bare = { Number, Math, String, isFinite };
   vm.createContext(bare);
   vm.runInContext(['couplePackagePrice', 'registrationCheckoutTotal'].map((n) => extractFunction(admin, n)).join('\n'), bare);
-  assert.equal(bare.registrationCheckoutTotal(COURSE, 275, 2), 495);
+  assert.equal(bare.registrationCheckoutTotal(COURSE, 275, 1), 275);
 });
 
-test('public registration checkout is $495 for the couple and still $390 for Baby Ready', () => {
+test('public registration checkout is $275 per person and Baby Ready stays per person', () => {
   const regSandbox = {
     currentSession: { course: COURSE, date: '2026-12-01', createdAt: Date.now(), priceOverride: null },
     getSessionBasePrice: cfg.getSessionBasePrice,
@@ -168,13 +169,13 @@ test('public registration checkout is $495 for the couple and still $390 for Bab
     ['couplePackagePrice', 'registrationCheckoutTotal', 'getEffectivePrice'].map((n) => extractFunction(register, n)).join('\n'),
     regSandbox
   );
-  assert.equal(regSandbox.getEffectivePrice(), 495);
+  assert.equal(regSandbox.getEffectivePrice(), 275);
   regSandbox.currentSession = Object.assign({}, regSandbox.currentSession, { priceOverride: 100 });
   assert.equal(regSandbox.getEffectivePrice(), 100);
   regSandbox.currentSession = { course: 'Baby Ready', date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
-  assert.equal(regSandbox.getEffectivePrice(), 300);
+  assert.equal(regSandbox.getEffectivePrice(), 185);
   regSandbox.currentSession = { course: 'Baby Ready', date: '2026-12-01', createdAt: Date.parse('2026-10-13T12:00:00Z'), priceOverride: null };
-  assert.equal(regSandbox.getEffectivePrice(), 390);
+  assert.equal(regSandbox.getEffectivePrice(), 195);
   regSandbox.currentSession = { course: 'Safe Sitter®', date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
   assert.equal(regSandbox.getEffectivePrice(), 225);
 
@@ -188,16 +189,17 @@ test('public registration checkout is $495 for the couple and still $390 for Bab
   assert.match(educational, /does not provide CPR certification/);
 });
 
-test('a couple counts as two people on the roster, packing list, and equipment', () => {
-  assert.equal(booking.seatsPerRegistration(COURSE), 2);
+test('one registration is one person, and a stored partner name still shows on the roster', () => {
+  assert.equal(booking.seatsPerRegistration(COURSE), 1);
   assert.equal(booking.isAdultCourse(COURSE), true);
-  assert.equal(booking.seatsUsed(1, COURSE), 2);
-  assert.equal(booking.registrationRowCap(12, COURSE), 6);
+  assert.equal(booking.seatsUsed(1, COURSE), 1);
+  assert.equal(booking.registrationRowCap(12, COURSE), 12);
   assert.equal(booking.bookingFits(12, 5, COURSE), true);
-  assert.equal(booking.bookingFits(12, 6, COURSE), false);
+  assert.equal(booking.bookingFits(12, 11, COURSE), true);
+  assert.equal(booking.bookingFits(12, 12, COURSE), false);
   assert.equal(booking.peopleCount([
     { studentName: 'Alex Rivera', notes: '[Partner: Jordan Lee]' }
-  ], COURSE), 2);
+  ], COURSE), 1);
 
   const rosterNames = [
     'bookingApi', 'isAdultCourse', 'seatsPerRegistration', 'partnerNameOf',
@@ -219,7 +221,7 @@ test('a couple counts as two people on the roster, packing list, and equipment',
   );
   assert.match(html, /Alex Rivera/);
   assert.match(html, /Jordan Lee/);
-  assert.match(html, /2 participants registered/);
+  assert.match(html, /1 participant registered/);
   assert.doesNotMatch(html, /Grade/);
   assert.equal(roster.courseAbbr(COURSE), 'BRCPR');
   assert.equal(roster.courseAbbr('Baby Ready'), 'BR');
@@ -235,7 +237,7 @@ test('a couple counts as two people on the roster, packing list, and equipment',
     { sessionId: 'cpr', payStatus: 'waitlist', studentName: 'Pat Wait' },
     { sessionId: 'cpr', payStatus: 'cancelled', studentName: 'Casey Gone' }
   ];
-  assert.equal(packing.packingRegisteredCount({ id: 'cpr', course: COURSE }, rows), 4);
+  assert.equal(packing.packingRegisteredCount({ id: 'cpr', course: COURSE }, rows), 2);
 
   const gear = {
     COURSES: cfg.COURSES,
@@ -250,8 +252,8 @@ test('a couple counts as two people on the roster, packing list, and equipment',
       .map((n) => extractFunction(admin, n)).join('\n'),
     gear
   );
-  assert.equal(gear.seatsOnSession('cpr'), 4);
-  assert.equal(gear.sessionHeadcount({ id: 'cpr', course: COURSE }), 4);
+  assert.equal(gear.seatsOnSession('cpr'), 2);
+  assert.equal(gear.sessionHeadcount({ id: 'cpr', course: COURSE }), 2);
   const smallKit = gear.matNeedsForHeadcount({ infant: 1, child: 1, av: 1 }, 4);
   const largeKit = gear.matNeedsForHeadcount({ infant: 1, child: 1, av: 1 }, 10);
   assert.equal(smallKit.infant, 1);
@@ -261,16 +263,16 @@ test('a couple counts as two people on the roster, packing list, and equipment',
   assert.equal(largeKit.child, 2);
   assert.equal(largeKit.av, 1);
 
-  assert.equal(publicSessions.seatsPerRegistration(COURSE), 2);
-  assert.equal(publicSessions.seatsLeft({ course: COURSE }, 1, { [COURSE]: 12 }), 10);
-  assert.match(publicSessions.courseAudience(COURSE), /\$495 per couple/);
+  assert.equal(publicSessions.seatsPerRegistration(COURSE), 1);
+  assert.equal(publicSessions.seatsLeft({ course: COURSE }, 1, { [COURSE]: 12 }), 11);
+  assert.doesNotMatch(publicSessions.courseAudience(COURSE), /couple/);
 });
 
 test('the instructor portal does not treat the course as RN-only, Safe Sitter-only, or Red Cross', () => {
-  assert.match(instructor, /'Baby Ready \+ CPR Certification':\{hours:5, maxStudents:12, seatsPerRegistration:2, adult:true\}/);
+  assert.match(instructor, /'Baby Ready \+ CPR Certification':\{hours:5, maxStudents:12, adult:true\}/);
   assert.doesNotMatch(instructor, /'Baby Ready \+ CPR Certification':\{[^}\n]*requiresRN/);
-  assert.match(configInstructor, /"Baby Ready \+ CPR Certification":\{hours:5,maxStudents:12,seatsPerRegistration:2,adult:true\}/);
-  assert.match(staleCfg, /"Baby Ready \+ CPR Certification":\{hours:5,maxStudents:12,seatsPerRegistration:2,adult:true\}/);
+  assert.match(configInstructor, /"Baby Ready \+ CPR Certification":\{hours:5,maxStudents:12,adult:true\}/);
+  assert.match(staleCfg, /"Baby Ready \+ CPR Certification":\{hours:5,maxStudents:12,adult:true\}/);
   assert.doesNotMatch(configInstructor, /Baby Ready \+ CPR Certification[^}\n]*requiresRN/);
   assert.doesNotMatch(staleCfg, /Baby Ready \+ CPR Certification[^}\n]*requiresRN/);
 
@@ -309,22 +311,22 @@ test('the instructor portal does not treat the course as RN-only, Safe Sitter-on
   assert.equal(who.sessionWhoCanTeach(session), 'Any instructor');
 });
 
-test('class requests offer the course to organizations only, at the per-person rate', () => {
+test('class requests offer the course at the per-person rate', () => {
   const course = requests.courseByKey('baby-ready-cpr');
   assert.equal(course.course, COURSE);
   assert.equal(course.price, 275);
   assert.equal(course.hours, '5 hours');
   assert.equal(course.abbr, 'BRCPR');
-  assert.equal(course.host, false);
+  assert.equal(course.host, true);
   assert.equal(course.org, true);
   assert.equal(course.requiresRN, undefined);
-  assert.equal(requests.coursesFor('host').some((c) => c.key === 'baby-ready-cpr'), false);
+  assert.equal(requests.coursesFor('host').some((c) => c.key === 'baby-ready-cpr'), true);
   const label = requests.courseOptionLabel(course);
-  assert.equal(label, 'Baby Ready + CPR Certification, Expecting parents, $275 per person ($495 per couple), Baby Ready portion is 3 hours, 5 hours, in person ($275)');
+  assert.equal(label, 'Baby Ready + CPR Certification — 5 hours · $275 per person');
   assert.match(orgPage, /value="baby-ready-cpr"/);
   assert.match(orgPage, /data-note=""/);
   assert.match(orgPage, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.doesNotMatch(hostPage, /baby-ready-cpr/);
+  assert.match(hostPage, /baby-ready-cpr/);
 
   const submitted = requests.normalizeSubmission({
     kind: 'organization',

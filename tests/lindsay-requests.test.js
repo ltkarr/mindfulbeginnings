@@ -81,7 +81,7 @@ test('Girl Scout badge RN-only is the session checkbox, not the course type', ()
   assert.equal(api.matAliasCourse('Girl Scout Badge Class'), '');
   assert.equal(api.matAliasCourse('Girl Scouts — First Aid Badge Workshop'), '');
   assert.equal(api.matAliasCourse('SafeSitter @Norwood'), 'Safe Sitter®');
-  assert.match(admin, /'Girl Scout Badge Class':\{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:16\}/);
+  assert.match(admin, /'Girl Scout Badge Class':\{customPrice:true,legacyPrice:45,matCost:0,hours:1,maxStudents:16/);
   assert.doesNotMatch(admin, /'Girl Scout Badge Class':\{[^}\n]*requiresRN/);
   assert.doesNotMatch(admin, /'Girl Scouts — First Aid Badge Workshop':\{[^}\n]*requiresRN/);
   assert.match(admin, /<option>Girl Scout Badge Class<\/option>/);

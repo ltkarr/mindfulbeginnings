@@ -78,7 +78,7 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
   assert.equal(cfg.COURSES['Stay Ready: Choking Rescue and CPR'].hours, 1.25);
   assert.equal(cfg.COURSES['Steady and Ready'].hours, 1);
   assert.equal(cfg.COURSES['Baby Ready'].hours, 3);
-  assert.equal(cfg.COURSES['Baby Ready'].seatsPerRegistration, 2);
+  assert.equal(cfg.COURSES['Baby Ready'].seatsPerRegistration, undefined);
 
   const ESS = 'Safe Sitter® Babysitting Essentials';
   const ess = cfg.COURSES[ESS];

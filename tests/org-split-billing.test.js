@@ -286,16 +286,17 @@ test('a custom job still ignores a per-participant split until it is a course se
   assert.match(blocked.familyPayLine, /not set on a custom job/);
 });
 
-test('the First Aid Badge course is on the session form, at $45 for 60 minutes', () => {
-  assert.match(admin, /'Girl Scouts — First Aid Badge Workshop':\{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:16\}/);
+test('the First Aid Badge course is on the session form, custom-quoted for new sessions', () => {
+  assert.match(admin, /'Girl Scouts — First Aid Badge Workshop':\{customPrice:true,legacyPrice:45,matCost:0,hours:1,maxStudents:16/);
   assert.doesNotMatch(admin, /'Girl Scouts — First Aid Badge Workshop':\{[^}\n]*requiresRN/);
   assert.equal((admin.match(/Girl Scouts — First Aid Badge Workshop/g) || []).length > 3, true);
   assert.match(admin, /<option>Girl Scouts — First Aid Badge Workshop<\/option>/);
-  assert.match(admin, /s\.course==='Girl Scouts — First Aid Badge Workshop'/);
+  assert.match(admin, /adminCourseSelectHtml\(s\.course\)/);
+  assert.match(admin, /'Girl Scouts — First Aid Badge Workshop'/);
   assert.match(admin, /Family price at registration 15/);
   assert.match(admin, /Organization flat fee per participant 30/);
   assert.match(admin, /do not use a custom job/);
-  assert.match(configJs, /'Girl Scouts — First Aid Badge Workshop':\{price:45/);
+  assert.match(configJs, /'Girl Scouts — First Aid Badge Workshop':\{customPrice:true,legacyPrice:45/);
   assert.match(configJs, /requiresRN:true/);
   assert.match(configJs, /'Girl Scouts — First Aid Badge Workshop':16/);
   assert.match(register, /'Girl Scouts — First Aid Badge Workshop':45/);
