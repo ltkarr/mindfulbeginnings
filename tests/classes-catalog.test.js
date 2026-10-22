@@ -74,7 +74,7 @@ const EXPECTED = [
   ['ages-11-14', 'all-kids', 'All Kids Welcome™: For Experienced Sitters', 'Experienced sitters · 60-minute · In-person or virtual · $25', 'A class that teaches young caregivers how to care confidently for children with diverse needs.', true, false],
   ['ages-11-14', 'social-ready', 'Social Ready™', SOCIAL_META, SOCIAL_DESC, true, false],
   ['ages-11-14', 'adult-cpr', 'Adult & Pediatric First Aid/CPR/AED Certification', ADULT_META, ADULT_DESC, false, false],
-  ['student-athletes', 'season-ready', 'Season Ready™', 'Student athletes · 60-minute · In person · $25', 'A hands-on workshop for student athletes on fueling, recovery, injury awareness, and emergency response.', false, false],
+  ['student-athletes', 'season-ready', 'Season Ready™', 'Student athletes · 60-minute · In-person or virtual · $25', 'A hands-on workshop for student athletes on fueling, recovery, injury awareness, and emergency response.', true, false],
   ['student-athletes', 'stay-ready', STAY_NAME, STAY_META, STAY_DESC, false, false],
   ['high-school', 'campus-ready', 'Campus Ready™', 'Teens & college-bound · 60-minute · In person · $75', 'A class taught by registered nurses that prepares students to stay safe and help a friend in an emergency during college life.', false, false],
   ['high-school', 'stay-ready', STAY_NAME, STAY_META, STAY_DESC, false, false],

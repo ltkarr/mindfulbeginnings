@@ -720,6 +720,52 @@ test('approving requires an admin and does not create a session when unauthentic
   assert.ok(apiFiles.length <= 12, 'Hobby plan allows 12 Serverless Functions, found ' + apiFiles.length);
 });
 
+test('Stay Ready requests are in person, and Season Ready can be virtual for organizations', () => {
+  const stay = model.courseByKey('stay-ready');
+  assert.equal(stay.where, 'in person');
+  assert.equal(stay.virtual, undefined);
+  assert.equal(model.coursesFor('organization').some(function (c) {
+    return c.course === 'Stay Ready: Choking Rescue and CPR' && c.virtual;
+  }), false);
+  const forced = model.normalizeSubmission(hostBody({
+    courseKey: 'stay-ready',
+    format: 'virtual',
+    address: '123 Maple St, Bethesda, MD 20814'
+  }));
+  assert.equal(forced.isVirtual, false);
+  assert.equal(model.validate(forced).length, 0);
+  const plan = model.buildSessionRow(forced, []);
+  assert.equal(plan.created, true);
+  assert.equal(plan.row.course, 'Stay Ready: Choking Rescue and CPR');
+  assert.equal(plan.row.is_virtual, false);
+  assert.notEqual(plan.row.location, 'Virtual');
+  const virtualOnly = model.normalizeSubmission(hostBody({ courseKey: 'stay-ready', address: 'Virtual' }));
+  assert.equal(virtualOnly.isVirtual, false);
+  assert.ok(model.validate(virtualOnly).some(function (e) { return e.field === 'address'; }));
+
+  const season = model.courseByKey('season-ready-virtual');
+  assert.equal(season.virtual, true);
+  assert.equal(season.host, false);
+  assert.equal(season.org, true);
+  assert.equal(season.requiresRN, true);
+  assert.equal(season.course, model.courseByKey('season-ready').course);
+  const label = model.courseOptionLabel(season);
+  assert.equal(label, 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes, Student athletes, 60 minutes, virtual ($25)');
+  assert.match(orgPage, /value="season-ready-virtual"/);
+  assert.match(orgPage, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(hostPage, /value="season-ready/);
+  assert.match(hostPage, /value="ready-period"/);
+  assert.doesNotMatch(hostPage, /value="ready-period-virtual"/);
+  assert.match(orgPage, /value="ready-period"/);
+  assert.match(orgPage, /value="ready-period-virtual"/);
+  const orgVirtual = model.normalizeSubmission(orgBody({ courseKey: 'season-ready-virtual', billing: 'individual' }));
+  assert.equal(orgVirtual.isVirtual, true);
+  const orgPlan = model.buildSessionRow(orgVirtual, []);
+  assert.equal(orgPlan.row.is_virtual, true);
+  assert.equal(orgPlan.row.course, season.course);
+  assert.equal(orgPlan.row.requires_rn, true);
+});
+
 test('the Spanish session flag has the same column shape as the other requirement flags', () => {
   const migration = require('fs').readFileSync(require('path').join(__dirname, '..', 'migrations/20261017_spanish_flags.sql'), 'utf8');
   assert.match(migration, /requires_spanish boolean default false/);

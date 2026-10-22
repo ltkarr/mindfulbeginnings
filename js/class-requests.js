@@ -35,6 +35,7 @@
     { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 185, hours: '3 hours', audience: 'Expecting and new parents, $185 per person, 4 to 12 participants', where: 'in person', requiresRN: true, host: false, org: true },
     { key: 'baby-ready-cpr', course: 'Baby Ready + CPR Certification', abbr: 'BRCPR', price: 275, hours: '5 hours', audience: 'Expecting parents, $275 per person, Baby Ready portion is 3 hours', where: 'in person', host: true, org: true },
     { key: 'season-ready', course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', abbr: 'SEAR', price: 25, hours: '60 minutes', audience: 'Student athletes', where: 'in person', requiresRN: true, host: false, org: true },
+    { key: 'season-ready-virtual', course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', abbr: 'SEAR', price: 25, hours: '60 minutes', audience: 'Student athletes', where: 'virtual', virtual: true, requiresRN: true, host: false, org: true },
     // Badge workshops are custom-scheduled. The stored course key stays the
     // First Aid workshop so existing requests match. $45 is the current troop
     // checkout amount, not a published fixed length.
@@ -497,6 +498,15 @@
     var place = parseUsAddress(body.address || body.location || '');
     if (course && course.virtual) place.isVirtual = true;
     if (body.format === 'virtual') place.isVirtual = true;
+    // Stay Ready is in person for every new request. An existing virtual session
+    // is not rebuilt from this form.
+    if (course && course.course === 'Stay Ready: Choking Rescue and CPR') {
+      place.isVirtual = false;
+      if (/^virtual$/i.test(String(place.location || '').trim())) {
+        place.location = '';
+        place.hostAddress = '';
+      }
+    }
     if (place.isVirtual) {
       if (!place.location || /^virtual$/i.test(place.location)) place.location = 'Virtual';
     }
@@ -686,9 +696,11 @@
     var base = datedCode(n.course.abbr, first.date);
     var code = orgReg ? null : uniqueCode(base, existingCodes);
     var place = n.place || {};
-    var location = place.location || (n.isVirtual ? 'Virtual' : null);
-    if (n.kind === 'host' && !n.isVirtual) location = place.city || 'Host home';
-    var hostAddress = n.isVirtual ? null : (place.hostAddress || place.raw || null);
+    var inPersonOnly = n.course && n.course.course === 'Stay Ready: Choking Rescue and CPR';
+    var virtual = !inPersonOnly && !!n.isVirtual;
+    var location = place.location || (virtual ? 'Virtual' : null);
+    if (n.kind === 'host' && !virtual) location = place.city || 'Host home';
+    var hostAddress = virtual ? null : (place.hostAddress || place.raw || null);
     var id = ids.id || null;
     var row = {
       id: id,
@@ -713,7 +725,7 @@
       created_at: ids.createdAt || Date.now(),
       wifi_info: null,
       price_override: n.billing.priceOverride == null ? null : n.billing.priceOverride,
-      is_virtual: !!n.isVirtual,
+      is_virtual: virtual,
       zoom_link: null,
       is_custom_job: false,
       is_hold: false,

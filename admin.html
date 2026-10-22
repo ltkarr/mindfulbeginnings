@@ -2280,6 +2280,85 @@ function sessionTeachingHours(s){
   const h=Number(c.hours);
   return isFinite(h)?h:0;
 }
+// Paid hours for a job on the Oct 22 2026 guide. One meeting is the class
+// length plus 1.5 hours. A split class (extra days on this session, not a
+// weekly recurring pattern) pays each meeting as that meeting's length plus
+// 1.5 hours. When every meeting has its own start and end time, those lengths
+// are used. When a meeting has no clock time of its own, the class length is
+// the total teaching time and each meeting still adds 1.5 hours. A saved
+// paid-hours override replaces the 1.5 once for the whole job.
+function guidePayHours(s){
+  function rangeMinutes(timeStr){
+    if(!timeStr)return null;
+    const parts=String(timeStr).split(/-|–|—|\bto\b/i).map(function(p){return p.trim();}).filter(Boolean);
+    if(!parts.length)return null;
+    const full=/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i;
+    const bare=/^(\d{1,2})(?::(\d{2}))?$/;
+    const lastMer=parts[parts.length-1].match(/(am|pm)/i);
+    const fallbackMer=lastMer?lastMer[1].toLowerCase():null;
+    function parseOne(str){
+      let m=str.match(full);
+      if(m){
+        let h=parseInt(m[1],10),min=m[2]?parseInt(m[2],10):0,mer=m[3].toLowerCase();
+        if(mer==='pm'&&h<12)h+=12;
+        if(mer==='am'&&h===12)h=0;
+        return h*60+min;
+      }
+      m=str.match(bare);
+      if(m&&fallbackMer){
+        let h=parseInt(m[1],10),min=m[2]?parseInt(m[2],10):0;
+        if(fallbackMer==='pm'&&h<12)h+=12;
+        if(fallbackMer==='am'&&h===12)h=0;
+        return h*60+min;
+      }
+      return null;
+    }
+    const start=parseOne(parts[0]);
+    if(start==null||parts.length<2)return null;
+    const end=parseOne(parts[1]);
+    if(end==null||end<=start)return null;
+    return end-start;
+  }
+  function splitMeetings(session){
+    if(!session)return [];
+    const extras=(session.extraDays&&session.extraDays.length)?session.extraDays:((session.extraDates||[]).map(function(d){return {date:d,time:''};}));
+    if(!extras.length)return [];
+    const seen=new Set();
+    const mainKey=String(session.date||'day-1');
+    const out=[{time:session.time||'',ownTime:!!String(session.time||'').trim()}];
+    seen.add(mainKey);
+    extras.forEach(function(x){
+      const date=x&&typeof x==='object'?(x.date||''):String(x||'');
+      const time=x&&typeof x==='object'?(x.time||''):'';
+      const key=String(date||'').trim();
+      if(!key||seen.has(key))return;
+      seen.add(key);
+      out.push({time:time,ownTime:!!String(time).trim()});
+    });
+    return out.length>=2?out:[];
+  }
+  if(!s)return null;
+  const teach=sessionTeachingHours(s);
+  const travelHours=paidTravelHoursOf(s);
+  const c=(typeof COURSES!=='undefined'&&COURSES[s.course])||{};
+  const lengthUnset=(c.hours==null||c.hours==='')&&!(s.teachingHours!=null&&s.teachingHours!=='');
+  if(travelHours!=null){
+    if(lengthUnset)return null;
+    return Math.round((teach+travelHours)*100)/100;
+  }
+  const meetings=splitMeetings(s);
+  if(meetings.length>=2){
+    const mins=meetings.map(function(m){return m.ownTime?rangeMinutes(m.time):null;});
+    if(mins.every(function(n){return n!=null;})){
+      const total=mins.reduce(function(sum,n){return sum+n/60+1.5;},0);
+      return Math.round(total*100)/100;
+    }
+    if(lengthUnset)return null;
+    return Math.round((teach+1.5*meetings.length)*100)/100;
+  }
+  if(lengthUnset)return null;
+  return Math.round((teach+1.5)*100)/100;
+}
 function payHourShort(n){
   const v=Math.round(Number(n)*100)/100;
   const num=Number.isInteger(v)?String(v):String(v);
@@ -2325,6 +2404,10 @@ function instrBaseFee(s,instr){
   // plus 1.5, including virtual classes. Flat course fees do not apply. A saved
   // paid-hours override still replaces that 1.5. Older jobs keep their formula.
   if(typeof usesGuidePay==='function'&&usesGuidePay(s)){
+    if(typeof guidePayHours==='function'){
+      const hours=guidePayHours(s);
+      return (hours==null?1.5:hours)*rate;
+    }
     const add=travelHours!=null?travelHours:1.5;
     return (teach+add)*rate;
   }
@@ -7441,6 +7524,11 @@ function toggleHoldMode(on){
 }
 
 
+// New Stay Ready bookings are in person. Editing an existing session, including
+// the virtual class already on the calendar, keeps the format already saved.
+function stayReadyBlocksVirtual(course, editing){
+  return !editing && course==='Stay Ready: Choking Rescue and CPR';
+}
 function openAddSession(){
   _orgSplitSessionId=null;
   _costSessionId=null;
@@ -7530,7 +7618,7 @@ function openAddSession(){
     <div class="fg full"><label>WiFi info <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="m-wifi" placeholder="e.g. Network: HomeWifi · Password: abc123"></div>
     <div class="fg full">
       <label>Session format</label>
-      <select id="m-virtual" onchange="toggleVirtualFields(this.value)">
+      <select id="m-virtual" onchange="if(stayReadyBlocksVirtual((document.getElementById('m-course')||{}).value,false))this.value='no';toggleVirtualFields(this.value)">
         <option value="no">In-person</option>
         <option value="yes">Virtual (Zoom)</option>
       </select>
@@ -8136,7 +8224,7 @@ function paidHoursFieldsHtml(s){
   const inputStyle="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none";
   return `<div class="fg"><label>Class length for pay <span style="font-weight:400;color:var(--muted)">(hours)</span></label>
       <input type="number" id="m-teaching-hours" value="${teach}" placeholder="Course default" min="0" step="0.25" oninput="updateInstrPayPreview()" style="${inputStyle}">
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Leave blank to use this course's usual length. A 90-minute class is 1.5. Other sessions of the same course stay on the course default.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Leave blank to use this course's usual length. A 90-minute class is 1.5. Other sessions of the same course stay on the course default. If the class is split across days, each day adds 1.5 hours. When every day has its own start and end time, pay uses those lengths.</div>
     </div>
     <div class="fg"><label>Paid travel hours</label>
       <input type="number" id="m-paid-travel-hours" value="${travel}" placeholder="Usual" min="0" step="0.25" oninput="updateInstrPayPreview()" style="${inputStyle}">
@@ -8157,7 +8245,9 @@ function updateInstrPayPreview(){
     out.textContent='Enter hours as a number that is zero or more, or leave the box blank.';
     return;
   }
-  const draft={course:courseEl.value,isVirtual:virtual,teachingHours:teachingHours,paidTravelHours:paidTravelHours,instrPayOverride:raw===''?null:Number(raw),createdAt:_pricingCtxCreatedAt};
+  const timeEl=document.getElementById('m-time');
+  const dateEl=document.getElementById('m-date');
+  const draft={course:courseEl.value,isVirtual:virtual,teachingHours:teachingHours,paidTravelHours:paidTravelHours,instrPayOverride:raw===''?null:Number(raw),createdAt:_pricingCtxCreatedAt,date:dateEl&&dateEl.value||'',time:timeEl&&timeEl.value||'',extraDays:(typeof _editDays!=='undefined'?_editDays:[])};
   const usual=instrBaseFee({course:courseEl.value,isVirtual:virtual},null);
   const phrase=paidHoursBreakdown(draft);
   const standard=instrBaseFee(draft,{isLeadTeacher:false,hourlyRate:(typeof INSTR_RATE!=='undefined')?INSTR_RATE:50});
@@ -8172,6 +8262,14 @@ function updateInstrPayPreview(){
     out.style.color='var(--navy)';
     out.textContent=phrase+'. $'+((typeof INSTR_RATE!=='undefined')?INSTR_RATE:50)+'/hr is '+fmt(standard)+'. A Lead Teacher at $75/hr is '+fmt(leadFee)+'.';
     return;
+  }
+  if(typeof usesGuidePay==='function'&&usesGuidePay(draft)&&typeof guidePayHours==='function'){
+    const paid=guidePayHours(draft);
+    if(paid!=null){
+      out.style.color='var(--muted)';
+      out.textContent='Using '+fmt(standard)+' per instructor at $'+((typeof INSTR_RATE!=='undefined')?INSTR_RATE:50)+'/hr for '+formatPayHours(paid)+'.';
+      return;
+    }
   }
   if(teachingHours!=null){
     out.style.color='var(--muted)';
@@ -8462,7 +8560,9 @@ async function saveSession(editId){
     alert('Class length and paid travel hours need to be blank, or a number that is zero or more.');
     return;
   }
-  const isVirtual=document.getElementById('m-virtual')?.value==='yes';
+  let isVirtual=document.getElementById('m-virtual')?.value==='yes';
+  // New Stay Ready bookings are in person. An existing session keeps its saved format.
+  if(stayReadyBlocksVirtual(course, !!editId))isVirtual=false;
   const allowWaitlist=document.getElementById('m-waitlist')?.checked!==false;
   const zoomLink=(document.getElementById('m-zoom')?.value||'').trim();
   const billToOrg=(document.getElementById('m-billorg')?.value||'').trim();
@@ -11520,15 +11620,20 @@ function formatPayHours(n){
 function hourLabel(n){
   return formatPayHours(n)+(Number(n)===1?' hour':' hours');
 }
-// Paid hours on an hourly job, same split as instrBaseFee. In person that is
-// the course length plus 1.5 hours (one travel hour + the extra 30 minutes).
-// A virtual class has no travel hour, so only the extra 30 minutes is added.
-// A session with paid travel hours uses class hours + those hours exactly.
+// Paid hours on an hourly job, same split as instrBaseFee. Guide jobs add 1.5
+// hours per meeting when the class is split. Older in-person jobs add one hour
+// plus 30 minutes once. A virtual class on the old formula has no travel hour.
+// A session with paid hours set uses class hours plus those hours once.
 function openJobHourlyHours(s){
   const c=(typeof COURSES!=='undefined'&&COURSES[s&&s.course])||{};
   const courseHours=sessionTeachingHours(s);
   const virtual=!!(c.virtual||(s&&s.isVirtual));
   const paidTravel=paidTravelHoursOf(s);
+  if(typeof usesGuidePay==='function'&&usesGuidePay(s)&&typeof guidePayHours==='function'){
+    const total=guidePayHours(s);
+    const add=total==null?null:Math.round((total-courseHours)*100)/100;
+    return {courseHours:courseHours,add:add,total:total,virtual:virtual,paidTravel:paidTravel!=null};
+  }
   if(paidTravel!=null){
     const total=Math.round((courseHours+paidTravel)*100)/100;
     return {courseHours:courseHours,add:paidTravel,total:total,virtual:virtual,paidTravel:true};
@@ -11552,8 +11657,8 @@ function openJobPayText(s,instr){
   if(s&&s.isCustomJob)return "Pay isn't set yet";
   const c=(typeof COURSES!=='undefined'&&COURSES[s&&s.course])||{};
   if(typeof usesGuidePay==='function'&&usesGuidePay(s)){
-    if(c.hours==null&&!(s&&s.teachingHours!=null&&s.teachingHours!==''))return 'Pay: set the class length, then your hourly pay × (class length + 1.5) hours';
     const guideHours=openJobHourlyHours(s);
+    if(guideHours.total==null)return 'Pay: set the class length, then your hourly pay × (class length + 1.5) hours';
     return 'Pay: your hourly pay × '+hourLabel(guideHours.total);
   }
   const breakdown=paidHoursBreakdown(s);

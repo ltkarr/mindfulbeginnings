@@ -602,6 +602,85 @@ function sessionTeachingHours(s){
   const h=Number(c.hours);
   return isFinite(h)?h:0;
 }
+// Paid hours for a job on the Oct 22 2026 guide. One meeting is the class
+// length plus 1.5 hours. A split class (extra days on this session, not a
+// weekly recurring pattern) pays each meeting as that meeting's length plus
+// 1.5 hours. When every meeting has its own start and end time, those lengths
+// are used. When a meeting has no clock time of its own, the class length is
+// the total teaching time and each meeting still adds 1.5 hours. A saved
+// paid-hours override replaces the 1.5 once for the whole job.
+function guidePayHours(s){
+  function rangeMinutes(timeStr){
+    if(!timeStr)return null;
+    const parts=String(timeStr).split(/-|–|—|\bto\b/i).map(function(p){return p.trim();}).filter(Boolean);
+    if(!parts.length)return null;
+    const full=/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i;
+    const bare=/^(\d{1,2})(?::(\d{2}))?$/;
+    const lastMer=parts[parts.length-1].match(/(am|pm)/i);
+    const fallbackMer=lastMer?lastMer[1].toLowerCase():null;
+    function parseOne(str){
+      let m=str.match(full);
+      if(m){
+        let h=parseInt(m[1],10),min=m[2]?parseInt(m[2],10):0,mer=m[3].toLowerCase();
+        if(mer==='pm'&&h<12)h+=12;
+        if(mer==='am'&&h===12)h=0;
+        return h*60+min;
+      }
+      m=str.match(bare);
+      if(m&&fallbackMer){
+        let h=parseInt(m[1],10),min=m[2]?parseInt(m[2],10):0;
+        if(fallbackMer==='pm'&&h<12)h+=12;
+        if(fallbackMer==='am'&&h===12)h=0;
+        return h*60+min;
+      }
+      return null;
+    }
+    const start=parseOne(parts[0]);
+    if(start==null||parts.length<2)return null;
+    const end=parseOne(parts[1]);
+    if(end==null||end<=start)return null;
+    return end-start;
+  }
+  function splitMeetings(session){
+    if(!session)return [];
+    const extras=(session.extraDays&&session.extraDays.length)?session.extraDays:((session.extraDates||[]).map(function(d){return {date:d,time:''};}));
+    if(!extras.length)return [];
+    const seen=new Set();
+    const mainKey=String(session.date||'day-1');
+    const out=[{time:session.time||'',ownTime:!!String(session.time||'').trim()}];
+    seen.add(mainKey);
+    extras.forEach(function(x){
+      const date=x&&typeof x==='object'?(x.date||''):String(x||'');
+      const time=x&&typeof x==='object'?(x.time||''):'';
+      const key=String(date||'').trim();
+      if(!key||seen.has(key))return;
+      seen.add(key);
+      out.push({time:time,ownTime:!!String(time).trim()});
+    });
+    return out.length>=2?out:[];
+  }
+  if(!s)return null;
+  const teach=sessionTeachingHours(s);
+  const travelHours=paidTravelHoursOf(s);
+  const c=(typeof COURSES!=='undefined'&&COURSES[s.course])||{};
+  const lengthUnset=(c.hours==null||c.hours==='')&&!(s.teachingHours!=null&&s.teachingHours!=='');
+  if(travelHours!=null){
+    if(lengthUnset)return null;
+    return Math.round((teach+travelHours)*100)/100;
+  }
+  const meetings=splitMeetings(s);
+  if(meetings.length>=2){
+    const mins=meetings.map(function(m){return m.ownTime?rangeMinutes(m.time):null;});
+    if(mins.every(function(n){return n!=null;})){
+      const total=mins.reduce(function(sum,n){return sum+n/60+1.5;},0);
+      return Math.round(total*100)/100;
+    }
+    if(lengthUnset)return null;
+    return Math.round((teach+1.5*meetings.length)*100)/100;
+  }
+  if(lengthUnset)return null;
+  return Math.round((teach+1.5)*100)/100;
+}
 function payHourShort(n){
   const v=Math.round(Number(n)*100)/100;
   const num=Number.isInteger(v)?String(v):String(v);
@@ -642,6 +721,7 @@ function formatPayHours(n){
 }
 function jobPaidHours(s){
   const c=COURSES[s&&s.course]||{};
+  if(typeof usesGuidePay==='function'&&usesGuidePay(s)&&typeof guidePayHours==='function')return guidePayHours(s);
   if((c.hours==null||c.hours==='')&&!(s&&s.teachingHours!=null&&s.teachingHours!==''))return null;
   const teach=sessionTeachingHours(s);
   const setHours=paidTravelHoursOf(s);
@@ -669,6 +749,10 @@ function instrFee(s){
   const teach=sessionTeachingHours(s);
   const travelHours=paidTravelHoursOf(s);
   if(typeof usesGuidePay==='function'&&usesGuidePay(s)){
+    if(typeof guidePayHours==='function'){
+      const hours=guidePayHours(s);
+      return (hours==null?1.5:hours)*rate;
+    }
     const add=travelHours!=null?travelHours:1.5;
     return (teach+add)*rate;
   }
@@ -3471,7 +3555,7 @@ const FAQ_SECTIONS=[
     ['','Your approved course list reflects the credentials and training on file with Mindful Beginnings. If you believe you are eligible for an additional certification, contact Lindsay.']
   ]},
   {sub:'Flexible scheduling',items:[
-    ['','Any class can be split into shorter sessions. For example, the 5-hour babysitting class can be taught as two 2.5-hour sessions, and the 7-hour Babysitter\'s Training + Pediatric First Aid/CPR/AED can be split across two days of 3.5 hours each.']
+    ['','Any class can be split into shorter sessions. For example, the 5-hour babysitting class can be taught as two 2.5-hour sessions, and the 7-hour Babysitter\'s Training + Pediatric First Aid/CPR/AED can be split across two days of 3.5 hours each. Pay for a split class is your hourly pay times each session\'s length plus 1.5 hours.']
   ]},
   {sub:'Recommended class sizes',items:[
     ['6 to 8 students.','Steady and Ready\u2122. Ages 8 to 12. 60 minutes. In person or virtual.'],
@@ -3483,7 +3567,7 @@ const FAQ_SECTIONS=[
     ['8 to 16 students.','My First Babysitter\'s Club\u2122 and the other after-school clubs. Ages vary by club. Clubs typically run 8-10 weeks and are custom. A minimum of 6 participants is needed.'],
     ['4 to 12 participants.','Baby Ready\u2122 (3 hours) and Baby Ready\u2122 + CPR Certification (5 hours, and the Baby Ready portion is 3 hours).'],
     ['6 to 20 students.','Social Ready\u2122. Ages 8 to 14. 60 minutes. In person or virtual.'],
-    ['Up to 20 students.','Season Ready\u2122. 60 minutes. In person.'],
+    ['Up to 20 students.','Season Ready\u2122. 60 minutes. In person or virtual.'],
     ['8 to 20 participants.','Babysitting Grandkids Workshop. 60 minutes. In person.'],
     ['Typical group, 6 to 16 scouts.','Girl Scout badge workshops are custom-scheduled. Lindsay sets the time, and the group size, for each job. Daisy through Ambassador. Do not plan on a fixed length.'],
     ['Custom group size.','Group CPR Certification for Workplaces. Sized to the client. Confirm with Lindsay.']
@@ -3665,7 +3749,7 @@ const RESOURCE_GROUPS=[
   ['Ready. Period.\u2122','Girls build confidence around puberty: they design their own period kit while learning body literacy and self-advocacy in a supportive setting. Girls ages 10 to 12. 90 minutes. In person or virtual. 6 to 18 participants.',[['Open Folder','https://drive.google.com/drive/folders/1dG0eJgzkuQUjZz-4eNyzj5PIKqKzidPp?usp=drive_link']],''],
   ['Girl Scout Badge Workshops','First Aid, Babysitting, and Safety badge workshops for every Girl Scout level, Daisy through Ambassador. Custom-scheduled: Lindsay sets the time for each job. Typical group: 6 to 16 scouts. In person.',[['Open Folder','https://drive.google.com/drive/folders/19668Bt8GNilK9aXJQDKMZeN-oxEXzfiS?usp=drive_link']],''],
   ['Stay Ready\u2122: Choking Rescue, CPR, and Seizure Response','A hands-on refresher for choking rescue, CPR, and seizure response. Ages 11 and up. 75 minutes. In person. 6 to 12 participants. Taught by registered nurses.',[['Open Folder','https://drive.google.com/drive/folders/1lpyaT-Tb7Ay-V8_6KA-ZL63d31pSJxw1?usp=drive_link']],''],
-  ['Season Ready\u2122','A 60-minute hands-on class for student athletes. In person. Up to 20 participants. Taught by registered nurses.',[['Open Folder','https://drive.google.com/drive/folders/1P3lIGmMPLdGZSckEDoODi0Z0At1gCkRM?usp=drive_link']],''],
+  ['Season Ready\u2122','A 60-minute hands-on class for student athletes. In person or virtual. Up to 20 participants. Taught by registered nurses.',[['Open Folder','https://drive.google.com/drive/folders/1P3lIGmMPLdGZSckEDoODi0Z0At1gCkRM?usp=drive_link']],''],
   ['Campus Ready\u2122','A hands-on safety class taught by registered nurses. Teens & college-bound. 60 minutes. In person. 6 to 12 participants. Students learn to recognize alcohol poisoning and overdose, perform CPR and the recovery position, administer Narcan, recognize and respond to a seizure, and know when to call 911.',[['Open Folder','https://drive.google.com/drive/folders/1uJ1WI6NDg6GDphmX2fXWN9_-_fzZ9Y3j?usp=drive_link']],'']
 ]},
 {title:'Red Cross certification',rows:[
