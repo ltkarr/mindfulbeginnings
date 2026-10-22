@@ -56,6 +56,7 @@
     'Safe Sitter®': 'Safe Sitter® Babysitting with CPR Module',
     'Intro to Babysitting': 'Introduction to Safe Babysitting by Safe Sitter®',
     'Safe@Home': 'Safe@Home: First Steps to Independence',
+    'Safe@Home — Virtual': 'Safe@Home',
     'Grandparents: Getting Started': 'Safe Sitter® Grandparents: Getting Started',
     'Stay Ready: Choking Rescue and CPR': 'Stay Ready™: Choking Rescue, CPR, and Seizure Response',
     'My First Babysitters Club': "My First Babysitter's Club™",

@@ -75,6 +75,10 @@ const SESSIONS = [
   { name: 'safe sitter course', course: 'Safe Sitter®', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'stay ready (RN pattern)', course: 'Stay Ready: Choking Rescue and CPR', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'babysitters training', course: "Babysitter's Training", requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
+  { name: 'rc adult', course: 'Adult First Aid/CPR/AED Certification', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
+  { name: 'rc bls', course: 'Basic Life Support (BLS) Certification', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
+  { name: 'rc adult hybrid', course: 'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
+  { name: 'rc bls hybrid', course: 'Basic Life Support (BLS) Certification (Hybrid)', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'red cross course', course: 'Adult & Pediatric First Aid/CPR/AED Certification', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'plain course', course: 'All Kids Welcome', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'custom spanish job', course: 'Custom Workshop', requires_rn: false, requires_safe_sitter: false, requires_spanish: true, is_custom_job: true },
@@ -146,6 +150,10 @@ test('spot checks: restricted jobs hidden from uncredentialed instructors', () =
   assert.strictEqual(elig.canTeachSession(byName('red cross course'), lead), true);
   assert.strictEqual(elig.canTeachSession(byName('babysitters training'), general), false, 'Babysitter Training is Lead Teacher-only');
   assert.strictEqual(elig.canTeachSession(byName('babysitters training'), lead), true);
+  ['rc adult', 'rc bls', 'rc adult hybrid', 'rc bls hybrid'].forEach(function (n) {
+    assert.strictEqual(elig.canTeachSession(byName(n), general), false, n + ' is Lead Teacher-only');
+    assert.strictEqual(elig.canTeachSession(byName(n), lead), true);
+  });
   assert.strictEqual(elig.canTeachSession(byName('custom spanish job'), general), false);
   assert.strictEqual(elig.canTeachSession(byName('girl scout first aid badge'), general), true, 'badge workshops stay open (no RN rule)');
   assert.strictEqual(elig.canTeachSession(byName('baby ready + CPR'), general), true, 'Baby Ready + CPR is not Lead-only');
