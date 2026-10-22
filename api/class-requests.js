@@ -6,6 +6,7 @@ const { approveClassRequest } = require('../lib/class-request-approve');
 const store = require('../lib/class-request-store');
 const { createOutlookDraft } = require('../lib/outlook-draft');
 const { notifyLindsay } = require('../lib/class-request-notify');
+const { confirmRequester } = require('../lib/class-request-confirm');
 
 const SUPABASE_URL = 'https://evninlytzhtacanrguhx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2bmlubHl0emh0YWNhbnJndWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTE1MzQsImV4cCI6MjA5MzIyNzUzNH0.7sr0P9BmcPW_cJgWZwndVtaHsZXsbVCcE0Pk1gm3VP8';
@@ -57,7 +58,8 @@ module.exports = async function handler(req, res) {
       insertRequest: store.insertRequest,
       updateRequest: store.updateRequest,
       createOutlookDraft: createOutlookDraft,
-      notifyLindsay: notifyLindsay
+      notifyLindsay: notifyLindsay,
+      confirmRequester: confirmRequester
     });
     sendJson(res, result.status, result.body);
   } catch (err) {
