@@ -50,7 +50,7 @@
     // but any number of weeks available. 8-16 kids. Organization form only.
     { key: 'after-school-clubs', course: 'After School Clubs', abbr: 'ASC', price: 200, hours: '1 hour a week, typically 8-10 weeks (any number available)', audience: 'Elementary clubs, 8-16 kids', where: 'in person', host: false, org: true, label: 'After School Clubs — 8-10 weeks · $200/participant' },
     { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet: I would like guidance' },
-    { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course: we will follow up with pricing' }
+    { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course: Mindful Beginnings will follow up with pricing' }
   ];
 
   var BILLING_OPTIONS = [
