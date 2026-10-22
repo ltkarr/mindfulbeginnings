@@ -42,7 +42,20 @@
         <div class="field"><label for="phone">Cell phone</label><input id="phone" name="phone" type="tel" autocomplete="tel" required></div>
       </div>
       <div class="field" style="margin-top:12px"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" required></div>
-      <div class="field"><label for="referral">Who referred you to us?</label><input id="referral" name="referral"></div>
+      <div class="field"><label for="referral">How did you hear about us?</label>
+        <select id="referral" name="referral">
+          <option value="">Select one...</option>
+          <option>Facebook/Instagram</option>
+          <option>Katy Greenberg</option>
+          <option>Mary Parks</option>
+          <option>Vanessa in Vienna</option>
+          <option>Nextdoor</option>
+          <option>Girl Scouts</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field" id="referral-other-wrap" hidden><label for="referral-other">Where did you hear about us?</label><input id="referral-other" name="referralOther"></div>
+      <div class="field"><label for="referral-detail">Name and email of the person who referred you <span class="hint">Optional.</span></label><input id="referral-detail" name="referralDetail"></div>
     </div>
 
     <div class="card">

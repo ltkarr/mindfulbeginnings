@@ -71,6 +71,18 @@
     return Array.prototype.map.call(form.querySelectorAll('[name="' + name + '"]:checked'), function (el) { return el.value; });
   }
 
+  // The same choices as the registration form, including Vanessa in Vienna.
+  // A plain text field (older pages) still submits whatever was typed.
+  function referralAnswer(form) {
+    if (!form || !form.referral) return '';
+    var sel = String(form.referral.value || '').trim();
+    var other = form.referralOther ? String(form.referralOther.value || '').trim() : '';
+    var detail = form.referralDetail ? String(form.referralDetail.value || '').trim() : '';
+    if (sel === 'Other') sel = other ? ('Other: ' + other) : 'Other';
+    var answer = sel && detail ? (sel + ' — ' + detail) : (sel || detail);
+    return answer.slice(0, 300);
+  }
+
   function payloadFrom(form) {
     var kind = form.getAttribute('data-kind');
     var data = {
@@ -80,7 +92,7 @@
       phone: (form.phone && form.phone.value || '').trim(),
       courseKey: form.courseKey ? form.courseKey.value : '',
       expectedCount: form.expectedCount ? form.expectedCount.value : '',
-      referral: form.referral ? form.referral.value : '',
+      referral: referralAnswer(form),
       days: readDays(form),
       specialInstructions: form.specialInstructions ? form.specialInstructions.value : '',
       spanishRequested: !!(form.spanishRequested && form.spanishRequested.checked),
@@ -195,8 +207,22 @@
     }
   }
 
+  function toggleReferralOther() {
+    var sel = $('referral');
+    var wrap = $('referral-other-wrap');
+    if (!sel || !wrap) return;
+    var show = sel.value === 'Other';
+    wrap.hidden = !show;
+    if (!show) {
+      var other = $('referral-other');
+      if (other) other.value = '';
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     var form = $('request-form');
+    var referral = $('referral');
+    if (referral) referral.addEventListener('change', toggleReferralOther);
     if (!form) return;
     bindDays(form);
     form.addEventListener('submit', onSubmit);
