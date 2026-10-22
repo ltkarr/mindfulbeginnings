@@ -31,8 +31,21 @@
     return !!ADULT_COURSES[name];
   }
 
-  function seatsPerRegistration(course, courses) {
+  var PER_PERSON_BOOKING_FROM = Date.parse('2026-10-22T00:00:00Z');
+
+  function perPersonBooking(createdAt) {
+    if (createdAt == null || createdAt === '') return false;
+    var t = typeof createdAt === 'number' ? createdAt : Date.parse(createdAt);
+    return !isNaN(t) && t >= PER_PERSON_BOOKING_FROM;
+  }
+
+  function seatsPerRegistration(course, courses, createdAt) {
+    if (courses != null && (typeof courses === 'string' || typeof courses === 'number')) {
+      createdAt = courses;
+      courses = null;
+    }
     var name = String(course || '');
+    if (perPersonBooking(createdAt) && (name === 'Baby Ready' || name === 'Baby Ready + CPR Certification')) return 1;
     var cfg = courseConfig(name, courses);
     var n = cfg && Number(cfg.seatsPerRegistration);
     if (isFinite(n) && n >= 1) return Math.floor(n);
@@ -109,6 +122,7 @@
   var api = {
     ADULT_COURSES: ADULT_COURSES,
     isAdultCourse: isAdultCourse,
+    perPersonBooking: perPersonBooking,
     seatsPerRegistration: seatsPerRegistration,
     seatsUsed: seatsUsed,
     seatsRemaining: seatsRemaining,

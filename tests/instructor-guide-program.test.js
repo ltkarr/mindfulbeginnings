@@ -11,7 +11,7 @@ const guide = fs.readFileSync(path.join(root, 'instructor.html'), 'utf8');
 test('instructor guide class sizes follow the program guide and owner overrides', () => {
   assert.match(guide, /Any class can be split into shorter sessions/);
   assert.match(guide, /4 to 12 participants/);
-  assert.match(guide, /Babysitter\\?'s Club[\s\S]{0,180}8 to 12/);
+  assert.match(guide, /Babysitter\\?'s Club[\s\S]{0,220}8 to 16/);
   assert.match(guide, /Stay Ready.{0,40}Choking Rescue, CPR, and Seizure Response/);
   assert.match(guide, /Babysitting Grandkids Workshop/);
   assert.match(guide, /Safe Sitter(?:®|\\u00ae) Grandparents: Getting Started/);

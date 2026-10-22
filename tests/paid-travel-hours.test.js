@@ -155,7 +155,7 @@ test('the instructor portal uses the same hours and the same dollar amounts', ()
   assert.equal(at50.instrFee({ course: GSFA }), 125);
   assert.equal(at75.instrFee({ course: 'Stay Ready: Choking Rescue and CPR' }), 1.5 * 75 + 75 + 37.5);
   assert.match(instructor, /paidHoursBreakdown\(s\)/);
-  assert.match(instructor, /Total pay/);
+  assert.match(instructor, /Pay: your hourly pay ×/);
 });
 
 test('saving a session writes class length and paid travel hours, and a blank stays off the row', () => {

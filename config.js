@@ -108,18 +108,20 @@ const COURSES={
   // columns stay $195 so a session with no creation time does not jump to
   // $185. This file does not rewrite a price already stored on a session
   // or registration.
-  'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:3,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting and new parents'},
+  // Baby Ready requires an RN. Sessions created before PER_PERSON_BOOKING_FROM
+  // still book as a couple. Newer sessions are one person at the per-person rate.
+  'Baby Ready':{price:195,price2027:195,priceNew:195,priceNew2027:195,matCost:0,hours:3,maxStudents:12,seatsPerRegistration:2,requiresRN:true,adult:true,audience:'Expecting and new parents'},
   // Baby Ready plus Pediatric First Aid/CPR certification. $275 per person.
   // couplePrice is the checkout total for one couple registration (2 people),
-  // $495, which is less than 2 × $275. Not RN-only. Capacity is people, and
-  // each registration holds 2 seats, same as Baby Ready.
-  'Baby Ready + CPR Certification':{price:275,price2027:275,priceNew:275,priceNew2027:275,couplePrice:495,matCost:0,hours:5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents · $275 per person ($495 per couple)'},
+  // $495, on sessions created before PER_PERSON_BOOKING_FROM. Newer sessions
+  // are one person at $275. Not RN-only.
+  'Baby Ready + CPR Certification':{price:275,price2027:275,priceNew:275,priceNew2027:275,couplePrice:495,matCost:0,hours:5,maxStudents:12,seatsPerRegistration:2,adult:true,audience:'Expecting parents, $275 per person'},
   'All Kids Welcome':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Experienced sitters'},
   // Official name: Stay Ready: Choking Rescue, CPR, and Seizure Response.
   // The stored course key stays "Choking Rescue and CPR" so existing sessions match.
   // 75 minutes. hours is 1.25 so instructor pay matches the published length.
   'Stay Ready: Choking Rescue and CPR':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1.25,maxStudents:12,requiresRN:true,audience:'Ages 11 and up'},
-  'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'Teens and college-bound'},
+  'Campus Ready: Safety Skills for College Life':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,instrFlatFee:100,maxStudents:12,requiresRN:true,audience:'Teens & college-bound'},
   // Steady and Ready stays $65 on purpose — the Aug 2026 program guide printed
   // $50, which Lindsay confirmed is a typo in the guide, not a price change.
   // Published length is 60 minutes.
@@ -185,7 +187,32 @@ const COURSES={
   // file does not rewrite a price stored on a session or registration.
   // Online + Classroom is a separate offering: about 2 hours online, then
   // a 2-hour skills session, $115. It is not its own course key.
-  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'}
+  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'},
+  // Standalone American Red Cross Babysitter's Training. Not the 7-hour combo.
+  'Babysitter\'s Training':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 to 15'},
+  'Adult First Aid/CPR/AED':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:3.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true,audience:'Adults: workplaces, coaches, and community members'},
+  'Basic Life Support (BLS)':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true,audience:'Healthcare providers and public safety staff'},
+  // The in-person skills length was not specified. Leave hours unset so the
+  // session's class length is entered per job. Price is $95.
+  'Basic Life Support (BLS) Online + Classroom':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:0,hours:null,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true,audience:'Healthcare providers. Online course, then an in-person skills session.'},
+  // Instructor pay uses the 2-hour in-person skills session. The online portion
+  // is about 2 hours and is not class time.
+  'Adult & Pediatric First Aid/CPR/AED Online + Classroom':{price:115,price2027:115,priceNew:115,priceNew2027:115,matCost:0,hours:2,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up. About 2 hours online, then 2 hours of in-person skills.'},
+  'Babysitting Grandkids Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:20,adult:true,audience:'Grandparents, 8 to 20 participants'},
+  // Quote only. No checkout price. Not a public catalog card.
+  'Group CPR for Workplaces':{quoteOnly:true,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true,audience:'Workplaces, childcare teams, and scout leaders. Quoted per job.'},
+  // After-school clubs are request or quote at $200 per participant, minimum 6,
+  // usually 8 to 16 kids. They are not public catalog cards. My First
+  // Babysitters Club stays its own key so existing sessions match.
+  'Little Medics':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:0,hours:1,maxStudents:16,audience:'After-school club, 8 to 16 kids, $200 per participant'},
+  'Pet Sitter\'s Club':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:0,hours:1,maxStudents:16,audience:'After-school club, 8 to 16 kids, $200 per participant'},
+  'Snack Squad':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:0,hours:1,maxStudents:16,audience:'After-school club, 8 to 16 kids, $200 per participant'},
+  'Kid Boss':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:0,hours:1,maxStudents:16,audience:'After-school club, 8 to 16 kids, $200 per participant'},
+  'Middle School Here I Come':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:0,hours:1,maxStudents:16,audience:'After-school club, 8 to 16 kids, $200 per participant'},
+  'Big Sibling':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:0,hours:1,maxStudents:16,audience:'After-school club, 8 to 16 kids, $200 per participant'},
+  'My First Phone':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:0,hours:1,maxStudents:16,audience:'After-school club, 8 to 16 kids, $200 per participant'},
+  'Walk and Roll Ready':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:0,hours:1,maxStudents:16,audience:'After-school club, 8 to 16 kids, $200 per participant'},
+  'Calm and Ready':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:0,hours:1,maxStudents:16,audience:'After-school club, 8 to 16 kids, $200 per participant'}
 };
 
 
@@ -194,6 +221,25 @@ const COURSES={
    sessions that already existed keep the prices they were advertised at.
    Keep this value identical to NEW_PRICING_EFFECTIVE in admin.html.        */
 const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
+
+/* Sessions created on or after this moment book per person: Baby Ready is $185,
+   Baby Ready + CPR Certification is $275, and neither uses a couple package.
+   Girl Scout badge workshops created on or after this moment are quoted per job.
+   Older sessions keep the checkout they were booked with. This does not rewrite
+   a stored session or registration price. */
+const PER_PERSON_BOOKING_FROM='2026-10-22T00:00:00Z';
+function perPersonBooking(createdAt){
+  if(createdAt==null||createdAt==='')return false;
+  const t=typeof createdAt==='number'?createdAt:Date.parse(createdAt);
+  return !isNaN(t)&&t>=Date.parse(PER_PERSON_BOOKING_FROM);
+}
+function quotedCheckout(course, createdAt){
+  const name=String(course||'');
+  const c=(typeof COURSES!=='undefined'&&COURSES&&COURSES[name])||null;
+  if(c&&c.quoteOnly)return true;
+  if(name==='Girl Scouts — First Aid Badge Workshop'||name==='Girl Scout Badge Class')return perPersonBooking(createdAt);
+  return false;
+}
 
 
 /* ─── LATER PRICE CHANGES ──────────────────────────────────────────────
@@ -287,6 +333,7 @@ function laterPriceFor(course,createdAt){
    every session a family looks up. A per-session price override, when set in
    the admin, is applied by the pages on top of this base price.             */
 function getSessionBasePrice(course,dateStr,createdAt){
+  if(typeof quotedCheckout==='function'&&quotedCheckout(course,createdAt))return null;
   const c=COURSES[course];if(!c)return 0;
   const later=laterPriceFor(course,createdAt);if(later!=null)return later;
   const year=dateStr?parseInt(String(dateStr).split('-')[0],10):new Date().getFullYear();
@@ -337,7 +384,23 @@ const MAX_STUDENTS={
   'Girl Scouts — First Aid Badge Workshop':16,
   'Girl Scout Badge Class':16,
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,
-  'Adult & Pediatric First Aid/CPR/AED Certification':12
+  'Adult & Pediatric First Aid/CPR/AED Certification':12,
+  'Babysitter\'s Training':12,
+  'Adult First Aid/CPR/AED':12,
+  'Basic Life Support (BLS)':12,
+  'Basic Life Support (BLS) Online + Classroom':12,
+  'Adult & Pediatric First Aid/CPR/AED Online + Classroom':12,
+  'Babysitting Grandkids Workshop':20,
+  'Group CPR for Workplaces':12,
+  'Little Medics':16,
+  'Pet Sitter\'s Club':16,
+  'Snack Squad':16,
+  'Kid Boss':16,
+  'Middle School Here I Come':16,
+  'Big Sibling':16,
+  'My First Phone':16,
+  'Walk and Roll Ready':16,
+  'Calm and Ready':16
 };
 
 

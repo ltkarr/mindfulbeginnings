@@ -160,7 +160,7 @@ test('After School Clubs is a $200/participant organization option with a club p
   assert.equal(asc.course, 'After School Clubs');
   assert.ok(!model.coursesFor('host').some(function (c) { return c.key === 'after-school-clubs'; }), 'not on the home host form');
   assert.match(orgPage, /value="after-school-clubs"/);
-  assert.match(orgPage, /After School Clubs \(please list the club you want below\), Elementary clubs, 1 hour a week, typically 8-10 weeks, in person \(\$200 per participant\)/);
+  assert.match(orgPage, /After School Clubs, 8 to 16 kids, minimum 6, \$200 per participant, 1 hour a week, clubs typically run 8-10 weeks and are custom, in person \(\$200\)/);
   assert.match(orgPage, /\$200 per participant/);
   assert.match(orgPage, /id="clubs-wrap"/);
   ['My First Babysitter\'s Club', 'Little Medics', 'Pet Sitter\'s Club', 'Snack Squad', 'Kid Boss Club',
@@ -303,12 +303,13 @@ test('GSFA evening end 08:30 next to a 19:00 start displays as 8:30 PM, with a p
   const plan = model.buildSessionRow(n, []);
   assert.equal(plan.row.code, 'GSFA-261112');
   assert.equal(plan.row.time, '7:00 to 8:30 PM');
-  assert.equal(plan.row.org_portion, 45);
+  assert.equal(plan.row.org_portion, null);
   assert.equal(plan.row.billed_headcount, 11);
   const draft = model.buildDraft(n, plan.row);
   assert.match(draft.body, /Time: 7:00 to 8:30 PM/);
   assert.doesNotMatch(draft.body, /8:30 AM/);
-  assert.match(draft.body, /Price: \$45 per participant\. Estimated total for 11 participants: \$495, final invoice based on attendance/);
+  assert.match(draft.body, /Price: quoted per job/);
+  assert.doesNotMatch(draft.body, /\$45/);
   assert.match(draft.body, /Participants register on this private link at no charge/);
   assert.doesNotMatch(draft.body, /Price:.*\u2014/);
   assert.doesNotMatch(draft.body, /Payment:.*\u2014/);
@@ -320,7 +321,7 @@ test('GSFA evening end 08:30 next to a 19:00 start displays as 8:30 PM, with a p
     days: [{ date: '2026-11-12', start: '19:00', end: '20:30' }]
   }));
   const unknownDraft = model.buildDraft(unknown, model.buildSessionRow(unknown, []).row);
-  assert.match(unknownDraft.body, /Price: \$45 per participant\./);
+  assert.match(unknownDraft.body, /Price: quoted per job/);
   assert.doesNotMatch(unknownDraft.body, /Estimated total/);
 });
 

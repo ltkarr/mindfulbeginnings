@@ -28,7 +28,7 @@ const COURSES={
   "Safe@Home — Virtual":{hours:1,maxStudents:20,instrFlatFee:75,virtual:true},
   "Grandparents: Getting Started":{hours:3,maxStudents:16,requiresSafeSitter:true,adult:true},
   "Care Ready":{hours:2.5,maxStudents:16,adult:true},
-  "Baby Ready":{hours:3,maxStudents:12,seatsPerRegistration:2,adult:true},
+  "Baby Ready":{hours:3,maxStudents:12,seatsPerRegistration:2,requiresRN:true,adult:true},
   "Baby Ready + CPR Certification":{hours:5,maxStudents:12,seatsPerRegistration:2,adult:true},
   "All Kids Welcome":{hours:1,maxStudents:20,instrFlatFee:75,virtual:true},
   "Stay Ready: Choking Rescue and CPR":{hours:1.25,maxStudents:12,requiresRN:true},
@@ -43,7 +43,22 @@ const COURSES={
   "Girl Scout Badge Class":{hours:1,maxStudents:16},
   "Babysitter's Training":{hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true},
   "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED":{hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true},
-  "Adult & Pediatric First Aid/CPR/AED Certification":{hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true}
+  "Adult & Pediatric First Aid/CPR/AED Certification":{hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true},
+  "Adult First Aid/CPR/AED":{hours:3.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true},
+  "Basic Life Support (BLS)":{hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true},
+  "Basic Life Support (BLS) Online + Classroom":{hours:null,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true},
+  "Adult & Pediatric First Aid/CPR/AED Online + Classroom":{hours:2,maxStudents:12,redCross:true,requiresLeadTeacher:true},
+  "Babysitting Grandkids Workshop":{hours:1,maxStudents:20,adult:true},
+  "Group CPR for Workplaces":{hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true},
+  "Little Medics":{hours:1,maxStudents:16},
+  "Pet Sitter's Club":{hours:1,maxStudents:16},
+  "Snack Squad":{hours:1,maxStudents:16},
+  "Kid Boss":{hours:1,maxStudents:16},
+  "Middle School Here I Come":{hours:1,maxStudents:16},
+  "Big Sibling":{hours:1,maxStudents:16},
+  "My First Phone":{hours:1,maxStudents:16},
+  "Walk and Roll Ready":{hours:1,maxStudents:16},
+  "Calm and Ready":{hours:1,maxStudents:16}
 };
 
 /* Instructor pay constants (an instructor's own hourly rate, set in the admin,

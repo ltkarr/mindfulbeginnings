@@ -19,7 +19,7 @@
     { key: 'grandparents', course: 'Grandparents: Getting Started', title: 'Safe Sitter® Grandparents: Getting Started', abbr: 'GP', price: 185, hours: '3 hours', audience: 'Grandparents and caregivers', where: 'in person', requiresSS: true, host: true, org: true },
     { key: 'mfbc-single', course: 'My First Babysitters Club — Single Session', title: "My First Babysitter's Club workshop", abbr: 'MFBC1', price: 165, hours: '2.5 hours', audience: 'Ages 8 to 10', where: 'in person', host: true, org: true },
     { key: 'mfbc-series', course: 'My First Babysitters Club', title: "My First Babysitter's Club, 8-week series", abbr: 'MFBC', price: 200, hours: '1 hour a week', audience: 'Ages 8 to 10', where: 'in person', host: false, org: true },
-    { key: 'campus-ready', course: 'Campus Ready: Safety Skills for College Life', abbr: 'CR', price: 75, hours: '1 hour', audience: 'Teens and college-bound', where: 'in person', requiresRN: true, host: true, org: true },
+    { key: 'campus-ready', course: 'Campus Ready: Safety Skills for College Life', abbr: 'CR', price: 75, hours: '1 hour', audience: 'Teens & college-bound', where: 'in person', requiresRN: true, host: true, org: true },
     { key: 'ready-period', course: 'Ready. Period.', abbr: 'RP', price: 75, hours: '90 minutes', audience: 'Girls ages 10 to 12', where: 'in person', requiresRN: true, host: true, org: true },
     { key: 'ready-period-virtual', course: 'Ready. Period.', abbr: 'RP', price: 75, hours: '90 minutes', audience: 'Girls ages 10 to 12', where: 'virtual', virtual: true, requiresRN: true, host: true, org: true },
     { key: 'stay-ready', course: 'Stay Ready: Choking Rescue and CPR', title: 'Stay Ready: Choking Rescue, CPR, and Seizure Response', abbr: 'SR', price: 85, hours: '75 minutes', audience: 'Ages 11 and up', where: 'in person', requiresRN: true, host: true, org: true },
@@ -27,24 +27,30 @@
     { key: 'steady-ready-virtual', course: 'Steady and Ready', abbr: 'STR', price: 65, hours: '60 minutes', audience: 'Ages 8 to 12', where: 'virtual', virtual: true, host: true, org: true },
     { key: 'intro', course: 'Intro to Babysitting', title: 'Introduction to Safe Babysitting by Safe Sitter®', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Ages 10 to 12', where: 'in person', host: true, org: true },
     { key: 'intro-virtual', course: 'Intro to Babysitting', title: 'Introduction to Safe Babysitting by Safe Sitter®', abbr: 'IB', price: 40, hours: '1 hour', audience: 'Ages 10 to 12', where: 'virtual', virtual: true, host: true, org: true },
-    { key: 'all-kids-welcome', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '60 minutes', audience: 'Experienced sitters', where: 'in person', host: true, org: true },
-    { key: 'all-kids-welcome-virtual', course: 'All Kids Welcome', abbr: 'AKW', price: 25, hours: '60 minutes', audience: 'Experienced sitters', where: 'virtual', virtual: true, host: true, org: true },
+    { key: 'all-kids-welcome', course: 'All Kids Welcome', title: 'All Kids Welcome™: For Experienced Sitters', abbr: 'AKW', price: 25, hours: '60 minutes', audience: 'Experienced sitters', where: 'in person', host: true, org: true },
+    { key: 'all-kids-welcome-virtual', course: 'All Kids Welcome', title: 'All Kids Welcome™: For Experienced Sitters', abbr: 'AKW', price: 25, hours: '60 minutes', audience: 'Experienced sitters', where: 'virtual', virtual: true, host: true, org: true },
     // Social Ready: ages 8 to 14, $45, 60 minutes, in person or virtual.
     { key: 'social-ready', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Ages 8 to 14', where: 'in person', host: true, org: true },
     { key: 'social-ready-virtual', course: 'Social Ready', abbr: 'SOC', price: 45, hours: '1 hour', audience: 'Ages 8 to 14', where: 'virtual', virtual: true, host: true, org: true },
-    { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 185, hours: '3 hours', audience: 'Expecting and new parents, $185 per person ($300 per couple), 4 to 12 participants', where: 'in person', host: false, org: true },
-    { key: 'baby-ready-cpr', course: 'Baby Ready + CPR Certification', abbr: 'BRCPR', price: 275, hours: '5 hours', audience: 'Expecting parents, $275 per person ($495 per couple), Baby Ready portion is 3 hours', where: 'in person', host: true, org: true },
+    { key: 'baby-ready', course: 'Baby Ready', abbr: 'BR', price: 185, hours: '3 hours', audience: 'Expecting and new parents, $185 per person, 4 to 12 participants', where: 'in person', requiresRN: true, host: false, org: true },
+    { key: 'baby-ready-cpr', course: 'Baby Ready + CPR Certification', abbr: 'BRCPR', price: 275, hours: '5 hours', audience: 'Expecting parents, $275 per person, Baby Ready portion is 3 hours', where: 'in person', host: true, org: true },
     { key: 'season-ready', course: 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', abbr: 'SEAR', price: 25, hours: '60 minutes', audience: 'Student athletes', where: 'in person', requiresRN: true, host: false, org: true },
     // Badge workshops are custom-scheduled. The stored course key stays the
     // First Aid workshop so existing requests match. $45 is the current troop
     // checkout amount, not a published fixed length.
-    { key: 'gs-first-aid', course: 'Girl Scouts — First Aid Badge Workshop', title: 'Girl Scout badge workshops', abbr: 'GSFA', price: 45, hours: 'custom schedule, time set per job', audience: 'Daisy through Ambassador, typical group 6 to 16', where: 'in person', requiresRN: true, host: false, org: true },
+    { key: 'gs-first-aid', course: 'Girl Scouts — First Aid Badge Workshop', title: 'Girl Scout badge workshops', abbr: 'GSFA', price: null, quoteOnly: true, hours: 'custom schedule, time set per job', audience: 'Daisy through Ambassador, typical group 6 to 16', where: 'in person', requiresRN: true, host: false, org: true },
     { key: 'babysitters-training', course: "Babysitter's Training", abbr: 'BT', price: 185, hours: '4.25 hours', audience: 'Ages 11 to 15', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     { key: 'rc-babysitter', course: "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED", abbr: 'RCB', price: 295, hours: '7 hours', audience: 'Ages 11 to 14', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     { key: 'rc-adult-peds', course: 'Adult & Pediatric First Aid/CPR/AED Certification', abbr: 'RCA', price: 125, hours: '4.25 hours', audience: 'Ages 11 and up', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    { key: 'adult-first-aid', course: 'Adult First Aid/CPR/AED', abbr: 'AFA', price: 125, hours: '3.25 hours', audience: 'Adults, groups of 6 to 12', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    { key: 'bls', course: 'Basic Life Support (BLS)', abbr: 'BLS', price: 125, hours: '4.25 hours', audience: 'Healthcare providers, groups of 6 to 12', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    { key: 'bls-online', course: 'Basic Life Support (BLS) Online + Classroom', title: 'BLS Online + Classroom', abbr: 'BLSO', price: 95, hours: 'online, then an in-person skills session', audience: 'Healthcare providers, groups of 6 to 12', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    { key: 'rc-adult-peds-online', course: 'Adult & Pediatric First Aid/CPR/AED Online + Classroom', abbr: 'RCAO', price: 115, hours: 'about 2 hours online, then 2 hours in person', audience: 'Ages 11 and up, groups of 6 to 12', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
+    { key: 'grandkids', course: 'Babysitting Grandkids Workshop', abbr: 'BGK', price: 45, hours: '60 minutes', audience: 'Grandparents, 8 to 20', where: 'in person', host: true, org: true },
+    { key: 'group-cpr', course: 'Group CPR for Workplaces', abbr: 'GCPR', price: null, quoteOnly: true, hours: '4 hours', audience: 'Workplaces, quoted per job, minimum 6', where: 'in person', requiresLeadTeacher: true, host: true, org: true },
     // After School Clubs: $200 per participant, all clubs. Typically 8-10 weeks
     // but any number of weeks available. 8-16 kids. Organization form only.
-    { key: 'after-school-clubs', course: 'After School Clubs', abbr: 'ASC', price: 200, hours: '1 hour a week, typically 8-10 weeks (any number available)', audience: 'Elementary clubs, 8-16 kids', where: 'in person', host: false, org: true },
+    { key: 'after-school-clubs', course: 'After School Clubs', abbr: 'ASC', price: 200, hours: '1 hour a week, clubs typically run 8-10 weeks and are custom', audience: '8 to 16 kids, minimum 6, $200 per participant', where: 'in person', host: false, org: true },
     { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet: I would like guidance' },
     { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course: we will follow up with pricing' }
   ];
@@ -101,7 +107,7 @@
     if (c.hours) bits.push(c.hours);
     if (c.where) bits.push(c.where);
     var detail = bits.join(', ');
-    var price = c.price == null ? '' : ' ($' + c.price + ')';
+    var price = c.quoteOnly ? ' (quoted per job)' : (c.price == null ? '' : ' ($' + c.price + ')');
     return name + (detail ? ', ' + detail : '') + price;
   }
 
@@ -410,7 +416,20 @@
     }
     var mode = String(input.billing || '').trim();
     if (mode === 'org_full_external' || mode === 'org_full_link') {
-      if (!orgName || catalog == null) return { resolved: false, mode: mode, reason: 'billing' };
+      if (!orgName) return { resolved: false, mode: mode, reason: 'billing' };
+      if (catalog == null) {
+        return {
+          resolved: true,
+          mode: mode,
+          priceOverride: null,
+          billToOrg: orgName,
+          orgPortion: null,
+          billedHeadcount: headcount,
+          hasHost: false,
+          isPrivate: true,
+          quote: true
+        };
+      }
       return {
         resolved: true,
         mode: mode,
@@ -774,23 +793,37 @@
 
   function paymentParagraph(n, code) {
     var b = n.billing || {};
-    var price = n.course && n.course.price != null ? dollars(n.course.price) : 'the course price';
+    var quote = !!(n.course && n.course.quoteOnly);
+    var price = (!quote && n.course && n.course.price != null) ? dollars(n.course.price) : 'the course price';
     var count = participantCount(n);
     var linkLine = code
       ? ('Registration link: ' + regLink(code))
       : 'I will send the private registration link when the class is confirmed.';
+    if (quote && b.mode === 'org_full_external') {
+      return 'Price: quoted per job.\nPayment: I will confirm the price before anyone registers. Your organization is covering the full cost and handling registration. Participants sign up through you at no charge. I will invoice the organization after the course. There is no family payment link for this class.';
+    }
     if (b.mode === 'org_full_external') {
       return orgInvoicePriceLine(price, count) + '\nPayment: your organization is covering the full cost and handling registration. Participants sign up through you at no charge. I will invoice the organization after the course. There is no family payment link for this class.';
+    }
+    if (quote && b.mode === 'org_full_link') {
+      return 'Price: quoted per job.\nPayment: I will confirm the price before anyone registers. Your organization is covering the full cost. Participants register on this private link at no charge, and I will invoice the organization after the course.\n' + linkLine;
     }
     if (b.mode === 'org_full_link') {
       return orgInvoicePriceLine(price, count) + '\nPayment: your organization is covering the full cost. Participants register on this private link at no charge, and I will invoice the organization after the course.\n' + linkLine;
     }
+    if (quote && b.mode === 'individual') {
+      return 'Price: quoted per job.\nPayment: I will confirm the price before anyone registers. Each participant registers on this private link.\n' + linkLine;
+    }
     if (b.mode === 'individual') {
       return 'Price: ' + price + ' per participant.\nPayment: each participant registers and pays that amount on this private link.\n' + linkLine;
+    }
+    if (quote && b.mode === 'split') {
+      return 'Price: quoted per job.\nPayment: I will confirm the price before anyone registers.\n' + linkLine;
     }
     if (b.mode === 'split') {
       return orgInvoicePriceLine(dollars(b.orgPortion), count) + '\nPayment: each participant pays ' + dollars(b.priceOverride) + ' at registration. I will invoice the organization ' + dollars(b.orgPortion) + ' per participant after the course.\n' + linkLine;
     }
+    if (quote) return 'Price: quoted per job.\nPayment: I will confirm the price before anyone registers.';
     return 'Payment: I still need to confirm the billing arrangement before I send a registration link.';
   }
 

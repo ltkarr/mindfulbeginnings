@@ -47,7 +47,8 @@ function cards() {
   return out;
 }
 
-const ADULT_DESC = 'A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Participants earn a 2-year American Red Cross certification. An online plus classroom option is about 2 hours online, then a 2-hour skills session, for $115.';
+const ADULT_DESC = 'Ages 11 and up, including high school juniors and seniors, parents, nannies, au pairs, and grandparents. A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Participants earn a 2-year American Red Cross certification. An online plus classroom option is about 2 hours online, then a 2-hour skills session, for $115.';
+const ADULT_META = 'Ages 11 and up · 4.25-hour · In person · $125';
 const STAY_NAME = 'Stay Ready™: Choking Rescue, CPR, and Seizure Response';
 const STAY_META = 'Ages 11 and up · 75-minute · In person · $85';
 const STAY_DESC = 'A hands-on refresher for choking rescue, CPR, and seizure response.';
@@ -57,7 +58,7 @@ const SOCIAL_META = 'Ages 8 to 14 · 60-minute · In-person or virtual · $45';
 const SOCIAL_DESC = 'An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online.';
 
 const EXPECTED = [
-  ['ages-8-10', 'safe-at-home', 'Safe@Home by Safe Sitter®', 'Ages 8 to 10 · 90-minute · In-person or virtual · $85', 'A class that prepares kids to stay home alone safely and know what to do if something goes wrong.', true, false],
+  ['ages-8-10', 'safe-at-home', 'Safe@Home: First Steps to Independence', 'Ages 8 to 10 · 90-minute · In-person or virtual · $85', 'A class that prepares kids to stay home alone safely and know what to do if something goes wrong.', true, false],
   ['ages-8-10', 'steady-ready', 'Steady and Ready™', STEADY_META, STEADY_DESC, true, false],
   ['ages-8-10', 'mfbc', "My First Babysitter's Club", 'Ages 8 to 10 · 2.5-hour · In person · $165', "A 2.5-hour workshop introducing young students to being a parent's helper. The 8-week after-school series is $200 per participant. Includes a take-home activity tote bag.", false, false],
   ['ages-8-10', 'social-ready', 'Social Ready™', SOCIAL_META, SOCIAL_DESC, true, false],
@@ -70,23 +71,28 @@ const EXPECTED = [
   ['ages-11-15', 'babysitters-training', "Babysitter's Training", 'Ages 11 to 15 · 4.25-hour · In person · $185', "Teens learn child care, safety, and leadership skills for beginning babysitters, with hands-on practice.", false, false],
   ['ages-11-14', 'rc-babysitter', "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED", 'Ages 11 to 14 · 7-hour · In person · $295', "Teens learn child care, safety, and leadership skills, practice infant and child CPR on manikins, and earn American Red Cross Babysitter's Training and Pediatric First Aid/CPR/AED certifications.", false, false],
   ['ages-11-14', 'stay-ready', STAY_NAME, STAY_META, STAY_DESC, false, false],
-  ['ages-11-14', 'all-kids', 'All Kids Welcome™', 'Experienced sitters · 60-minute · In-person or virtual · $25', 'A class that teaches young caregivers how to care confidently for children with diverse needs.', true, false],
+  ['ages-11-14', 'all-kids', 'All Kids Welcome™: For Experienced Sitters', 'Experienced sitters · 60-minute · In-person or virtual · $25', 'A class that teaches young caregivers how to care confidently for children with diverse needs.', true, false],
   ['ages-11-14', 'social-ready', 'Social Ready™', SOCIAL_META, SOCIAL_DESC, true, false],
-  ['ages-11-14', 'adult-cpr', 'Adult & Pediatric First Aid/CPR/AED Certification', 'Ages 11 to 14 · 4.25-hour · In person · $125', ADULT_DESC, false, false],
+  ['ages-11-14', 'adult-cpr', 'Adult & Pediatric First Aid/CPR/AED Certification', ADULT_META, ADULT_DESC, false, false],
   ['student-athletes', 'season-ready', 'Season Ready™', 'Student athletes · 60-minute · In person · $25', 'A hands-on workshop for student athletes on fueling, recovery, injury awareness, and emergency response.', false, false],
   ['student-athletes', 'stay-ready', STAY_NAME, STAY_META, STAY_DESC, false, false],
-  ['high-school', 'campus-ready', 'Campus Ready™', 'High school juniors and seniors · 60-minute · In person · $75', 'A class taught by registered nurses that prepares students to stay safe and help a friend in an emergency during college life.', false, false],
+  ['high-school', 'campus-ready', 'Campus Ready™', 'Teens & college-bound · 60-minute · In person · $75', 'A class taught by registered nurses that prepares students to stay safe and help a friend in an emergency during college life.', false, false],
   ['high-school', 'stay-ready', STAY_NAME, STAY_META, STAY_DESC, false, false],
-  ['high-school', 'adult-cpr', 'Adult & Pediatric First Aid/CPR/AED Certification', 'High school juniors and seniors · 4.25-hour · In person · $125', ADULT_DESC, false, false],
-  ['parents-caregivers', 'baby-ready', 'Baby Ready™', 'Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185 per participant or $300 per couple', 'A hands-on newborn care class taught by a registered nurse, covering feeding, diapering, bathing, safe sleep, soothing, and infant choking rescue and CPR skills practice on manikins.', false, false],
-  ['parents-caregivers', 'adult-cpr', 'Adult & Pediatric First Aid/CPR/AED Certification', 'Parents, nannies, au pairs, and grandparents · 4.25-hour · In person · $125', ADULT_DESC, false, false],
+  ['high-school', 'adult-cpr', 'Adult & Pediatric First Aid/CPR/AED Certification', ADULT_META, ADULT_DESC, false, false],
+  ['parents-caregivers', 'baby-ready', 'Baby Ready™', 'Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185 per participant', 'A hands-on newborn care class taught by a registered nurse, covering feeding, diapering, bathing, safe sleep, soothing, and infant choking rescue and CPR skills practice on manikins.', false, false],
+  ['parents-caregivers', 'adult-cpr', 'Adult & Pediatric First Aid/CPR/AED Certification', ADULT_META, ADULT_DESC, false, false],
   ['parents-caregivers', 'grandparents', 'Safe Sitter® Grandparents: Getting Started', 'Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185', 'A workshop equipping grandparents with current standards, updated guidelines, and practical tips for caring for their grandchildren.', false, false],
   ['parents-caregivers', 'care-ready', 'Care Ready™', 'Parents, nannies, au pairs, and grandparents · 2.5-hour · In person · $185', 'A course that gives nannies and au pairs the practical safety and caregiving skills families count on.', false, false],
-  ['parents-caregivers', 'stay-ready', STAY_NAME, STAY_META, STAY_DESC, false, false]
+  ['parents-caregivers', 'stay-ready', STAY_NAME, STAY_META, STAY_DESC, false, false],
+  ['parents-caregivers', 'adult-first-aid', 'Adult First Aid/CPR/AED', 'Adults · 3.25-hour · In person · $125', 'A hands-on course covering adult CPR, choking rescue, AED use, and first aid for workplaces, coaches, and community members. Groups of 6 to 12.', false, false],
+  ['parents-caregivers', 'bls', 'Basic Life Support (BLS)', 'Healthcare providers · 4.25-hour · In person · $125', 'For healthcare providers and public safety staff: high-quality CPR, AED use, and response to cardiac arrest. Groups of 6 to 12.', false, false],
+  ['parents-caregivers', 'bls-online', 'BLS Online + Classroom', 'Healthcare providers · Online, then in-person skills · $95', 'Online course at your own pace, then an in-person skills session. Same 2-year certificate. Groups of 6 to 12.', false, false],
+  ['parents-caregivers', 'adult-cpr-online', 'Adult & Pediatric First Aid/CPR/AED Online + Classroom', 'Ages 11 and up · About 2 hours online, then 2 hours in person · $115', 'About 2 hours online at your own pace, then a 2-hour in-person skills session. Same 2-year certificate. Groups of 6 to 12.', false, false],
+  ['parents-caregivers', 'grandkids', 'Babysitting Grandkids Workshop', 'Grandparents · 60-minute · In person · $45', 'A 60-minute workshop for grandparents. Groups of 8 to 20.', false, false]
 ];
 
 test('classes catalog matches the public class list', () => {
-  assert.match(page, /<title>Class Catalog \| Mindful Beginnings<\/title>/);
+  assert.match(page, /<title>Classes<\/title>/);
   assert.match(page, /name="viewport"/);
   assert.match(page, /class="mb-btn mb-btn-gold mb-btn-sm" href="\/register\.html">Register</);
   assert.equal(page.includes('\u2014'), false);
@@ -119,7 +125,7 @@ test('each class name sits in the navy band', () => {
 });
 
 test('booking, custom programs, and group CPR links stay on this site', () => {
-  assert.equal((page.match(/href="\/host\.html"/g) || []).length, 27);
+  assert.equal((page.match(/href="\/host\.html"/g) || []).length, EXPECTED.length + 1);
   assert.match(page, /href="\/contact\.html"/);
   assert.match(page, /Request a custom program/);
   assert.match(page, /Mindful Beginnings partners with organizations from the ground up/);

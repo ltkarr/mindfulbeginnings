@@ -37,10 +37,10 @@
     'Grandparents: Getting Started': 'Grandparents and caregivers',
     'Care Ready': 'Nannies and au pairs',
     'Baby Ready': 'Expecting and new parents',
-    'Baby Ready + CPR Certification': 'Expecting parents, $275 per person ($495 per couple)',
+    'Baby Ready + CPR Certification': 'Expecting parents, $275 per person',
     'All Kids Welcome': 'Experienced sitters',
     'Stay Ready: Choking Rescue and CPR': 'Ages 11 and up',
-    'Campus Ready: Safety Skills for College Life': 'Teens and college-bound',
+    'Campus Ready: Safety Skills for College Life': 'Teens & college-bound',
     'Steady and Ready': 'Ages 8 to 12',
     'My First Babysitters Club': 'Ages 8 to 10, 8-week series',
     'My First Babysitters Club — Single Session': 'Ages 8 to 10, 2.5-hour workshop',
@@ -60,7 +60,7 @@
     'Stay Ready: Choking Rescue and CPR': 'Stay Ready™: Choking Rescue, CPR, and Seizure Response',
     'My First Babysitters Club': "My First Babysitter's Club™",
     'My First Babysitters Club — Single Session': "My First Babysitter's Club™ workshop",
-    'All Kids Welcome': 'All Kids Welcome™',
+    'All Kids Welcome': 'All Kids Welcome™: For Experienced Sitters',
     'Steady and Ready': 'Steady and Ready™',
     'Social Ready': 'Social Ready™',
     'Ready. Period.': 'Ready. Period.™',
@@ -219,10 +219,12 @@
 
   // People held by one registration. Baby Ready is a couple booking (2) even
   // when COURSES is not on this page; MBCourseBooking wins when it is loaded.
-  function seatsPerRegistration(course) {
+  function seatsPerRegistration(course, createdAt) {
     if (root.MBCourseBooking && typeof root.MBCourseBooking.seatsPerRegistration === 'function') {
-      return root.MBCourseBooking.seatsPerRegistration(course);
+      return root.MBCourseBooking.seatsPerRegistration(course, null, createdAt);
     }
+    var t = createdAt == null || createdAt === '' ? NaN : (typeof createdAt === 'number' ? createdAt : Date.parse(createdAt));
+    if (!isNaN(t) && t >= Date.parse('2026-10-22T00:00:00Z')) return 1;
     if (course === 'Baby Ready' || course === 'Baby Ready + CPR Certification') return 2;
     return 1;
   }
@@ -232,7 +234,8 @@
     if (cap == null) return null;
     var regs = Number(registeredCount);
     if (!isFinite(regs) || regs < 0) regs = 0;
-    var per = seatsPerRegistration(row && row.course);
+    var created = row && (row.createdAt != null ? row.createdAt : row.created_at);
+    var per = seatsPerRegistration(row && row.course, created);
     return Math.max(0, cap - regs * per);
   }
 

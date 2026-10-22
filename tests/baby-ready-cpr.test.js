@@ -41,7 +41,7 @@ function extractFunction(src, name) {
 function loadConfig() {
   const ctx = {};
   vm.runInContext(
-    configSrc + '\nthis.COURSES=COURSES; this.MAX_STUDENTS=MAX_STUDENTS; this.LATER_PRICE_CHANGES=LATER_PRICE_CHANGES; this.getSessionBasePrice=getSessionBasePrice;',
+    configSrc + '\nthis.COURSES=COURSES; this.MAX_STUDENTS=MAX_STUDENTS; this.LATER_PRICE_CHANGES=LATER_PRICE_CHANGES; this.getSessionBasePrice=getSessionBasePrice; this.perPersonBooking=perPersonBooking; this.quotedCheckout=quotedCheckout;',
     vm.createContext(ctx)
   );
   return ctx;
@@ -92,7 +92,7 @@ test('admin can select the course and does not mark it RN-only', () => {
   assert.match(admin, /'Baby Ready','Baby Ready \+ CPR Certification','All Kids Welcome'/);
   assert.match(admin, /'Baby Ready \+ CPR Certification':'BRCPR'/);
   assert.match(admin, /\[\/baby ready\.\{0,20\}cpr\|cpr certification\/i,'BRCPR'\]/);
-  assert.match(extractFunction(admin, 'updatePricePreview'), /registrationCheckoutTotal\(courseEl\.value, unit, seats\)/);
+  assert.match(extractFunction(admin, 'updatePricePreview'), /registrationCheckoutTotal\(courseEl\.value, unit, seats, _pricingCtxCreatedAt\)/);
   assert.match(admin, /'Baby Ready \+ CPR Certification':\{infant:1,child:1,av:1\}/);
 });
 
@@ -120,18 +120,23 @@ test('checkout and revenue charge $495 per couple and keep Baby Ready at $390', 
   vm.runInContext(admin.slice(laterStart, laterEnd) + '\n' + names.map((n) => extractFunction(admin, n)).join('\n'), sandbox);
 
   const session = { id: 'cpr', course: COURSE, date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
+  const oldCouple = { id: 'cpr-old', course: COURSE, date: '2026-12-01', createdAt: Date.parse('2026-10-13T12:00:00Z'), priceOverride: null };
   assert.equal(sandbox.getCoursePrice(COURSE, '2026-12-01', BEFORE), 275);
   assert.equal(sandbox.getCoursePrice(COURSE, '2027-03-01', CUTOVER), 275);
   assert.equal(sandbox.couplePackagePrice(COURSE), 495);
+  assert.equal(sandbox.couplePackagePrice(COURSE, 275, Date.now()), null);
   assert.equal(sandbox.couplePackagePrice('Baby Ready'), null);
   assert.equal(sandbox.registrationCheckoutTotal(COURSE, 275, 2), 495);
   assert.equal(sandbox.registrationCheckoutTotal('Baby Ready', 195, 2), 390);
   assert.equal(sandbox.familyPrice(session), 275);
-  assert.equal(sandbox.sessionListPrice(session), 495);
-  assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: null }, session), 495);
+  assert.equal(sandbox.sessionListPrice(session), 275);
+  assert.equal(sandbox.sessionListPrice(oldCouple), 495);
+  assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: null }, session), 275);
+  assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: null }, oldCouple), 495);
   assert.equal(sandbox.regEffectivePrice({ payStatus: 'paid', pricePaid: 400 }, session), 400);
-  assert.equal(sandbox.courseCheckoutDefaultLabel(COURSE, '2026-12-01', Date.now()), '275 per person ($495 per couple)');
-  assert.match(sandbox.familyForwardMoney(session).familyPayLine, /\$495/);
+  assert.equal(sandbox.courseCheckoutDefaultLabel(COURSE, '2026-12-01', Date.now()), '275');
+  assert.equal(sandbox.courseCheckoutDefaultLabel(COURSE, '2026-12-01', Date.parse('2026-10-13T12:00:00Z')), '275 per person ($495 per couple)');
+  assert.match(sandbox.familyForwardMoney(oldCouple).familyPayLine, /\$495/);
 
   const overridden = Object.assign({}, session, { priceOverride: 100 });
   assert.equal(sandbox.sessionListPrice(overridden), 100);
@@ -142,9 +147,11 @@ test('checkout and revenue charge $495 per couple and keep Baby Ready at $390', 
   assert.equal(sandbox.orgBillAmount(orgPeople), 550);
 
   const baby = { id: 'br', course: 'Baby Ready', date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
-  // Sessions created on/after the Oct 14 2026 catalog are $185 per person, $300 per couple.
-  assert.equal(sandbox.sessionListPrice(baby), 300);
+  // Sessions created on or after Oct 22 2026 are $185 per person, one seat.
+  assert.equal(sandbox.sessionListPrice(baby), 185);
   assert.equal(sandbox.familyPrice(baby), 185);
+  const babyCouple = { id: 'br-couple', course: 'Baby Ready', date: '2026-12-01', createdAt: Date.parse('2026-10-20T12:00:00Z'), priceOverride: null };
+  assert.equal(sandbox.sessionListPrice(babyCouple), 300);
   const babyBeforeCatalog = { id: 'br-old', course: 'Baby Ready', date: '2026-12-01', createdAt: Date.parse('2026-10-13T12:00:00Z'), priceOverride: null };
   assert.equal(sandbox.sessionListPrice(babyBeforeCatalog), 390);
   assert.equal(sandbox.familyPrice(babyBeforeCatalog), 195);
@@ -159,19 +166,22 @@ test('public registration checkout is $495 for the couple and still $390 for Bab
   const regSandbox = {
     currentSession: { course: COURSE, date: '2026-12-01', createdAt: Date.now(), priceOverride: null },
     getSessionBasePrice: cfg.getSessionBasePrice,
+    perPersonBooking: cfg.perPersonBooking,
     seatsPerCourse: (name) => (name === 'Baby Ready' || name === COURSE ? 2 : 1),
     COURSES: cfg.COURSES,
     Math, Number, isFinite, String
   };
   vm.createContext(regSandbox);
   vm.runInContext(
-    ['couplePackagePrice', 'registrationCheckoutTotal', 'getEffectivePrice'].map((n) => extractFunction(register, n)).join('\n'),
+    ['couplePackagePrice', 'registrationCheckoutTotal', 'sessionIsQuoted', 'getEffectivePrice'].map((n) => extractFunction(register, n)).join('\n'),
     regSandbox
   );
-  assert.equal(regSandbox.getEffectivePrice(), 495);
+  assert.equal(regSandbox.getEffectivePrice(), 275);
   regSandbox.currentSession = Object.assign({}, regSandbox.currentSession, { priceOverride: 100 });
   assert.equal(regSandbox.getEffectivePrice(), 100);
   regSandbox.currentSession = { course: 'Baby Ready', date: '2026-12-01', createdAt: Date.now(), priceOverride: null };
+  assert.equal(regSandbox.getEffectivePrice(), 185);
+  regSandbox.currentSession = { course: 'Baby Ready', date: '2026-12-01', createdAt: Date.parse('2026-10-20T12:00:00Z'), priceOverride: null };
   assert.equal(regSandbox.getEffectivePrice(), 300);
   regSandbox.currentSession = { course: 'Baby Ready', date: '2026-12-01', createdAt: Date.parse('2026-10-13T12:00:00Z'), priceOverride: null };
   assert.equal(regSandbox.getEffectivePrice(), 390);
@@ -263,7 +273,8 @@ test('a couple counts as two people on the roster, packing list, and equipment',
 
   assert.equal(publicSessions.seatsPerRegistration(COURSE), 2);
   assert.equal(publicSessions.seatsLeft({ course: COURSE }, 1, { [COURSE]: 12 }), 10);
-  assert.match(publicSessions.courseAudience(COURSE), /\$495 per couple/);
+  assert.doesNotMatch(publicSessions.courseAudience(COURSE), /\$495 per couple/);
+  assert.match(publicSessions.courseAudience(COURSE), /\$275 per person/);
 });
 
 test('the instructor portal does not treat the course as RN-only, Safe Sitter-only, or Red Cross', () => {
@@ -290,7 +301,7 @@ test('the instructor portal does not treat the course as RN-only, Safe Sitter-on
   assert.equal(sandbox.COURSES[COURSE].redCross, false);
   assert.equal(sandbox.COURSES[COURSE].requiresSafeSitter, false);
   assert.equal(sandbox.COURSES['Stay Ready: Choking Rescue and CPR'].requiresRN, true);
-  assert.equal(sandbox.COURSES['Baby Ready'].requiresRN, undefined);
+  assert.equal(sandbox.COURSES['Baby Ready'].requiresRN, true);
 
   const who = {
     COURSES: cfg.COURSES,
@@ -315,16 +326,16 @@ test('class requests offer the course to organizations only, at the per-person r
   assert.equal(course.price, 275);
   assert.equal(course.hours, '5 hours');
   assert.equal(course.abbr, 'BRCPR');
-  assert.equal(course.host, false);
+  assert.equal(course.host, true);
   assert.equal(course.org, true);
   assert.equal(course.requiresRN, undefined);
-  assert.equal(requests.coursesFor('host').some((c) => c.key === 'baby-ready-cpr'), false);
+  assert.equal(requests.coursesFor('host').some((c) => c.key === 'baby-ready-cpr'), true);
   const label = requests.courseOptionLabel(course);
-  assert.equal(label, 'Baby Ready + CPR Certification, Expecting parents, $275 per person ($495 per couple), Baby Ready portion is 3 hours, 5 hours, in person ($275)');
+  assert.equal(label, 'Baby Ready + CPR Certification, Expecting parents, $275 per person, Baby Ready portion is 3 hours, 5 hours, in person ($275)');
   assert.match(orgPage, /value="baby-ready-cpr"/);
   assert.match(orgPage, /data-note=""/);
   assert.match(orgPage, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.doesNotMatch(hostPage, /baby-ready-cpr/);
+  assert.match(hostPage, /value="baby-ready-cpr"/);
 
   const submitted = requests.normalizeSubmission({
     kind: 'organization',

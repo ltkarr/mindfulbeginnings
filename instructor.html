@@ -463,7 +463,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,createdAt:r.created_at==null?null:r.created_at,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -489,7 +489,7 @@ if(typeof COURSES==='undefined'){
     'Safe@Home — Virtual':{hours:1, maxStudents:20, instrFlatFee:75, virtual:true},
     'Grandparents: Getting Started':{hours:3, maxStudents:16, requiresSafeSitter:true, adult:true},
     'Care Ready':{hours:2.5, maxStudents:16, adult:true},
-    'Baby Ready':{hours:3, maxStudents:12, seatsPerRegistration:2, adult:true},
+    'Baby Ready':{hours:3, maxStudents:12, seatsPerRegistration:2, requiresRN:true, adult:true},
     'Baby Ready + CPR Certification':{hours:5, maxStudents:12, seatsPerRegistration:2, adult:true},
     'All Kids Welcome':{hours:1, maxStudents:20, instrFlatFee:75, virtual:true},
     'Stay Ready: Choking Rescue and CPR':{hours:1.25, maxStudents:12, requiresRN:true},
@@ -504,7 +504,22 @@ if(typeof COURSES==='undefined'){
     'Girl Scout Badge Class':{hours:1, maxStudents:16},
     'Babysitter\'s Training':{hours:4.25, maxStudents:12, redCross:true, requiresLeadTeacher:true},
     'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{hours:7, maxStudents:12, redCross:true, requiresLeadTeacher:true},
-    'Adult & Pediatric First Aid/CPR/AED Certification':{hours:4.25, maxStudents:12, redCross:true, requiresLeadTeacher:true}
+    'Adult & Pediatric First Aid/CPR/AED Certification':{hours:4.25, maxStudents:12, redCross:true, requiresLeadTeacher:true},
+    'Adult First Aid/CPR/AED':{hours:3.25, maxStudents:12, redCross:true, requiresLeadTeacher:true, adult:true},
+    'Basic Life Support (BLS)':{hours:4.25, maxStudents:12, redCross:true, requiresLeadTeacher:true, adult:true},
+    'Basic Life Support (BLS) Online + Classroom':{hours:null, maxStudents:12, redCross:true, requiresLeadTeacher:true, adult:true},
+    'Adult & Pediatric First Aid/CPR/AED Online + Classroom':{hours:2, maxStudents:12, redCross:true, requiresLeadTeacher:true},
+    'Babysitting Grandkids Workshop':{hours:1, maxStudents:20, adult:true},
+    'Group CPR for Workplaces':{hours:4, maxStudents:12, redCross:true, requiresLeadTeacher:true, adult:true},
+    'Little Medics':{hours:1, maxStudents:16},
+    'Pet Sitter\'s Club':{hours:1, maxStudents:16},
+    'Snack Squad':{hours:1, maxStudents:16},
+    'Kid Boss':{hours:1, maxStudents:16},
+    'Middle School Here I Come':{hours:1, maxStudents:16},
+    'Big Sibling':{hours:1, maxStudents:16},
+    'My First Phone':{hours:1, maxStudents:16},
+    'Walk and Roll Ready':{hours:1, maxStudents:16},
+    'Calm and Ready':{hours:1, maxStudents:16}
   };
   console.warn('config-instructor.js did not define COURSES — using built-in fallback. Check that /config-instructor.js is deploying correctly.');
 }
@@ -514,6 +529,7 @@ if(typeof COURSES==='undefined'){
 // to a stale config. Name matching is intentionally loose so renamed variants (e.g.
 // "Safe Sitter® Babysitting") stay covered.
 Object.keys(COURSES).forEach(c=>{
+  if(c==='Baby Ready')COURSES[c].requiresRN=true;
   const girlScoutBadge=/girl scouts?/i.test(c)&&/badge/i.test(c);
   // "first aid" inside a Girl Scout badge name is not a course-level RN rule.
   // Those jobs follow the per-session checkbox. A stale config cannot force them.
@@ -612,6 +628,39 @@ function paidHoursBreakdown(s){
 // 3) otherwise the course flat fee plus 30 minutes of pay at the instructor's hourly rate,
 // 4) otherwise hours × hourly rate, plus one paid hour of travel at that same rate (no travel
 //    for virtual sessions), plus 30 minutes of pay at the instructor's hourly rate.
+const GUIDE_PAY_FROM='2026-10-22T00:00:00Z';
+function usesGuidePay(s){
+  if(!s||s.createdAt==null||s.createdAt==='')return false;
+  const t=typeof s.createdAt==='number'?s.createdAt:Date.parse(s.createdAt);
+  return !isNaN(t)&&t>=Date.parse(GUIDE_PAY_FROM);
+}
+function formatPayHours(n){
+  const v=Math.round(Number(n)*100)/100;
+  if(!isFinite(v))return '0';
+  const num=Number.isInteger(v)?String(v):String(v);
+  return num+(v===1?' hour':' hours');
+}
+function jobPaidHours(s){
+  const c=COURSES[s&&s.course]||{};
+  if((c.hours==null||c.hours==='')&&!(s&&s.teachingHours!=null&&s.teachingHours!==''))return null;
+  const teach=sessionTeachingHours(s);
+  const setHours=paidTravelHoursOf(s);
+  if(setHours!=null)return Math.round((teach+setHours)*100)/100;
+  if(typeof usesGuidePay==='function'&&usesGuidePay(s))return Math.round((teach+1.5)*100)/100;
+  const virtual=!!(c.virtual||(s&&s.isVirtual));
+  const add=(virtual?0:1)+((typeof INSTR_EXTRA_HOURS!=='undefined')?INSTR_EXTRA_HOURS:0.5);
+  return Math.round((teach+add)*100)/100;
+}
+function jobPaySentence(s){
+  if(s&&s.instrPayOverride!=null&&s.instrPayOverride!==''&&isFinite(Number(s.instrPayOverride)))return 'Pay: '+fmt(Number(s.instrPayOverride));
+  const c=COURSES[s&&s.course]||{};
+  const hours=jobPaidHours(s);
+  if((typeof usesGuidePay==='function'&&usesGuidePay(s))||c.instrFlatFee===undefined||paidTravelHoursOf(s)!=null){
+    if(hours==null)return 'Pay: set the class length, then your hourly pay × (class length + 1.5) hours';
+    return 'Pay: your hourly pay × '+formatPayHours(hours);
+  }
+  return 'Pay: '+fmt(c.instrFlatFee)+' plus 30 minutes at your hourly pay';
+}
 function instrFee(s){
   if(s&&s.instrPayOverride!=null&&s.instrPayOverride!=='')return Number(s.instrPayOverride);
   const c=COURSES[s&&s.course]||{};
@@ -619,12 +668,15 @@ function instrFee(s){
   const rate=lead?((typeof LEAD_TEACHER_RATE!=='undefined')?LEAD_TEACHER_RATE:75):(me?me.hourlyRate:INSTR_RATE);
   const teach=sessionTeachingHours(s);
   const travelHours=paidTravelHoursOf(s);
+  if(typeof usesGuidePay==='function'&&usesGuidePay(s)){
+    const add=travelHours!=null?travelHours:1.5;
+    return (teach+add)*rate;
+  }
   if(travelHours!=null)return (teach+travelHours)*rate;
   const extra=INSTR_EXTRA_HOURS*rate; // extra 30 minutes of pay on every job
   const travel=(c.virtual||(s&&s.isVirtual))?0:rate;
   if(lead)return teach*rate+travel+extra;
   if(c.instrFlatFee!==undefined)return c.instrFlatFee+extra;
-  // Travel is paid as one hour at the instructor's own rate (no travel for virtual sessions).
   return teach*rate+travel+extra;
 }
 // Fee to show for a job. Once a job is paid, the admin freezes the exact amount paid
@@ -903,7 +955,7 @@ function heroStripHTML(s,fee){
   const span=sessWeekSpan(s);
   const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
   const cells=[
-    {v:fmt(fee),l:'Total pay',sub:hoursNote||(meetings.length>1?fmt(fee/meetings.length)+' per class':'')},
+    {v:escapeHtml(jobPaySentence(s)),l:'Pay',sub:meetings.length>1?fmt(fee/meetings.length)+' per class estimate':''},
     {v:meetings.length>1?meetings.length+' classes':'1 class',l:'Commitment',sub:meetings.length>1?'over '+span+' weeks':(sessTimeSummary(s)||'')},
     {v:fmtHours(hours),l:'Teaching time',sub:(()=>{
       if(meetings.length<2)return'total';
@@ -962,10 +1014,8 @@ function whatHappensHTML(s){
     s.isCustomJob?'':'Print your student roster from the job card any time before the first class.',
     s.isVirtual?'The Zoom link is sent to you and to registered families before the first class.':'The exact address, host cell and WiFi details unlock on your job card.',
     s.isCustomJob
-      ?`Payment of <strong>${fmt(instrFee(s))}</strong> is sent by Zelle after the event.`
-      :(hoursNote
-        ?`Payment of <strong>${fmt(instrFee(s))}</strong> (${escapeHtml(hoursNote)}) is sent by Zelle once the host submits their evaluation after the final class.`
-        :'Payment is sent by Zelle once the host submits their evaluation after the final class.'),
+      ?`<strong>${escapeHtml(jobPaySentence(s))}</strong> is sent by Zelle after the event.`
+      :`<strong>${escapeHtml(jobPaySentence(s))}</strong> is sent by Zelle once the host submits their evaluation after the final class.`,
     'Plans change — you can hand a job back from My jobs. Lindsay is emailed, and the job opens again for every eligible instructor.'
   ].filter(Boolean);
   return`<details class="wh"><summary>What happens after I accept?</summary>
@@ -3429,8 +3479,8 @@ const FAQ_SECTIONS=[
     ['6 to 16 students.','Safe Sitter\u00ae Babysitting Essentials and Safe Sitter\u00ae Babysitting with CPR Module. Ages 11 to 14.'],
     ['8 to 16 students.','Care Ready\u2122 and Safe Sitter\u00ae Grandparents: Getting Started.'],
     ['6 to 18 students.','Ready. Period.\u2122. Girls ages 10 to 12. 90 minutes. In person or virtual.'],
-    ['6 to 20 students.','Safe@Home by Safe Sitter\u00ae (ages 8 to 10), All Kids Welcome\u2122 (experienced sitters, 60 minutes, in person or virtual), and Introduction to Safe Babysitting by Safe Sitter\u00ae (ages 10 to 12, 60 minutes, in person or virtual).'],
-    ['8 to 12 students.','My First Babysitter\'s Club\u2122. Ages 8 to 10. The series is 8 weeks, one hour a week. The separate workshop is 2.5 hours. Same group size for both.'],
+    ['6 to 20 students.','Safe@Home: First Steps to Independence (ages 8 to 10), All Kids Welcome\u2122: For Experienced Sitters (60 minutes, in person or virtual), and Introduction to Safe Babysitting by Safe Sitter\u00ae (ages 10 to 12, 60 minutes, in person or virtual).'],
+    ['8 to 16 students.','My First Babysitter\'s Club\u2122 and the other after-school clubs. Ages vary by club. Clubs typically run 8-10 weeks and are custom. A minimum of 6 participants is needed.'],
     ['4 to 12 participants.','Baby Ready\u2122 (3 hours) and Baby Ready\u2122 + CPR Certification (5 hours, and the Baby Ready portion is 3 hours).'],
     ['6 to 20 students.','Social Ready\u2122. Ages 8 to 14. 60 minutes. In person or virtual.'],
     ['Up to 20 students.','Season Ready\u2122. 60 minutes. In person.'],
@@ -3549,7 +3599,7 @@ const FAQ_SECTIONS=[
   {sub:'How clubs run',items:[
     ['Ten clubs.','My First Babysitter\'s Club (ages 8 to 10), Little Medics (ages 5 to 8), Pet Sitter\'s Club (ages 8 to 11), Snack Squad (ages 7 to 11), Kid Boss Club (ages 9 to 11), Middle School, Here I Come (ages 10 to 11), Big Sibling Club (ages 5 to 9), My First Phone (ages 9 to 11), Walk and Roll Ready (ages 7 to 11), and Calm and Ready (ages 5 to 11).'],
     ['Schedule.','One hour a week after dismissal. My First Babysitter\'s Club is an 8-week series only. The other clubs run 8 or 10 weeks. More than one club can run at the same time in different rooms.'],
-    ['Group size.','My First Babysitter\'s Club is 8 to 12 children. The other clubs are 8 to 16. A minimum of 6 students is needed to run a club. If the minimum is not met, the club does not run.'],
+    ['Group size.','Clubs typically run 8-10 weeks and are custom. Every club, including My First Babysitter\'s Club, is 8 to 16 kids. A minimum of 6 students is needed to run a club. If the minimum is not met, the club does not run.'],
     ['Staffing.','Clubs are taught by certified teachers and registered nurses.'],
     ['What we bring.','Everything: the instructor, materials, props, handbooks, and take-home pages.'],
     ['What the school provides.','A classroom, dismissal of students to the instructor, and a pickup plan.'],
@@ -3616,7 +3666,7 @@ const RESOURCE_GROUPS=[
   ['Girl Scout Badge Workshops','First Aid, Babysitting, and Safety badge workshops for every Girl Scout level, Daisy through Ambassador. Custom-scheduled: Lindsay sets the time for each job. Typical group: 6 to 16 scouts. In person.',[['Open Folder','https://drive.google.com/drive/folders/19668Bt8GNilK9aXJQDKMZeN-oxEXzfiS?usp=drive_link']],''],
   ['Stay Ready\u2122: Choking Rescue, CPR, and Seizure Response','A hands-on refresher for choking rescue, CPR, and seizure response. Ages 11 and up. 75 minutes. In person. 6 to 12 participants. Taught by registered nurses.',[['Open Folder','https://drive.google.com/drive/folders/1lpyaT-Tb7Ay-V8_6KA-ZL63d31pSJxw1?usp=drive_link']],''],
   ['Season Ready\u2122','A 60-minute hands-on class for student athletes. In person. Up to 20 participants. Taught by registered nurses.',[['Open Folder','https://drive.google.com/drive/folders/1P3lIGmMPLdGZSckEDoODi0Z0At1gCkRM?usp=drive_link']],''],
-  ['Campus Ready\u2122','A hands-on safety class taught by registered nurses. Teens and college-bound. 60 minutes. In person. 6 to 12 participants. Students learn to recognize alcohol poisoning and overdose, perform CPR and the recovery position, administer Narcan, recognize and respond to a seizure, and know when to call 911.',[['Open Folder','https://drive.google.com/drive/folders/1uJ1WI6NDg6GDphmX2fXWN9_-_fzZ9Y3j?usp=drive_link']],'']
+  ['Campus Ready\u2122','A hands-on safety class taught by registered nurses. Teens & college-bound. 60 minutes. In person. 6 to 12 participants. Students learn to recognize alcohol poisoning and overdose, perform CPR and the recovery position, administer Narcan, recognize and respond to a seizure, and know when to call 911.',[['Open Folder','https://drive.google.com/drive/folders/1uJ1WI6NDg6GDphmX2fXWN9_-_fzZ9Y3j?usp=drive_link']],'']
 ]},
 {title:'Red Cross certification',rows:[
   ['Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED','Teens learn child care, safety, and leadership skills, practice infant and child CPR on manikins, and earn American Red Cross Babysitter\'s Training and Pediatric First Aid/CPR/AED certifications. Ages 11 to 14. 7 hours. In person. 6 to 12 participants. $295. Lead Teachers.',[],'Ask Lindsay if you need the Red Cross materials'],
@@ -3634,7 +3684,7 @@ const RESOURCE_GROUPS=[
   ['Babysitting Grandkids Workshop','A 60-minute conversational workshop for grandparents of kids from infancy to about age 10. In person. 8 to 20 participants. Large-print materials are in the folder.',[['Open Folder','https://drive.google.com/drive/folders/1zLe9iHVgTVQPhYdz_JeTwROpmKQHZ0z5?usp=drive_link']],'']
 ]},
 {title:'After School Clubs',rows:[
-  ['How clubs run','Clubs are $200 per participant. Each club meets one hour a week after dismissal. A minimum of 6 participants is needed. My First Babysitter\'s Club is 8 weeks and 8 to 12 children. The other clubs are 8 or 10 weeks and 8 to 16 children. Every club is also offered in Spanish. The 2.5-hour My First Babysitter\'s Club workshop is a separate class at $165, not a club week.',[],''],
+  ['How clubs run','Clubs are $200 per participant. Each club meets one hour a week after dismissal. Clubs typically run 8-10 weeks and are custom. A minimum of 6 participants is needed. Every club, including My First Babysitter\'s Club, is 8 to 16 kids. Every club is also offered in Spanish. Title I schools receive deeply discounted programming. The 2.5-hour My First Babysitter\'s Club workshop is a separate class at $165, not a club week.',[],''],
   ['Little Medics','A first aid club for the youngest helpers: what an emergency is, how to get help fast, and care for scrapes, bumps, bug bites, and nosebleeds. Ages 5 to 8.',[],''],
   ['Pet Sitter\'s Club','For kids who want to care for animals: what pets need, staying safe around unfamiliar animals, and running a pet sitting job from first visit to final payment. Ages 8 to 11.',[],''],
   ['Snack Squad','A no-stove kitchen club: kitchen safety, food allergies, reading labels, and building a balanced snack every week. Ages 7 to 11.',[],''],
