@@ -1236,7 +1236,7 @@ async function loadPublicSessions(){
     const res=await sb.rpc('list_public_sessions');
     if(res&&res.error){
       console.error('Public session list failed:',res.error);
-      box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.</div>';
+      box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.<br><br><small style="color:#999">DEBUG res.error: '+String((res.error&&res.error.message)||res.error).slice(0,200)+'</small></div>';
       return;
     }
     publicSessionCounts={};
@@ -1249,7 +1249,7 @@ async function loadPublicSessions(){
     renderPublicSessions();
   }catch(e){
     console.error('Public session list failed:',e);
-    box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.</div>';
+    box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.<br><br><small style="color:#999">DEBUG: '+(e&&e.message?String(e.message).slice(0,200):'unknown')+'</small></div>';
   }
 }
 
