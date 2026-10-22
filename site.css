@@ -86,7 +86,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-partners-logos img{max-height:110px;max-width:100%;width:auto;height:auto}
 
 /* ---------- layout helpers ---------- */
-.mb-wrap{max-width:1080px;margin:0 auto;padding:0 6vw}
+.mb-wrap{max-width:1080px;margin:0 auto}
 .mb-section{padding:56px 6vw}
 .mb-section-cream{background:var(--cream)}
 .mb-section-white{background:var(--white)}
