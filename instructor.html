@@ -488,17 +488,30 @@ if(typeof COURSES==='undefined'){
     'Safe@Home — Series':{hours:1, maxStudents:20},
     'Safe@Home — Virtual':{hours:1, maxStudents:20, instrFlatFee:75, virtual:true},
     'Grandparents: Getting Started':{hours:3, maxStudents:16, requiresSafeSitter:true, adult:true},
+    'Safe Sitter® Grandparents: Getting Started':{hours:3, maxStudents:16, requiresSafeSitter:true, adult:true},
     'Care Ready':{hours:2.5, maxStudents:16, adult:true},
-    'Baby Ready':{hours:3, maxStudents:12, seatsPerRegistration:2, adult:true},
-    'Baby Ready + CPR Certification':{hours:5, maxStudents:12, seatsPerRegistration:2, adult:true},
+    'Baby Ready':{hours:3, maxStudents:12, adult:true},
+    'Baby Ready + CPR Certification':{hours:5, maxStudents:12, adult:true},
+    'Babysitting Grandkids Workshop':{hours:1, maxStudents:20, adult:true},
     'All Kids Welcome':{hours:1, maxStudents:20, instrFlatFee:75, virtual:true},
     'Stay Ready: Choking Rescue and CPR':{hours:1.25, maxStudents:12, requiresRN:true},
+    'Stay Ready™: Choking Rescue, CPR, and Seizure Response':{hours:1.25, maxStudents:12, requiresRN:true},
     'Campus Ready: Safety Skills for College Life':{hours:1, maxStudents:12, instrFlatFee:100, requiresRN:true},
     'Steady and Ready':{hours:1, maxStudents:8},
-    'My First Babysitters Club':{hours:1, maxStudents:12},
-    'My First Babysitters Club — Single Session':{hours:2.5, maxStudents:12},
+    'My First Babysitters Club':{hours:1, maxStudents:16},
+    'My First Babysitters Club — Single Session':{hours:2.5, maxStudents:16},
+    'Little Medics':{hours:1, maxStudents:16},
+    'Pet Sitter\'s Club':{hours:1, maxStudents:16},
+    'Snack Squad':{hours:1, maxStudents:16},
+    'Kid Boss Club':{hours:1, maxStudents:16},
+    'Middle School, Here I Come':{hours:1, maxStudents:16},
+    'Big Sibling Club':{hours:1, maxStudents:16},
+    'My First Phone':{hours:1, maxStudents:16},
+    'Walk and Roll Ready':{hours:1, maxStudents:16},
+    'Calm and Ready':{hours:1, maxStudents:16},
     'Ready. Period.':{hours:1.5, maxStudents:18, requiresRN:true},
     'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{hours:1, maxStudents:20, requiresRN:true},
+    'Season Ready™: Safety Skills for Student Athletes':{hours:1, maxStudents:20, requiresRN:true},
     'Social Ready':{hours:1, maxStudents:20, instrFlatFee:100, virtual:true},
     'Girl Scouts — First Aid Badge Workshop':{hours:1, maxStudents:16},
     'Girl Scout Badge Class':{hours:1, maxStudents:16},
@@ -508,7 +521,8 @@ if(typeof COURSES==='undefined'){
     'Adult First Aid/CPR/AED Certification':{hours:3.25, maxStudents:12, redCross:true, requiresLeadTeacher:true},
     'Basic Life Support (BLS) Certification':{hours:4.25, maxStudents:12, redCross:true, requiresLeadTeacher:true},
     'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':{hours:4, maxStudents:12, redCross:true, requiresLeadTeacher:true},
-    'Basic Life Support (BLS) Certification (Hybrid)':{hours:4, maxStudents:12, redCross:true, requiresLeadTeacher:true}
+    'Basic Life Support (BLS) Certification (Hybrid)':{hours:4, maxStudents:12, redCross:true, requiresLeadTeacher:true},
+    'Group CPR Certification for Workplaces':{hours:4, redCross:true, requiresLeadTeacher:true, adult:true, customSize:true}
   };
   console.warn('config-instructor.js did not define COURSES — using built-in fallback. Check that /config-instructor.js is deploying correctly.');
 }
@@ -522,7 +536,13 @@ Object.keys(COURSES).forEach(c=>{
   // "first aid" inside a Girl Scout badge name is not a course-level RN rule.
   // Those jobs follow the per-session checkbox. A stale config cannot force them.
   if(!girlScoutBadge&&/stay ready|campus ready|ready\. ?period|season ready|first aid/i.test(c))COURSES[c].requiresRN=true;  // RN instructors only
-  if(/safe sitter|grandparent/i.test(c))COURSES[c].requiresSafeSitter=true;  // Safe Sitter® trained only
+  if(/safe sitter|grandparent/i.test(c)&&!/babysitting grandkids/i.test(c))COURSES[c].requiresSafeSitter=true;  // Safe Sitter® trained only
+  if(/babysitting grandkids/i.test(c)){
+    COURSES[c].requiresSafeSitter=false;
+    COURSES[c].requiresRN=false;
+    COURSES[c].requiresLeadTeacher=false;
+    COURSES[c].redCross=false;
+  }
   if(girlScoutBadge){
     COURSES[c].requiresRN=false;
     COURSES[c].requiresSafeSitter=false;
@@ -670,7 +690,7 @@ function isAdultCourse(course){
   const name=String(course||'');
   const booking=(typeof window!=='undefined'&&window.MBCourseBooking)||null;
   if(booking)return booking.isAdultCourse(name, typeof COURSES!=='undefined'?COURSES:null);
-  return name==='Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready'||name==='Baby Ready + CPR Certification';
+  return name==='Grandparents: Getting Started'||name==='Safe Sitter® Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready'||name==='Baby Ready + CPR Certification'||name==='Babysitting Grandkids Workshop'||name==='Adult First Aid/CPR/AED Certification'||name==='Basic Life Support (BLS) Certification'||name==='Group CPR Certification for Workplaces';
 }
 function seatsPerRegistration(course){
   const name=String(course||'');
@@ -679,7 +699,7 @@ function seatsPerRegistration(course){
   const c=(typeof COURSES!=='undefined'&&COURSES[name])||{};
   const n=Number(c.seatsPerRegistration);
   if(isFinite(n)&&n>=1)return Math.floor(n);
-  return name==='Baby Ready'||name==='Baby Ready + CPR Certification'?2:1;
+  return 1;
 }
 function filledSeats(s){return countRegs(s&&s.id)*seatsPerRegistration(s&&s.course);}
 function partnerNameOf(r){

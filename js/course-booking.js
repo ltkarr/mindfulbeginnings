@@ -5,17 +5,22 @@
    seatsPerRegistration is how many people one saved registration holds.
    Capacity (maxStudents, overrides, remaining seats) is always in people.
    register_student() in the database still counts registration rows, so
-   the register page passes floor(peopleCap / seatsPerRegistration) as
-   p_max. One Baby Ready payment is one row and two people.
+   the register page passes the people cap as p_max. One registration is
+   one person.
    ════════════════════════════════════════════════════════════════════════ */
 (function (root) {
   'use strict';
 
   var ADULT_COURSES = {
     'Grandparents: Getting Started': true,
+    'Safe Sitter® Grandparents: Getting Started': true,
     'Care Ready': true,
     'Baby Ready': true,
-    'Baby Ready + CPR Certification': true
+    'Baby Ready + CPR Certification': true,
+    'Babysitting Grandkids Workshop': true,
+    'Adult First Aid/CPR/AED Certification': true,
+    'Basic Life Support (BLS) Certification': true,
+    'Group CPR Certification for Workplaces': true
   };
 
   function courseConfig(course, courses) {
@@ -36,7 +41,6 @@
     var cfg = courseConfig(name, courses);
     var n = cfg && Number(cfg.seatsPerRegistration);
     if (isFinite(n) && n >= 1) return Math.floor(n);
-    if (name === 'Baby Ready' || name === 'Baby Ready + CPR Certification') return 2;
     return 1;
   }
 
@@ -86,13 +90,11 @@
     return out;
   }
 
+  // One saved registration is one person. A partner name stored on an older
+  // row is still shown on the roster, and it does not take a second seat.
   function peopleCount(regs, course, courses) {
     var list = regs || [];
-    if (!isAdultCourse(course, courses)) return list.length;
-    return list.reduce(function (n, r) {
-      var names = participantNames(r);
-      return n + (names.length || 1);
-    }, 0);
+    return list.length;
   }
 
   function notesWithoutPartner(notes) {

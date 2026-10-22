@@ -59,7 +59,7 @@
       ]
     },
     {
-      keys: ['Grandparents: Getting Started'],
+      keys: ['Grandparents: Getting Started', 'Safe Sitter® Grandparents: Getting Started'],
       subject: 'Thank you for joining us, grandparents',
       greeting: 'Hello,',
       taker: 'complete',
@@ -99,7 +99,7 @@
       ]
     },
     {
-      keys: ['Stay Ready: Choking Rescue and CPR'],
+      keys: ['Stay Ready: Choking Rescue and CPR', 'Stay Ready™: Choking Rescue, CPR, and Seizure Response'],
       subject: 'You\'re Stay Ready trained',
       greeting: 'Hello,',
       taker: 'complete',
@@ -149,7 +149,7 @@
       ]
     },
     {
-      keys: ['Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes'],
+      keys: ['Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', 'Season Ready™: Safety Skills for Student Athletes'],
       subject: 'Have a safe, strong season',
       greeting: 'Hi there,',
       taker: 'have your child complete',

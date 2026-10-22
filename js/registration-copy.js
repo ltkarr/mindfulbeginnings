@@ -12,14 +12,22 @@
 
   var PERIOD = 'Ready. Period.';
   var SEASON = 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes';
+  var SEASON_NEW = 'Season Ready™: Safety Skills for Student Athletes';
   var CAMPUS = 'Campus Ready: Safety Skills for College Life';
   var STAY = 'Stay Ready: Choking Rescue and CPR';
+  var STAY_NEW = 'Stay Ready™: Choking Rescue, CPR, and Seizure Response';
 
   var ADULT_COURSES = {
     'Grandparents: Getting Started': true,
+    'Safe Sitter® Grandparents: Getting Started': true,
     'Care Ready': true,
-    'Baby Ready': true
+    'Baby Ready': true,
+    'Baby Ready + CPR Certification': true,
+    'Babysitting Grandkids Workshop': true
   };
+
+  function isSeason(course) { return course === SEASON || course === SEASON_NEW; }
+  function isStay(course) { return course === STAY || course === STAY_NEW; }
 
   var IN_PERSON_TERM_IDS = [
     'terms-standard',
@@ -52,7 +60,7 @@
   }
 
   function instructorPhrase(course) {
-    if (course === PERIOD || course === SEASON || course === CAMPUS || course === STAY) {
+    if (course === PERIOD || isSeason(course) || course === CAMPUS || isStay(course)) {
       return 'taught by a registered nurse';
     }
     return 'taught by a certified teacher or registered nurse';
@@ -76,7 +84,7 @@
     if (course === PERIOD) {
       return para('Release and indemnification.', 'In exchange for participation, I, the undersigned parent or legal guardian, release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this workshop, except to the extent caused by gross negligence or willful misconduct.');
     }
-    if (course === SEASON) {
+    if (isSeason(course)) {
       return para('Release and indemnification.', 'In exchange for participation, I, the undersigned (the participant if eighteen years of age or older, or the parent or legal guardian if the participant is under eighteen), release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this workshop or to any later use of or reliance on anything learned in it, except to the extent caused by gross negligence or willful misconduct.');
     }
     if (course === CAMPUS) {
@@ -93,14 +101,14 @@
     if (course === PERIOD) {
       parts.push(para('What this workshop is.', 'Ready. Period. is a puberty and period preparation workshop taught by a registered nurse. It is general health education for a group. It is not a medical appointment, it is not a diagnosis or treatment plan, and it is not a substitute for the guidance of the participant\'s own physician. Families should consult the participant\'s own healthcare provider about that participant\'s individual health.'));
       parts.push(para('Course content.', 'I understand that this workshop openly discusses puberty, menstruation, body changes, hygiene, and emotional changes, and that I have chosen to enroll the participant with that understanding.'));
-    } else if (course === SEASON) {
+    } else if (isSeason(course)) {
       parts.push(para('What this workshop is.', 'Season Ready is a live Zoom class on safety, fueling, and injury prevention for student athletes, taught by a registered nurse. It is general education for a group. It is not a certification course.'));
       parts.push(para('General information, not medical or nutrition advice.', 'The information given about fueling, hydration, sleep, warmups, and injury is general education for a group. It is not individualized medical, nutrition, or athletic-training advice, it is not a diagnosis or treatment plan, and it is not a substitute for the guidance of the participant\'s own physician, dietitian, athletic trainer, or coach. The workshop does not involve calorie counting, weigh-ins, or any assessment of an individual participant\'s body or diet. Families should consult the participant\'s own healthcare provider about that participant\'s individual needs.'));
       parts.push(para('No duty to act.', 'This workshop creates no obligation for the participant to act in any situation. Any decision to help, or to use anything learned in this workshop, in a real emergency is the participant\'s alone and is made voluntarily and at the participant\'s own risk. The participant should always call 911 and defer to professional responders. Mindful Beginnings LLC is not responsible for anything the participant does or does not do, or for any outcome.'));
     } else if (course === CAMPUS) {
       parts.push(para('Educational only.', 'Campus Ready: Safety Skills for College Life is a brief safety class taught by a registered nurse. It is educational only and is designed to build the participant\'s awareness and confidence. It is not a certification course and does not certify, license, or qualify the participant in any medical or emergency procedure. Completing the class does not make the participant a trained, certified, or professional responder.'));
       parts.push(para('No duty to act.', 'This class creates no obligation for the participant to act in any situation. Any decision to help, or to use anything learned in this class, in a real emergency is the participant\'s alone and is made voluntarily and at the participant\'s own risk. The participant should always call 911 and defer to professional responders. Mindful Beginnings LLC is not responsible for anything the participant does or does not do, or for any outcome.'));
-    } else if (course === STAY) {
+    } else if (isStay(course)) {
       parts.push(para('Prerequisite confirmation.', 'My child has taken the Safe Sitter® Babysitting Course and/or a CPR and First Aid course previously.'));
     }
     return parts.join('');
@@ -110,7 +118,7 @@
     if (adult) {
       return para('I can participate.', 'I confirm that I am able to participate in this live Zoom class.');
     }
-    if (course === CAMPUS || course === SEASON) {
+    if (course === CAMPUS || isSeason(course)) {
       return para('The participant can take part.', 'I certify that to the best of my knowledge the participant is able to participate in this live Zoom class.');
     }
     return para('My child can participate.', 'I certify that to the best of my knowledge my child is able to participate in this live Zoom class.');
@@ -120,7 +128,7 @@
     if (!sessionIsVirtual(session)) return null;
     var course = String(session.course || '');
     var adult = isAdultCourse(course);
-    var who = adult ? 'you' : ((course === CAMPUS || course === SEASON) ? 'the participant' : 'your child');
+    var who = adult ? 'you' : ((course === CAMPUS || isSeason(course)) ? 'the participant' : 'your child');
     var waiverHtml = [
       para('What this class is.', introSentence(course, adult)),
       para('Disruptive student policy.', 'A disruptive student can be removed from the Zoom.'),
