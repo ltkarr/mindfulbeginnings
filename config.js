@@ -136,12 +136,12 @@ const COURSES={
   // short courses. (Corrected from $10, Aug 30 2026, to match admin.html.)
   // Company class profit does not subtract matCost. Handbook orders are overhead
   // expenses in admin. The rate is only the partner-share allowance there.
-  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:16,minStudents:6,audience:'Ages 8 to 10 · 8-week series'},
+  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:16,minStudents:6,audience:'Grades 4 to 5 · 8-week series'},
   // My First Babysitters Club — Single Session: the 2.5-hour workshop, $165
   // for sessions created on/after Oct 19 2026. priceNew stays $95 so sessions
   // created before that cutover do not reprice. Separate from the 8-week series
   // so the series keeps its own price and $30 material rate.
-  'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:10,hours:2.5,maxStudents:16,minStudents:6,audience:'Ages 8 to 10 · 2.5-hour workshop'},
+  'My First Babysitters Club — Single Session':{price:95,price2027:95,priceNew:95,priceNew2027:95,matCost:10,hours:2.5,maxStudents:16,minStudents:6,audience:'Grades 4 to 5 · 2.5-hour workshop'},
   // Ready. Period. — 90-minute puberty-prep workshop, $75/participant, up to 18.
   // RN instructors only. No flat fee, so the instructor is paid 1.5 teaching
   // hours + 1 travel hour + the standard extra 30 minutes.

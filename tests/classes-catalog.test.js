@@ -59,7 +59,7 @@ const SOCIAL_DESC = 'An interactive workshop that teaches phone safety, digital 
 const EXPECTED = [
   ['ages-8-10', 'safe-at-home', 'Safe@Home by Safe Sitter®', 'Ages 8 to 10 · 90-minute in person · $85 · 60-minute virtual · $40', 'A class that prepares kids to stay home alone safely and know what to do if something goes wrong.', true, false],
   ['ages-8-10', 'steady-ready', 'Steady and Ready™', STEADY_META, STEADY_DESC, true, false],
-  ['ages-8-10', 'mfbc', "My First Babysitter's Club", 'Ages 8 to 10 · 2.5-hour · In person · $165', "A 2.5-hour workshop introducing young students to being a parent's helper. The 8-week after-school series is $200 per participant. Includes a take-home activity tote bag.", false, false],
+  ['ages-8-10', 'mfbc', "My First Babysitter's Club", 'Grades 4 to 5 · 2.5-hour · In person · $165', "A 2.5-hour workshop introducing young students to being a parent's helper. The 8-week after-school series is $200 per participant. Includes a take-home activity tote bag.", false, false],
   ['ages-8-10', 'social-ready', 'Social Ready™', SOCIAL_META, SOCIAL_DESC, true, false],
   ['ages-10-12', 'intro', 'Introduction to Safe Babysitting by Safe Sitter®', 'Ages 10 to 12 · 60-minute · In-person or virtual · $40', 'An introduction to the basics of caring for younger children.', true, false],
   ['ages-10-12', 'ready-period', 'Ready. Period.™', 'Girls ages 10 to 12 · 90-minute · In-person or virtual · $75', 'A hands-on workshop for girls that pairs a period pouch craft with nurse-led teaching about puberty and body care.', true, false],
