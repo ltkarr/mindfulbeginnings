@@ -56,7 +56,10 @@ a.card:hover .card-visual h3{text-decoration:underline}
 .custom h2{margin:0;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800}
 .band p,.custom p{margin:0;font-size:16px;max-width:720px;line-height:1.55}
 .navy-btn{background:#EFC75A;color:#1E3161;font-size:16px;padding:12px 22px}
-.custom{padding:36px 6vw 48px}
+.custom{padding:24px 6vw 32px}
+.custom-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:center;max-width:1000px;margin:0 auto}
+.custom-grid .mb-photo{max-width:100%}
+@media(max-width:700px){.custom-grid{grid-template-columns:1fr}}
 
 
 
@@ -450,11 +453,14 @@ a.card:hover .card-visual h3{text-decoration:underline}
 </section>
 
 <section class="custom" id="custom-programs">
-<div class="section-inner">
+<div class="section-inner custom-grid">
+<div>
 <h2>Custom programs <span class="mb-h2-script">built around you</span></h2>
 <p>Mindful Beginnings partners with organizations from the ground up to design tailored curricula built around your specific audience. Offered in virtual, in-person, or hybrid formats, our programs range from single workshops to multi-day series. Custom multi-course packages and flat-rate group pricing are available upon request for institutional partners.</p>
 <p>Past offerings include customizable Girl Scout badge workshops, safety training for community volunteers, behavior management strategies for religious schools, and PTA leadership and young adult entrepreneurship pathways.</p>
 <a class="gold-btn" href="/contact.html">Request a custom program</a>
+</div>
+<figure style="margin:0"><img class="mb-photo" src="/images/real-classes/grandparents-class-wide.jpg" alt="A Mindful Beginnings grandparents class in session" loading="lazy"></figure>
 </div>
 </section>
 
