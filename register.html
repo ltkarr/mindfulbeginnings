@@ -1185,7 +1185,7 @@ function renderPublicSessions(){
     const unitPrice=helpers.sessionPrice(r,priceFn);
     const hasOverride=(r.price_override!=null&&r.price_override!=='')||(r.priceOverride!=null&&r.priceOverride!=='');
     const shown=(!hasOverride&&per>1&&unitPrice!=null&&!isNaN(Number(unitPrice)))?((typeof registrationCheckoutTotal==='function')?registrationCheckoutTotal(r.course, Number(unitPrice), per):Number(unitPrice)*per):unitPrice;
-    const priceLabel=helpers.sessionPriceLabel(shown);
+    let priceLabel=helpers.sessionPriceLabel(shown);
     const audience=helpers.courseAudience(r.course);
     const count=publicSessionCounts&&r.id!=null?publicSessionCounts[r.id]:null;
     const left=count==null?null:helpers.seatsLeft(r,count,caps);
@@ -1236,7 +1236,7 @@ async function loadPublicSessions(){
     const res=await sb.rpc('list_public_sessions');
     if(res&&res.error){
       console.error('Public session list failed:',res.error);
-      box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.<br><br><small style="color:#999">DEBUG res.error: '+String((res.error&&res.error.message)||res.error).slice(0,200)+'</small></div>';
+      box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.</div>';
       return;
     }
     publicSessionCounts={};
@@ -1249,7 +1249,7 @@ async function loadPublicSessions(){
     renderPublicSessions();
   }catch(e){
     console.error('Public session list failed:',e);
-    box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.<br><br><small style="color:#999">DEBUG: '+(e&&e.message?String(e.message).slice(0,200):'unknown')+'</small></div>';
+    box.innerHTML='<div class="public-empty">We couldn\u2019t load upcoming sessions. If you have a private or host code, enter it above.</div>';
   }
 }
 
