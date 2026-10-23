@@ -776,7 +776,7 @@ revoke all on function public.apply_single_use_discount(text, text, numeric) fro
 revoke all on function public.release_single_use_discount(text) from public;
 revoke all on function public.discount_on_registration(text) from public;
 revoke all on function public.settle_covered_discount(text) from public;
-revoke all on function public.deactivate_discount_code(uuid) from public;
+revoke all on function public.deactivate_discount_code(uuid) from public, anon;
 
 grant execute on function public.apply_single_use_discount(text, text, numeric) to anon, authenticated;
 grant execute on function public.release_single_use_discount(text) to anon, authenticated;

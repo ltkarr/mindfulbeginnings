@@ -125,6 +125,7 @@ test('the database reserves a code once, with a row lock, and does not email', (
   assert.match(sql, /status = 'unused'/);
   assert.match(sql, /greatest\(0,/);
   assert.match(sql, /revoke all on table public\.discount_codes from anon/);
+  assert.match(sql, /revoke all on function public\.deactivate_discount_code\(uuid\) from public, anon/);
   assert.match(sql, /auth\.uid\(\) is null/);
   assert.match(sql, /deactivate_discount_code/);
   assert.match(sql, /p_row - 'pay_status' - 'paypal_tx_id' - 'price_paid' - 'registration_token' - 'discount_code'/);
