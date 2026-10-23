@@ -1429,12 +1429,18 @@ function registrationGradeOptions(course){
   if(name==='Campus Ready: Safety Skills for College Life')return blank+'<option>11th grade</option><option>12th grade</option><option>College student</option>';
   if(name==='Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes'||name==='Season Ready™: Safety Skills for Student Athletes')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
   if(name==='Ready. Period.')return blank+'<option>5th grade</option><option>6th grade</option><option>7th grade</option>';
-  if(name==='Safe Sitter®'||name==='Safe Sitter® Babysitting Essentials')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option>';
+  // Safe Sitter® babysitting, including "Safe Sitter PART ONE" and "SafeSitter @Norwood".
+  // Grandparents is an adult course and keeps the default list. A title that only
+  // mentions Safe Sitter instructors is not this course.
+  const safeSitterName=name.replace(/®/g,'');
+  if(!/grandparent/i.test(name)&&(name==='Safe Sitter®'||name==='Safe Sitter® Babysitting Essentials'||/^safe\s*sitter\b/i.test(safeSitterName)))return blank+'<option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
   if(/^Safe@Home/.test(name))return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option>';
   if(name==='All Kids Welcome')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
   if(name==='Steady and Ready')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option>';
   if(name==='My First Babysitters Club'||name==='My First Babysitters Club — Single Session')return blank+'<option>4th grade</option><option>5th grade</option>';
-  if(name==='Intro to Babysitting')return blank+'<option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option>';
+  // "Intro to Babysitting — Greenwood" is the same course. A Girl Scout title that
+  // merely mentions Intro to Babysitting is not, and keeps its own list below.
+  if(name==='Intro to Babysitting'||name.indexOf('Intro to Babysitting ')===0||name.indexOf('Intro to Babysitting—')===0||name.indexOf('Intro to Babysitting-')===0)return blank+'<option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
   if(name==='Social Ready')return blank+'<option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
   if(name==='Stay Ready: Choking Rescue and CPR'||name==='Stay Ready™: Choking Rescue, CPR, and Seizure Response')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option><option>Adult</option>';
   if(name==='Little Medics')return blank+'<option>Kindergarten</option><option>1st grade</option><option>2nd grade</option><option>3rd grade</option>';
@@ -1535,8 +1541,9 @@ function setBanner(id){
   }
 
   // Grade field — hidden entirely for the adult courses (no participant grade).
-  // Safe Sitter® is grades 6–8. Safe@Home and All Kids Welcome use grades 3–9.
-  // Girl Scout badge workshops are Kindergarten through 8th. Grade stays required.
+  // Safe Sitter® babysitting is grades 5–9. Intro to Babysitting is grades 4–9.
+  // Safe@Home stays grades 3–5. Girl Scout badge workshops are Kindergarten through 12th.
+  // Grade stays required.
   const gradeField=document.getElementById('grade-field');
   const gradeSel=document.getElementById('s-grade');
   if(gradeField)gradeField.style.display=isAdult?'none':'';

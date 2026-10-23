@@ -9361,7 +9361,7 @@ function openAddReg(sessId){
     <div class="fg"><label id="m-sln-label">Student last name *</label><input type="text" id="m-sln"></div>
     <div class="fg full" id="m-partner-wrap" style="display:none"><label>Partner's name * <span style="font-weight:400;color:var(--muted)">(second adult — one payment covers both)</span></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input type="text" id="m-p2fn" placeholder="First name"><input type="text" id="m-p2ln" placeholder="Last name"></div></div>
     <div class="fg full"><label>Session *</label><select id="m-sess" onchange="syncAddRegLabels()"><option value="">Select session...</option>${sesOpts}</select></div>
-    <div class="fg" id="m-grade-wrap"><label>Grade</label><select id="m-grade"><option value="">—</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option></select></div>
+    <div class="fg" id="m-grade-wrap"><label>Grade</label><select id="m-grade"><option value="">—</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option></select></div>
     <div class="fg"><label>Payment status</label><select id="m-pay"><option value="unpaid">Unpaid</option><option value="paid">Paid</option><option value="host">Comped/Host</option><option value="in_kind">In-kind donation (auction)</option></select></div>
     <div class="fg"><label>Custom price <span style="font-weight:400;color:var(--muted)">(override, optional)</span></label><input type="number" id="m-price" placeholder="Leave blank for default" min="0" step="1"></div>
     ${paymentMethodFieldsHtml('m-add',{})}
@@ -9709,6 +9709,7 @@ function openEditReg(id){
       <option ${r.grade==='6th grade'?'selected':''}>6th grade</option>
       <option ${r.grade==='7th grade'?'selected':''}>7th grade</option>
       <option ${r.grade==='8th grade'?'selected':''}>8th grade</option>
+      <option ${r.grade==='9th grade'?'selected':''}>9th grade</option>
     </select></div>
     <div class="fg"><label>Payment status</label><select id="m-epay">
       <option value="unpaid" ${r.payStatus==='unpaid'?'selected':''}>Unpaid</option>
