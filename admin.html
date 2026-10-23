@@ -722,6 +722,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="more-links">
         <button type="button" class="more-link" onclick="showScreen('partners',document.getElementById('nav-more'))"><span class="more-link-title">Liaisons</span><span class="more-link-sub">People paid on commission, and their statements.</span></button>
         <button type="button" class="more-link" onclick="showScreen('referrals',document.getElementById('nav-more'))"><span class="more-link-title">Referral partners</span><span class="more-link-sub">Commissions for sources such as Vanessa in Vienna.</span></button>
+        <button type="button" class="more-link" onclick="showScreen('discounts',document.getElementById('nav-more'))"><span class="more-link-title">Discount codes</span><span class="more-link-sub">Single-use codes, $25 off by default. Nothing is emailed.</span></button>
         <button type="button" class="more-link" onclick="showScreen('reports',document.getElementById('nav-more'))"><span class="more-link-title">Reports</span><span class="more-link-sub">How families find you, referrals, donations, and discount codes.</span></button>
       </div>
     </div>
@@ -836,6 +837,29 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="promo-table"></table></div></div>
     </div>
 
+    <div class="screen" id="screen-discounts">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Discount codes</div>
+          <div class="page-sub">One code, one registration. The default is $25 off. Nothing on this page sends email.</div>
+        </div>
+      </div>
+      <div class="card" id="discount-create" style="margin-bottom:16px">
+        <div class="card-title">Generate a code</div>
+        <p style="margin:0 0 12px;color:var(--muted);font-size:15px">The code is hard to guess. It works once, on one class registration, and the discounted price is what the family is charged.</p>
+        <div class="fgrid">
+          <div class="fg"><label for="dc-note">Note (optional)</label><input id="dc-note" type="text" maxlength="300" placeholder="Who it’s for"></div>
+          <div class="fg"><label for="dc-amount">Amount off</label><input id="dc-amount" type="number" min="0" max="1000" step="0.01" value="25"></div>
+        </div>
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn primary" type="button" id="dc-generate" onclick="createDiscountCode()">Generate code</button>
+        </div>
+        <div id="dc-created" style="margin-top:14px"></div>
+      </div>
+      <div id="discount-setup"></div>
+      <div class="card" style="padding:0"><div class="tbl-wrap"><table id="discount-codes-table"></table></div></div>
+    </div>
+
     <div class="screen" id="screen-packing">
       <div class="page-header pack-screen-only">
         <div>
@@ -864,6 +888,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 <div id="modal-root"></div>
 
 <script src="/js/referral-commissions.js"></script>
+<script src="/js/discount-codes.js"></script>
 <script>
 // ─── HTML ESCAPING (XSS guard for user-submitted data) ───────
 // Use this on any registrant/parent-supplied string before inserting it
@@ -1747,6 +1772,31 @@ function isCustomStudentPrice(r,s){
   if(!s)return true;
   return Number(r.pricePaid)!==Number(sessionListPrice(s));
 }
+// A single-use or config promo note explains a lower price. When the stored
+// price is the list price minus that note, it is a discount, not a custom price.
+function regDiscountTag(r,s){
+  if(!r||!s||!window.MBDiscountCodes)return{html:'',matches:false};
+  const info=MBDiscountCodes.rosterDiscountNote(r.notes, r.pricePaid, sessionListPrice(s));
+  if(!info)return{html:'',matches:false};
+  return{html:'<br><span style="font-size:13px;color:#2d7a5e">'+escapeHtml(info.code)+' −$'+escapeHtml(MBDiscountCodes.compactMoney(info.amount))+'</span>',matches:!!info.matches};
+}
+function regAmountHtml(r,s,settledFree){
+  if(!r||r.payStatus==='cancelled')return '<span style="color:var(--muted)">—</span>';
+  if(settledFree){
+    if(r.payStatus==='in_kind')return 'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>';
+    return 'Free';
+  }
+  const discount=regDiscountTag(r,s);
+  const price=s?fmt(regEffectivePrice(r,s)):'—';
+  if(r.payStatus==='paid'){
+    const custom=isCustomStudentPrice(r,s)&&!discount.matches;
+    return price+(discount.html||'')+(custom?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':'');
+  }
+  if(r.pricePaid!=null){
+    return price+(discount.html||'')+(discount.matches?'':'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>');
+  }
+  return '—';
+}
 const INSTR_RATE=50,INSTR_TRAVEL=50;
 // Extra paid time added to every instructor job (flat-fee and hourly), in hours.
 // 0.5 = 30 minutes of pay at the instructor's own hourly rate.
@@ -1761,6 +1811,7 @@ let partners=[],partnerPayouts=[],partnersTableReady=true,partnerPeriod=null;
 // Referral partners (Mary Parks / Vanessa in Vienna). Separate from liaisons.
 let referralPartners=[],referralPayouts=[],referralRules=null,referralTablesReady=true;
 let classRequests=[],classRequestsTableReady=true;
+let discountCodes=[],discountCodesTableReady=true;
 // Community Partnerships: ORGANIZATIONS on a revenue share, not individuals on
 // commission. Separate tables, separate tab, separate agreement.
 let orgPartners=[],orgPartnerPayouts=[],orgPartnersTableReady=true,orgPartnerPeriod=null;
@@ -2201,6 +2252,10 @@ async function loadData(){
     if(cr.error)console.warn('Class requests table not loaded (run migrations/class_requests.sql):',cr.error);
     classRequests=cr.data||[];
     if(typeof renderClassRequestNav==='function')renderClassRequestNav();
+    const dc=await fetchAll('discount_codes');
+    discountCodesTableReady=!dc.error;
+    if(dc.error)console.warn('Discount codes table not loaded (run migrations/20261023_single_use_discount_codes.sql):',dc.error);
+    discountCodes=(dc.data||[]).map(discountCodeFromDB);
     applyReferralTables(rp,rs,rpay,rrules);
     // Supabase returns errors on the result object instead of throwing. If any table
     // failed to load, say so loudly — otherwise the dashboard quietly shows wrong numbers.
@@ -5676,6 +5731,7 @@ function showScreen(name,el){
   if(name==='jobs'&&typeof renderJobs==='function')renderJobs();
   if(name==='materials'&&typeof renderMaterials==='function')renderMaterials();
   if(name==='reports')renderReports();
+  if(name==='discounts')renderDiscountCodes();
   if(name==='packing')renderPackingList();
 }
 
@@ -5683,7 +5739,7 @@ function showScreen(name,el){
 // Regex that pulls the code + dollar amount out of the note register.html writes
 // when a promo is applied, e.g. "[Promo MBGSCN applied: −$10 off 100 → 90]".
 // The minus is a Unicode minus (−) in the form, so we match both − and -.
-const PROMO_NOTE_RE=/\[Promo\s+([A-Za-z0-9]+)\s+applied:\s*[−-]\s*\$?(\d+(?:\.\d+)?)/;
+const PROMO_NOTE_RE=(window.MBDiscountCodes&&MBDiscountCodes.PROMO_NOTE_RE)||/\[Promo\s+([A-Za-z0-9][A-Za-z0-9-]*)\s+applied:\s*[−-]\s*\$?(\d+(?:\.\d+)?)/;
 
 // ─── NAMED REFERRALS → COMMUNITY PARTNERS ──────────────
 // The flat $25 thank-you payout is retired. A named referrer is now information: it
@@ -9153,7 +9209,7 @@ function renderRegs(){
       const c=s?COURSES[s.course]:null;
       const listPrice=s?sessionListPrice(s):null;
       const settledFree=registrationIsSettled(r, listPrice)&&r.payStatus!=='paid';
-      const amt=r.payStatus==='cancelled'?'<span style="color:var(--muted)">—</span>':r.payStatus==='paid'?(s?fmt(regEffectivePrice(r,s)):'—')+(isCustomStudentPrice(r,s)?'<br><span style="font-size:13px;color:var(--warn)">⚠ custom</span>':''):settledFree?(r.payStatus==='in_kind'?'Free<br><span style="font-size:13px;color:#6D1ED4">in-kind '+fmt(regInKindValue(r))+'</span>':'Free'):(r.pricePaid!=null?fmt(regEffectivePrice(r,s))+'<br><span style="font-size:13px;color:var(--warn)">⚠ custom · unpaid</span>':'—');
+      const amt=regAmountHtml(r,s,settledFree);
       const d=s?fmtSessDate(s,{month:'short',day:'numeric'}):'—';
       const partner=partnerNameOf(r);
       const howHtml=paymentHowHtml(r);
@@ -9973,6 +10029,134 @@ function renderFinances(){
     }
   }
   renderInvoices();
+}
+
+// ─── SINGLE-USE DISCOUNT CODES ───────────────────────────────
+// More → Discount codes. Creating or deactivating a code does not send email.
+function discountCodeFromDB(r){
+  return{
+    id:r.id,
+    code:r.code||'',
+    amount:r.amount==null?25:Number(r.amount),
+    note:r.note||'',
+    status:r.status||'unused',
+    registrationId:r.registration_id||'',
+    studentName:r.student_name||'',
+    sessionId:r.session_id||'',
+    listPrice:r.list_price==null?null:Number(r.list_price),
+    payable:r.payable==null?null:Number(r.payable),
+    reservedAt:r.reserved_at||null,
+    usedAt:r.used_at||null,
+    deactivatedAt:r.deactivated_at||null,
+    createdAt:r.created_at||null
+  };
+}
+function discountWhen(value){
+  if(!value)return '';
+  const dt=new Date(value);
+  if(isNaN(dt.getTime()))return '';
+  return dt.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+}
+function discountStatusText(row){
+  const who=row.studentName?escapeHtml(row.studentName):'a registration';
+  const reg=row.registrationId?' <span style="color:var(--muted)">'+escapeHtml(row.registrationId)+'</span>':'';
+  if(row.status==='reserved')return 'Held for '+who+(row.reservedAt?' since '+escapeHtml(discountWhen(row.reservedAt)):'')+reg;
+  if(row.status==='used')return 'Used by '+who+(row.usedAt?' on '+escapeHtml(discountWhen(row.usedAt)):'')+reg;
+  if(row.status==='deactivated')return 'Deactivated'+(row.deactivatedAt?' '+escapeHtml(discountWhen(row.deactivatedAt)):'');
+  return 'Unused';
+}
+function renderDiscountCodes(){
+  const setup=document.getElementById('discount-setup');
+  const t=document.getElementById('discount-codes-table');
+  if(!discountCodesTableReady){
+    if(setup)setup.innerHTML='<div class="alert info">Discount codes are not in the database yet. Run <strong>migrations/20261023_single_use_discount_codes.sql</strong> in Supabase, then refresh this page.</div>';
+    if(t)t.innerHTML='';
+    return;
+  }
+  if(setup)setup.innerHTML='';
+  if(!t)return;
+  const rank={unused:0,reserved:1,used:2,deactivated:3};
+  const rows=(discountCodes||[]).slice().sort((a,b)=>{
+    const d=(rank[a.status]??9)-(rank[b.status]??9);
+    if(d)return d;
+    return String(b.createdAt||'').localeCompare(String(a.createdAt||''));
+  });
+  t.innerHTML='<thead><tr><th>Code</th><th>Amount off</th><th>Note</th><th>Status</th><th></th></tr></thead><tbody>'+
+    (rows.length?rows.map(row=>{
+      const canStop=row.status==='unused'||row.status==='reserved';
+      return '<tr><td><span class="code-badge" data-code="'+escapeHtml(row.code)+'" onclick="copyCode(this.getAttribute(\'data-code\'))" title="Click to copy">'+escapeHtml(row.code)+'</span></td>'+
+        '<td>'+fmt(row.amount)+'</td>'+
+        '<td>'+(row.note?escapeHtml(row.note):'<span style="color:var(--muted)">—</span>')+'</td>'+
+        '<td>'+discountStatusText(row)+'</td>'+
+        '<td>'+(canStop?'<button class="btn sm" type="button" data-id="'+escapeHtml(row.id)+'" onclick="deactivateDiscountCode(this.getAttribute(\'data-id\'))">Deactivate</button>':'')+'</td></tr>';
+    }).join(''):'<tr class="empty-row"><td colspan="5">No discount codes yet. Generate one above. Nothing is emailed.</td></tr>')+
+    '</tbody>';
+}
+async function reloadDiscountCodes(){
+  const dc=await fetchAll('discount_codes');
+  discountCodesTableReady=!dc.error;
+  if(dc.error)console.warn('Discount codes table not loaded (run migrations/20261023_single_use_discount_codes.sql):',dc.error);
+  discountCodes=(dc.data||[]).map(discountCodeFromDB);
+  renderDiscountCodes();
+}
+async function createDiscountCode(){
+  if(!sb){showToast('Sign in again, then try that.');return;}
+  if(!discountCodesTableReady){showToast('Discount codes are not set up yet. Run the migration, then refresh.');return;}
+  const noteEl=document.getElementById('dc-note');
+  const amtEl=document.getElementById('dc-amount');
+  const note=noteEl?String(noteEl.value||'').trim().slice(0,300):'';
+  const rawAmt=amtEl?String(amtEl.value).trim():'';
+  const amount=rawAmt===''?(window.MBDiscountCodes?MBDiscountCodes.DEFAULT_AMOUNT:25):Number(rawAmt);
+  if(!isFinite(amount)||amount<0||amount>1000){
+    showToast('Amount off needs to be between $0 and $1,000.');
+    return;
+  }
+  const btn=document.getElementById('dc-generate');
+  if(btn)btn.disabled=true;
+  let saved=null;
+  let lastErr=null;
+  const gen=window.MBDiscountCodes&&MBDiscountCodes.generateDiscountCode;
+  for(let attempt=0;attempt<5;attempt++){
+    const code=gen?gen():('GIFT-'+Math.random().toString(36).slice(2,10).toUpperCase());
+    const res=await sb.from('discount_codes').insert({code:code,amount:amount,note:note||null,status:'unused'}).select('id,code,amount,note,status,created_at').single();
+    if(res&&!res.error){saved=res.data;break;}
+    lastErr=res&&res.error;
+    if(!lastErr||String(lastErr.code)!=='23505')break;
+  }
+  if(btn)btn.disabled=false;
+  if(!saved){
+    showToast('Could not create the code: '+((lastErr&&lastErr.message)||'database error').slice(0,90));
+    return;
+  }
+  const box=document.getElementById('dc-created');
+  if(box){
+    box.innerHTML='<div style="background:var(--cream);border-radius:var(--r-sm);padding:14px 16px">'+
+      '<div style="font-size:14px;color:var(--muted);margin-bottom:6px">New code. Copy it and send it yourself. Nothing was emailed.</div>'+
+      '<div style="font-family:monospace;font-size:28px;font-weight:650;letter-spacing:.04em">'+escapeHtml(saved.code)+'</div>'+
+      '<div style="margin-top:4px;color:var(--muted)">'+fmt(Number(saved.amount))+' off'+(note?' · '+escapeHtml(note):'')+'</div>'+
+      '<div class="btn-row" style="margin-top:10px"><button class="btn sm primary" type="button" data-code="'+escapeHtml(saved.code)+'" onclick="copyCode(this.getAttribute(\'data-code\'))">Copy code</button></div>'+
+      '</div>';
+  }
+  if(noteEl)noteEl.value='';
+  showToast('Code created. Nothing was emailed.');
+  await reloadDiscountCodes();
+}
+async function deactivateDiscountCode(id){
+  const row=(discountCodes||[]).find(c=>c.id===id);
+  const label=row&&row.code?row.code:'this code';
+  if(row&&row.status==='used'){showToast('That code has already been used.');return;}
+  const held=row&&row.status==='reserved'?' The registration holding it returns to the class price.':'';
+  if(!confirm('Deactivate '+label+'? It can no longer be used.'+held))return;
+  const res=await sb.rpc('deactivate_discount_code',{p_id:id});
+  if(!res||res.error){showToast((res&&res.error&&res.error.message)||'Could not deactivate that code.');return;}
+  const data=res.data||{};
+  if(data.ok===false){
+    const friendly=window.MBDiscountCodes?MBDiscountCodes.messageForReason(data.reason):'';
+    showToast(data.message||friendly||'Could not deactivate that code.');
+    return;
+  }
+  showToast(label+' deactivated. Nothing was emailed.');
+  await reloadDiscountCodes();
 }
 
 // ─── CODES ───────────────────────────────────────────────────

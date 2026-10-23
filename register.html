@@ -18,6 +18,7 @@
 <script src="/js/course-booking.js"></script>
 <script src="/js/registration-copy.js"></script>
 <script src="/js/payments.js"></script>
+<script src="/js/discount-codes.js"></script>
 <script src="/js/confirmation-email.js"></script>
 
 <!--
@@ -274,6 +275,14 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
       </div>
     </div>
   </div>
+  <div class="fsec" id="discount-section">
+    <div class="fsec-title">Discount code</div>
+    <div class="field">
+      <label for="info-discount-code">Discount code</label>
+      <input type="text" id="info-discount-code" placeholder="Optional" autocomplete="off" autocapitalize="characters" spellcheck="false" oninput="this.value=this.value.toUpperCase()">
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">Optional. A code works once and comes off the class total on the next screen.</div>
+    </div>
+  </div>
   <div class="fsec" id="host-section"><div class="fsec-title">Hosting</div>
     <label class="host-chk"><input type="checkbox" id="is-host"><div><div class="chk-title">I am the host for this session</div><div class="chk-sub">Home hosts get one free spot.</div></div></label>
   </div>
@@ -464,7 +473,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
     </div>
     <div id="promo-wrap" style="margin:14px 16px 4px;display:none">
       <div id="promo-entry">
-        <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">Have a discount code?</label>
+        <label for="promo-input" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">Discount code</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="promo-input" placeholder="Enter code" autocomplete="off" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter'){event.preventDefault();applyPromo();}" style="flex:1;padding:11px 12px;font-size:14px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);border-radius:var(--r-sm);background:white;color:var(--navy);outline:none;font-family:'Montserrat',sans-serif">
           <button type="button" onclick="applyPromo()" style="padding:11px 18px;background:var(--navy);color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap">Apply</button>
@@ -476,6 +485,10 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
         <button type="button" onclick="removePromo()" style="background:none;border:none;color:#1d6b42;font-size:12px;text-decoration:underline;cursor:pointer;font-family:'Montserrat',sans-serif">Remove</button>
       </div>
     </div>
+  </div>
+  <div id="discount-cover-wrap" style="display:none;margin-top:8px">
+    <div class="host-free">✓ &nbsp;<div><strong>Your discount covers this class.</strong> Nothing is due. Confirm below to finish. The code is used when you confirm.</div></div>
+    <button class="btn-p" id="discount-cover-btn" type="button" onclick="settleCoveredDiscount()">Confirm registration — no payment due</button>
   </div>
   <div id="host-free-msg" style="display:none" class="host-free">✓ &nbsp;<div><strong>No payment required.</strong> Home hosts get one free spot.</div></div>
   <div id="paypal-wrap">
@@ -948,6 +961,7 @@ function registerAnotherChild(){
   existingReg=null;
   // Start a clean reservation for the new child.
   reservedReg=null;reservedPrice=null;reservedDone=false;
+  resetDiscountApplication(false);
   ['s-first','s-last','p2-first','p2-last'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
   const g=document.getElementById('s-grade');if(g)g.selectedIndex=0;
   goToScreen(2);
@@ -1041,12 +1055,20 @@ function getEffectivePrice(){
 let PROMO_CODE='';              // set to the matched code string when a code is applied
 let PROMO_DISCOUNT=10;          // discount amount of the applied code
 let promoApplied=false;         // set true once a valid code is entered on the payment screen
+let singleUseLocked=false;      // server reserved a one-time code on this registration
+let singleUsePayable=null;      // price the server stored (never below 0)
+let singleUseListPrice=null;    // list price the server discounted from
 
-// The amount actually charged today = session price minus any applied promo, floored at $0.
-// This is what every payment method (order summary, Venmo, Zelle) should use.
+// The amount actually charged today. A single-use code uses the price the
+// server stored. A config.js promo still subtracts on the page. Never below $0.
 function getPayablePrice(){
+  if(singleUseLocked&&singleUsePayable!=null)return Math.max(0,Number(singleUsePayable));
   const base=getEffectivePrice();
   return Math.max(0,base-(promoApplied?PROMO_DISCOUNT:0));
+}
+function discountListPrice(){
+  if(singleUseLocked&&singleUseListPrice!=null)return Number(singleUseListPrice);
+  return getEffectivePrice();
 }
 
 // ── MULTI-DAY CLASSES ────────────────────────────────────────
@@ -1323,6 +1345,7 @@ window.onload=function(){
 
 async function checkCode(){
   promoApplied=false; // reset any previously-applied promo when looking up a new session
+  resetDiscountApplication(true);
   // Reset register-first state so looking up a new session always starts a fresh reservation.
   reservedReg=null;reservedPrice=null;reservedDone=false;
   const val=document.getElementById('code-input').value.trim().toUpperCase();
@@ -1803,6 +1826,16 @@ async function goToPayment(){
     confirmBtn.textContent='Confirm registration — no charge';
     confirmBtn.onclick=function(){completeReg('free',null);};
   }
+  // A config.js promo typed on the form is applied before the seat is saved,
+  // so the saved note matches the price. Host, comp, auction, and free seats
+  // do not take a code. A single-use code is reserved after the row exists.
+  const typedCode=(!noCharge&&!reservedDone)?readTypedDiscountCode():'';
+  const staticMatch=typedCode?matchStaticPromo(typedCode):null;
+  if(staticMatch){
+    const staticResult=applyStaticPromo(staticMatch);
+    if(!staticResult.ok)window.__discountNotice=staticResult.message;
+  }
+
   // Paint all the dollar amounts + PayPal visibility (accounts for any applied promo).
   refreshPaymentScreen();
 
@@ -1826,7 +1859,6 @@ async function goToPayment(){
     const origLabel=contBtn?contBtn.innerHTML:'';
     if(contBtn){contBtn.disabled=true;contBtn.innerHTML='Reserving your spot…';}
     const reg=buildRegistration('pending',null);
-    const price=getPayablePrice();
     stashPending(reg,currentSession); // device-side backup in case the save is interrupted
     const {ok,full,duplicateStudent}=await saveRegistration(reg);
     if(contBtn){contBtn.disabled=false;contBtn.innerHTML=origLabel;}
@@ -1841,6 +1873,7 @@ async function goToPayment(){
     if(full){
       // Last seat was claimed between page-load and reserve — do NOT overbook. Send the
       // family to the waitlist with their details prefilled. Nothing was charged.
+      // A single-use code was not reserved, because the seat was not saved.
       try{
         const wlN=document.getElementById('wl-name');if(wlN)wlN.value=reg.student_name;
         const wlE=document.getElementById('wl-email');if(wlE)wlE.value=document.getElementById('p-email').value.trim();
@@ -1853,22 +1886,52 @@ async function goToPayment(){
     if(!ok){
       // Nothing has been charged (no payment happens before this point), so a failed
       // reserve is always safe to retry. The row is also stashed on the device and will
-      // retry automatically on the next load.
+      // retry automatically on the next load. No discount code was reserved.
       alert('Sorry — there was a problem reserving your spot. Nothing has been charged. Please try again, or email lindsay@mindfulbeginnings.org.');
       return;
     }
     clearPending(reg.id);
     reservedReg=reg;
-    reservedPrice=price;
     reservedDone=true;
+    if(typedCode&&!staticMatch){
+      const applied=await applySingleUseCode(typedCode, reg.id, getEffectivePrice());
+      if(!applied.ok)window.__discountNotice=applied.message;
+    }
+    const price=getPayablePrice();
+    reservedPrice=price;
+    // The discount covers the whole class. Confirming payment here marks the
+    // code used. This is still the one registration email, not a second one.
+    if(singleUseLocked&&Number(price)===0){
+      let settled=false;
+      try{
+        const settledRes=await sb.rpc('settle_covered_discount',{p_registration_id:reg.id});
+        settled=!!(settledRes&&settledRes.data&&settledRes.data.ok===true);
+      }catch(e){settled=false;}
+      if(settled){
+        reg.pay_status='paid';
+        await applySessionLogistics(currentSession, reg);
+        setBanner('banner-pay');
+        showSuccessScreen(reg,currentSession,0,'discount',false);
+        return;
+      }
+    }
     // The seat exists now, so the confirmation email can include the street
     // address or Zoom link. The code lookup itself never receives those.
     await applySessionLogistics(currentSession, reg);
     setBanner('banner-pay');
     // Email the family now so they always have a record and clear payment instructions,
-    // even if they close the page before paying.
+    // even if they close the page before paying. One email. Applying a code later
+    // does not send another.
     try{sendConfirmationEmail(reg,currentSession,price);}catch(e){console.warn('Reserve email failed:',e);}
+  }else if(currentPayRegistrationId()){
+    await restoreDiscountForRegistration(currentPayRegistrationId());
   }
+  if(window.__discountNotice){
+    const notice=document.getElementById('promo-msg');
+    if(notice&&!promoApplied){notice.style.color='var(--danger)';notice.textContent=window.__discountNotice;}
+    window.__discountNotice='';
+  }
+  refreshPaymentScreen();
   remountRegisterPayPal();
   if(regStrip)regStrip.style.display='block';
   goToScreen(3);
@@ -1881,7 +1944,8 @@ function refreshPaymentScreen(){
   const noCharge=isHost||compMode||auctionMode||freeSession;
   const freeMode=isHost||auctionMode||freeSession; // shown as "Free" rather than "Paid"
   const payable=freeMode?0:getPayablePrice();
-  const base=freeMode?0:getEffectivePrice();
+  const base=freeMode?0:discountListPrice();
+  const covered=!noCharge&&singleUseLocked&&Number(payable)===0;
   const discountRow=document.getElementById('pay-discount-row');
   document.getElementById('pay-total-disp').textContent=noCharge?(freeMode?'Free':'Paid'):'$'+payable;
   document.getElementById('pay-price-ln').textContent=noCharge?(freeMode?'Free':'$'+base.toFixed(2)):'$'+base.toFixed(2);
@@ -1898,7 +1962,10 @@ function refreshPaymentScreen(){
   const callout=document.getElementById('pay-amount-callout');
   if(callout)callout.style.display=noCharge?'none':'block';
   // Card/PayPal Smart Buttons charge getPayablePrice(), including after a promo.
-  document.getElementById('paypal-wrap').style.display=noCharge?'none':'block';
+  // A single-use code the server priced at $0 is confirmed here instead of charged.
+  document.getElementById('paypal-wrap').style.display=(noCharge||covered)?'none':'block';
+  const coverWrap=document.getElementById('discount-cover-wrap');
+  if(coverWrap)coverWrap.style.display=covered?'block':'none';
   const fallback=document.getElementById('paypal-payhtml-fallback');
   if(fallback)fallback.href=buildPayHtmlLink();
   const deeplink=document.getElementById('paypal-deeplink');
@@ -1910,44 +1977,220 @@ function refreshPaymentScreen(){
   if(!noCharge)remountRegisterPayPal();
 }
 
-// Validate and apply the promo code typed into the order-summary box.
-function applyPromo(){
-  const inp=document.getElementById('promo-input');
+function normalizeDiscountCode(raw){
+  if(window.MBDiscountCodes&&typeof MBDiscountCodes.normalizeCode==='function')return MBDiscountCodes.normalizeCode(raw);
+  return String(raw||'').toUpperCase().replace(/\s+/g,'').trim();
+}
+function readTypedDiscountCode(){
+  const pay=document.getElementById('promo-input');
+  const info=document.getElementById('info-discount-code');
+  const fromPay=pay?normalizeDiscountCode(pay.value):'';
+  if(fromPay)return fromPay;
+  return info?normalizeDiscountCode(info.value):'';
+}
+function discountMessage(reason, fallback){
+  if(window.MBDiscountCodes&&typeof MBDiscountCodes.messageForReason==='function'){
+    const msg=MBDiscountCodes.messageForReason(reason);
+    if(reason&&msg)return msg;
+  }
+  return fallback||'We couldn\u2019t apply that code. Please try again.';
+}
+function showDiscountAppliedBanner(){
+  const banText=document.getElementById('promo-applied-text');
+  const off=(window.MBDiscountCodes&&MBDiscountCodes.compactMoney)?MBDiscountCodes.compactMoney(PROMO_DISCOUNT):String(PROMO_DISCOUNT);
+  if(banText)banText.innerHTML='\u2713 &nbsp;Code <strong>'+escapeHtml(PROMO_CODE)+'</strong> applied \u2014 $'+escapeHtml(off)+' off';
+  const entry=document.getElementById('promo-entry');
+  const banner=document.getElementById('promo-applied-banner');
+  if(entry)entry.style.display='none';
+  if(banner)banner.style.display='flex';
   const msg=document.getElementById('promo-msg');
-  const entered=(inp.value||'').trim().toUpperCase();
-  if(!entered){msg.style.color='var(--danger)';msg.textContent='Please enter a code.';return;}
-  const match=PROMO_CODES.find(p=>p.code===entered);
-  if(!match){
-    msg.style.color='var(--danger)';
-    msg.textContent='That code isn\u2019t valid. Please check and try again.';
-    return;
+  if(msg)msg.textContent='';
+}
+function clearDiscountBanner(){
+  const entry=document.getElementById('promo-entry');
+  const banner=document.getElementById('promo-applied-banner');
+  if(entry)entry.style.display='';
+  if(banner)banner.style.display='none';
+}
+function resetDiscountApplication(clearTyped){
+  singleUseLocked=false;
+  singleUsePayable=null;
+  singleUseListPrice=null;
+  promoApplied=false;
+  PROMO_CODE='';
+  if(clearTyped){
+    const info=document.getElementById('info-discount-code');
+    const pay=document.getElementById('promo-input');
+    if(info)info.value='';
+    if(pay)pay.value='';
   }
-  // Some codes are valid only on specific courses (e.g. JGN25).
-  if(match.courses&&match.courses.length&&!match.courses.includes(currentSession.course)){
-    msg.style.color='var(--danger)';
-    msg.textContent='This code applies only to '+(match.eligibilityNote||match.courses.join(' or '))+'.';
-    return;
+  const msg=document.getElementById('promo-msg');
+  if(msg)msg.textContent='';
+  clearDiscountBanner();
+}
+function matchStaticPromo(entered){
+  const list=(typeof PROMO_CODES==='undefined')?[]:PROMO_CODES;
+  return list.find(p=>p.code===entered)||null;
+}
+function applyStaticPromo(match){
+  if(!match)return{ok:false,message:discountMessage('not_found')};
+  if(match.courses&&match.courses.length&&currentSession&&!match.courses.includes(currentSession.course)){
+    return{ok:false,message:'This code applies only to '+(match.eligibilityNote||match.courses.join(' or '))+'.'};
   }
+  singleUseLocked=false;
+  singleUsePayable=null;
+  singleUseListPrice=null;
   PROMO_CODE=match.code;
   PROMO_DISCOUNT=match.discount;
   promoApplied=true;
+  showDiscountAppliedBanner();
+  return{ok:true};
+}
+function lockSingleUseResult(data, registrationId){
+  singleUseLocked=true;
+  singleUsePayable=Number(data.payable);
+  singleUseListPrice=data.listPrice==null?null:Number(data.listPrice);
+  PROMO_CODE=data.code;
+  PROMO_DISCOUNT=Number(data.amount);
+  promoApplied=true;
+  if(reservedReg&&reservedReg.id===registrationId){
+    reservedReg.discount_code=data.code;
+    reservedReg.price_paid=Number(data.payable);
+    if(data.notes)reservedReg.notes=data.notes;
+  }
+  showDiscountAppliedBanner();
+}
+async function applySingleUseCode(code, registrationId, listPrice){
+  if(!sb||typeof sb.rpc!=='function')return{ok:false,message:discountMessage('')};
+  let res;
+  try{
+    res=await sb.rpc('apply_single_use_discount',{
+      p_code:code,
+      p_registration_id:registrationId,
+      p_list_price:listPrice==null?null:Number(listPrice)
+    });
+  }catch(e){
+    return{ok:false,message:discountMessage('')};
+  }
+  if(res&&res.error){
+    const m=String(res.error.message||res.error.details||'');
+    if(/apply_single_use_discount|schema cache|PGRST202|could not find the function/i.test(m)){
+      return{ok:false,message:'Discount codes aren\u2019t available yet. Please email lindsay@mindfulbeginnings.org and we will apply it for you.'};
+    }
+    return{ok:false,message:discountMessage('')};
+  }
+  const data=res&&res.data;
+  if(!data||data.ok!==true){
+    return{ok:false,message:(data&&data.message)||discountMessage(data&&data.reason)};
+  }
+  lockSingleUseResult(data, registrationId);
+  return{ok:true,payable:Number(data.payable),amount:Number(data.amount),code:data.code};
+}
+async function releaseSingleUseCode(registrationId){
+  if(!registrationId||!sb)return{ok:false,message:discountMessage('bad_registration')};
+  let res;
+  try{
+    res=await sb.rpc('release_single_use_discount',{p_registration_id:registrationId});
+  }catch(e){
+    return{ok:false,message:discountMessage('')};
+  }
+  if(res&&res.error)return{ok:false,message:discountMessage('')};
+  const data=res&&res.data;
+  if(!data||data.ok!==true)return{ok:false,message:(data&&data.message)||discountMessage(data&&data.reason)};
+  singleUseLocked=false;
+  singleUsePayable=null;
+  singleUseListPrice=null;
+  promoApplied=false;
+  PROMO_CODE='';
+  if(reservedReg&&reservedReg.id===registrationId){
+    reservedReg.discount_code=null;
+    reservedReg.price_paid=null;
+  }
+  return{ok:true};
+}
+async function restoreDiscountForRegistration(registrationId){
+  if(!registrationId||!sb)return;
+  let res;
+  try{res=await sb.rpc('discount_on_registration',{p_registration_id:registrationId});}
+  catch(e){return;}
+  const data=res&&res.data;
+  if(!data||data.applied!==true)return;
+  lockSingleUseResult(data, registrationId);
+}
+async function settleCoveredDiscount(){
+  const id=currentPayRegistrationId();
+  const btn=document.getElementById('discount-cover-btn');
+  if(!id||!sb){alert('We could not finish this registration. Please refresh and try again.');return;}
+  if(btn)btn.disabled=true;
+  let res;
+  try{res=await sb.rpc('settle_covered_discount',{p_registration_id:id});}
+  catch(e){res=null;}
+  if(btn)btn.disabled=false;
+  const data=res&&res.data;
+  if(!res||res.error||!data||data.ok!==true){
+    alert((data&&data.message)||'We could not finish this registration. Please try again, or email lindsay@mindfulbeginnings.org.');
+    return;
+  }
+  if(reservedReg&&reservedReg.id===id)reservedReg.pay_status='paid';
+  const reg=reservedReg||{id:id,student_name:currentPayStudentName(),pay_status:'paid',notes:'',grade:''};
+  showSuccessScreen(reg, currentSession, 0, 'discount', true);
+}
+
+// Validate and apply the code typed into the order-summary box.
+// Config.js promos stay on the page. Any other code is a single-use code
+// reserved on the server for this registration only.
+async function applyPromo(){
+  const inp=document.getElementById('promo-input');
+  const msg=document.getElementById('promo-msg');
+  const entered=normalizeDiscountCode(inp&&inp.value);
+  if(!entered){msg.style.color='var(--danger)';msg.textContent='Please enter a code.';return;}
+  const match=matchStaticPromo(entered);
+  if(match){
+    if(singleUseLocked){
+      const released=await releaseSingleUseCode(currentPayRegistrationId());
+      if(!released.ok){msg.style.color='var(--danger)';msg.textContent=released.message;return;}
+    }
+    const result=applyStaticPromo(match);
+    if(!result.ok){msg.style.color='var(--danger)';msg.textContent=result.message;return;}
+    msg.textContent='';
+    refreshPaymentScreen();
+    mountRegisterPayPal();
+    return;
+  }
+  const regId=currentPayRegistrationId();
+  if(!regId){
+    msg.style.color='var(--danger)';
+    msg.textContent='Reserve your spot first, then apply the code.';
+    return;
+  }
+  msg.style.color='var(--muted)';
+  msg.textContent='Checking that code\u2026';
+  const result=await applySingleUseCode(entered, regId, getEffectivePrice());
+  if(!result.ok){msg.style.color='var(--danger)';msg.textContent=result.message;return;}
   msg.textContent='';
-  const banText=document.getElementById('promo-applied-text');
-  if(banText)banText.innerHTML='\u2713 &nbsp;Code <strong>'+PROMO_CODE+'</strong> applied \u2014 $'+PROMO_DISCOUNT+' off';
-  document.getElementById('promo-entry').style.display='none';
-  document.getElementById('promo-applied-banner').style.display='flex';
   refreshPaymentScreen();
   mountRegisterPayPal();
 }
 
-// Remove an applied promo and restore full price (PayPal still charges the on-screen total).
-function removePromo(){
+// Remove an applied code. A single-use code goes back to unused only when
+// the server still has it reserved (not after it has been paid).
+async function removePromo(){
+  const msg=document.getElementById('promo-msg');
+  if(singleUseLocked){
+    const released=await releaseSingleUseCode(currentPayRegistrationId());
+    if(!released.ok){
+      if(msg){msg.style.color='var(--danger)';msg.textContent=released.message;}
+      return;
+    }
+  }
   promoApplied=false;
+  singleUseLocked=false;
+  singleUsePayable=null;
+  singleUseListPrice=null;
   const inp=document.getElementById('promo-input');if(inp)inp.value='';
-  document.getElementById('promo-msg').textContent='';
-  document.getElementById('promo-entry').style.display='';
-  document.getElementById('promo-applied-banner').style.display='none';
-  refreshPaymentScreen();
+  const info=document.getElementById('info-discount-code');if(info)info.value='';
+  if(msg)msg.textContent='';
+  clearDiscountBanner();
   refreshPaymentScreen();
 }
 
@@ -2514,7 +2757,7 @@ function showSuccessScreen(reg,s,price,method,skipEmail){
         :(isPayPalLink
           ?'Your spot is reserved and your registration is saved. Just finish your payment on the PayPal checkout page \u2014 you do not need to return to this page. A confirmation email is on its way to you.'
           :'Thank you for registering with Mindful Beginnings. A confirmation email is on its way to you!')));
-  const amountLabel=isHost?'Free (host)':(method==='auction'?'Free (auction prize)':(method==='free'?'Free':(isZelle?'$'+price+' (pending — Zelle)':(isVenmo?'$'+price+' (pending — Venmo)':(isAlreadyPaid?'$'+price+' (already paid — confirming)':(isPayPalLink?'$'+price+' (pending — PayPal)':'$'+price))))));
+  const amountLabel=method==='discount'?'$0 (discount code)':(isHost?'Free (host)':(method==='auction'?'Free (auction prize)':(method==='free'?'Free':(isZelle?'$'+price+' (pending — Zelle)':(isVenmo?'$'+price+' (pending — Venmo)':(isAlreadyPaid?'$'+price+' (already paid — confirming)':(isPayPalLink?'$'+price+' (pending — PayPal)':'$'+price)))))));
   const amountColor=isHost||!isPending?'var(--success)':'#6D1ED4';
   document.getElementById('conf-box').innerHTML=`
     <div class="crow"><span class="cl">Participant</span><span class="cv">${escapeHtml(reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''))}</span></div>
@@ -2579,6 +2822,7 @@ function showSaveFailureRecovery(reg,s,price,method,txId){
 // inserts a registration row — the family is already registered.
 async function startPayNow(code,name,amt,regId){
   payNowMode=true;isHost=false;compMode=false;reservedReg=null;reservedDone=false;promoApplied=false;
+  singleUseLocked=false;singleUsePayable=null;singleUseListPrice=null;
   payNowRegId=String(regId||'').trim();
   // Hide the 1-2-3-4 step rail and retitle the hero for a payment (not registration) context.
   const stepsWrap=document.querySelector('.steps-wrap');if(stepsWrap)stepsWrap.style.display='none';
@@ -2616,7 +2860,11 @@ async function startPayNow(code,name,amt,regId){
     document.getElementById('pay-course-lbl').textContent=currentSession.course;
     document.getElementById('host-free-msg').style.display='none';
     document.getElementById('host-confirm-wrap').style.display='none';
-    document.getElementById('promo-wrap').style.display='none';
+    document.getElementById('promo-wrap').style.display=payNowRegId?'block':'none';
+    if(payNowRegId){
+      await restoreDiscountForRegistration(payNowRegId);
+      refreshPaymentScreen();
+    }
     const strip=document.getElementById('reg-confirmed-strip');
     if(strip){
       strip.style.display='block';
