@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261022-referral-partners';
+window.MB_ADMIN_BUILD='20261023-host-address';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -41,6 +41,7 @@ window.MB_ADMIN_BUILD='20261022-referral-partners';
 <script src="/js/class-requests.js"></script>
 <script src="/js/class-requests-admin.js"></script>
 <script src="/js/invoice-payments.js"></script>
+<script src="/js/session-place.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -133,6 +134,7 @@ body{font-family:'Montserrat',sans-serif;background:var(--cream);color:var(--tex
 #sessions-table .sess-clamp.when{margin-top:0;font-size:15px;font-weight:500;color:var(--text)}
 #sessions-table .sess-clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #sessions-table .sess-wrap{overflow-wrap:anywhere;white-space:normal}
+#sessions-table a.loc-map{color:var(--navy);font-weight:600;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
 /* Inner box, not the td: overflow on a table cell does not clip, so a long
    hold time would paint across the title and the ON HOLD badge. */
 #sessions-table .cell-stack{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;max-width:100%;min-width:0;overflow:hidden}
@@ -869,6 +871,35 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 // Use this on any registrant/parent-supplied string before inserting it
 // into innerHTML, so a name like <img onerror=...> renders as text.
 function escapeHtml(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// Street address for admin lists. A generic "Host home" label is replaced by
+// host_address plus city, state, and zip. A real venue name stays, with the
+// street after it. Virtual classes stay "Virtual".
+function adminPlaceText(s){
+  if(!s)return '';
+  if(typeof s==='string')return String(s).trim();
+  if(s.isVirtual)return 'Virtual';
+  if(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.plain)return MBSessionPlace.plain(s)||'';
+  const name=String(s.location||'').trim();
+  const street=String(s.hostAddress||'').trim();
+  const city=String(s.city||'').trim();
+  const state=String(s.state||'').trim();
+  const zip=String(s.zip||'').trim();
+  const generic=/^(host home|hosts home|host house|private home|private host|home host)$/i.test(name.replace(/['’]/g,'').replace(/\s+/g,' ').trim());
+  const hide=generic||(!!street&&!!city&&name.toLowerCase()===city.toLowerCase());
+  const csz=[city,state].filter(Boolean).join(', ')+(zip?' '+zip:'');
+  return [hide?'':name,street,String(csz||'').trim()].filter(p=>p&&String(p).trim()).join(', ');
+}
+function adminPlaceHtml(s){
+  const text=adminPlaceText(s);
+  if(!text)return '<span class="sess-sub">—</span>';
+  if(s&&s.isVirtual)return '<span class="sess-wrap">Virtual</span>';
+  if(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.html){
+    const linked=MBSessionPlace.html(s,{link:true,className:'loc-map'});
+    if(linked)return '<span class="sess-wrap" title="'+escapeHtml(text)+'">'+linked+'</span>';
+  }
+  return '<span class="sess-wrap" title="'+escapeHtml(text)+'">'+escapeHtml(text)+'</span>';
+}
 
 // ─── SUPABASE ────────────────────────────────────────────────
 let sb;
@@ -6889,6 +6920,7 @@ function renderDashboard(){
           <div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin:0 0 6px;font-size:15px;line-height:1.45">
             ${roleLine('Instructor',instrLabel,'No instructor')}
             ${roleLine(sessionIsOrganization(s)?'Organization':'Host',hostLabel,sessionIsOrganization(s)?'No organization':'No host')}
+            ${roleLine('Where',adminPlaceText(s)||'No location','No location')}
           </div>
           ${items.join('')}
         </div>`;
@@ -6983,7 +7015,7 @@ function renderDupeBanner(){
     const rows=g.rows.map(s=>{
       const seats=seatsOnSession(s.id);
       const when=new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-      const where=s.isVirtual?'Virtual':(escapeHtml(s.location)||'no location');
+      const where=s.isVirtual?'Virtual':(escapeHtml(adminPlaceText(s))||'no location');
       const made=s.createdAt?new Date(s.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
       return `<tr>
         <td style="padding:6px 10px 6px 0;white-space:nowrap">${when}${s.time?` <span style="color:var(--muted)">${escapeHtml(s.time)}</span>`:' <span style="color:var(--muted)">no time</span>'}</td>
@@ -7063,11 +7095,7 @@ function renderSessions(){
     const costNote=f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:'';
     return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${feeReceivedControl(s,f.orgRevenue)}${extra}${costNote}${netLine(f.profit)}`;
   };
-  const locCell=text=>{
-    const name=String(text||'').trim();
-    if(!name)return'<span class="sess-sub">—</span>';
-    return `<span class="sess-wrap" title="${escapeHtml(name)}">${escapeHtml(name)}</span>`;
-  };
+  const locCell=s=>adminPlaceHtml(s);
   t.innerHTML=`<colgroup><col class="c-date"><col class="c-course"><col class="c-loc"><col class="c-instr"><col class="c-seats"><col class="c-pay"><col class="c-wrap"><col class="c-mgr"></colgroup><thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Wrap-up</th><th class="mgr-cell" style="background:white"></th></tr></thead><tbody>`+
     (list.length?list.map(s=>{
       const f=calcFin(s);
@@ -7098,7 +7126,7 @@ function renderSessions(){
       // is cancelled, so dimming there would just make the whole table hard to read.
       const cxRowStyle=(s.isCancelled&&scope!=='cancelled')?'opacity:.55':'';
       const mgr=bg=>`<td class="mgr-cell" style="text-align:right;background:${bg}"><button type="button" class="btn sm" aria-haspopup="menu" aria-expanded="false" aria-label="Manage session" onclick="openSessionMenu(event,'${s.id}')" onkeydown="sessionMenuButtonKey(event,'${s.id}')">Manage \u25be</button></td>`;
-      const where=locCell(s.isVirtual?'Virtual':s.location);
+      const where=locCell(s);
       if(s.isHold){
         const enrolled=sessionOccupiedSeats(s);
         const wlHold=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
@@ -7398,10 +7426,18 @@ function sessionAboutWhereText(s){
   const cityState=[s.city,s.state].filter(Boolean).join(', ');
   const csz=(cityState+(s.zip?(' '+String(s.zip).trim()):'')).trim();
   const street=String(s.hostAddress||'').trim();
+  const generic=/^(host home|hosts home|host house|private home|private host|home host)$/i.test(name.replace(/['’]/g,'').replace(/\s+/g,' ').trim());
+  const sameCity=!!(street&&s.city&&name.toLowerCase()===String(s.city).trim().toLowerCase());
+  const showName=!!(name&&!generic&&!sameCity);
   const addr=[street,csz].filter(Boolean).join(', ');
   const lines=[];
-  if(name)lines.push(name);
-  if(addr&&addr.toLowerCase()!==name.toLowerCase())lines.push(addr);
+  if(showName)lines.push(name);
+  if(addr&&(!showName||addr.toLowerCase()!==name.toLowerCase()))lines.push(addr);
+  else if(!addr&&csz&&showName&&name.toLowerCase().indexOf(String(s.city||'').trim().toLowerCase())===-1)lines.push(csz);
+  if(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.mapsUrl){
+    const url=MBSessionPlace.mapsUrl(s);
+    if(url)lines.push(url);
+  }
   return lines.join('\n');
 }
 function _aboutDateLabel(iso){
@@ -9998,7 +10034,7 @@ function renderCodes(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
         <div>
           <div style="font-weight:500;font-size:18px">${s.course}</div>
-          <div style="color:var(--muted);font-size:16px;margin-top:3px">${d} · ${s.time||''} · ${s.location||''}${s.city?', '+s.city:''}${s.state?' '+s.state:''}${s.isRecurring?' · <span style="color:#1a5c8a;font-weight:500">↻ '+recurLabel(s)+'</span>':''}</div>
+          <div style="color:var(--muted);font-size:16px;margin-top:3px">${d} · ${s.time||''} · ${escapeHtml(adminPlaceText(s)||'')}${s.isRecurring?' · <span style="color:#1a5c8a;font-weight:500">↻ '+recurLabel(s)+'</span>':''}</div>
           <div style="color:var(--muted);font-size:15px;margin-top:2px">${cnt} registered · ${feeText}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
@@ -10227,7 +10263,8 @@ function renderInstructors(){
           ?`<span class="tag paid">Paid</span>`
           :`<span class="tag pending">Pending</span>`;
         const pd=jd.payDate?(()=>{const dt=new Date(/^\d{4}-\d{2}-\d{2}$/.test(jd.payDate)?jd.payDate+'T12:00:00':jd.payDate);return isNaN(dt)?jd.payDate:dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});})():'';
-        return`<div class="instr-job"><span class="ij-course">${escapeHtml(s.course)}</span> <span class="ij-meta">· ${d}${s.location?' · '+escapeHtml(s.location):''}${s.city?', '+escapeHtml(s.city):''}</span><br>${payPill} <span style="font-size:14px">${feeDisplay}</span>${hoursNote?` <span style="font-size:13px;color:var(--muted)">${escapeHtml(hoursNote)}</span>`:''}${pd?` <span style="font-size:13px;color:var(--muted)">${pd}</span>`:''}</div>`;
+        const whereTxt=adminPlaceText(s);
+        return`<div class="instr-job"><span class="ij-course">${escapeHtml(s.course)}</span> <span class="ij-meta">· ${d}${whereTxt?' · '+escapeHtml(whereTxt):''}</span><br>${payPill} <span style="font-size:14px">${feeDisplay}</span>${hoursNote?` <span style="font-size:13px;color:var(--muted)">${escapeHtml(hoursNote)}</span>`:''}${pd?` <span style="font-size:13px;color:var(--muted)">${pd}</span>`:''}</div>`;
       }).join(''):`<div style="padding:8px 0;font-size:14px;color:var(--muted);font-style:italic">No jobs assigned yet.</div>`;
       // Status badges under the name
       const badges=[];
@@ -10333,7 +10370,7 @@ function exportInstructorsCSV(){
       const fee=baseFee+bonus;
       const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
       const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
-      rows.push(['','','','','','','','','','','','','','','','',s.course,d,(s.location||'')+(s.city?', '+s.city:''),'$'+baseFee.toFixed(2),'$'+bonus.toFixed(2),'$'+fee.toFixed(2),jd.payStatus==='paid'?'Paid':'Pending',jd.payDate||'',hoursNote]);
+      rows.push(['','','','','','','','','','','','','','','','',s.course,d,adminPlaceText(s),'$'+baseFee.toFixed(2),'$'+bonus.toFixed(2),'$'+fee.toFixed(2),jd.payStatus==='paid'?'Paid':'Pending',jd.payDate||'',hoursNote]);
     });
     rows.push([]); // spacer
   });
@@ -10915,10 +10952,15 @@ function packingInRange(s, today, days){
   return s.date>=start&&s.date<=end;
 }
 function packingPlace(s){
+  if(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.plain){
+    const p=MBSessionPlace.plain(s);
+    if(p)return p;
+  }
   const loc=String(s&&s.location||'').trim();
   const city=String(s&&s.city||'').trim();
   const addr=String(s&&s.hostAddress||'').trim();
-  const head=loc||addr;
+  const generic=/^(host home|hosts home|host house|private home|private host|home host)$/i.test(loc.replace(/['’]/g,'').replace(/\s+/g,' ').trim());
+  const head=(!generic&&loc)?loc:addr;
   if(head&&city&&head.toLowerCase().indexOf(city.toLowerCase())===-1)return head+', '+city;
   return head||city||'Place not set';
 }
@@ -11942,8 +11984,25 @@ function openJobWhenText(s, dateText){
   }
   return (dateText||'')+(s&&s.time?' · '+s.time:'');
 }
+function openJobLocationSource(s){
+  if(s&&s.isVirtual)return 'Virtual (Zoom)';
+  if(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.plain){
+    const p=MBSessionPlace.plain(s);
+    if(p)return p;
+  }
+  const loc=String(s&&s.location||'').trim();
+  const street=String(s&&s.hostAddress||'').trim();
+  const city=String(s&&s.city||'').trim();
+  const state=String(s&&s.state||'').trim();
+  const zip=String(s&&s.zip||'').trim();
+  const generic=/^(host home|hosts home|host house|private home|private host|home host)$/i.test(loc.replace(/['’]/g,'').replace(/\s+/g,' ').trim());
+  const hide=generic||(!!street&&!!city&&loc.toLowerCase()===city.toLowerCase());
+  const csz=[city,state].filter(Boolean).join(', ')+(zip?' '+zip:'');
+  const parts=[hide?'':loc,street,String(csz||'').trim()].filter(p=>p&&String(p).trim());
+  return parts.join(', ')||'Location to be confirmed';
+}
 function openJobDigestLine(s,idx,dateText){
-  const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.hostAddress,[s&&s.city,s&&s.state,s&&s.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')||'Location to be confirmed'));
+  const loc=openJobCopyText(openJobLocationSource(s));
   const when=openJobCopyText(openJobWhenText(s, dateText));
   const title=openJobCopyText((s&&s.course)||'Session');
   const pay=openJobCopyText(openJobPayText(s));
@@ -11951,7 +12010,7 @@ function openJobDigestLine(s,idx,dateText){
   return (idx+1)+'. '+title+' - '+pay+' - '+who+'\n   '+when+'\n   '+loc;
 }
 function openJobDigestHtml(s,idx,dateText){
-  const loc=openJobCopyText(s&&s.isVirtual?'Virtual (Zoom)':([s&&s.location,s&&s.hostAddress,[s&&s.city,s&&s.state,s&&s.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')||'Location to be confirmed'));
+  const loc=openJobCopyText(openJobLocationSource(s));
   const title=openJobCopyText((s&&s.course)||'Session');
   const when=escapeHtml(openJobCopyText(openJobWhenText(s, dateText)));
   const pay=openJobCopyText(openJobPayText(s));
@@ -12027,17 +12086,12 @@ function opsEmailsApi(){
 function sessionAddressLine(s){
   if(!s)return 'To be confirmed';
   if(s.isVirtual)return s.zoomLink?('Virtual (Zoom) — '+s.zoomLink):'Virtual (Zoom)';
-  const cityState=[s.city,s.state].filter(Boolean).join(', ');
-  const csz=(cityState+(s.zip?' '+s.zip:'')).trim();
-  const street=String(s.hostAddress||'').trim();
-  const place=String(s.location||'').trim();
-  if(street){
-    const line=[street,csz].filter(Boolean).join(', ');
-    if(place&&place.toLowerCase()!==street.toLowerCase()&&line.toLowerCase().indexOf(place.toLowerCase())===-1)return place+' — '+line;
-    return line;
+  if(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.describe){
+    const d=MBSessionPlace.describe(s);
+    if(d.venue&&d.secondary)return d.venue+' — '+d.secondary;
+    return d.plain||'To be confirmed';
   }
-  if(place||csz)return [place,csz].filter(Boolean).join(', ');
-  return 'To be confirmed';
+  return adminPlaceText(s)||'To be confirmed';
 }
 function sessionInstructorPlain(s){
   const list=sessionInstructorList(s);
@@ -12606,7 +12660,7 @@ function waiverDocBody(r){
   const courseName=s?s.course:'(course on file)';
   const sessDate=s?fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'—';
   const sessTime=s&&s.time?s.time:'';
-  const sessLoc=s?(s.isVirtual?'Virtual (Zoom)':[s.location,s.city,s.state].filter(Boolean).join(', ')):'—';
+  const sessLoc=s?(s.isVirtual?'Virtual (Zoom)':(adminPlaceText(s)||[s.location,s.city,s.state].filter(Boolean).join(', '))):'—';
   const sessCode=s?s.code:'—';
   const signedRaw=r.createdAt?new Date(r.createdAt):null;
   const signedStr=(signedRaw&&!isNaN(signedRaw))?signedRaw.toLocaleString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}):'date not recorded';
@@ -12846,7 +12900,7 @@ function sessionStatusMarks(s){
 function sessionChoiceLabel(s){
   if(!s)return '';
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'No date');
-  return [s.code,d,s.course,s.location].filter(Boolean).join(', ')+sessionStatusMarks(s);
+  return [s.code,d,s.course,adminPlaceText(s)||s.location].filter(Boolean).join(', ')+sessionStatusMarks(s);
 }
 function expenseSessionShort(s){
   if(!s)return '';
@@ -12864,7 +12918,7 @@ let _esessScrollBound=false;
 function expenseSessionPickerLabel(s){
   if(!s)return '';
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'No date');
-  const parts=[s.code,d,s.course,s.location].filter(Boolean);
+  const parts=[s.code,d,s.course,s.location,s.hostAddress].filter(Boolean);
   let label=parts.join(' · ');
   if(s.isCancelled)label+=' · Cancelled';
   else if(s.isHold)label+=' · On hold';
@@ -12874,7 +12928,7 @@ function expenseSessionPickerMatches(s, query){
   const q=String(query||'').trim().toLowerCase();
   if(!q||!s)return !!s;
   const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-  const blob=[s.code,s.date,d,s.course,s.location,s.city,s.holdTerm,s.isCancelled?'cancelled':'',s.isHold?'on hold':''].join(' ').toLowerCase();
+  const blob=[s.code,s.date,d,s.course,s.location,s.hostAddress,s.city,s.holdTerm,s.isCancelled?'cancelled':'',s.isHold?'on hold':''].join(' ').toLowerCase();
   return blob.indexOf(q)>=0;
 }
 function expenseSessionOnOrAfterToday(s, today){
@@ -14391,7 +14445,7 @@ function matInstructorXrefHtml(name, mode){
       btn=`<button type="button" class="btn sm primary" onclick="openCheckout('${s.id}')">Check out for this class</button>`;
     }
     return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:7px 0;border-top:0.5px solid var(--border)">
-      <div style="font-size:15px;min-width:0"><span style="font-weight:600">${escapeHtml(s.course)}</span> <span style="color:var(--muted)">${fmtSessDate(s,{month:'short',day:'numeric'})}${s.location?' · '+escapeHtml(s.location):''}</span><br><span style="color:${none?'#b86a00':'var(--muted)'}">${escapeHtml(reserved)}</span></div>
+      <div style="font-size:15px;min-width:0"><span style="font-weight:600">${escapeHtml(s.course)}</span> <span style="color:var(--muted)">${fmtSessDate(s,{month:'short',day:'numeric'})}${adminPlaceText(s)?' · '+escapeHtml(adminPlaceText(s)):''}</span><br><span style="color:${none?'#b86a00':'var(--muted)'}">${escapeHtml(reserved)}</span></div>
       <div style="flex-shrink:0">${btn}</div>
     </div>`;
   }).join(''):`<div style="font-size:15px;color:var(--muted)">No upcoming classes are assigned to ${escapeHtml(name)}.</div>`;
@@ -15993,7 +16047,7 @@ function renderOrgBilling(){
   let gapHtml='';
   if(gaps.length){
     gapHtml=sect('Check before billing — organization jobs missing invoice details','#c0392b',gaps.map(g=>row(
-      `<div style="font-size:17px;font-weight:600">${escapeHtml(g.s.course)}<span style="font-weight:400;color:var(--muted)"> · ${obDate(g.s.date)}${g.s.location?' · '+escapeHtml(g.s.location):''}</span></div>
+      `<div style="font-size:17px;font-weight:600">${escapeHtml(g.s.course)}<span style="font-weight:400;color:var(--muted)"> · ${obDate(g.s.date)}${adminPlaceText(g.s)?' · '+escapeHtml(adminPlaceText(g.s)):''}</span></div>
        <div style="font-size:15px;color:var(--muted);line-height:1.5">${g.why} Open the job and fill in <strong>${g.fix}</strong>.</div>`,
       `<button class="btn sm" onclick="openSessionForReview('${g.s.id}')">✏️ Open job</button>
        <button class="btn sm" onclick="dismissOrgBillCheck('${g.s.id}')" title="Hide this one — not an organization job, or already paid another way">Not billable</button>`
@@ -16277,14 +16331,14 @@ function openRoster(sessId){
       <div style="border-top:2px solid #1a2744;border-bottom:1px solid #dde4ee;padding:10px 0;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:16px">
         <div><span style="color:#6b7a99">Date:</span> <strong>${d}</strong></div>
         <div><span style="color:#6b7a99">Time:</span> <strong>${s.time||'TBD'}</strong></div>
-        <div><span style="color:#6b7a99">Location:</span> <strong>${s.location||'TBD'}${s.city?', '+s.city:''}</strong></div>
+        <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(adminPlaceText(s)||s.location||'TBD')}</strong></div>
         <div><span style="color:#6b7a99">Instructor:</span> <strong>${instr}</strong></div>
         <div><span style="color:#6b7a99">Session code:</span> <strong>${s.code}</strong></div>
         <div><span style="color:#6b7a99">${adult?'Total participants:':'Total students:'}</span> <strong>${adult?rosterPeople(regs, s.course):regs.length}</strong></div>
       </div>
       <div style="background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:14px 18px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:16px">
         <div style="font-size:14px;text-transform:uppercase;letter-spacing:.7px;color:#6b7a99;font-weight:600;grid-column:1/-1;margin-bottom:2px">Session Info</div>
-        ${s.hostAddress?`<div><span style="color:#6b7a99">Address:</span><br><strong>${s.hostAddress}${s.city?', '+s.city:''}${s.state?' '+s.state:''}${s.zip?' '+s.zip:''}</strong></div>`:''} 
+        ${s.hostAddress&&String(adminPlaceText(s)||'').toLowerCase().indexOf(String(s.hostAddress).trim().toLowerCase())===-1?`<div><span style="color:#6b7a99">Address:</span><br><strong>${s.hostAddress}${s.city?', '+s.city:''}${s.state?' '+s.state:''}${s.zip?' '+s.zip:''}</strong></div>`:''} 
         ${s.contactName?`<div><span style="color:#6b7a99">Contact name:</span><br><strong>${s.contactName}</strong></div>`:''}
         ${s.hostPhone?`<div><span style="color:#6b7a99">Contact phone / email:</span><br><strong>${s.hostPhone}</strong></div>`:''}
         ${s.wifiInfo?`<div><span style="color:#6b7a99">WiFi info:</span><br><strong>${s.wifiInfo}</strong></div>`:''}
@@ -16957,14 +17011,17 @@ function openInstructorReminder(sessId,specificInstrId){
   const fullAddress=[s.hostAddress,cszZip].filter(Boolean).join(', ');
   const contactLabel=s.hasHost!==false?'Host contact':'Site contact';
   const contactBits=[s.contactName,s.hostPhone].filter(Boolean).join(', ');
+  const placeLine=adminPlaceText(s);
   const detailLines=['Course: '+s.course,'Date: '+when];
   if(openJobMeetings(s).length<2)detailLines.push('Time: '+(s.time||'To be confirmed'));
   if(s.isVirtual){
     detailLines.push('Format: Virtual (Zoom)');
     detailLines.push('Zoom link: '+(s.zoomLink||'Link to be provided'));
   }else{
-    detailLines.push('Location: '+(s.location?s.location+(s.city?', '+s.city:''):'To be confirmed'));
-    if(fullAddress)detailLines.push('Address: '+fullAddress);
+    detailLines.push('Location: '+(placeLine||'To be confirmed'));
+    const street=String(s.hostAddress||'').trim();
+    if(fullAddress&&street&&placeLine.toLowerCase().indexOf(street.toLowerCase())===-1)detailLines.push('Address: '+fullAddress);
+    else if(fullAddress&&!street)detailLines.push('Address: '+fullAddress);
     if(contactBits)detailLines.push(contactLabel+': '+contactBits);
     if(s.wifiInfo)detailLines.push('WiFi: '+s.wifiInfo);
   }

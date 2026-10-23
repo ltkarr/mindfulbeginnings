@@ -72,6 +72,7 @@ function loadEmail() {
       extractFn(admin, 'openJobMeetings'),
       extractFn(admin, 'openJobDayLabel'),
       extractFn(admin, 'openJobWhenText'),
+      extractFn(admin, 'openJobLocationSource'),
       extractFn(admin, 'openJobDigestLine'),
       extractFn(admin, 'openJobDigestHtml'),
       extractFn(admin, 'openJobPortalText')

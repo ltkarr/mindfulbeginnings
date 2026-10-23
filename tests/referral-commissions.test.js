@@ -313,7 +313,7 @@ test('admin commissions view is wired to the existing cost basis and does not re
   assert.doesNotMatch(admin, /sendEmail\(/);
   const screen = admin.slice(admin.indexOf('id="screen-referrals"'), admin.indexOf('id="screen-reports"'));
   assert.match(screen, /No email is sent/);
-  assert.match(admin, /window\.MB_ADMIN_BUILD='20261022-referral-partners'/);
+  assert.match(admin, /window\.MB_ADMIN_BUILD='20261023-host-address'/);
 });
 
 test('the instructor portal adds a referral-partner path without opening the job board', () => {

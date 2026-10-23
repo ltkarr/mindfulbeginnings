@@ -21,6 +21,7 @@
 <script src="/config-instructor.js"></script>
 <script src="/js/course-booking.js"></script>
 <script src="/js/referral-commissions.js"></script>
+<script src="/js/session-place.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -94,6 +95,13 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .section-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:22px;margin-bottom:6px}
 .section-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+.info-tip{display:inline-block;position:relative;vertical-align:middle;margin-left:6px}
+.info-tip summary{list-style:none;cursor:pointer;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--navy);color:var(--navy);display:inline-flex;align-items:center;justify-content:center;background:#fff}
+.info-tip summary::-webkit-details-marker{display:none}
+.info-tip summary:focus{outline:2px solid var(--gold);outline-offset:2px}
+.info-tip-body{position:absolute;z-index:30;left:0;top:28px;width:min(320px,72vw);background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(30,49,97,.14);font-size:13px;line-height:1.5;color:var(--text);font-weight:500}
+.job-alerts-card{border:2px solid var(--navy);background:#f7f5ee}
+.job-alerts-kicker{font-size:13px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--navy);margin-bottom:8px}
 .job-card{background:white;border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px;transition:box-shadow .2s}
 .job-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .jc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
@@ -152,6 +160,7 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .mb-res-desc{font-size:13.5px;color:var(--muted);line-height:1.6;margin-bottom:10px}
 .mb-res-links{display:flex;flex-wrap:wrap;gap:8px}
 .mb-res-note{font-size:12.5px;color:var(--muted);margin-top:8px;font-style:italic}
+.mb-res-note.warn{font-style:normal;font-weight:700;color:#9b1c1c;background:#fdf0ee;border:1px solid #f0b8b2;border-radius:8px;padding:8px 10px}
 .mb-video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .mb-video-link{display:block;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13.5px;color:var(--text);text-decoration:none;overflow-wrap:anywhere}
 .mb-video-link:hover{border-color:var(--gold-d)}
@@ -370,7 +379,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="screen" id="tab-open">
       <div class="section-title">Open jobs</div>
-      <div class="section-sub">Jobs you can claim. <span title="Every job listed here is unclaimed and ready to accept. Taken jobs never appear on this board. You only see jobs for the courses you're eligible to teach.">?</span></div>
+      <div class="section-sub">Jobs you can claim <details class="info-tip"><summary aria-label="About jobs you can claim"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"></circle><path d="M7 6.2v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path><circle cx="7" cy="3.7" r="0.8" fill="currentColor"></circle></svg></summary><div class="info-tip-body">Every job listed here is unclaimed and ready to accept. Taken jobs never appear on this board. You only see jobs for the courses you're eligible to teach.</div></details></div>
       <div id="pay-policy" style="background:#fff7e6;border:2px solid #e0b050;border-radius:12px;padding:14px 16px;margin:0 0 16px;font-size:16px;line-height:1.55;color:#1E3161">
         <div style="font-weight:700;font-size:18px;margin-bottom:6px">Pay policy</div>
         <div>Pay for each job is listed as your hourly rate times a set number of hours. That total usually includes at least 1.5 hours beyond the class time, and we may add more depending on the job's location. Pay hours are set at Mindful Beginnings' discretion. Please do not ask for additional pay for any course. If the listed pay doesn't work for you, simply don't claim the job.</div>
@@ -419,7 +428,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="screen" id="tab-guide">
       <div class="section-title">Instructor Guide</div>
-      <div class="section-sub">Teaching notes, class sizes, and course folders. <span title="FAQs cover preparing, materials, pacing, equipment, virtual classes, and badges. The resource center holds presentations, manuals, and printables.">?</span></div>
+      <div class="section-sub">Teaching notes, class sizes, and course folders. <details class="info-tip"><summary aria-label="About the instructor guide"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"></circle><path d="M7 6.2v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path><circle cx="7" cy="3.7" r="0.8" fill="currentColor"></circle></svg></summary><div class="info-tip-body">FAQs cover preparing, materials, pacing, equipment, virtual classes, and badges. The resource center holds presentations, manuals, and printables.</div></details></div>
       <div id="guide-content"></div>
       <div id="materials-content" style="margin-top:18px"></div>
     </div>
@@ -958,12 +967,11 @@ function heroStripHTML(s,fee){
       return fmtHours(hours/meetings.length)+(lens.size===1?' each':' average');
     })()}
   ].filter(Boolean);
-  // Fourth cell: where the class happens. This also fills what used to be an empty
-  // square in the 2-across mobile grid. Venue name only — the street address stays
-  // private until the job is accepted.
+  // Fourth cell: where the class happens, including a host-home street address.
+  const placeText=portalPlace(s);
   cells.push(s.isVirtual
     ?{v:'Virtual',l:'Location',sub:'Zoom — teach from home',loc:true}
-    :{v:escapeHtml(s.location||'TBD'),l:'Location',sub:[s.city,s.state].filter(Boolean).join(', '),loc:true});
+    :{v:escapeHtml(placeText||'TBD'),l:'Location',sub:'',loc:true});
   return`<div class="hero-strip">${cells.map(c=>`
     <div class="hero-cell${c.loc?' loc':''}"><div class="hero-v">${c.v}</div><div class="hero-l">${c.l}</div>${c.sub?`<div class="hero-s">${escapeHtml(c.sub)}</div>`:''}</div>`).join('')}</div>`;
 }
@@ -983,7 +991,7 @@ function fitChecksHTML(s,idx){
   const hist=myHistory(s);
   if(hist.course>0)rows.push({t:'good',ic:'✓',x:`You have taught <strong>${escapeHtml(s.course)}</strong> ${hist.course} time${hist.course!==1?'s':''} before`});
   else rows.push({t:'info',ic:'📘',x:`First time teaching <strong>${escapeHtml(s.course)}</strong> — see the Instructor Guide tab to prepare`});
-  if(hist.venue>0)rows.push({t:'good',ic:'📍',x:`You have taught at <strong>${escapeHtml(s.location)}</strong> before — you know the drill`});
+  if(hist.venue>0&&!(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.isGenericHostLabel(s.location)))rows.push({t:'good',ic:'📍',x:`You have taught at <strong>${escapeHtml(s.location)}</strong> before — you know the drill`});
   const en=enrollment(s);
   if(!s.isCustomJob&&en.cap){
     const t=en.pct>=70?'good':en.pct>=30?'info':'warn';
@@ -1007,7 +1015,7 @@ function whatHappensHTML(s){
     'Lindsay is emailed straight away and the job moves to your <strong>My jobs</strong> tab.',
     s.isCustomJob?'':'Your teaching materials are arranged — either shipped to the host or ready to pick up. You will see which on the job card.',
     s.isCustomJob?'':'Print your student roster from the job card any time before the first class.',
-    s.isVirtual?'The Zoom link is sent to you and to registered families before the first class.':'The exact address, host cell and WiFi details unlock on your job card.',
+    s.isVirtual?'The Zoom link is sent to you and to registered families before the first class.':'The host\'s cell number and WiFi unlock on your job card once you accept. The street address is already on this card.',
     s.isCustomJob
       ?`Payment of <strong>${fmt(instrFee(s))}</strong> is sent by Zelle after the event.`
       :(hoursNote
@@ -1078,27 +1086,39 @@ function scheduleHTML(s){
     ${usual?`<div style="font-size:13px;color:var(--muted);margin-top:7px">Usual time ${escapeHtml(usual)}${times.length&&[...new Set(times)].length>1?' · a chip with its own time meets at a different hour':''}</div>`:''}
   </div>`;
 }
-// Where the class happens. Street address, host cell and WiFi are private: they are
-// only ever rendered when showPrivate is true (i.e. the instructor holds this job).
+// Where the class happens. The street address is visible before a job is accepted.
+// Host cell, day-of contact, and WiFi stay private until the instructor holds the job.
+function portalPlace(s,priv){
+  const merged=Object.assign({},s||{});
+  if(priv&&priv.hostAddress)merged.hostAddress=priv.hostAddress;
+  if(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.plain)return MBSessionPlace.plain(merged)||'';
+  if(merged.isVirtual)return 'Virtual';
+  return [merged.hostAddress,merged.location,merged.city,merged.state,merged.zip].filter(Boolean).join(', ');
+}
+function portalMaps(s,priv){
+  const merged=Object.assign({},s||{});
+  if(priv&&priv.hostAddress)merged.hostAddress=priv.hostAddress;
+  if(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.mapsUrl)return MBSessionPlace.mapsUrl(merged)||'';
+  return '';
+}
 function locationHTML(s,showPrivate,priv,mapLink){
-  const cityLine=[s.city,s.state].filter(Boolean).join(', ')+(s.zip?' '+s.zip:'');
   const lines=[];
   if(s.isVirtual){
     lines.push(`<div style="font-weight:500">Virtual class (Zoom)</div>`);
     lines.push(`<div style="font-size:14px;color:var(--muted)">You can teach this one from home. ${showPrivate?'The Zoom link is emailed to you and to registered families before the first class.':'The Zoom link is sent to you once you accept.'}</div>`);
   }else{
-    lines.push(`<div style="font-weight:500">${escapeHtml(s.location||'Location TBD')}</div>`);
-    const streetAddr=(showPrivate&&priv&&priv.hostAddress)||(!showPrivate&&s.hostAddress)||'';
-    if(streetAddr)lines.push(`<div>${escapeHtml(streetAddr)}${mapLink||''}</div>`);
-    if(cityLine.trim())lines.push(`<div>${escapeHtml(cityLine.trim())}</div>`);
+    const place=portalPlace(s,showPrivate?priv:null);
+    const maps=portalMaps(s,showPrivate?priv:null);
+    const link=maps?` <a href="${escapeHtml(maps)}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">Directions ↗</a>`:(mapLink||'');
+    lines.push(`<div style="font-weight:500">${escapeHtml(place||'Location TBD')}${link}</div>`);
     if(showPrivate){
       if(priv&&priv.hostPhone)lines.push(`<div style="margin-top:6px;font-size:14px"><span style="color:var(--muted)">Host cell:</span> ${escapeHtml(priv.hostPhone)}</div>`);
       if(priv&&priv.contactDay)lines.push(`<div style="font-size:14px"><span style="color:var(--muted)">Day-of contact:</span> ${escapeHtml(priv.contactDay)}</div>`);
       if(priv&&priv.wifiInfo)lines.push(`<div style="font-size:14px"><span style="color:var(--muted)">WiFi:</span> ${escapeHtml(priv.wifiInfo)}</div>`);
       if(priv===undefined)lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">Loading site details…</div>`);
-      else if(!priv||(!priv.hostAddress&&!priv.hostPhone))lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">No street address or host contact on file yet — text Lindsay at 703-987-5979 if you need it.</div>`);
+      else if(!place&&!(priv&&priv.hostPhone))lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">No street address or host contact on file yet — text Lindsay at 703-987-5979 if you need it.</div>`);
     }else{
-      lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">📍 The host's cell number and WiFi are shared as soon as you accept this job.</div>`);
+      lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">The host's cell number and WiFi are shared as soon as you accept this job.</div>`);
     }
   }
   return`<div class="jc-section"><div class="jc-section-t">${s.isVirtual?'Format':'Where'}</div><div style="font-size:13px;line-height:1.7">${lines.join('')}</div></div>`;
@@ -1881,7 +1901,7 @@ function renderHome(){
 
   let nextHtml='';
   if(next){
-    const loc=next.isVirtual?'Virtual':escapeHtml(next.location||'Location TBD');
+    const loc=next.isVirtual?'Virtual':escapeHtml(portalPlace(next)||'Location TBD');
     nextHtml=`
     <div class="home-next" onclick="showTab('myjobs',document.querySelector('.tab[onclick*=\\'myjobs\\']'))">
       <div class="hn-label">Your next class</div>
@@ -1905,6 +1925,7 @@ function renderHome(){
   el.innerHTML=`
     <div class="home-hello">Hi ${escapeHtml(first)}.</div>
     <div class="home-sub">Here's what's happening with your classes.</div>
+    ${jobAlertsOptInHtml('home')}
     <div class="home-grid">
       <div class="home-card" onclick="showTab('myjobs',document.querySelector('.tab[onclick*=\\'myjobs\\']'))">
         <div class="hc-num">${mine.length}</div>
@@ -2095,8 +2116,8 @@ function renderOpen(){
     const pill='<span class="pill pill-open">Open</span>';
     const actions=`<button class="btn primary" onclick="acceptJob('${s.id}')">Accept this job</button>`;
     const meetings=sessMeetings(s);
-    const mapQ=encodeURIComponent([s.location,s.city,s.state,s.zip].filter(Boolean).join(', '));
-    const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">View on map ↗</a>`:'';
+    const mapQ=portalMaps(s);
+    const mapLink=mapQ?` <a href="${escapeHtml(mapQ)}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">View on map ↗</a>`:'';
     return`<div class="job-card">
       <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>${pill}</div>
       ${heroStripHTML(s,fee)}
@@ -2222,8 +2243,8 @@ function renderMyJobs(){
     const clashes=upcoming?sessConflicts(s,idx):[];
     const dblBooked=clashes.length?`<div class="alert warn" style="margin-bottom:14px">⚠️ &nbsp;<span><strong>You are double-booked.</strong> ${clashes.slice(0,2).map(c=>escapeHtml(c.course)+' on '+new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' and ')} clashes with this job. Please hand one back or call Lindsay.</span></div>`:'';
     const priv0=privCache[s.id];
-    const mapQ=encodeURIComponent([(priv0&&priv0.hostAddress)||'',s.location,s.city,s.state,s.zip].filter(Boolean).join(', '));
-    const mapLink=(!s.isVirtual&&mapQ)?` <a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">Directions ↗</a>`:'';
+    const mapQ=portalMaps(s,priv0);
+    const mapLink=mapQ?` <a href="${escapeHtml(mapQ)}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">Directions ↗</a>`:'';
     return`<div class="job-card">
       <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>
       <span class="pill ${cx?'pill-taken':(upcoming?'pill-accepted':'pill-taken')}">${cx?'Cancelled':(upcoming?'Upcoming':'Completed')}</span></div>
@@ -2515,7 +2536,7 @@ function downloadIncomeSummary(){
     }
     const d=fmtSessDates(s,{month:'short',day:'numeric',year:'numeric'});
     const hours=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
-    return`<tr><td>${d}</td><td>${escapeHtml(s.course)}</td><td>${escapeHtml(s.location||'')}${s.city?', '+escapeHtml(s.city):''}</td><td>$${baseFee}</td><td>${bonus>0?'$'+bonus:'—'}</td><td>${escapeHtml(hours)||'—'}</td><td>$${fee}</td><td>${jd.payStatus==='paid'?'Paid':'Pending'}</td></tr>`;
+    return`<tr><td>${d}</td><td>${escapeHtml(s.course)}</td><td>${escapeHtml(portalPlace(s)||'')}</td><td>$${baseFee}</td><td>${bonus>0?'$'+bonus:'—'}</td><td>${escapeHtml(hours)||'—'}</td><td>$${fee}</td><td>${jd.payStatus==='paid'?'Paid':'Pending'}</td></tr>`;
   }).join('');
 
   const html=`<!DOCTYPE html><html><head><title>Income Summary ${year} — ${escapeHtml(me.name)}</title>
@@ -2608,7 +2629,7 @@ async function printRoster(sessId){
   .join(''):'<tr><td colspan="'+(adult?3:5)+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
 
   const infoRows=[
-    priv.hostAddress?`<div><span style="color:#6b7a99">Host / site address:</span><br><strong>${escapeHtml(priv.hostAddress)}</strong></div>`:'',
+    (priv.hostAddress&&portalPlace(s,priv).toLowerCase().indexOf(String(priv.hostAddress).toLowerCase())===-1)?`<div><span style="color:#6b7a99">Host / site address:</span><br><strong>${escapeHtml(priv.hostAddress)}</strong></div>`:'',
     priv.hostPhone?`<div><span style="color:#6b7a99">Host cell:</span><br><strong>${escapeHtml(priv.hostPhone)}</strong></div>`:'',
     priv.contactDay?`<div><span style="color:#6b7a99">Day of contact:</span><br><strong>${escapeHtml(priv.contactDay)}</strong></div>`:'',
     priv.wifiInfo?`<div style="grid-column:1/-1"><span style="color:#6b7a99">WiFi info:</span><br><strong>${escapeHtml(priv.wifiInfo)}</strong></div>`:'',
@@ -2644,7 +2665,7 @@ async function printRoster(sessId){
     <div class="session-grid">
       <div><span style="color:#6b7a99">Date:</span> <strong>${d}</strong></div>
       <div><span style="color:#6b7a99">Time:</span> <strong>${s.time||'TBD'}</strong></div>
-      <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(s.location||'TBD')}${s.city?', '+escapeHtml(s.city):''}</strong></div>
+      <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(portalPlace(s,priv)||'TBD')}</strong></div>
       ${s.code?`<div><span style="color:#6b7a99">Session code:</span> <strong>${escapeHtml(s.code)}</strong></div>`:''}
       <div><span style="color:#6b7a99">${adult?'Participants:':'Students:'}</span> <strong>${people}</strong></div>
       ${_mtgs.length>1?`<div style="grid-column:1/-1;border-top:1px solid #dde4ee;padding-top:8px;margin-top:4px"><span style="color:#6b7a99">Class days:</span> <strong>${_mtgs.map(m=>new Date(m.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' · ')}</strong>${sessClosures(s).length?`<div style="color:#b86a00;font-size:14px;margin-top:4px">No class: ${sessClosures(s).map(c=>new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+escapeHtml(c.reason)+')':'')).join(' · ')}</div>`:''}</div>`:''}
@@ -2697,7 +2718,7 @@ function printJobsCalendar(){
   // an instructor actually works, with the no-class weeks called out in place.
   const rows=jobs.map(s=>{
     const priv=privCache[s.id];
-    const loc=[(s.location||'TBD'),(priv&&priv.hostAddress)||'',[s.city,s.state].filter(Boolean).join(', ')+(s.zip?' '+s.zip:'')].filter(x=>x&&x.trim()).join('<br>');
+    const loc=escapeHtml(portalPlace(s,priv)||'TBD');
     const days=sessMeetings(s);
     const items=[
       ...days.map((m,i)=>({date:m.date,cls:true,n:i+1,time:m.time})),
@@ -2810,7 +2831,7 @@ function downloadJobsICS(){
     const days=sessMeetings(s);
     const allDates=days.map(d=>d.date);
     const priv=privCache[s.id];
-    const loc=[(priv&&priv.hostAddress)||'',(s.location||''),[s.city,s.state].filter(Boolean).join(', ')+(s.zip?' '+s.zip:'')].filter(x=>x&&x.trim()).join(' · ');
+    const loc=portalPlace(s,priv)||'';
     const fee=instrFeeForJob(s,jdi)+(jdi.referralBonus||0);
     const closureNote=sessClosures(s).map(c=>'No class '+new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+c.reason+')':'')).join('; ');
     const desc=`Mindful Beginnings teaching job.\n${isAdultCourse(s.course)?'Participants':'Students'} registered: ${filledSeats(s)}\nYour fee: ${fmt(fee)}`
@@ -3726,7 +3747,8 @@ const RESOURCE_GROUPS=[
   ['All Kids Welcome\u2122','An advanced course for sitters who want to confidently and inclusively care for participants with diverse needs. Experienced sitters. 60 minutes. In person or virtual. 6 to 20 participants.',[['Open Folder','https://drive.google.com/drive/folders/18gshpb_HJIwadlmSd3fEgHCaJQOWNtpM?usp=drive_link']],'']
 ]},
 {title:'Kids & Teens: Safety and Health',rows:[
-  ['Safe@Home: First Steps to Independence','Designed to prepare upper-elementary participants to be safe when they are home alone for short periods. Ages 8 to 10. 90 minutes. In person or virtual. 6 to 20 participants.',[['Open Page',RESOURCE_LINKS.safesitter],['Open Folder','https://drive.google.com/drive/folders/1-T8ohiy-SXIWZJEy9cT_YhJ6nWQq5dsR?usp=drive_link']],''],
+  ['Safe@Home: First Steps to Independence','Designed to prepare upper-elementary participants to be safe when they are home alone for short periods. Ages 8 to 10. 90 minutes. In person or virtual. 6 to 20 participants.',[['Open Page',RESOURCE_LINKS.safesitter],['Open Folder','https://drive.google.com/drive/folders/1-T8ohiy-SXIWZJEy9cT_YhJ6nWQq5dsR?usp=drive_link']],'For older (pre-2026) handbooks'],
+  ['Safe@Home Curriculum — 2026 (NEW)','Updated 2026 Safe@Home Facilitator\u2019s Guide from Safe Sitter\u00ae.',[['Open 2026 Facilitator Guide','https://safesitter.org/wp-content/uploads/2026/10/Safe@Home-Facilitator-Guide-FINAL.pdf'],['Safe@Home Forms','https://safesitter.org/safe-at-home-forms/']],'ONLY use this if you have the NEW 2026 Handbooks!','warn'],
   ['Steady and Ready\u2122','A neurodivergent-affirming safety class designed to build essential emergency readiness skills in a low-pressure environment. Kids and teens, ages 8 to 12. 60 minutes. In person or virtual. 6 to 8 participants.',[['Open Folder','https://drive.google.com/drive/folders/1-PEdtFV8rITqciqUIw_sC5n3U5tIyJZ9?usp=drive_link']],''],
   ['Social Ready\u2122','An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online. Ages 8 to 14. 60 minutes. In person or virtual. 6 to 20 participants.',[['Open Folder','https://drive.google.com/drive/folders/1MOenERkeZwMyGVplbDzuad2jsr_AcDOB?usp=drive_link']],''],
   ['Ready. Period.\u2122','Girls build confidence around puberty: they design their own period kit while learning body literacy and self-advocacy in a supportive setting. Girls ages 10 to 12. 90 minutes. In person or virtual. 6 to 18 participants.',[['Open Folder','https://drive.google.com/drive/folders/1dG0eJgzkuQUjZz-4eNyzj5PIKqKzidPp?usp=drive_link']],''],
@@ -3799,12 +3821,12 @@ function renderMaterials(){
     g.rows.forEach(function(r){
       html+=`<div class="mb-res-row"><div class="mb-res-name">${escapeHtml(r[0])}</div><div class="mb-res-desc">${escapeHtml(r[1])}</div><div class="mb-res-links">`;
       r[2].forEach(function(l){ html+=`<a href="${l[1]}" target="_blank" rel="noopener" class="btn" style="text-decoration:none;font-size:13px;padding:8px 14px">${escapeHtml(l[0])}</a>`; });
-      html+=`</div>${r[3]?`<div class="mb-res-note">${escapeHtml(r[3])}</div>`:''}</div>`;
+      html+=`</div>${r[3]?`<div class="mb-res-note${r[4]==='warn'?' warn':''}">${escapeHtml(r[3])}</div>`:''}</div>`;
     });
     html+=`</div>`;
   });
   html+=`<div class="info-card"><div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Safe Sitter\u00ae program materials</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Digital presentations, facilitator guides, registration forms, and certificates for Safe Sitter\u00ae Babysitting with CPR Module, Safe Sitter\u00ae Babysitting Essentials, Introduction to Safe Babysitting by Safe Sitter\u00ae, Safe@Home, and Safe Sitter\u00ae Grandparents: Getting Started.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Digital presentations, facilitator guides, registration forms, and certificates for Safe Sitter\u00ae Babysitting with CPR Module, Safe Sitter\u00ae Babysitting Essentials, Introduction to Safe Babysitting by Safe Sitter\u00ae, Safe@Home, and Safe Sitter\u00ae Grandparents: Getting Started. For Safe@Home, use the 2026 Facilitator Guide only with the new 2026 handbooks. Older handbooks stay with the earlier Safe@Home materials.</div>
     <a href="${RESOURCE_LINKS.safesitter}" target="_blank" rel="noopener" class="btn" style="text-decoration:none">Open Page</a></div>`;
   html+=`<div class="info-card"><div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Videos</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Save these to the laptop in case Wi-Fi is not strong. They play in any media player.</div>
@@ -3904,6 +3926,25 @@ async function confirmW9(){
 }
 
 // ─── MY INFO ─────────────────────────────────────────────────
+function jobAlertsOptInHtml(which){
+  const id=which==='home'?'job-alerts-toggle-home':'job-alerts-toggle';
+  if(!me||!me.email){
+    return `<div class="info-card job-alerts-card"><div class="job-alerts-kicker">New job alerts</div><div style="font-size:14px;color:var(--muted);line-height:1.5">Add an email address (contact Lindsay) to get an email when new jobs are posted.</div></div>`;
+  }
+  return `<div class="info-card job-alerts-card" style="margin-top:14px">
+      <div class="job-alerts-kicker">New job alerts</div>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:15px;line-height:1.5">
+        <input type="checkbox" id="${id}" ${me.jobAlertsEnabled?'checked':''} onchange="toggleJobAlerts(this.checked)" style="width:20px;height:20px;margin-top:2px;cursor:pointer;accent-color:var(--navy)">
+        <span><strong>Email me when new jobs are posted.</strong><br><span style="color:var(--muted);font-size:13px">At most one email a day, and only jobs you are eligible to teach. Turn this off here any time. The same switch is on your Home screen and under My account.</span></span>
+      </label>
+    </div>`;
+}
+function syncJobAlertToggles(){
+  ['job-alerts-toggle','job-alerts-toggle-home'].forEach(function(id){
+    const t=document.getElementById(id);
+    if(t)t.checked=!!(me&&me.jobAlertsEnabled);
+  });
+}
 function renderMyInfo(){
   const sizes=['XS','S','M','L','XL','XXL','XXXL'];
   document.getElementById('myinfo-content').innerHTML=`
@@ -3916,14 +3957,7 @@ function renderMyInfo(){
       <div class="info-row"><span class="info-label">Credentials on file</span><span>${[me.isLeadTeacher?'Lead Teacher':null,isSafeSitterCertified()?'🧒 Safe Sitter® certified':null,me.isRN?'🩺 Registered Nurse (RN)':null].filter(Boolean).join(' · ')||'General instructor'}</span></div>
     </div>
     <div style="font-size:14px;color:var(--muted);margin-top:8px;line-height:1.6">Your credentials determine which courses appear on your Open jobs board. If a credential is missing or looks wrong, contact Lindsay.</div>
-    <div class="info-card" style="margin-top:14px">
-      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">📧 New job alerts</div>
-      ${me.email?`
-      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:14px;line-height:1.5">
-        <input type="checkbox" id="job-alerts-toggle" ${me.jobAlertsEnabled?'checked':''} onchange="toggleJobAlerts(this.checked)" style="width:18px;height:18px;margin-top:2px;cursor:pointer;accent-color:var(--navy)">
-        <span><strong>Email me when new jobs are posted.</strong><br><span style="color:var(--muted)">You'll only hear about jobs you're eligible to teach, based on your credentials (RN, Safe Sitter®, Spanish, Lead Teacher).</span></span>
-      </label>`:`<div style="font-size:14px;color:var(--muted);line-height:1.6">Add an email address to your profile (contact Lindsay) to get new-job alerts.</div>`}
-    </div>
+    ${jobAlertsOptInHtml('account')}
     <div class="info-card" style="margin-top:14px">
       <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">🎽 Sweatshirt Size</div>
       <div style="font-size:13px;color:var(--text);margin-bottom:12px">Please select your sweatshirt size.</div>
@@ -3964,11 +3998,12 @@ async function toggleJobAlerts(checked){
   if(saveError){
     console.error('Could not save job alert preference:',saveError);
     showToast('⚠ Could not save — please try again.');
-    const t=document.getElementById('job-alerts-toggle');
-    if(t)t.checked=!checked;
+    me.jobAlertsEnabled=!checked;
+    syncJobAlertToggles();
     return;
   }
   me.jobAlertsEnabled=!!checked;
+  syncJobAlertToggles();
   showToast(checked?'✓ Job alerts on — you’ll get an email when new jobs you can teach are posted.':'✓ Job alerts off.');
 }
 
@@ -4012,7 +4047,7 @@ function sendJobAcceptedNotification(session){
   const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(session):'';
   const feeText=hoursNote?fmt(fee)+'. '+hoursNote:fmt(fee);
   const when=fmtSessDates(session)+(session.time?' at '+session.time:'');
-  const where=(session.location||'TBD')+(session.city?', '+session.city:'');
+  const where=portalPlace(session)||'TBD';
   const who=isAdultCourse(session.course)?'Participants':'Students';
   const shared={
     instructor_name:me.name,instructor_email:me.email||'not on file',instructor_phone:me.phone||'not on file',
@@ -4067,10 +4102,10 @@ function sendJobCancelledNotification(session){
     course:'🚨 JOB CANCELLED — '+session.course,
     date:fmtSessDates(session),
     time:session.time||'TBD',
-    location:(session.location||'TBD')+(session.city?', '+session.city:''),
+    location:portalPlace(session)||'TBD',
     fee:feeText,
     students:filledSeats(session),
-    message:`🚨 JOB CANCELLED 🚨\n\n${me.name} has cancelled their acceptance of the ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''}.\n\nLocation: ${(session.location||'TBD')+(session.city?', '+session.city:'')}\n${isAdultCourse(session.course)?'Participants':'Students'} registered: ${filledSeats(session)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}\n\nCoverage is needed for this session.${waitNote}`
+    message:`🚨 JOB CANCELLED 🚨\n\n${me.name} has cancelled their acceptance of the ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''}.\n\nLocation: ${portalPlace(session)||'TBD'}\n${isAdultCourse(session.course)?'Participants':'Students'} registered: ${filledSeats(session)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}\n\nCoverage is needed for this session.${waitNote}`
   };
   emailjs.send('service_delt0r4',TPL_LINDSAY_JOB_CANCEL,params)
     .catch(err=>console.warn('Cancellation notification failed:',err));

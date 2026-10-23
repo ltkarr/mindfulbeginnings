@@ -35,41 +35,64 @@ function setup(fixtures) {
   const emailSends = [];
   const watermarkPosts = [];
   const calls = [];
+  const digestClaims = new Set(fixtures.digests || []);
   global.fetch = async (url, opts) => {
-    calls.push({ url, method: (opts && opts.method) || 'GET' });
+    const method = (opts && opts.method) || 'GET';
+    calls.push({ url, method });
     const u = String(url);
     if (u.includes('/rpc/get_tomorrow_reminders')) {
-      return { ok: true, json: async () => [] };
+      return { ok: true, status: 200, json: async () => [], text: async () => '[]' };
     }
     if (u.includes('/rpc/log_reminder_sent')) {
-      return { ok: true, json: async () => true };
+      return { ok: true, status: 200, json: async () => true, text: async () => 'true' };
+    }
+    if (u.includes('/rest/v1/job_alert_digests')) {
+      if (method === 'POST') {
+        const row = JSON.parse(opts.body);
+        const key = row.instructor_id + ':' + row.digest_date;
+        if (digestClaims.has(key)) {
+          return { ok: false, status: 409, json: async () => ({}), text: async () => 'duplicate key value violates unique constraint' };
+        }
+        digestClaims.add(key);
+        return { ok: true, status: 201, json: async () => [], text: async () => '' };
+      }
+      if (method === 'DELETE') {
+        const id = decodeURIComponent((u.match(/instructor_id=eq\.([^&]+)/) || [])[1] || '');
+        const day = (u.match(/digest_date=eq\.([^&]+)/) || [])[1] || '';
+        digestClaims.delete(id + ':' + day);
+        return { ok: true, status: 204, json: async () => [], text: async () => '' };
+      }
     }
     if (u.startsWith(SUPABASE_URL + '/rest/v1/instructors?')) {
-      return { ok: true, json: async () => fixtures.instructors };
+      if (method === 'PATCH' || method === 'DELETE') {
+        return { ok: true, status: 204, json: async () => [], text: async () => '' };
+      }
+      return { ok: true, status: 200, json: async () => fixtures.instructors, text: async () => '' };
     }
     if (u.startsWith(SUPABASE_URL + '/rest/v1/sessions?')) {
-      // Honor the created_at=gte.<cutoff> filter like PostgREST would.
-      const m = u.match(/created_at=gte\.(\d+)/);
-      const cutoff = m ? Number(m[1]) : 0;
-      return { ok: true, json: async () => fixtures.sessions.filter(s => (s.created_at || 0) >= cutoff) };
+      const gt = u.match(/created_at=gt\.(\d+)/);
+      const rows = gt
+        ? fixtures.sessions.filter(s => (s.created_at || 0) > Number(gt[1]))
+        : fixtures.sessions;
+      return { ok: true, status: 200, json: async () => rows, text: async () => '' };
     }
     if (u.startsWith(SUPABASE_URL + '/rest/v1/job_data?')) {
-      return { ok: true, json: async () => fixtures.claimed };
+      return { ok: true, status: 200, json: async () => fixtures.claimed, text: async () => '' };
     }
     if (u.startsWith(SUPABASE_URL + '/rest/v1/job_alert_notifications')) {
-      if ((opts && opts.method) === 'POST') {
+      if (method === 'POST') {
         watermarkPosts.push(JSON.parse(opts.body));
-        return { ok: true, json: async () => [] };
+        return { ok: true, status: 201, json: async () => [], text: async () => '' };
       }
-      return { ok: true, json: async () => fixtures.watermarks };
+      return { ok: true, status: 200, json: async () => fixtures.watermarks, text: async () => '' };
     }
     if (u.includes('api.emailjs.com')) {
       emailSends.push(JSON.parse(opts.body).template_params);
-      return { ok: true, text: async () => 'OK' };
+      return { ok: true, status: 200, json: async () => ({}), text: async () => 'OK' };
     }
-    throw new Error('unexpected fetch: ' + u);
+    throw new Error('unexpected fetch: ' + method + ' ' + u);
   };
-  return { emailSends, watermarkPosts, calls };
+  return { emailSends, watermarkPosts, calls, digestClaims };
 }
 
 function baseEnv() {
@@ -94,6 +117,7 @@ function instr(over) {
     is_rn: false, speaks_spanish: false, safe_sitter_certified: null,
     safe_sitter_training_date: '', is_lead_teacher: false,
     is_active: true, job_alerts_enabled: true,
+    job_alerts_last_digest_at: new Date(NOW - 7 * 86400000).toISOString(),
   }, over);
 }
 function sess(over) {
@@ -156,10 +180,10 @@ test('unsubscribed instructors get nothing; ineligible jobs are filtered out', a
   } finally { teardown(); }
 });
 
-test('already-notified pairs and claimed/cancelled/old jobs are skipped', async () => {
+test('already-notified pairs and claimed, cancelled, or pre-cursor jobs are skipped', async () => {
   baseEnv();
   const { emailSends } = setup({
-    instructors: [instr({})],
+    instructors: [instr({ job_alerts_last_digest_at: new Date(NOW - 24 * 3600000).toISOString() })],
     sessions: [
       sess({ id: 's1', course: 'All Kids Welcome' }),
       sess({ id: 's2', course: 'All Kids Welcome' }),
@@ -173,8 +197,91 @@ test('already-notified pairs and claimed/cancelled/old jobs are skipped', async 
     const res = mockRes();
     await loadHandler()(req(), res);
     const body = JSON.parse(res.body);
-    // s1 already notified, s2 claimed, s3 cancelled, s4 older than 48h → no email at all
+    // s1 already notified, s2 claimed, s3 cancelled, s4 posted before the cursor
     assert.equal(body.jobAlerts.sent, 0);
+    assert.equal(emailSends.length, 0);
+  } finally { teardown(); }
+});
+
+test('a job older than 48 hours is included when it was posted after the last digest', async () => {
+  baseEnv();
+  const { emailSends } = setup({
+    instructors: [instr({})],
+    sessions: [sess({ id: 'old', course: 'All Kids Welcome', created_at: NOW - 72 * 3600000 })],
+    claimed: [],
+    watermarks: [],
+  });
+  try {
+    const res = mockRes();
+    await loadHandler()(req(), res);
+    const body = JSON.parse(res.body);
+    assert.equal(body.jobAlerts.sent, 1);
+    assert.equal(emailSends.length, 1);
+  } finally { teardown(); }
+});
+
+test('a second run the same day does not send another digest', async () => {
+  baseEnv();
+  const fixtures = {
+    instructors: [instr({})],
+    sessions: [sess({}), sess({ id: 's2', course: 'All Kids Welcome', created_at: NOW - 1000 })],
+    claimed: [],
+    watermarks: [],
+  };
+  const { emailSends } = setup(fixtures);
+  try {
+    const first = mockRes();
+    await loadHandler()(req(), first);
+    const second = mockRes();
+    await loadHandler()(req(), second);
+    assert.equal(JSON.parse(first.body).jobAlerts.sent, 1);
+    assert.equal(JSON.parse(second.body).jobAlerts.sent, 0);
+    assert.equal(emailSends.length, 1);
+    assert.equal(JSON.parse(second.body).jobAlerts.skipped[0].reason, 'already sent today');
+  } finally { teardown(); }
+});
+
+test('the digest names the street instead of Host home and tells the instructor how to turn it off', async () => {
+  baseEnv();
+  const { emailSends, calls } = setup({
+    instructors: [instr({}), instr({ id: 'i-u', email: 'uma@example.com', job_alerts_enabled: false })],
+    sessions: [sess({
+      location: 'Host home',
+      host_address: '4218 Silverwood Ln',
+      city: 'Bethesda',
+      state: 'MD',
+      zip: '20816',
+    })],
+    claimed: [],
+    watermarks: [],
+  });
+  try {
+    const res = mockRes();
+    await loadHandler()(req(), res);
+    assert.equal(emailSends.length, 1);
+    assert.match(emailSends[0].jobs_html, /4218 Silverwood Ln, Bethesda, MD 20816/);
+    assert.doesNotMatch(emailSends[0].jobs_html, /Host home/);
+    assert.match(emailSends[0].jobs_html, /Turn off new-job alerts/);
+    assert.match(emailSends[0].message, /turn off New job alerts on your Home screen/);
+    assert.ok(calls.some(c => String(c.url).includes('job_alerts_enabled=eq.true')));
+  } finally { teardown(); }
+});
+
+test('a test send cannot target any address except the named test instructor', async () => {
+  baseEnv();
+  const { emailSends } = setup({
+    instructors: [instr({ id: 'other', email: 'other@example.com' })],
+    sessions: [sess({})],
+    claimed: [],
+    watermarks: [],
+  });
+  try {
+    const result = await loadHandler().runJobAlerts('pk', {
+      onlyEmail: 'other@example.com',
+      onlyInstructorId: 'other',
+      sampleIfEmpty: true,
+    });
+    assert.equal(result.skipped, true);
     assert.equal(emailSends.length, 0);
   } finally { teardown(); }
 });
