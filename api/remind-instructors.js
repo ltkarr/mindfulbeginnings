@@ -8,13 +8,12 @@
 //      tomorrow with an assigned instructor, not already reminded today.
 //   2. Sends each instructor their reminder through EmailJS.
 //   3. Logs the send via log_reminder_sent() so a re-run never double-sends.
-//   4. Job alerts: finds sessions created in the last 48 hours that are still
-//      open, and emails each OPTED-IN instructor (portal → My Profile →
-//      "Email me when new jobs are posted") only about jobs they are eligible
-//      to teach — the same canTeachSession rules as their Open jobs board
-//      (lib/job-eligibility.js). One digest email per instructor per day, only
-//      when there is something new. Watermarked in job_alert_notifications so
-//      a re-run never double-sends.
+//   4. Job alerts: emails each OPTED-IN instructor (job_alerts_enabled = true)
+//      about open jobs created after their job_alerts_last_digest_at cursor.
+//      Same canTeachSession rules as the Open jobs board. At most one digest
+//      per instructor per Eastern calendar day (job_alert_digests). A re-run
+//      never double-sends a session (job_alert_notifications). Existing jobs
+//      are not backfilled: the cursor is stamped before this section is enabled.
 //
 // Required Vercel environment variables:
 //   CRON_SECRET             — Vercel Cron sends this automatically as a
@@ -29,7 +28,10 @@
 //   instructor_name, instructor_email, course, class_date, class_time,
 //   location_text, student_count, portal_url
 // The job-alert template receives:
-//   instructor_name, instructor_email, intro_line, jobs_html, portal_url
+//   instructor_name, instructor_email, intro_line, jobs_html, message,
+//   portal_url, unsubscribe_note
+// jobs_html already ends with the turn-off instruction and portal link.
+// Use {{{jobs_html}}} (triple braces) so EmailJS does not escape the markup.
 //
 // One-time setup for Lindsay is in docs/portal-reminder-setup.md (reminders)
 // and docs/job-alerts-setup.md (job alerts).
@@ -37,6 +39,7 @@
 const { sendJson } = require('../lib/http');
 const INSTRUCTOR_PORTAL_URL = require('../lib/instructor-portal-url');
 const { canTeachSession, isOpenSession, todayET } = require('../lib/job-eligibility');
+const sessionPlace = require('../js/session-place');
 
 const SUPABASE_URL = 'https://evninlytzhtacanrguhx.supabase.co';
 // Reminder lookup returns instructor names and emails. After the lockdown
@@ -92,13 +95,14 @@ async function sendReminderEmail(m, templateId, privateKey) {
 }
 
 // ─── NEW-JOB ALERT DIGEST ─────────────────────────────────────────────────
-// Opt-in only: instructors subscribe in the portal (My Profile). Each run
-// emails every subscriber about open sessions created in the last 48 hours
-// that they are eligible to teach. The 48-hour window (not "since last run")
-// plus the job_alert_notifications watermark means a failed or retried run
-// neither misses jobs nor double-sends them.
+// Opt-in only (job_alerts_enabled = true, default false). Each digest includes
+// only open, eligible jobs posted after that instructor's last digest cursor.
+// One digest per instructor per Eastern day. The email tells them how to turn
+// it off on the portal Home screen.
 
-const JOB_ALERT_WINDOW_MS = 48 * 60 * 60 * 1000;
+const TEST_INSTRUCTOR_ID = '6677caa4-44d2-466b-a406-efdf41affba8';
+const TEST_INSTRUCTOR_EMAIL = 'lindsay+testinstructor@mindfulbeginnings.org';
+const UNSUBSCRIBE_NOTE = 'You are getting this because you turned on new-job alerts. To stop these emails, open the instructor portal and turn off New job alerts on your Home screen. The same switch is under My account.';
 
 async function restGet(path) {
   const key = supabaseKey();
@@ -116,10 +120,8 @@ function formatJobDate(dateStr) {
 }
 
 function jobLocationLine(s) {
-  if (s.is_virtual) return 'Virtual (Zoom)';
-  const csz = [s.city, s.state].filter(Boolean).join(', ') + (s.zip ? ' ' + s.zip : '');
-  const parts = [s.location, s.host_address, csz.trim()].filter(p => p && String(p).trim());
-  return parts.join(', ') || 'Location to be confirmed';
+  if (!s) return 'Location to be confirmed';
+  return sessionPlace.plain(s) || 'Location to be confirmed';
 }
 
 function escapeHtml(str) {
@@ -135,11 +137,42 @@ function jobAlertHtml(s) {
     '</div>';
 }
 
-async function sendJobAlertEmail(instr, jobs, templateId, privateKey) {
+function unsubscribeHtml() {
+  return '<p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#64748b">' + escapeHtml(UNSUBSCRIBE_NOTE) + '</p>' +
+    '<p style="margin:8px 0 0;font-size:13px"><a href="' + INSTRUCTOR_PORTAL_URL + '">Turn off new-job alerts</a></p>';
+}
+
+function jobsBodyHtml(jobs) {
+  return jobs.map(jobAlertHtml).join('') + unsubscribeHtml();
+}
+
+function jobsPlainText(jobs, intro) {
+  const lines = jobs.map(function (s) {
+    const when = formatJobDate(s.date) + (s.time ? ' · ' + s.time : '');
+    return (s.course || 'Session') + '\n' + when + '\n' + jobLocationLine(s);
+  });
+  return [intro, '', lines.join('\n\n'), '', UNSUBSCRIBE_NOTE, INSTRUCTOR_PORTAL_URL].join('\n');
+}
+
+function jobAlertIntro(jobs, sample) {
+  if (sample && !jobs.length) {
+    return 'This is a delivery test of new-job alerts. No open job was available to include.';
+  }
+  if (sample) {
+    const n = jobs.length;
+    return n === 1
+      ? 'This is a delivery test. Here is 1 open job currently on the board (not a backfill of your live subscription):'
+      : 'This is a delivery test. Here are ' + n + ' open jobs currently on the board (not a backfill of your live subscription):';
+  }
   const n = jobs.length;
-  const intro = n === 1
+  return n === 1
     ? '1 new job was posted that you\u2019re eligible to teach:'
     : n + ' new jobs were posted that you\u2019re eligible to teach:';
+}
+
+async function sendJobAlertEmail(instr, jobs, templateId, privateKey, sample) {
+  const intro = jobAlertIntro(jobs, sample);
+  const html = jobsBodyHtml(jobs);
   const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -152,8 +185,10 @@ async function sendJobAlertEmail(instr, jobs, templateId, privateKey) {
         instructor_name: instr.name,
         instructor_email: instr.email,
         intro_line: intro,
-        jobs_html: jobs.map(jobAlertHtml).join(''),
+        jobs_html: html,
+        message: jobsPlainText(jobs, intro),
         portal_url: INSTRUCTOR_PORTAL_URL,
+        unsubscribe_note: UNSUBSCRIBE_NOTE,
       },
     }),
   });
@@ -163,69 +198,165 @@ async function sendJobAlertEmail(instr, jobs, templateId, privateKey) {
   }
 }
 
-async function runJobAlerts(privateKey) {
+function markerMs(instr) {
+  const raw = instr && instr.job_alerts_last_digest_at;
+  if (raw == null || raw === '') return Date.now();
+  const t = Date.parse(raw);
+  return isNaN(t) ? Date.now() : t;
+}
+
+function sessionCreatedMs(session) {
+  const n = Number(session && session.created_at);
+  return isFinite(n) ? n : 0;
+}
+
+async function restWrite(path, method, body) {
+  const key = supabaseKey();
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: method,
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: body == null ? undefined : JSON.stringify(body),
+  });
+  const detail = await res.text().catch(() => '');
+  return { ok: res.ok, status: res.status, detail: detail };
+}
+
+async function claimDigestDay(instructorId, digestDate) {
+  const result = await restWrite('job_alert_digests', 'POST', {
+    instructor_id: instructorId,
+    digest_date: digestDate,
+  });
+  if (result.ok) return true;
+  if (result.status === 409 || /23505|duplicate key/i.test(result.detail || '')) return false;
+  throw new Error(`digest claim failed with ${result.status}`);
+}
+
+async function releaseDigestDay(instructorId, digestDate) {
+  const id = encodeURIComponent(instructorId);
+  await restWrite(
+    'job_alert_digests?instructor_id=eq.' + id + '&digest_date=eq.' + digestDate,
+    'DELETE'
+  );
+}
+
+const SESSION_ALERT_SELECT = 'id,course,date,time,location,city,state,zip,host_address,is_virtual,owner_taught,is_hold,is_cancelled,is_custom_job,requires_rn,requires_safe_sitter,requires_spanish,created_at';
+const INSTRUCTOR_ALERT_SELECT = 'id,name,email,is_rn,speaks_spanish,safe_sitter_certified,safe_sitter_training_date,is_lead_teacher,is_active,job_alerts_enabled,job_alerts_last_digest_at';
+
+function lockedTestRecipient(opts) {
+  const email = String(opts.onlyEmail || '').trim().toLowerCase();
+  return opts.onlyInstructorId === TEST_INSTRUCTOR_ID && email === TEST_INSTRUCTOR_EMAIL;
+}
+
+async function runJobAlerts(privateKey, opts) {
+  opts = opts || {};
   const templateId = process.env.EMAILJS_TEMPLATE_JOB_ALERTS;
   if (!templateId) return { skipped: true, reason: 'EMAILJS_TEMPLATE_JOB_ALERTS not set' };
 
-  const cutoff = Date.now() - JOB_ALERT_WINDOW_MS;
-  const [subscribers, sessions, claimed] = await Promise.all([
-    restGet('instructors?select=id,name,email,is_rn,speaks_spanish,safe_sitter_certified,safe_sitter_training_date,is_lead_teacher,is_active,job_alerts_enabled&job_alerts_enabled=eq.true'),
-    restGet('sessions?select=id,course,date,time,location,city,state,zip,host_address,is_virtual,owner_taught,is_hold,is_cancelled,is_custom_job,requires_rn,requires_safe_sitter,requires_spanish,created_at&created_at=gte.' + cutoff),
+  if ((opts.onlyEmail || opts.onlyInstructorId || opts.allowUnsubscribedTest || opts.sampleIfEmpty) && !lockedTestRecipient(opts)) {
+    return { sent: 0, skipped: true, reason: 'test send is locked to the named test instructor' };
+  }
+
+  const instructorPath = opts.allowUnsubscribedTest
+    ? ('instructors?select=' + INSTRUCTOR_ALERT_SELECT + '&id=eq.' + encodeURIComponent(TEST_INSTRUCTOR_ID))
+    : ('instructors?select=' + INSTRUCTOR_ALERT_SELECT + '&job_alerts_enabled=eq.true');
+
+  let subscribers = await restGet(instructorPath);
+  subscribers = (subscribers || []).filter(function (instr) {
+    if (instr && instr.job_alerts_enabled === true) return true;
+    return !!(opts.allowUnsubscribedTest && instr && lockedTestRecipient(opts) && instr.id === TEST_INSTRUCTOR_ID
+      && String(instr.email || '').trim().toLowerCase() === TEST_INSTRUCTOR_EMAIL);
+  });
+  if (opts.onlyEmail) {
+    subscribers = subscribers.filter(function (instr) {
+      return instr.id === TEST_INSTRUCTOR_ID
+        && String(instr.email || '').trim().toLowerCase() === TEST_INSTRUCTOR_EMAIL;
+    });
+  }
+  if (!subscribers.length) {
+    return { sent: 0, instructors: [], skipped: [], jobsConsidered: 0 };
+  }
+
+  const floor = subscribers.reduce(function (min, instr) { return Math.min(min, markerMs(instr)); }, Date.now());
+  const [sessions, claimed] = await Promise.all([
+    restGet('sessions?select=' + SESSION_ALERT_SELECT + '&created_at=gt.' + floor),
     restGet('job_data?select=session_id&instructor_id=not.is.null'),
   ]);
 
   const today = todayET();
   const claimedIds = new Set((claimed || []).map(r => r.session_id));
-  const open = (sessions || []).filter(s => isOpenSession(s, today, claimedIds));
-  if (!open.length || !(subscribers || []).length) {
-    return { sent: 0, instructors: [], skipped: [], jobsConsidered: open.length };
+  const open = (sessions || []).filter(s => isOpenSession(s, today, claimedIds) && sessionCreatedMs(s) > floor);
+
+  let samplePool = [];
+  if (opts.sampleIfEmpty) {
+    samplePool = await restGet('sessions?select=' + SESSION_ALERT_SELECT + '&is_cancelled=eq.false&is_hold=eq.false&order=created_at.desc&limit=40');
   }
 
-  const watermarks = await restGet(
-    'job_alert_notifications?select=instructor_id,session_id&session_id=in.(' + open.map(s => s.id).join(',') + ')'
-  );
-  const notified = new Set((watermarks || []).map(r => r.instructor_id + ':' + r.session_id));
+  let notified = new Set();
+  if (open.length) {
+    const watermarks = await restGet(
+      'job_alert_notifications?select=instructor_id,session_id&session_id=in.(' + open.map(s => s.id).join(',') + ')'
+    );
+    notified = new Set((watermarks || []).map(r => r.instructor_id + ':' + r.session_id));
+  }
 
   const sent = [];
   const skipped = [];
-  const watermarkRows = [];
   for (const instr of subscribers) {
-    // Active + has an email (same mapping the portal/admin use).
     const active = instr.is_active === undefined || instr.is_active === null ? true : !!instr.is_active;
-    if (!active || !instr.email || !instr.email.includes('@')) {
+    const emailOk = !!(instr.email && String(instr.email).includes('@'));
+    if ((!active || !emailOk) && !(opts.allowUnsubscribedTest && instr.id === TEST_INSTRUCTOR_ID)) {
       skipped.push({ instructor: instr.name, reason: !active ? 'inactive' : 'no email' });
       continue;
     }
-    const fresh = open.filter(s => canTeachSession(s, instr) && !notified.has(instr.id + ':' + s.id));
-    if (!fresh.length) continue;
+    const cursor = markerMs(instr);
+    let fresh = open.filter(s => sessionCreatedMs(s) > cursor && canTeachSession(s, instr) && !notified.has(instr.id + ':' + s.id));
+    let sample = false;
+    if (!fresh.length && opts.sampleIfEmpty && instr.id === TEST_INSTRUCTOR_ID) {
+      fresh = (samplePool || []).filter(s => isOpenSession(s, today, claimedIds) && canTeachSession(s, instr)).slice(0, 2);
+      sample = true;
+    }
+    if (!fresh.length && !sample) continue;
+
+    let claimedDay = false;
     try {
-      await sendJobAlertEmail(instr, fresh, templateId, privateKey);
-      for (const s of fresh) watermarkRows.push({ instructor_id: instr.id, session_id: s.id });
-      sent.push({ instructor: instr.name, jobs: fresh.length });
+      claimedDay = await claimDigestDay(instr.id, today);
+      if (!claimedDay) {
+        skipped.push({ instructor: instr.name, reason: 'already sent today' });
+        continue;
+      }
+      await sendJobAlertEmail(instr, fresh, templateId, privateKey, sample);
+      if (!sample) {
+        const patch = await restWrite('instructors?id=eq.' + encodeURIComponent(instr.id), 'PATCH', {
+          job_alerts_last_digest_at: new Date().toISOString(),
+        });
+        if (!patch.ok) throw new Error('cursor update failed with ' + patch.status);
+        if (fresh.length) {
+          const wm = await restWrite('job_alert_notifications', 'POST', fresh.map(function (s) {
+            return { instructor_id: instr.id, session_id: s.id };
+          }));
+          if (!wm.ok && wm.status !== 409 && !/23505|duplicate key/i.test(wm.detail || '')) {
+            throw new Error('watermark write failed with ' + wm.status);
+          }
+        }
+      }
+      sent.push({ instructor: instr.name, jobs: fresh.length, sample: sample });
     } catch (e) {
+      if (claimedDay) {
+        try { await releaseDigestDay(instr.id, today); } catch (ignore) { void ignore; }
+      }
       skipped.push({ instructor: instr.name, reason: e.message });
     }
-  }
-
-  if (watermarkRows.length) {
-    const key = supabaseKey();
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/job_alert_notifications`, {
-      method: 'POST',
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates',
-      },
-      body: JSON.stringify(watermarkRows),
-    });
-    if (!res.ok) throw new Error(`watermark write failed with ${res.status}`);
   }
 
   return { sent: sent.length, instructors: sent, skipped, jobsConsidered: open.length };
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   // Vercel Cron automatically sends CRON_SECRET as a Bearer token.
   const secret = process.env.CRON_SECRET;
   const auth = req.headers.authorization || '';
@@ -274,4 +405,7 @@ module.exports = async function handler(req, res) {
     results,
     jobAlerts,
   });
-};
+}
+
+handler.runJobAlerts = runJobAlerts;
+module.exports = handler;

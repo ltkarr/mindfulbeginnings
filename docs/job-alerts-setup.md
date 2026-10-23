@@ -1,34 +1,41 @@
-# New-job alert digest — one-time setup
+# New-job alert digest
 
-The code is deployed. Three one-time setup steps turn it on. After that, every
-morning at 8am ET (same run as the day-before reminders) the site emails each
-instructor who **subscribed** about new jobs posted in the last 48 hours that
-they are personally eligible to teach.
+Opt-in only. The daily instructor cron (`vercel.json`, `0 12 * * *`, which is
+8:00 AM Eastern) already calls `/api/remind-instructors`. That run sends
+day-before class reminders, then a new-job digest for instructors who turned
+alerts on.
 
-**Opt-in only.** Instructors subscribe themselves in the portal under
-My Profile → "Email me when new jobs are posted." The toggle is off by
-default — nobody gets alerts automatically. Instructors only ever hear about
-jobs matching their credentials (RN, Safe Sitter®, Spanish, Lead Teacher),
-using the exact same rules as their Open jobs board. One email per instructor
-per day at most, and only on days with something new. A job that gets claimed
-or cancelled before the morning run is never emailed.
+Nobody is emailed unless `instructors.job_alerts_enabled` is true. The column
+defaults to false. The switch is on the instructor portal Home screen and
+again under My account. Both save the same field through `instructor_update_self`.
 
-## Step 1 — Run the database migration (2 minutes)
+Each instructor gets at most one digest per Eastern calendar day. The digest
+includes only open jobs they can teach that were posted after
+`job_alerts_last_digest_at`. That cursor is set to the current time for every
+instructor before alerts are turned on, so the first morning does not mail a
+backlog of jobs that already exist. The message tells them to turn alerts off
+on the Home screen (the same switch is under My account) and links to the portal.
 
-In Supabase: **SQL editor → New query**, paste the contents of
-`migrations/20261021_job_alerts.sql`, and run it. This adds the
-`job_alerts_enabled` opt-in column, the `job_alert_notifications` watermark
-table (prevents double-sends), and lets instructors toggle their own
-preference through the existing self-service update function.
+## Database
 
-## Step 2 — Create the EmailJS template (5 minutes)
+Apply `migrations/20261023_job_alerts_text_ids.sql`. Do not run
+`migrations/20261021_job_alerts.sql` — that draft used uuid foreign keys, and
+instructor and session ids are text.
 
-1. Go to emailjs.com → **Email Templates → Create New Template**.
-2. Name it `New job alerts`.
-3. Set the **To** field to `{{instructor_email}}` and pick your connected email
-   service (the same one the other templates use).
-4. Subject: `New Mindful Beginnings jobs you can teach`
-5. Body — copy/paste; these are the available variables:
+Immediately before the template env var below is set, stamp the cursor again
+so jobs posted while setup was in progress are not included:
+
+```sql
+update public.instructors
+set job_alerts_last_digest_at = now();
+```
+
+## EmailJS template
+
+1. EmailJS → Email Templates → Create New Template. Name it `New job alerts`.
+2. To: `{{instructor_email}}`. Use the same email service as the other templates.
+3. Subject: `New Mindful Beginnings jobs you can teach`
+4. Body (triple braces on `jobs_html` so the job cards stay HTML):
 
 ```
 Hi {{instructor_name}},
@@ -39,47 +46,40 @@ Hi {{instructor_name}},
 
 Claim them in the instructor portal:
 {{portal_url}}
-
-You're getting this because you turned on new-job alerts in your portal
-profile. Turn them off anytime under My Profile.
 ```
 
-Note the triple braces around `{{{jobs_html}}}` — the job list is pre-formatted
-HTML and must not be escaped. (`{{intro_line}}` reads e.g. "3 new jobs were
-posted that you're eligible to teach:".)
+`jobs_html` already includes the turn-off instruction and the portal link.
+`{{message}}` is the same email as plain text, for a template whose body is
+only `{{message}}`.
 
-6. Save, then copy the **Template ID**.
+5. Copy the Template ID.
 
-## Step 3 — Add one value in Vercel (2 minutes)
+## Vercel
 
-Vercel dashboard → your project → **Settings → Environment Variables**:
+Set `EMAILJS_TEMPLATE_JOB_ALERTS` to that template id on the production
+project, then redeploy so the cron can see it. Do not add a second cron. The
+existing 8:00 AM Eastern run is the schedule.
 
-| Name | Value |
-|---|---|
-| `EMAILJS_TEMPLATE_JOB_ALERTS` | the Template ID from Step 2 |
+Until the variable is set, the cron returns
+`"jobAlerts":{"skipped":true,"reason":"EMAILJS_TEMPLATE_JOB_ALERTS not set"}`
+and day-before reminders keep working.
 
-Then **Deployments → Redeploy** the latest deployment so the new variable takes
-effect. (`EMAILJS_PRIVATE_KEY` is already set from the reminder setup.)
+A delivery test may be sent only to
+`lindsay+testinstructor@mindfulbeginnings.org`
+(instructor id `6677caa4-44d2-466b-a406-efdf41affba8`). The job refuses any
+other locked recipient. Run `node scripts/send-job-alert-test.js` with the
+three environment variables above. That script does not opt the test
+instructor in. After it delivers, run the cursor stamp in this document,
+then set `EMAILJS_TEMPLATE_JOB_ALERTS` and redeploy. Do not call
+`/api/remind-instructors` by hand.
 
-## How to check it's working
+## Production status (2026-10-23)
 
-- The morning after setup, an instructor who subscribed will get the digest
-  only if a matching job was posted in the previous 48 hours. Quiet days send
-  nothing.
-- To see what the last run did, visit the cron URL with the secret — it now
-  returns a `jobAlerts` section alongside the reminders:
-  `https://instructorportal.mindfulbeginnings.org/api/remind-instructors`
-  (without the secret it answers `{"error":"Unauthorized"}` — that means the
-  guard works).
-- Until Step 2–3 are done, the cron logs
-  `"jobAlerts":{"skipped":true,"reason":"EMAILJS_TEMPLATE_JOB_ALERTS not set"}`
-  and the day-before reminders keep working normally.
-
-## If an instructor says they subscribed but gets nothing
-
-1. They only get jobs they are eligible to teach — check their credentials
-   (RN / Safe Sitter® / Spanish / Lead Teacher flags on the Instructors tab).
-2. Jobs posted more than 48 hours ago, already claimed, on hold, or cancelled
-   are never emailed.
-3. They can toggle the preference off and back on in the portal; the next
-   morning's run picks up anything still in the 48-hour window.
+`migrations/20261023_job_alerts_text_ids.sql` and
+`migrations/20261023_reminder_host_address.sql` are applied on the Mindful
+Beginnings database. All 27 instructors have `job_alerts_enabled = false`.
+`job_alerts_last_digest_at` is set (migration default). Stamp it again
+immediately before the template variable is set, so jobs posted during
+setup are not included. The 8:00 AM Eastern cron already exists. Alerts
+stay skipped until `EMAILJS_TEMPLATE_JOB_ALERTS` is set after the single
+test send.
