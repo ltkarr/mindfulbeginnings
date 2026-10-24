@@ -33,6 +33,9 @@
 
 @media(max-width:640px){.step-grid{grid-template-columns:1fr}}
 .step-grid p{margin:0}
+.step-grid{counter-reset:step}
+.step-grid li{counter-increment:step;position:relative;padding-left:46px}
+.step-grid li::before{content:counter(step);position:absolute;left:0;top:8px;width:30px;height:30px;border-radius:50%;background:#1E3161;color:#F5F2EA;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
@@ -179,7 +182,7 @@
 <li><p>A minimum of six students is needed to run a club. If the minimum is not met, the club simply does not run.</p></li>
 <li><p>Clubs can be tailored. If your school needs something not listed here, ask.</p></li>
 </ol>
-<div class="mb-cta"><a class="mb-btn mb-btn-gold" href="/contact.html">Contact us about clubs</a></div>
+<div style="text-align:center"><p style="margin:0">Questions first? <a href="/contact.html" style="font-weight:700;color:#1E3161">Contact us</a></p></div>
 </div>
 </section>
 
