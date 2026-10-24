@@ -84,7 +84,7 @@ test('about page is static HTML in the public page style', () => {
 });
 
 test('hero is just the script title now that the header carries the tagline', () => {
-  assert.match(page, /<p class="mb-script-title">about<\/p>/);
+  assert.match(page, /<h1 class="mb-script-title"[^>]*>about<\/h1>/);
   assert.doesNotMatch(page, /Safety and confidence for every age/);
   assert.doesNotMatch(page, /Lindsay: add/);
   assert.doesNotMatch(page, /class="mission"/);

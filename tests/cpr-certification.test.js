@@ -20,7 +20,7 @@ test('group CPR page is static HTML with a title and description', () => {
 });
 
 test('schedule and contact links open the host page and contact page in the same tab', () => {
-  assert.equal((page.match(/href="\/host-a-class\.html"/g) || []).length, 3);
+  assert.equal((page.match(/href="\/host-a-class\.html"/g) || []).length, 4);
   assert.match(page, /href="\/host-a-class\.html"[^>]*>Host a Class</);
   assert.match(page, /class="mb-btn mb-btn-gold mb-btn-sm" href="\/register\.html">Register</);
   assert.match(page, /href="\/host-a-class\.html"[^>]*>Schedule a group class</);
