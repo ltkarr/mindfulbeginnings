@@ -187,14 +187,20 @@ const COURSES={
   // Online + Classroom is a separate offering: about 2 hours online, then
   // a 2-hour skills session, $125. It is not its own course key.
   'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:3.75,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'},
+  // Hybrid: about 2 hours online, then a 2-hour in-person skills session. $125.
+  'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'},
   // Standalone American Red Cross Babysitter's Training. $185, 4.25 hours,
   // ages 11 to 15, cap 12. Separate from the 7-hour certification combo.
   // Every price column is $185. This name is not in LATER_PRICE_CHANGES.
   'Babysitter\'s Training':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 to 15'},
   // Adult skills only. $125, 3.25 hours, adults, cap 12. Lead Teachers.
   'Adult First Aid/CPR/AED Certification':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:3.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true,audience:'Adults'},
+  // Hybrid: about 2 hours online, then a 2-hour in-person skills session. $125.
+  'Adult First Aid/CPR/AED Certification (Hybrid)':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true,audience:'Adults'},
   // Professional course for healthcare providers. $125, 4 hours, cap 12.
   'Basic Life Support (BLS) Certification':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true,audience:'Healthcare providers'},
+  // Hybrid: 2 hours online, then a 2-hour in-person skills session. $125.
+  'Basic Life Support (BLS) Certification (Hybrid)':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true,audience:'Healthcare providers'},
   // Workplace group class. Custom quote: no fixed price and no fixed group
   // size. 4 hours is the teaching-length default. Like a custom job, the
   // price and the headcount are set on the session.
@@ -423,7 +429,10 @@ const MAX_STUDENTS={
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,
   'Adult & Pediatric First Aid/CPR/AED Certification':12,
   'Adult First Aid/CPR/AED Certification':12,
-  'Basic Life Support (BLS) Certification':12
+  'Basic Life Support (BLS) Certification':12,
+  'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':12,
+  'Adult First Aid/CPR/AED Certification (Hybrid)':12,
+  'Basic Life Support (BLS) Certification (Hybrid)':12
 };
 
 

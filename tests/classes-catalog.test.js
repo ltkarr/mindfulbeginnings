@@ -81,6 +81,8 @@ const EXPECTED = [
   ['parents-caregivers', 'baby-ready', 'Baby Ready™', 'Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185 per participant', 'A hands-on newborn care class taught by a registered nurse, covering feeding, diapering, bathing, safe sleep, soothing, and infant choking rescue and CPR skills practice on manikins.', false, false],
   ['parents-caregivers', 'baby-ready-cpr', 'Baby Ready™ + CPR Certification', 'Expecting and new parents · 5-hour · In person · $275 per person', 'Newborn care plus hands-on Pediatric First Aid and CPR. Participants who complete it receive a certification card. Each registration is one person.', false, false],
   ['parents-caregivers', 'adult-cpr', 'Adult & Pediatric First Aid/CPR/AED Certification', 'Parents, nannies, au pairs, and grandparents · 4.25-hour · In person · $125', ADULT_DESC, false, false],
+  ['parents-caregivers', 'adult-fa', 'Adult First Aid/CPR/AED Certification', 'Adults · 3 hours 15 minutes · In person · $125', 'Adult skills only: CPR, AED use, choking relief, and basic first aid. Participants earn a 2-year American Red Cross certification. An online plus classroom option is about 2 hours online, then a 2-hour skills session, for $125.', false, false],
+  ['parents-caregivers', 'bls', 'Basic Life Support (BLS) Certification', 'Healthcare providers · 4 hours · In person · $125', 'The professional-level course for healthcare providers and public safety staff: high-quality CPR with compressions and ventilations, AED use, and team-based scenarios. Participants earn a 2-year American Red Cross certification. An online plus classroom option is 2 hours online, then a 2-hour skills session, for $125.', false, false],
   ['parents-caregivers', 'grandparents', 'Safe Sitter® Grandparents: Getting Started', 'Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185', 'A workshop equipping grandparents with current standards, updated guidelines, and practical tips for caring for their grandchildren.', false, false],
   ['parents-caregivers', 'grandkids', 'Babysitting Grandkids Workshop', 'Grandparents of kids from infancy to about age 10 · 60-minute · In person · $45', 'A conversational workshop for grandparents who babysit, covering current safety basics for kids from infancy to about age 10. Up to 20 participants.', false, false],
   ['parents-caregivers', 'care-ready', 'Care Ready™', 'Parents, nannies, au pairs, and grandparents · 2.5-hour · In person · $185', 'A course that gives nannies and au pairs the practical safety and caregiving skills families count on.', false, false],
@@ -121,7 +123,7 @@ test('each class name sits in the navy band', () => {
 });
 
 test('booking, custom programs, and group CPR links stay on this site', () => {
-  assert.equal((page.match(/href="\/host\.html"/g) || []).length, 29);
+  assert.equal((page.match(/href="\/host\.html"/g) || []).length, 31);
   assert.match(page, /href="\/contact\.html"/);
   assert.match(page, /Request a custom program/);
   assert.match(page, /Mindful Beginnings partners with organizations from the ground up/);

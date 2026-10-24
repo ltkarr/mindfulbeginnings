@@ -597,7 +597,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="filter-row">
         <select id="sf-course" onchange="renderSessions()">
           <option value="">All courses</option>
-          <option>Safe Sitter®</option><option>Safe Sitter® Babysitting Essentials</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Safe Sitter® Grandparents: Getting Started</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>Baby Ready + CPR Certification</option><option>Babysitting Grandkids Workshop</option><option>All Kids Welcome</option><option>Stay Ready™: Choking Rescue, CPR, and Seizure Response</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Little Medics</option><option>Pet Sitter's Club</option><option>Snack Squad</option><option>Kid Boss Club</option><option>Middle School, Here I Come</option><option>Big Sibling Club</option><option>My First Phone</option><option>Walk and Roll Ready</option><option>Calm and Ready</option><option>Ready. Period.</option><option>Season Ready™: Safety Skills for Student Athletes</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Babysitter's Training</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option><option>Adult First Aid/CPR/AED Certification</option><option>Basic Life Support (BLS) Certification</option><option>Group CPR Certification for Workplaces</option>
+          <option>Safe Sitter®</option><option>Safe Sitter® Babysitting Essentials</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Safe Sitter® Grandparents: Getting Started</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>Baby Ready + CPR Certification</option><option>Babysitting Grandkids Workshop</option><option>All Kids Welcome</option><option>Stay Ready™: Choking Rescue, CPR, and Seizure Response</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Little Medics</option><option>Pet Sitter's Club</option><option>Snack Squad</option><option>Kid Boss Club</option><option>Middle School, Here I Come</option><option>Big Sibling Club</option><option>My First Phone</option><option>Walk and Roll Ready</option><option>Calm and Ready</option><option>Ready. Period.</option><option>Season Ready™: Safety Skills for Student Athletes</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Babysitter's Training</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option><option>Adult First Aid/CPR/AED Certification</option><option>Basic Life Support (BLS) Certification</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification (Hybrid)</option><option>Adult First Aid/CPR/AED Certification (Hybrid)</option><option>Basic Life Support (BLS) Certification (Hybrid)</option><option>Group CPR Certification for Workplaces</option>
         </select>
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
@@ -1570,6 +1570,9 @@ const COURSES={
   'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:3.75,maxStudents:12,redCross:true,requiresLeadTeacher:true},
   'Adult First Aid/CPR/AED Certification':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:3.25,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true},
   'Basic Life Support (BLS) Certification':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true},
+  'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true},
+  'Adult First Aid/CPR/AED Certification (Hybrid)':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true},
+  'Basic Life Support (BLS) Certification (Hybrid)':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,adult:true},
   // Custom quote, 4 hours, no fixed price and no fixed group size.
   'Group CPR Certification for Workplaces':{customPrice:true,customSize:true,matCost:0,hours:4,redCross:true,requiresLeadTeacher:true,adult:true},
   'Babysitting Grandkids Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:20,minStudents:8,adult:true},
@@ -1924,8 +1927,11 @@ const COURSE_ABBR={
   'Babysitter\'s Training':'BT',
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':'RCB',
   'Adult & Pediatric First Aid/CPR/AED Certification':'RCA',
+  'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':'RCAH',
   'Adult First Aid/CPR/AED Certification':'RCAF',
+  'Adult First Aid/CPR/AED Certification (Hybrid)':'RCAFH',
   'Basic Life Support (BLS) Certification':'BLS',
+  'Basic Life Support (BLS) Certification (Hybrid)':'BLSH',
   'Group CPR Certification for Workplaces':'GCP',
   'Little Medics':'LM',
   'Pet Sitter\'s Club':'PSC',
@@ -1961,7 +1967,8 @@ const ADMIN_COURSE_OPTIONS=[
   'Girl Scouts — First Aid Badge Workshop','Girl Scout Badge Class','Babysitter\'s Training',
   'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED',
   'Adult & Pediatric First Aid/CPR/AED Certification','Adult First Aid/CPR/AED Certification',
-  'Basic Life Support (BLS) Certification','Group CPR Certification for Workplaces'
+  'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)','Adult First Aid/CPR/AED Certification (Hybrid)',
+  'Basic Life Support (BLS) Certification','Basic Life Support (BLS) Certification (Hybrid)','Group CPR Certification for Workplaces'
 ];
 function adminCourseSelectHtml(selected){
   const names=ADMIN_COURSE_OPTIONS.slice();
@@ -11809,7 +11816,7 @@ function isAdultCourse(course){
   const name=String(course||'');
   const booking=bookingApi();
   if(booking)return booking.isAdultCourse(name, typeof COURSES!=='undefined'?COURSES:null);
-  return name==='Grandparents: Getting Started'||name==='Safe Sitter® Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready'||name==='Baby Ready + CPR Certification'||name==='Babysitting Grandkids Workshop'||name==='Adult First Aid/CPR/AED Certification'||name==='Basic Life Support (BLS) Certification'||name==='Group CPR Certification for Workplaces';
+  return name==='Grandparents: Getting Started'||name==='Safe Sitter® Grandparents: Getting Started'||name==='Care Ready'||name==='Baby Ready'||name==='Baby Ready + CPR Certification'||name==='Babysitting Grandkids Workshop'||name==='Adult First Aid/CPR/AED Certification'||name==='Adult First Aid/CPR/AED Certification (Hybrid)'||name==='Basic Life Support (BLS) Certification'||name==='Basic Life Support (BLS) Certification (Hybrid)'||name==='Group CPR Certification for Workplaces';
 }
 function seatsPerRegistration(course){
   const name=String(course||'');
