@@ -131,6 +131,8 @@
     if (custom) custom.hidden = !opt || opt.value !== 'custom';
     var clubs = $('clubs-wrap');
     if (clubs) clubs.hidden = !opt || opt.value !== 'after-school-clubs';
+    var badge = $('badge-wrap');
+    if (badge) badge.hidden = !opt || opt.value !== 'gs-first-aid';
   }
 
   function updateSteer() {

@@ -856,7 +856,7 @@
     var lines = [];
     lines.push('Hi ' + who + ',');
     lines.push('');
-    lines.push('Thank you for sending the site information for ' + org + '. I have the details for ' + courseName + ' and I am glad we get to bring this class to your group.');
+    lines.push('Thank you for your class request for ' + org + '. I have the details for ' + courseName + ' and I am glad we get to bring this class to your group.');
     lines.push('');
     lines.push('Course: ' + courseName);
     if (n.badge) lines.push('Girl Scout badge: ' + n.badge);

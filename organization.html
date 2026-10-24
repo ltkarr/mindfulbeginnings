@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Host a Class</title>
+<title>Host a Class for Your Organization</title>
+<meta name="description" content="Request a Mindful Beginnings class for your school, troop, or workplace. Tell us about your group and we will follow up with scheduling and next steps.">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/site.css?v=3">
@@ -26,8 +27,8 @@
 </nav>
 </header>
 <div class="hero">
-  <h1>Organization site information</h1>
-  <p>Tell us how to find the room, who to call that day, and how registration should work.</p>
+  <h1>Host a class for your organization</h1>
+  <p>Tell us about your group, how to find the room, and how registration should work. Mindful Beginnings will follow up with next steps.</p>
 </div>
 <main>
   <form id="request-form" data-kind="organization" novalidate>
@@ -116,7 +117,7 @@
           </select>
       </div>
       <p id="course-note" class="price-note" hidden></p>
-      <div class="field"><label for="badge">Girl Scouts: please tell us more <span class="hint">Which badge, troop level, and anything else we should know. Leave blank if this is not a troop program.</span></label><input id="badge" name="badge"></div>
+      <div class="field" id="badge-wrap" hidden><label for="badge">Girl Scouts: please tell us more <span class="hint">Which badge, troop level, and anything else we should know.</span></label><input id="badge" name="badge"></div>
       <div class="field"><label for="instructorRequest">Request a specific instructor? <span class="hint">Optional. We will confirm who is available.</span></label><input id="instructorRequest" name="instructorRequest"></div>
       <label class="choice" style="margin-top:10px"><input type="checkbox" name="spanishRequested" value="yes"> <span>Do you want this class instructed in Spanish?</span></label>
       <div id="custom-wrap" class="field" hidden>
@@ -124,7 +125,7 @@
         <textarea id="customRequest" name="customRequest" rows="3" placeholder="Tell us what you would like us to create."></textarea>
       </div>
       <div id="clubs-wrap" class="field" hidden>
-        <span class="check-title">Which club(s)? (please list the club you want below)</span>
+        <span class="check-title">Which club(s)?</span>
         <span class="hint">Check every club you are interested in, or describe what you want in the notes. <a href="/after-school-clubs.html" target="_blank" rel="noopener">See all clubs we offer</a>. We come to your school and bring everything.</span>
         <label class="choice"><input type="checkbox" name="clubs" value="My First Babysitter's Club (Grades 4–5)"> <span>My First Babysitter's Club <span class="hint">Grades 4–5</span></span></label>
         <label class="choice"><input type="checkbox" name="clubs" value="Little Medics (Grades K–2)"> <span>Little Medics <span class="hint">Grades K–2</span></span></label>
@@ -136,10 +137,6 @@
         <label class="choice"><input type="checkbox" name="clubs" value="My First Phone (Grades 4–5)"> <span>My First Phone <span class="hint">Grades 4–5</span></span></label>
         <label class="choice"><input type="checkbox" name="clubs" value="Walk and Roll Ready (Grades 2–5)"> <span>Walk and Roll Ready <span class="hint">Grades 2–5</span></span></label>
         <label class="choice"><input type="checkbox" name="clubs" value="Calm and Ready (Grades K–5)"> <span>Calm and Ready <span class="hint">Grades K–5</span></span></label>
-        <div class="field" style="margin-top:10px">
-          <label for="clubName">Which club do you want? (list below)</label>
-          <input type="text" id="clubName" name="clubName" placeholder="e.g. Little Medics, or describe what you are looking for">
-        </div>
       </div>
     </div>
 
@@ -160,6 +157,7 @@
 
     <div class="card">
       <h2>Arrival</h2>
+      <p class="hint" style="margin:0 0 10px">Share what you know, and skip the rest. We can sort out the details together later.</p>
       <p class="check-title">AV equipment you have for us</p>
       <p class="hint" style="margin:0 0 8px">We can bring anything you do not have. A screen or blank wall is what we need to project.</p>
       <label class="choice"><input type="checkbox" name="av" value="Laptop"> <span>Laptop</span></label>
@@ -182,17 +180,17 @@
 
     <div class="card">
       <h2>Registration and payment</h2>
-      <label class="choice"><input type="radio" name="billing" value="org_full_external" required> <span>The organization covers the full cost and handles registration itself. Participants sign up through the organization at no charge. Mindful Beginnings invoices the organization after the course.</span></label>
-      <label class="choice"><input type="radio" name="billing" value="org_full_link"> <span>The organization covers the full cost, and Mindful Beginnings handles registration. Participants use a private Mindful Beginnings link at no charge. Mindful Beginnings invoices the organization after the course.</span></label>
-      <label class="choice"><input type="radio" name="billing" value="individual"> <span>Participants register and pay individually on a private Mindful Beginnings link.</span></label>
-      <label class="choice"><input type="radio" name="billing" value="split"> <span>The organization covers a portion. Participants pay a reduced rate at registration, and the organization is invoiced for the rest after the course.</span></label>
+      <label class="choice"><input type="radio" name="billing" value="org_full_external" required> <span><strong>Organization pays, and handles registration.</strong> Participants sign up through the organization at no charge. Mindful Beginnings invoices the organization after the course.</span></label>
+      <label class="choice"><input type="radio" name="billing" value="org_full_link"> <span><strong>Organization pays, we handle registration.</strong> Participants use a private Mindful Beginnings link at no charge. Mindful Beginnings invoices the organization after the course.</span></label>
+      <label class="choice"><input type="radio" name="billing" value="individual"> <span><strong>Participants pay individually.</strong> They register and pay on a private Mindful Beginnings link.</span></label>
+      <label class="choice"><input type="radio" name="billing" value="split"> <span><strong>Split the cost.</strong> The organization covers a portion. Participants pay a reduced rate at registration, and the organization is invoiced for the rest after the course.</span></label>
       <div class="field" id="portion-wrap" hidden>
         <label for="portionText">Amount or percentage you will cover per participant <span class="hint">For example, $25 or 50%.</span></label>
         <input id="portionText" name="portionText" placeholder="$25">
       </div>
     </div>
 
-    <button class="btn-p" id="submit-btn" type="submit">Submit site information</button>
+    <button class="btn-p" id="submit-btn" type="submit">Submit request</button>
     <p class="hint" style="text-align:center;margin-top:10px">You’ll get an email confirming we’ve received your request. Our team will reach out with next steps for scheduling, plus information you can share with your participants.</p>
     <div class="hp" aria-hidden="true"><label>Company website<input name="companyWebsite" tabindex="-1" autocomplete="off"></label></div>
   </form>
@@ -215,6 +213,8 @@ document.addEventListener('DOMContentLoaded', function () {
     note.textContent = text || '';
     var clubs = document.getElementById('clubs-wrap');
     if (clubs) clubs.hidden = !opt || opt.value !== 'after-school-clubs';
+    var badge = document.getElementById('badge-wrap');
+    if (badge) badge.hidden = !opt || opt.value !== 'gs-first-aid';
   }
   select.addEventListener('change', sync);
   sync();
