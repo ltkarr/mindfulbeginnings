@@ -13,7 +13,7 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="apple-touch-icon" href="/email-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="/site.css?v=3">
+<link rel="stylesheet" href="/site.css?v=5">
 <!-- Pinned. crossorigin is safe here: jsDelivr sends Access-Control-Allow-Origin: *. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js" crossorigin="anonymous"></script>
@@ -314,7 +314,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
     </div>
   </div>
   <div class="fsec" id="waiver-section"><div class="fsec-title">Waiver and consent</div>
-    <div id="waiver-cpr-notice" style="background:#fff7e6;border:1px solid #f0d090;border-radius:var(--r-sm);padding:13px 16px;margin-bottom:14px;font-size:13px;color:#7a5000;line-height:1.6">
+    <div id="waiver-cpr-notice" style="background:#fff7e6;border:1px solid #C7A24A;border-radius:var(--r-sm);padding:13px 16px;margin-bottom:14px;font-size:13px;color:#7a5000;line-height:1.6">
       <strong>📋 Please note:</strong> Your child will practice CPR and rescue skills on manikins during this course. <strong>This course does not provide CPR certification.</strong> Upon successful completion, your child will receive a Safe Sitter® certificate of completion.
     </div>
 
@@ -501,7 +501,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
     <div id="paypal-button-container"></div>
     <p id="paypal-card-note" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Secure checkout — pay by credit or debit card, no account needed. The amount charged is the total shown above, including any discount.</p>
     <p style="font-size:13px;text-align:center;margin-top:10px;color:var(--muted)">Issue with payment? Text us at <a href="sms:+17039875979" style="color:var(--sky);font-weight:700">703-987-5979</a></p>
-    <p id="paypal-unavailable-note" style="display:none;font-size:13px;color:#7a5a00;text-align:center;margin:4px 0 0;background:#fff7e6;border:1px solid #f0d878;border-radius:var(--r-sm);padding:12px 14px;line-height:1.5">Card/PayPal checkout is not available right now. Please use Venmo or Zelle below — your exact total is shown above. You can also <a id="paypal-payhtml-fallback" href="/pay.html" style="color:var(--sky)">open the payment page</a>.</p>
+    <p id="paypal-unavailable-note" style="display:none;font-size:13px;color:#7a5a00;text-align:center;margin:4px 0 0;background:#fff7e6;border:1px solid #C7A24A;border-radius:var(--r-sm);padding:12px 14px;line-height:1.5">Card/PayPal checkout is not available right now. Please use Venmo or Zelle below — your exact total is shown above. You can also <a id="paypal-payhtml-fallback" href="/pay.html" style="color:var(--sky)">open the payment page</a>.</p>
     <p id="paypal-error" style="display:none;font-size:13px;color:var(--danger);text-align:center;margin:8px 0 0;line-height:1.5"></p>
     <div style="display:flex;align-items:center;gap:12px;margin:18px 0 14px;color:var(--muted);font-size:12px">
       <div style="flex:1;height:1px;background:var(--border)"></div>
@@ -535,7 +535,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
       <strong>⏳ Payment pending</strong><br>
       Your spot is reserved! To complete your registration, please send your Zelle payment to <strong>lindsay@mindfulbeginnings.org</strong>. Include the participant's name and course in the memo. Lindsay will confirm receipt within 24 hours.
     </div>
-    <div id="save-error-banner" style="display:none;background:#fff7e6;border:1px solid #f0d878;border-radius:var(--r-sm);padding:14px 16px;margin:0 0 16px;text-align:left;font-size:13px;color:#7a5a00;line-height:1.55">
+    <div id="save-error-banner" style="display:none;background:#fff7e6;border:1px solid #C7A24A;border-radius:var(--r-sm);padding:14px 16px;margin:0 0 16px;text-align:left;font-size:13px;color:#7a5a00;line-height:1.55">
       <strong>✅ Your payment went through and is safe.</strong><br>
       We hit a snag automatically saving your registration, but <strong>nothing is lost</strong>. Please email the details below (including the PayPal/Transaction ID) to <strong>lindsay@mindfulbeginnings.org</strong> and your spot will be confirmed right away. You will not be charged again.
     </div>
@@ -559,7 +559,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
       <strong>Amount:</strong> <span id="paypal-amount-2">$185</span><br>
       <strong>For:</strong> <span id="paypal-memo" style="word-break:break-word"></span>
     </div>
-    <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
+    <div style="background:#fef9e7;border:1px solid #C7A24A;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
       ✓ &nbsp;<strong>Your registration is already saved and your spot is reserved.</strong> Finish paying on PayPal whenever you can — Lindsay matches it to your registration (usually within 24 hours). You do not need to return to this page.
     </div>
     <button onclick="confirmPayPalPayment()" style="width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">I've completed my PayPal payment</button>
@@ -581,7 +581,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
       <strong>Amount:</strong> <span id="venmo-amount-2">$185</span><br>
       <strong>Memo:</strong> <span id="venmo-memo" style="word-break:break-word"></span>
     </div>
-    <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
+    <div style="background:#fef9e7;border:1px solid #C7A24A;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
       ✓ &nbsp;<strong>Your registration is already saved and your spot is reserved.</strong> Send the Venmo whenever you can — Lindsay matches it to your registration (usually within 24 hours). You do not need to return to this page.
     </div>
     <button onclick="confirmVenmoPayment()" style="width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">I've sent the Venmo payment</button>
@@ -608,7 +608,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
         <span id="zelle-memo" style="display:inline-block;background:#f6f7fa;color:#1a2744;padding:5px 10px;border-radius:6px;margin-top:5px;font-weight:500;font-size:13px"></span>
       </li>
     </ol>
-    <div style="background:#fef9e7;border:1px solid #f0d878;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
+    <div style="background:#fef9e7;border:1px solid #C7A24A;border-radius:8px;padding:12px 14px;color:#7a5a00;font-size:13px;line-height:1.5;margin-bottom:20px">
       ✓ &nbsp;<strong>Your registration is already saved and your spot is reserved.</strong> Send the Zelle whenever you can — Lindsay matches it to your registration (usually within 24 hours). You do not need to return to this page.
     </div>
     <button onclick="confirmZellePayment()" style="width:100%;padding:13px;background:#6D1ED4;color:#fff;border:none;border-radius:999px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">I've sent the Zelle payment</button>
@@ -673,7 +673,7 @@ window.addEventListener('error',function(ev){
     b.id='mb-fatal-banner';
     b.setAttribute('role','alert');
     // In the page flow, at the top. A fixed bottom bar covers Continue / Reserve on a phone.
-    b.style.cssText='position:relative;background:#fff7e6;border-bottom:1px solid #f0d878;color:#7a5a00;font:14px/1.45 "Montserrat",sans-serif;padding:10px 48px 10px 16px;text-align:left';
+    b.style.cssText='position:relative;background:#fff7e6;border-bottom:1px solid #C7A24A;color:#7a5a00;font:14px/1.45 "Montserrat",sans-serif;padding:10px 48px 10px 16px;text-align:left';
     var text=document.createElement('div');
     var strong=document.createElement('strong');
     strong.textContent='Something interrupted loading.';

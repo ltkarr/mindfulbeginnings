@@ -265,7 +265,7 @@ p:last-child{margin-bottom:0}
 @media(max-width:860px){
   .mb-header{position:relative;flex-wrap:nowrap}
   .mb-nav-toggle{display:block}
-  .mb-nav{display:none;position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;align-items:stretch;gap:0;padding:8px 6vw 16px;border-bottom:2px solid var(--gold);z-index:60;box-shadow:0 12px 24px rgba(30,49,97,.12)}
+  .mb-nav{display:none;position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;align-items:stretch;gap:0;padding:8px 6vw 28px;border-bottom:2px solid var(--gold);z-index:60;box-shadow:0 12px 24px rgba(30,49,97,.12)}
   .mb-nav.open{display:flex}
   .mb-nav a{padding:12px 4px;font-size:16px;border-bottom:1px solid rgba(30,49,97,.08)}
   .mb-nav a.mb-btn{border-bottom:0;margin-top:8px;text-align:center}
