@@ -80,8 +80,11 @@ a.card:hover .card-visual h3{text-decoration:underline}
   /* 2-col sections: 4 cards -> 2x2, 2 cards -> full row, no orphan dead space */
   .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-.filter-wrap{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 6px}
-.filter-pill{appearance:none;border:2px solid #1E3161;background:#fff;color:#1E3161;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:700;border-radius:999px;padding:10px 18px;cursor:pointer}
+.filter-wrap{display:flex;flex-wrap:wrap;gap:10px;margin:0}
+.filter-label{display:block;width:100%;margin-bottom:2px}
+.catalog-tools{display:flex;flex-direction:column;gap:12px}
+.flex-note{font-size:14.5px;line-height:1.55;color:#1E3161;margin:0}
+.filter-pill{appearance:none;border:2px solid #1E3161;background:#fff;color:#1E3161;font-family:'Montserrat',sans-serif;font-size:13.5px;font-weight:700;border-radius:999px;padding:9px 16px;cursor:pointer}
 .filter-pill[aria-pressed="true"]{background:#1E3161;color:#F5F2EA}
 .filter-label{font-weight:700;font-size:15px;align-self:center;margin-right:4px}
 .age-block[hidden]{display:none}
@@ -94,7 +97,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 .age-block h2 .mb-h2-script{font-size:1em}
 .card{border-radius:24px;border:0;box-shadow:0 10px 30px rgba(30,49,97,.10)}
 .card-visual{border-radius:24px 24px 0 0}
-.catalog-section{padding:72px 6vw 24px}
+.catalog-section{padding:28px 6vw 24px}
 @media(max-width:860px){.mb-cat-head{grid-template-columns:1fr}}
 </style>
 </head>
@@ -131,6 +134,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <section class="catalog-section">
 <div class="catalog">
 
+<div class="catalog-tools">
 <div class="filter-wrap" role="group" aria-label="Filter classes by age group">
 <span class="filter-label">Who is this class for?</span>
 <button type="button" class="filter-pill" data-filter="all" aria-pressed="true">All classes</button>
@@ -141,7 +145,8 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <button type="button" class="filter-pill" data-filter="high-school" aria-pressed="false">High school</button>
 <button type="button" class="filter-pill" data-filter="parents-caregivers" aria-pressed="false">Parents &amp; caregivers</button>
 </div>
-<div style="background:#fff7e6;border:1px solid #f0d090;border-radius:12px;padding:14px 16px;margin-top:16px;font-size:14px;line-height:1.6;color:#1E3161"><strong>Flexible scheduling:</strong> Any class can be split into shorter sessions. For example, the 5-hour babysitting class can be taught as two 2.5-hour sessions, and the 7-hour Babysitter's Training + Pediatric First Aid/CPR/AED can be split across two days of 3.5 hours each.</div>
+<p class="flex-note"><strong>Flexible scheduling:</strong> Any class can be split into shorter sessions. The 5-hour babysitting class can run as two 2.5-hour sessions, and the 7-hour Babysitter's Training + Pediatric First Aid/CPR/AED can split across two days of 3.5 hours each.</p>
+</div>
 
 <section class="age-block" id="ages-8-10">
 <div class="mb-cat-head"><div><h2>Ages 8&ndash;10 <span class="mb-h2-script">first steps to independence</span></h2><p class="mb-cat-intro">Home-alone safety, parent's helper basics, and online smarts. Real skills for younger kids taking their first steps toward independence.</p></div><figure><img class="mb-photo" src="/images/host/host-safe-at-home-diaper.jpg" alt="A young student practicing diaper changing in class" loading="lazy"><figcaption class="mb-caption">learning real skills!</figcaption></figure></div>
