@@ -199,7 +199,7 @@
         if (hello) hello.textContent = name ? ('Thank you, ' + name + '.') : 'Thank you.';
         var extra = $('success-extra');
         if (extra) {
-          extra.textContent = 'We have your request. We will confirm the date. Nothing is sent automatically from this form.';
+          extra.textContent = 'Mindful Beginnings has your request. We will confirm the date.';
         }
       }
     } catch (err) {

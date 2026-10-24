@@ -70,7 +70,7 @@ test('host and organization pages use the shared brand header without a duplicat
   assert.doesNotMatch(orgPage, /Safe Sitter® and family safety courses/);
   assert.doesNotMatch(intakeCss, /border-radius:\s*50%/);
   assert.match(hostPage, /we will confirm the date/);
-  assert.match(orgPage, /<h1>Organization site information<\/h1>/);
+  assert.match(orgPage, /<h1>Host a class for your organization<\/h1>/);
 });
 
 test('host course choices on the page match the catalog, and organizations are sent to the other form', () => {

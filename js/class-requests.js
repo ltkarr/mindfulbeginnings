@@ -548,7 +548,6 @@
     if (n.kind === 'organization' && !n.organizationName) add('organizationName', 'Please add the organization name.');
     if (!n.isVirtual) {
       if (!n.place.raw) add('address', 'Please add the address or choose virtual.');
-      else if (!n.place.hostAddress || !n.place.city || !n.place.state || !n.place.zip) add('address', 'Please include the full street address, city, state, and ZIP code (for example: 123 Maple St, Bethesda, MD 20814).');
     }
     if (n.kind === 'host' && !n.checklistAnswer) add('checklistAnswer', 'Please answer the hosting checklist.');
     if (n.kind === 'organization' && !n.billing.mode) add('billing', 'Please choose how registration and payment should work.');
