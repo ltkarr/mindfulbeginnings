@@ -116,10 +116,16 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <div class="hero-inner">
 <div class="eyebrow">our classes</div>
 <h1>Safety classes for every age, taught where you are.</h1>
-<p class="lede">Babysitting, home safety, caregiving, and first aid. Choose an age group, then book a private group at your home, school, or organization. Any class can be split into shorter sessions.</p>
+<p class="lede">Babysitting, home safety, caregiving, and first aid. Choose an age group, then book a private group at your home, school, or organization. Home hosts get one free spot. Any class can be split into shorter sessions.</p>
 <div class="actions">
 <a class="gold-btn" href="/host.html">Request a class</a>
 </div>
+</div>
+</section>
+
+<section class="catalog-section">
+<div class="catalog">
+
 <div class="filter-wrap" role="group" aria-label="Filter classes by age group">
 <span class="filter-label">Who is this class for?</span>
 <button type="button" class="filter-pill" data-filter="all" aria-pressed="true">All classes</button>
@@ -131,11 +137,6 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <button type="button" class="filter-pill" data-filter="parents-caregivers" aria-pressed="false">Parents &amp; caregivers</button>
 </div>
 <div style="background:#fff7e6;border:1px solid #f0d090;border-radius:12px;padding:14px 16px;margin-top:16px;font-size:14px;line-height:1.6;color:#1E3161"><strong>Flexible scheduling:</strong> Any class can be split into shorter sessions. For example, the 5-hour babysitting class can be taught as two 2.5-hour sessions, and the 7-hour Babysitter's Training + Pediatric First Aid/CPR/AED can be split across two days of 3.5 hours each.</div>
-</div>
-</section>
-
-<section class="catalog-section">
-<div class="catalog">
 
 <section class="age-block" id="ages-8-10">
 <div class="mb-cat-head"><div><h2>Ages 8&ndash;10 <span class="mb-h2-script">first steps to independence</span></h2><p class="mb-cat-intro">Home-alone safety, parent's helper basics, and online smarts. Real skills for younger kids taking their first steps toward independence.</p></div><figure><img class="mb-photo" src="/images/host/host-safe-at-home-diaper.jpg" alt="A young student practicing diaper changing in class" loading="lazy"><figcaption class="mb-caption">learning real skills!</figcaption></figure></div>
@@ -167,7 +168,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 </div>
 <div class="card-body">
 <p class="meta">Grades 4 to 5 · 2.5-hour · In person · $165</p>
-<p class="desc">A 2.5-hour workshop introducing young students to being a parent's helper. The 8-week after-school series is $200 per participant. Includes a take-home activity tote bag.</p>
+<p class="desc">A 2.5-hour workshop introducing young students to being a parent's helper. Includes a take-home activity tote bag.</p>
 </div>
 </a>
 
@@ -401,7 +402,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Baby Ready™ + CPR Certification</h3>
 </div>
 <div class="card-body">
-<p class="meta">Expecting and new parents · 5-hour · In person · $275 per person</p>
+<p class="meta">Expecting and new parents · 5-hour · In person · $275 per participant</p>
 <p class="desc">Newborn care plus hands-on Pediatric First Aid and CPR. Participants who complete it receive a certification card. Each registration is one person.</p>
 </div>
 </a>
@@ -421,7 +422,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Safe Sitter® Grandparents: Getting Started</h3>
 </div>
 <div class="card-body">
-<p class="meta">Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185</p>
+<p class="meta">Grandparents and caregivers · 3-hour · In person · $185 per participant</p>
 <p class="desc">A workshop equipping grandparents with current standards, updated guidelines, and practical tips for caring for their grandchildren.</p>
 </div>
 </a>
@@ -441,7 +442,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Care Ready™</h3>
 </div>
 <div class="card-body">
-<p class="meta">Parents, nannies, au pairs, and grandparents · 2.5-hour · In person · $185</p>
+<p class="meta">Nannies and au pairs · 2.5-hour · In person · $185 per participant</p>
 <p class="desc">A course that gives nannies and au pairs the practical safety and caregiving skills families count on.</p>
 </div>
 </a>
@@ -518,6 +519,13 @@ a.card:hover .card-visual h3{text-decoration:underline}
       pills.forEach(function(p){ p.setAttribute('aria-pressed', p === pill ? 'true' : 'false'); });
       blocks.forEach(function(b){
         b.hidden = (f !== 'all' && b.id !== f);
+      });
+      // In "All classes", show each course once: hide later repeats of the same course.
+      var seen = {};
+      document.querySelectorAll('.card[data-key]').forEach(function(card){
+        if (f !== 'all') { card.style.display = ''; return; }
+        var k = card.getAttribute('data-key');
+        if (seen[k]) { card.style.display = 'none'; } else { seen[k] = true; card.style.display = ''; }
       });
     });
   });
