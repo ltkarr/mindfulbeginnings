@@ -10,8 +10,8 @@
 <link rel="stylesheet" href="/site.css?v=3">
 <style>
 .clubs-hero-badge{width:120px;height:120px}
-.club-card{display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
-.club-badge{width:140px;height:140px;flex:none}
+.club-card{display:flex;flex-direction:row;gap:16px;align-items:flex-start;text-align:left}
+.club-badge{width:104px;height:104px;flex:none}
 .club-badge img{width:100%;height:100%;object-fit:contain}
 .club-meta{font-size:14px;font-weight:700;color:#1E3161;letter-spacing:.4px;text-transform:uppercase;margin:2px 0 6px}
 .club-takehome{font-size:15px;margin-top:8px}
@@ -24,7 +24,7 @@
 .price-band{background:#1E3161;color:#fff;border-radius:14px;padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
 .price-band .amt{font-size:30px;font-weight:800;color:#EFC75A}
 .price-band p{margin:0;max-width:640px}
-@media(max-width:640px){.club-card{flex-direction:column}.club-badge{width:120px;height:120px}}
+@media(max-width:640px){.club-card{flex-direction:column;align-items:center;text-align:center}.club-badge{width:110px;height:110px}}
 .tight{padding-top:30px!important;padding-bottom:30px!important}
 .club-card h3{margin-top:6px}
 .step-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 32px;margin:0 0 20px;padding:0;list-style:none;max-width:860px}
@@ -53,9 +53,15 @@
 </header>
 
 <section class="mb-hero">
-<div class="mb-hero-inner">
+<div class="mb-hero-inner mb-hero-grid">
+<div>
 <h1 class="mb-script-title">after school clubs</h1>
 <p class="mb-lede">We come to your school and bring everything. Ten clubs for elementary schools, taught by certified teachers and registered nurses. Each club meets for one hour a week, and every week is hands on: kids practice real skills in small groups, role play, build and make things, and leave each session with something they can use at home.</p>
+</div>
+<figure style="margin:0">
+<img class="mb-photo" src="/images/real-classes/safe-sitter-table.jpg" alt="Mindful Beginnings instructor teaching students around a table">
+<figcaption class="mb-caption">hands on, every single week!</figcaption>
+</figure>
 </div>
 </section>
 
@@ -66,7 +72,7 @@
 <li><strong>Who</strong><span>Elementary students, grades K through 5 (each club lists its grades)</span></li>
 <li><strong>Format</strong><span>One hour a week, after dismissal. 8 weeks is standard, and the series can be customized for schools.</span></li>
 <li><strong>Group size</strong><span>We recommend 8-16 kids per session. A minimum of 6 is required for a club to run.</span></li>
-<li><strong>Price</strong><span>All clubs are $200 per participant.</span></li>
+<li><strong>Pricing</strong><span>Per participant, set with your school. Just ask for a quote.</span></li>
 <li><strong>Taught by</strong><span>Certified teachers and registered nurses</span></li>
 <li><strong>We bring</strong><span>Everything: instructor, materials, props, handbooks and take home pages</span></li>
 <li><strong>You provide</strong><span>A classroom, dismissal to the instructor and a pickup plan</span></li>
@@ -158,7 +164,7 @@
 <div class="mb-wrap">
 <div class="price-band">
 <div><p style="font-size:20px;font-weight:700;margin:0 0 6px">Bring clubs to your school</p>
-<p>Schools choose the clubs and the days. $200 per participant for the series. Clubs can run as a standalone offering, through an after school enrichment provider, or as a PTA program.</p></div>
+<p>Schools choose the clubs and the days. Clubs can run as a standalone offering, through an after school enrichment provider, or as a PTA program.</p></div>
 <a class="mb-btn mb-btn-gold" href="/organization.html">Get started</a>
 </div>
 </div>
