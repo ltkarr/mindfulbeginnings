@@ -15,8 +15,7 @@
     return {
       received: c.received !== false,
       session_created: !!c.session_created,
-      email_sent: !!c.email_sent,
-      done: !!(c.done || c.archived)
+      email_sent: !!c.email_sent
     };
   }
 
@@ -28,31 +27,29 @@
   function openCount(rows) {
     return (rows || []).filter(function (row) {
       var c = checks(row);
-      return !c.done && !c.email_sent;
+      return !c.email_sent;
     }).length;
   }
 
   function receivedCount(rows) {
     return (rows || []).filter(function (row) {
       var c = checks(row);
-      return !c.done && !c.session_created;
+      return !c.session_created;
     }).length;
   }
 
   var CHECK_UI = [
     { key: 'received', label: 'Received', locked: true },
     { key: 'session_created', label: 'Session created in ADMIN' },
-    { key: 'email_sent', label: 'Email sent' },
-    { key: 'done', label: 'Done' }
+    { key: 'email_sent', label: 'Email sent' }
   ];
 
   function matchesFilter(row, filter) {
     var c = checks(row);
     var status = statusOf(row);
-    if (filter === 'done') return !!c.done;
     if (filter === 'received' || filter === 'pending') return status === 'pending' || status === 'received';
     if (filter === 'all') return true;
-    return !c.done && !c.email_sent;
+    return !c.email_sent;
   }
 
   function whenText(row) {
@@ -131,9 +128,7 @@
     }).join('');
     var sessionBtn = row.session_id
       ? '<button class="btn sm" type="button" onclick="openRequestSession(\'' + esc(row.id) + '\')">Open ' + esc(row.session_code || 'session') + '</button>'
-      : (c.done
-        ? '<span style="font-size:14px;color:var(--warn)">No session yet</span>'
-        : '<button class="btn sm" type="button" onclick="approveClassRequest(\'' + esc(row.id) + '\')">Approve and create session</button>');
+      : '<button class="btn sm" type="button" onclick="approveClassRequest(\'' + esc(row.id) + '\')">Create session in Admin</button>';
     var outlook = row.outlook_web_link
       ? '<a class="btn sm" href="' + esc(row.outlook_web_link) + '" target="_blank" rel="noopener">Open Outlook draft</a>'
       : '';
@@ -151,6 +146,7 @@
         sessionBtn +
         '<button class="btn sm" type="button" onclick="openClassRequestDraft(\'' + esc(row.id) + '\')">Open confirmation draft</button>' +
         outlook +
+        '<button class="btn sm" type="button" style="color:#b91c1c;border-color:#e5b4b4" onclick="deleteClassRequest(\'' + esc(row.id) + '\')">Delete request</button>' +
       '</div>' +
       '<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--navy);font-weight:600">Full submission</summary><div style="margin-top:8px;font-size:15px;line-height:1.45">' + detailRows(row) + '</div></details>' +
       '</div>';
@@ -261,6 +257,52 @@
     openEditSession(row.session_id);
   };
 
+root._deleteLocks = root._deleteLocks || {};
+
+  root.deleteClassRequest = async function (id) {
+    if (!id || root._deleteLocks[id]) return;
+    var row = (typeof classRequests !== 'undefined' ? classRequests : []).find(function (r) { return r.id === id; });
+    var msg = row && row.session_id
+      ? 'Delete this request? The session ' + (row.session_code || '') + ' stays in Admin and the portal. Only this request card is removed. This cannot be undone.'
+      : 'Delete this request? This cannot be undone.';
+    if (!window.confirm(msg)) return;
+    root._deleteLocks[id] = true;
+    try {
+      if (typeof sb === 'undefined' || !sb.auth || !sb.auth.getSession) {
+        if (typeof showToast === 'function') showToast('Sign in again, then delete the request.');
+        return;
+      }
+      var sess = await sb.auth.getSession();
+      var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+      if (!token) {
+        if (typeof showToast === 'function') showToast('Sign in again, then delete the request.');
+        return;
+      }
+      var res = await fetch('/api/class-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ action: 'delete', id: id })
+      });
+      var body = {};
+      try { body = await res.json(); } catch (e) { body = {}; }
+      if (!res.ok || !body.ok) {
+        if (typeof showToast === 'function') showToast(body.error || 'The request was not deleted. Please try again.');
+        return;
+      }
+      if (typeof classRequests !== 'undefined') {
+        var ix = classRequests.findIndex(function (r) { return r.id === id; });
+        if (ix >= 0) classRequests.splice(ix, 1);
+      }
+      if (typeof showToast === 'function') showToast('Request deleted.');
+      if (root.renderClassRequests) root.renderClassRequests();
+      if (root.renderClassRequestBanner) root.renderClassRequestBanner();
+    } catch (err) {
+      if (typeof showToast === 'function') showToast('The request was not deleted. Please try again.');
+    } finally {
+      root._deleteLocks[id] = false;
+    }
+  };
+
   root._approveLocks = root._approveLocks || {};
 
   root.approveClassRequest = async function (id) {
@@ -269,13 +311,13 @@
     root._approveLocks[id] = true;
     try {
       if (typeof sb === 'undefined' || !sb.auth || !sb.auth.getSession) {
-        if (typeof showToast === 'function') showToast('Sign in again, then approve the request.');
+        if (typeof showToast === 'function') showToast('Sign in again, then create the session.');
         return;
       }
       var sess = await sb.auth.getSession();
       var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
       if (!token) {
-        if (typeof showToast === 'function') showToast('Sign in again, then approve the request.');
+        if (typeof showToast === 'function') showToast('Sign in again, then create the session.');
         return;
       }
       var res = await fetch('/api/class-requests', {

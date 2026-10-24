@@ -351,18 +351,15 @@ test('checklist stays pending until a session is approved, then advances only wh
   assert.equal(waiting.checklist.session_created, false);
 
   const sent = model.applyChecklistUpdate(fresh.checklist, { email_sent: true });
-  assert.equal(sent.status, 'done');
+  assert.equal(sent.status, 'email_sent');
   assert.equal(sent.checklist.email_sent, true);
-  assert.equal(sent.checklist.done, true);
-
-  const done = model.applyChecklistUpdate(sent.checklist, { done: true });
-  assert.equal(done.status, 'done');
+  assert.equal(sent.checklist.done, undefined);
 
   const locked = model.applyChecklistUpdate(fresh.checklist, { received: false, email_sent: true });
   assert.equal(locked.checklist.received, true);
 
-  const reopened = model.applyChecklistUpdate(done.checklist, { done: false });
-  assert.equal(reopened.status, 'email_sent');
+  const reopened = model.applyChecklistUpdate(sent.checklist, { email_sent: false });
+  assert.equal(reopened.status, 'session_created');
 });
 
 test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
@@ -405,27 +402,24 @@ test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
     payload: orgBody(),
     created_at: '2026-10-05T12:00:00Z'
   }], 'open', []);
-  assert.match(pendingHtml, /Approve and create session/);
+  assert.match(pendingHtml, /Create session in Admin/);
+  assert.match(pendingHtml, /Delete request/);
+  assert.doesNotMatch(pendingHtml, />Done</);
   assert.match(pendingHtml, /Pending/);
   assert.doesNotMatch(pendingHtml, /\u2014/);
-  assert.equal(adminUi.openCount([{ checklist: { done: false } }, { checklist: { done: false, email_sent: true } }, { checklist: { done: true } }]), 1);
+  assert.equal(adminUi.openCount([{ checklist: {} }, { checklist: { email_sent: true } }, { checklist: { email_sent: true, session_created: true } }]), 1);
   assert.match(admin, /<option value="open" selected>Open<\/option>/);
-  assert.match(admin, /<option value="done">Done<\/option>/);
+  assert.doesNotMatch(admin, /<option value="done">Done<\/option>/);
   assert.doesNotMatch(admin, /Just received/);
   assert.doesNotMatch(admin, /value="archived"/);
   const fresh = { checklist: { done: false, session_created: false } };
-  const attention = { checklist: { done: false, session_created: true } };
-  const emailed = { checklist: { done: false, email_sent: true } };
-  const finished = { checklist: { done: true } };
-  const filed = { checklist: { done: false, archived: true } };
+  const attention = { checklist: { session_created: true } };
+  const emailed = { checklist: { email_sent: true } };
   assert.equal(adminUi.matchesFilter(fresh, 'open'), true);
   assert.equal(adminUi.matchesFilter(attention, 'open'), true);
   assert.equal(adminUi.matchesFilter(emailed, 'open'), false);
-  assert.equal(adminUi.matchesFilter(finished, 'open'), false);
-  assert.equal(adminUi.matchesFilter(finished, 'done'), true);
-  assert.equal(adminUi.matchesFilter(filed, 'done'), true);
-  assert.equal(adminUi.matchesFilter(filed, 'open'), false);
-  assert.equal(adminUi.matchesFilter(fresh, 'done'), false);
+  assert.equal(adminUi.matchesFilter(emailed, 'all'), true);
+  assert.equal(adminUi.matchesFilter(fresh, 'all'), true);
   assert.match(migration, /enable row level security/i);
   assert.match(migration, /revoke all on table public\.class_requests from public, anon/i);
   assert.doesNotMatch(outlookSrc, /sendMail/);
@@ -702,9 +696,12 @@ test('approving requires an admin and does not create a session when unauthentic
   const submitSrc = fs.readFileSync(path.join(root, 'lib/class-request-submit.js'), 'utf8');
   const approveSrc = fs.readFileSync(path.join(root, 'lib/class-request-approve.js'), 'utf8');
   const apiSrc = fs.readFileSync(path.join(root, 'api/class-requests.js'), 'utf8');
-  assert.match(adminSrc, /Approve and create session/);
+  assert.match(adminSrc, /Create session in Admin/);
   assert.match(adminSrc, /action: 'approve'/);
   assert.match(apiSrc, /body\.action === 'approve'/);
+  assert.match(adminSrc, /Delete request/);
+  assert.match(adminSrc, /action: 'delete'/);
+  assert.match(apiSrc, /body\.action === 'delete'/);
   assert.equal(fs.existsSync(path.join(root, 'api/class-requests-approve.js')), false);
   assert.doesNotMatch(submitSrc, /insertSession|buildSessionRow/);
   assert.doesNotMatch(approveSrc, /sessions\?id=eq/);

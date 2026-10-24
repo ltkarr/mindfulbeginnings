@@ -54,6 +54,17 @@ module.exports = async function handler(req, res) {
       });
       return sendJson(res, result.status, result.body);
     }
+    if (body && body.action === 'delete') {
+      const auth = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
+      const bearer = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+      const caller = await verifyAdmin(bearer).catch(function () { return null; });
+      if (!caller) return sendJson(res, 401, { error: 'Unauthorized' });
+      const id = body.id || body.request_id;
+      if (!id) return sendJson(res, 400, { error: 'Request id is required.' });
+      const removed = await store.deleteRequest(String(id));
+      if (!removed) return sendJson(res, 404, { error: 'That request was not found.' });
+      return sendJson(res, 200, { ok: true });
+    }
     const result = await submitClassRequest(body, {
       insertRequest: store.insertRequest,
       updateRequest: store.updateRequest,

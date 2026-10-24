@@ -72,8 +72,8 @@
     }
   ];
 
-  var CHECK_KEYS = ['received', 'session_created', 'email_sent', 'done'];
-  var TOGGLE_KEYS = ['session_created', 'email_sent', 'done'];
+  var CHECK_KEYS = ['received', 'session_created', 'email_sent'];
+  var TOGGLE_KEYS = ['session_created', 'email_sent'];
 
   var MONTHS = {
     jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,
@@ -113,14 +113,12 @@
     return {
       received: true,
       session_created: false,
-      email_sent: false,
-      done: false
+      email_sent: false
     };
   }
 
   function statusFromChecklist(c) {
     c = c || {};
-    if (c.done) return 'done';
     if (!c.session_created) return 'pending';
     if (!c.email_sent) return 'session_created';
     return 'email_sent';
@@ -130,8 +128,7 @@
     pending: 'Pending',
     received: 'Received',
     session_created: 'Session created',
-    email_sent: 'Email sent',
-    done: 'Done'
+    email_sent: 'Email sent'
   };
 
   function applyChecklistUpdate(current, patch) {
@@ -145,8 +142,7 @@
       if (TOGGLE_KEYS.indexOf(k) < 0) return;
       next[k] = !!patch[k];
     });
-    // Email sent is the last real step: checking it finishes the request.
-    if (patch.email_sent) next.done = true;
+    // Email sent is the last step: once sent, the request leaves the Open list.
     next.received = true;
     return { checklist: next, status: statusFromChecklist(next) };
   }
