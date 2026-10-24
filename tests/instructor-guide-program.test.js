@@ -16,7 +16,7 @@ test('instructor guide class sizes follow the program guide and owner overrides'
   assert.match(guide, /Babysitting Grandkids Workshop/);
   assert.match(guide, /Safe Sitter(?:®|\\u00ae) Grandparents: Getting Started/);
   assert.match(guide, /Introduction to Safe Babysitting by Safe Sitter/);
-  assert.match(guide, /Adult and Pediatric First Aid\/CPR\/AED is 4\.25 hours/);
+  assert.match(guide, /Adult and Pediatric First Aid\/CPR\/AED is 3 hours 45 minutes/);
   assert.match(guide, /Baby Ready.{0,20}3 hours/);
   assert.match(guide, /All Kids Welcome.{0,80}in person or virtual/);
   assert.match(guide, /Girl Scout badge workshops are custom-scheduled/);

@@ -67,7 +67,7 @@ test('Red Cross courses are new-session prices on the Oct 9 list, and existing c
   const baby = cfg.COURSES[BABYSITTER];
   const adult = cfg.COURSES[ADULT];
   assert.equal(baby.hours, 7);
-  assert.equal(adult.hours, 4.25);
+  assert.equal(adult.hours, 3.75);
   assert.equal(baby.redCross, true);
   assert.equal(adult.redCross, true);
   assert.equal(baby.requiresLeadTeacher, true);
