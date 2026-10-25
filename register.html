@@ -9,6 +9,7 @@
 <meta property="og:description" content="Register for a Mindful Beginnings babysitting, safety, or caregiving class. Use a host code or choose a public session. Pay by card, PayPal, Venmo, or Zelle.">
 <meta property="og:image" content="https://mindfulbeginnings.org/images/host/host-safe-sitter-graduates.jpg">
 <meta property="og:url" content="https://mindfulbeginnings.org/register.html">
+<link rel="canonical" href="https://mindfulbeginnings.org/register">
 <meta property="og:type" content="website">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="apple-touch-icon" href="/email-logo.png">
@@ -1184,12 +1185,14 @@ function renderPublicSessions(){
   if(!helpers){box.innerHTML='<div class="public-empty">Upcoming sessions could not be loaded. If you have a private or host code, enter it above.</div>';return;}
   const all=helpers.filterPublicSessions(publicSessionRows);
   if(!all.length){
+    injectEventSchema([],helpers);
     box.innerHTML='<div class="public-empty">No upcoming public sessions are listed right now. If you have a private or host code, enter it above, or <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">contact us</a>.</div>';
     if(moreBtn)moreBtn.style.display='none';
     return;
   }
   const priceFn=typeof getSessionBasePrice==='function'?getSessionBasePrice:null;
   const filtered=helpers.applyBrowseFilters(all,{windowDays:helpers.DEFAULT_WINDOW_DAYS},{getBasePrice:priceFn});
+  injectEventSchema(filtered,helpers);
   const sliced=helpers.sliceForDisplay(filtered,publicShowAll);
   const caps=typeof MAX_STUDENTS!=='undefined'?MAX_STUDENTS:{};
   if(!filtered.length){
@@ -1247,6 +1250,96 @@ function renderPublicSessions(){
     moreBtn.style.display=sliced.truncated?'block':'none';
     moreBtn.textContent=sliced.truncated?('Show '+sliced.hidden+' more session'+(sliced.hidden===1?'':'s')):'Show more sessions';
   }
+}
+// ── SEO: Event structured data (JSON-LD) ──────────────────────────────────
+// Builds schema.org Event entries from the same public sessions the list
+// shows, so search engines can surface class dates, places, and prices as
+// events. Only sessions bookable on this site are included (partner/external
+// bookings are skipped). Regenerated on every render; replaces the prior tag.
+function etOffsetFor(dateStr){
+  try{
+    const d=new Date(String(dateStr)+'T12:00:00Z');
+    const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',timeZoneName:'shortOffset'}).formatToParts(d);
+    const tz=parts.find(function(p){return p.type==='timeZoneName';});
+    const m=/GMT([+-]\d+)(?::(\d+))?/.exec(tz&&tz.value||'');
+    if(!m)return '-05:00';
+    const sign=m[1].charAt(0)==='-'?'-':'+';
+    return sign+String(Math.abs(parseInt(m[1],10))).padStart(2,'0')+':'+(m[2]?String(m[2]).padStart(2,'0'):'00');
+  }catch(e){return '-05:00';}
+}
+function parseTimeRange(str){
+  if(!str)return null;
+  const s=String(str).replace(/[–—]/g,'-').replace(/\s+to\s+/i,'-');
+  const parts=s.split('-').map(function(x){return x.trim();}).filter(Boolean);
+  if(parts.length<2)return null;
+  function one(t){
+    const m=/(\d{1,2})(?::(\d{2}))?\s*([aApP][mM])?/.exec(t);
+    if(!m)return null;
+    return {h:parseInt(m[1],10),min:m[2]?parseInt(m[2],10):0,mer:m[3]?m[3].toLowerCase():null};
+  }
+  const a=one(parts[0]),b=one(parts[1]);
+  if(!a||!b)return null;
+  if(!a.mer&&b.mer)a.mer=b.mer;
+  if(!b.mer&&a.mer)b.mer=a.mer;
+  function to24(o){let h=o.h%12;if(o.mer==='pm')h+=12;return h;}
+  let sh=to24(a);const eh=to24(b);
+  if(sh>eh||(sh===eh&&a.min>b.min)){
+    if(a.mer==='pm'){a.mer='am';sh=to24(a);}
+    else if(a.mer==='am'){a.mer='pm';sh=to24(a);}
+  }
+  if(sh>eh)return null;
+  function fmt(h,mn){return String(h).padStart(2,'0')+':'+String(mn).padStart(2,'0');}
+  return {start:fmt(sh,a.min),end:fmt(eh,b.min)};
+}
+function injectEventSchema(rows,helpers){
+  try{
+    let tag=document.getElementById('mb-event-schema');
+    if(!tag){
+      tag=document.createElement('script');
+      tag.type='application/ld+json';
+      tag.id='mb-event-schema';
+      document.head.appendChild(tag);
+    }
+    const priceFn=typeof getSessionBasePrice==='function'?getSessionBasePrice:null;
+    const caps=typeof MAX_STUDENTS!=='undefined'?MAX_STUDENTS:{};
+    const events=[];
+    (rows||[]).forEach(function(r){
+      if(!r||!r.date)return;
+      if(helpers.externalRegistrationUrl(r))return;
+      const virtual=!!(r.is_virtual||r.isVirtual);
+      const name=publicCourseName(r.course)||r.course||'Mindful Beginnings class';
+      const range=parseTimeRange(r.time);
+      const offset=etOffsetFor(r.date);
+      const ev={'@type':'Event',name:name,
+        eventStatus:'https://schema.org/EventScheduled',
+        eventAttendanceMode:virtual?'https://schema.org/OnlineEventAttendanceMode':'https://schema.org/OfflineEventAttendanceMode',
+        startDate:range?(r.date+'T'+range.start+':00'+offset):String(r.date),
+        organizer:{'@type':'Organization',name:'Mindful Beginnings',url:'https://mindfulbeginnings.org/'},
+        image:['https://mindfulbeginnings.org/images/host/host-safe-sitter-graduates.jpg']};
+      if(range)ev.endDate=r.date+'T'+range.end+':00'+offset;
+      const audience=helpers.courseAudience(r.course);
+      ev.description=(audience?audience+'. ':'')+(virtual?'Live online class':'In-person class')+' taught by Mindful Beginnings. Register at mindfulbeginnings.org/register.';
+      if(virtual){
+        ev.location={'@type':'VirtualLocation',url:'https://mindfulbeginnings.org/register'};
+      }else{
+        const place={'@type':'Place',address:{'@type':'PostalAddress',addressLocality:String(r.city||'').trim(),addressCountry:'US'}};
+        const venue=String(r.location||'').trim();
+        if(venue&&!/\d/.test(venue))place.name=venue;
+        ev.location=place;
+      }
+      const unitPrice=helpers.sessionPrice(r,priceFn);
+      const count=publicSessionCounts&&r.id!=null?publicSessionCounts[r.id]:null;
+      const left=count==null?null:helpers.seatsLeft(r,count,caps);
+      const per=helpers.seatsPerRegistration?helpers.seatsPerRegistration(r.course):1;
+      const soldOut=isSoldOutCode(r.code)||(left!=null&&left<per);
+      if(unitPrice!=null&&!isNaN(Number(unitPrice))){
+        ev.offers={'@type':'Offer',url:'https://mindfulbeginnings.org/register',price:String(Number(unitPrice)),priceCurrency:'USD',
+          availability:soldOut?'https://schema.org/SoldOut':'https://schema.org/InStock'};
+      }
+      events.push(ev);
+    });
+    tag.textContent=events.length?JSON.stringify({'@context':'https://schema.org','@graph':events}):'';
+  }catch(e){/* structured data is additive only; never break the page */}
 }
 async function loadPublicSessions(){
   const box=document.getElementById('public-sessions-list');
