@@ -576,6 +576,12 @@ Object.keys(COURSES).forEach(c=>{
     COURSES[c].requiresLeadTeacher=false;
     COURSES[c].redCross=false;
   }
+  if(/babysitting grandkids/i.test(c)&&/virtual/i.test(c)){
+    COURSES[c].requiresRN=true;  // the virtual grandkids workshop is taught by an RN only
+    COURSES[c].requiresSafeSitter=false;
+    COURSES[c].requiresLeadTeacher=false;
+    COURSES[c].redCross=false;
+  }
   if(girlScoutBadge){
     COURSES[c].requiresRN=false;
     COURSES[c].requiresSafeSitter=false;
