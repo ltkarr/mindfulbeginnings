@@ -665,8 +665,8 @@ test('the public API rejects a bad email without touching the database', async (
 test('a Spanish request on either public form flags the auto-created session', () => {
   assert.match(hostPage, /name="spanishRequested"/);
   assert.match(orgPage, /name="spanishRequested"/);
-  assert.match(hostPage, /Do you want this class instructed in Spanish\?/);
-  assert.match(orgPage, /Do you want this class instructed in Spanish\?/);
+  assert.match(hostPage, /Teach this class in Spanish/);
+  assert.match(orgPage, /Teach this class in Spanish/);
   const yes = model.normalizeSubmission(hostBody({ spanishRequested: true }));
   assert.equal(yes.spanishRequested, true);
   const plan = model.buildSessionRow(yes, [], { id: 's1', requestId: 'r1', createdAt: 1 });
