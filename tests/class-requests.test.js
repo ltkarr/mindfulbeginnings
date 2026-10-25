@@ -160,7 +160,7 @@ test('After School Clubs is a $200/participant organization option with a club p
   assert.equal(asc.course, 'After School Clubs');
   assert.ok(!model.coursesFor('host').some(function (c) { return c.key === 'after-school-clubs'; }), 'not on the home host form');
   assert.match(orgPage, /value="after-school-clubs"/);
-  assert.match(orgPage, /After School Clubs — 8 weeks standard, customizable · \$200\/participant/);
+  assert.match(orgPage, /After School Clubs — 8 weeks standard, customizable · In person · \$200\/participant/);
   assert.match(orgPage, /\$200\/participant/);
   assert.match(orgPage, /id="clubs-wrap"/);
   ['My First Babysitter\'s Club', 'Little Medics', 'Pet Sitter\'s Club', 'Snack Squad', 'Kid Boss Club',
