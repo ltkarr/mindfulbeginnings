@@ -14,7 +14,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Approval lives on this same function. A second file under api/ would be a
 // 13th Serverless Function, and this project is already at the Hobby limit of 12.
 function adminEmails() {
-  const raw = (process.env.ADMIN_EMAILS || 'lindsay@mindfulbeginnings.org').trim();
+  const raw = (process.env.ADMIN_EMAILS || 'lindsay@mindfulbeginnings.org,ltkarr@gmail.com').trim();
   return raw.split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
 }
 
