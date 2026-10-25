@@ -134,7 +134,7 @@ test('the database reserves a code once, with a row lock, and does not email', (
 });
 
 test('registration has a Discount code field and does not email from the apply itself', () => {
-  assert.match(register, /<label for="info-discount-code">Discount code<\/label>/);
+  assert.match(register, /<label for="promo-input"[^>]*>Discount code<\/label>/);
   assert.match(register, /apply_single_use_discount/);
   assert.match(register, /release_single_use_discount/);
   assert.match(register, /discount_on_registration/);

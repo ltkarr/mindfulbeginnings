@@ -546,7 +546,6 @@
     if (!n.isVirtual) {
       if (!n.place.raw) add('address', 'Please add the address or choose virtual.');
     }
-    if (n.kind === 'host' && !n.checklistAnswer) add('checklistAnswer', 'Please answer the hosting checklist.');
     if (n.kind === 'organization' && !n.billing.mode) add('billing', 'Please choose how registration and payment should work.');
     if (n.kind === 'organization' && n.billing.mode === 'split' && !n.portionText) {
       add('portionText', 'Please say how much of the cost your organization will cover per participant.');
