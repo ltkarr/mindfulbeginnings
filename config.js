@@ -205,9 +205,9 @@ const COURSES={
   // size. 4 hours is the teaching-length default. Like a custom job, the
   // price and the headcount are set on the session.
   'Group CPR Certification for Workplaces':{customPrice:true,customSize:true,matCost:0,hours:4,redCross:true,requiresLeadTeacher:true,adult:true,audience:'Workplaces, custom quote'},
-  // 60-minute in-person workshop. $45. Grandparents of kids from infancy to
+  // 60-minute in-person workshop. $75. Grandparents of kids from infancy to
   // about age 10. Cap 20, minimum 8.
-  'Babysitting Grandkids Workshop':{price:45,price2027:45,priceNew:45,priceNew2027:45,matCost:0,hours:1,maxStudents:20,minStudents:8,adult:true,audience:'Grandparents of kids from infancy to about age 10'},
+  'Babysitting Grandkids Workshop':{price:75,price2027:75,priceNew:75,priceNew2027:75,matCost:0,hours:1,maxStudents:20,minStudents:8,adult:true,audience:'Grandparents of kids from infancy to about age 10'},
   // 60-minute virtual version. $50. Taught by a registered nurse only:
   // updated safety guidelines and choking rescue. CPR is hands-on, so it
   // is not part of this virtual session.

@@ -70,7 +70,7 @@ test('Babysitter Training, Baby Ready, workplace CPR, and Safe@Home keep the gui
   assert.equal(cfg.COURSES['My First Babysitters Club'].audience, 'Grades 4 to 5 · 8-week series');
   assert.equal(cfg.COURSES['My First Babysitters Club — Single Session'].audience, 'Grades 4 to 5 · 2.5-hour workshop');
   assert.equal(cfg.COURSES['Steady and Ready'].hours, 1);
-  assert.equal(cfg.getSessionBasePrice('Babysitting Grandkids Workshop', '2026-12-01', now), 45);
+  assert.equal(cfg.getSessionBasePrice('Babysitting Grandkids Workshop', '2026-12-01', now), 75);
   assert.equal(cfg.COURSES['Babysitting Grandkids Workshop'].maxStudents, 20);
 });
 
