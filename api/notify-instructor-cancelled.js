@@ -36,7 +36,7 @@ function serviceKey() {
 }
 
 function adminEmails() {
-  const raw = (process.env.ADMIN_EMAILS || 'lindsay@mindfulbeginnings.org').trim();
+  const raw = (process.env.ADMIN_EMAILS || 'lindsay@mindfulbeginnings.org,ltkarr@gmail.com').trim();
   return raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 }
 
