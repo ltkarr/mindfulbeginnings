@@ -303,5 +303,5 @@ test('the materials checklist migration adds the three columns and is not applie
   const build = fs.readFileSync(path.join(root, 'admin-build.txt'), 'utf8').trim();
   const m = admin.match(/window\.MB_ADMIN_BUILD='([^']+)'/);
   assert.equal(m[1], build);
-  assert.equal(build, '20261022-referral-partners');
+  assert.equal(build, '20261026-session-views');
 });

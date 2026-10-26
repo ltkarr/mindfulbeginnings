@@ -36,6 +36,7 @@ const sandbox = {
   Date, String, Number, Math, Object, escapeHtml: null
 };
 vm.createContext(sandbox);
+sandbox.MBSessionViews = require(path.join(root, 'js', 'session-views.js'));
 vm.runInContext(
   [
     extractFunction(admin, 'escapeHtml'),
@@ -258,6 +259,8 @@ test('the packing tab is added without removing the other screens', () => {
     'Class requests',
     'Registrations',
     'Finances',
+    'Invoices',
+    'Evaluations',
     'Instructors',
     'More',
     'Narrow the menu',
@@ -379,5 +382,49 @@ test('each in-person class gets a bring line from the kit and the registration c
   assert.doesNotMatch(pdf, /missing|shortfall|on hand|free of/i);
   delete sandbox.sessionBookNeeds;
   delete sandbox.sessionMatNeeds;
+  delete sandbox.matPlanForSession;
+});
+
+test('a private troop class with a host count of 9 lists both days and that count', () => {
+  sandbox.matPlanForSession = function (draft) {
+    const n = Number(draft.headcount) || 0;
+    return {
+      skip: false,
+      books: n ? [{ kind: 'ssHandbook', need: n }, { kind: 'ssNotebook', need: n }] : [],
+      lines: [
+        { kind: 'av', need: 1, consumable: false },
+        { kind: 'infant', need: n > 8 ? 2 : 1, consumable: false },
+        { kind: 'child', need: n > 8 ? 2 : 1, consumable: false }
+      ]
+    };
+  };
+  const reston = sess({
+    id: 'add8b08a-440c-405f-a06a-7cc7a53c8595',
+    code: 'SS-261030',
+    course: 'Safe Sitter®',
+    date: '2026-10-30',
+    time: '1:00-4:00 PM',
+    location: 'Meredith Sarver / Troop Leader House',
+    city: 'Reston',
+    instructorId: 'katy',
+    isPrivate: true,
+    orgHandlesRegistration: false,
+    billToOrg: 'GS Cadette Troop 51093 (Meredith Sarver)',
+    billedHeadcount: 9,
+    priceOverride: 0,
+    extraDates: ['2026-11-13'],
+    extraDays: [{ date: '2026-11-13', time: '3:00-5:00 PM' }]
+  });
+  const built = sandbox.packingBuildModel([reston], [{ id: 'katy', name: 'Kathryn Greenberg' }], {}, '2026-10-26', 60, []);
+  assert.equal(built.rows.length, 1);
+  assert.equal(built.rows[0].countPhrase, 'Headcount from host: 9');
+  assert.equal(built.rows[0].registered, 9);
+  assert.match(built.rows[0].meetings, /Oct 30, 2026/);
+  assert.match(built.rows[0].meetings, /Nov 13, 2026, 3:00-5:00 PM/);
+  assert.match(built.rows[0].bring, /9 Safe Sitter handbooks/);
+  assert.match(built.rows[0].bring, /2 infant manikins/);
+  const screen = sandbox.packingGroupsHtml(built);
+  assert.match(screen, /Headcount from host: 9/);
+  assert.doesNotMatch(screen, /0 participants registered/);
   delete sandbox.matPlanForSession;
 });
