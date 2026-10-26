@@ -1360,6 +1360,20 @@ async function loadPublicSessions(){
       (cntRows||[]).forEach(function(c){if(c&&c.session_id)publicSessionCounts[c.session_id]=Number(c.cnt)||0;});
     }catch(e){console.warn('Public session seat counts unavailable:',e);}
     publicSessionRows=res.data||[];
+    // Website listing overrides (Lindsay, 2026-10-26):
+    // - IB-261105 (Intro to Babysitting, Magothy River Middle School, Nov 5)
+    //   is a school event. Misty sends it to her families directly, so it
+    //   stays bookable by code but is never listed on the website.
+    // - AKWV-261122 (All Kids Welcome Virtual, Nov 22) is not listed either.
+    // - SS-1102 (Safe Sitter, Nov 2) is cancelled in Admin, which drops it
+    //   from this list. Lindsay wants it shown as SOLD OUT with JOIN WAITLIST,
+    //   like Nov 3, so a display-only row is added back. Its code is already
+    //   in SOLD_OUT_CODES, and Join waitlist runs through the code flow.
+    var HIDDEN_PUBLIC_CODES=['IB-261105','AKWV-261122'];
+    publicSessionRows=publicSessionRows.filter(function(r){return HIDDEN_PUBLIC_CODES.indexOf(String(r&&r.code||'').trim().toUpperCase())===-1;});
+    if(!publicSessionRows.some(function(r){return String(r&&r.code||'').trim().toUpperCase()==='SS-1102';})){
+      publicSessionRows.push({id:'display-ss-1102',code:'SS-1102',course:'Safe Sitter\u00ae',date:'2026-11-02',time:'10 AM - 3 PM',city:'Bethesda',location:"The Writer's Center",is_virtual:false,price_override:null,max_students_override:16,created_at:1791226738253,external_registration_url:null,allow_waitlist:true,extra_dates:[]});
+    }
     publicShowAll=false;
     renderPublicSessions();
   }catch(e){
