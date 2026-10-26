@@ -146,7 +146,7 @@ test('manually sold-out codes always route to the waitlist in checkCode', () => 
 });
 
 test('manually sold-out sessions show a red SOLD OUT banner, no price, and a JOIN WAITLIST contact link', () => {
-  assert.match(register, /var SOLD_OUT_CODES=\['SS-1103'\]/);
+  assert.match(register, /var SOLD_OUT_CODES=\['SS-1103','SS-1102'\]/);
   assert.match(register, /SOLD_OUT_CONTACT_URL='https:\/\/mindfulbeginnings\.org\/contact'/);
   const render = register.slice(register.indexOf('function renderPublicSessions'), register.indexOf('async function loadPublicSessions'));
   assert.match(render, /soldOut/);

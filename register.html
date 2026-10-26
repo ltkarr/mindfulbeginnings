@@ -1171,7 +1171,7 @@ function selectPublicSession(code){
 // Manual sold-out override: session codes listed here render as SOLD OUT
 // (no price; JOIN WAITLIST routes to the native waitlist flow)
 // regardless of seat counts.
-var SOLD_OUT_CODES=['SS-1103'];
+var SOLD_OUT_CODES=['SS-1103','SS-1102'];
 function isSoldOutCode(code){
   return SOLD_OUT_CODES.indexOf(String(code||'').trim().toUpperCase())!==-1;
 }
