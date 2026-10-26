@@ -68,7 +68,7 @@ Without PayPal env vars, Venmo and Zelle still work; card/PayPal shows a short �
 
 ## Matching a payment you already received
 
-Card and PayPal checkout on the registration page and on `pay.html` still mark the matching registration paid automatically after a successful capture. Nothing in the admin scans a PayPal, Venmo, or Zelle inbox, and there is no bank or payment-app API for that.
+Card and PayPal checkout on the registration page and on `pay.html` still mark the matching registration paid automatically after a successful capture. Venmo, Zelle, and PayPal payments sent outside that checkout can be marked paid from the notification email. See `docs/PAYMENT-AUTO-MATCH.md`. The Match payment screen itself does not read an inbox.
 
 When money arrives outside that flow, use **Registrations → Match payment** (or **Match** on an unpaid or pending row, or **Match payment** on the 48-hour pending alert). Enter the amount and the parent name, email, or phone. The Venmo/Zelle memo’s `Reg <registration id>` is enough on its own. The tool lists open registrations that fit, including the class, and **Mark paid** asks you to confirm first.
 

@@ -178,6 +178,10 @@ test('clearPendingPaymentNotes strips reservation tags only', () => {
     clearPendingPaymentNotes('[Family marked VENMO sent — confirm in Venmo app] [Promo SAVE10 applied: −$10 off 185 → 175]'),
     '[Promo SAVE10 applied: −$10 off 185 → 175]'
   );
+  assert.equal(
+    clearPendingPaymentNotes('[Possible Venmo payment $225.00 from Kristen Myers on Oct 21 - review] Nut allergy'),
+    'Nut allergy'
+  );
 });
 
 test('admin Mark paid records $0 revenue and still sets paid status', () => {
