@@ -62,7 +62,7 @@ a:hover{color:var(--navy-dark)}
 .mb-btn-navy:hover{background:var(--btn-gold);color:var(--navy)}
 .mb-btn-outline{background:transparent;color:var(--cream);font-size:17px;padding:10px 22px;border:2px solid var(--cream)}
 .mb-btn-outline:hover{background:var(--cream);color:var(--navy)}
-.mb-btn-sm{font-size:14px;padding:8px 16px;border:2px solid var(--navy)}
+.mb-btn-sm{font-size:15px;padding:10px 20px;border:0}
 a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 
 /* ---------- shared footer ---------- */
