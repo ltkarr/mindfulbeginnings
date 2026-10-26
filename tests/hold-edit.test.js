@@ -20,13 +20,15 @@ test('a hold opens the same edit form and still stays off public registration', 
   assert.ok(holdBranch > 0 && editItem > holdBranch);
   assert.ok(addStudent > holdBranch && addStudent < editItem);
 
-  const rowAt = admin.indexOf('if(s.isHold){\n        const enrolled');
+  const rowAt = admin.indexOf('if(s.isHold){\n        const whenFull');
   const row = admin.slice(rowAt, admin.indexOf('if(s.isCustomJob){', rowAt));
   assert.match(row, /\$\{instr\}/);
   assert.match(row, /ON HOLD/);
-  assert.match(row, /sessionOccupiedSeats\(s\)/);
+  assert.match(row, /sessionStudentsLabel\(s\)/);
   assert.match(admin.slice(admin.indexOf('function registeredSeatCount'), admin.indexOf('function sessionOccupiedSeats')), /isLiveReg\(r\)/);
-  assert.match(row, /sessionCapLabel\(s\)/);
+  const seatLabel = admin.slice(admin.indexOf('function sessionStudentsLabel'), admin.indexOf('function instrActive'));
+  assert.match(seatLabel, /sessionOccupiedSeats\(s\)/);
+  assert.match(seatLabel, /sessionCapLabel\(s\)/);
   assert.match(row, /revenueCell\(s,f,holdNote\)/);
   const revenueFn = admin.slice(admin.indexOf('const revenueCell='), admin.indexOf('const locCell='));
   assert.match(revenueFn, /fmt\(f\.revenue\)/);

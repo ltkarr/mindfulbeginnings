@@ -24,7 +24,14 @@ function extractFn(src, name) {
   throw new Error('unclosed function ' + name);
 }
 
-const sandbox = { Date, Math, Number, isNaN, isFinite };
+const sandbox = {
+  Date,
+  Math,
+  Number,
+  isNaN,
+  isFinite,
+  MBSessionViews: require(path.join(root, 'js', 'session-views.js'))
+};
 vm.createContext(sandbox);
 vm.runInContext(
   [
@@ -42,9 +49,11 @@ test('one-off sessions are not long series', () => {
   assert.equal(sandbox.isLongSeries({}), false);
 });
 
-test('multi-week series span more than 7 days', () => {
+test('multi-week series are three or more meetings, or a recurring job, past 7 days', () => {
   assert.equal(sandbox.sessionSpanDays({ date: '2026-10-01', extraDates: ['2026-10-08', '2026-10-15'] }), 14);
-  assert.equal(sandbox.isLongSeries({ date: '2026-10-01', extraDates: ['2026-10-09'] }), true); // 8 days
+  // Two meeting days stay on Upcoming. Oct 30 and Nov 13 is this case.
+  assert.equal(sandbox.isLongSeries({ date: '2026-10-01', extraDates: ['2026-10-09'] }), false);
+  assert.equal(sandbox.isLongSeries({ date: '2026-10-01', extraDates: ['2026-10-08', '2026-10-15'] }), true);
   assert.equal(
     sandbox.isLongSeries({ date: '2026-10-01', isRecurring: true, recurEndDate: '2026-12-01' }),
     true

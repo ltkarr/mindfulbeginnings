@@ -22,6 +22,7 @@
 <script src="/js/course-booking.js"></script>
 <script src="/js/referral-commissions.js"></script>
 <script src="/js/session-place.js"></script>
+<script src="/js/session-views.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -495,7 +496,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,isPrivate:r.is_private===true,orgHandlesRegistration:r.org_handles_registration===true,billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),priceOverride:r.price_override==null?null:Number(r.price_override),requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -741,6 +742,35 @@ function seatsPerRegistration(course){
   return 1;
 }
 function filledSeats(s){return countRegs(s&&s.id)*seatsPerRegistration(s&&s.course);}
+// Live registrations, unless the host or organization supplies the count.
+// The phrase is the same sentence admin, packing, and this portal show.
+function rosterFact(s){
+  const n=filledSeats(s);
+  if(typeof MBSessionViews!=='undefined'&&MBSessionViews.rosterFact)return MBSessionViews.rosterFact(s,n);
+  const word=n===1?'participant':'participants';
+  return {mode:'registered',count:n,people:n,phrase:n+' '+word+' registered'};
+}
+function rosterPhrase(s){return rosterFact(s).phrase;}
+function sessionWhenText(s){
+  if(typeof MBSessionViews!=='undefined'&&MBSessionViews.meetingSummary){
+    const line=MBSessionViews.meetingSummary(s);
+    if(line)return line;
+  }
+  if(!s)return '';
+  return fmtSessDates(s)+(s.time?' at '+s.time:'');
+}
+function rosterTimeLine(s){
+  const m=sessMeetings(s);
+  if(!m.length)return (s&&s.time)||'TBD';
+  if(m.length<2)return m[0].time||(s&&s.time)||'TBD';
+  const times=m.map(x=>String(x.time||'').trim());
+  if(times.every(t=>t===times[0]))return times[0]||(s&&s.time)||'TBD';
+  return m.map(x=>{
+    const d=new Date(x.date+'T12:00:00');
+    const label=isNaN(d)?x.date:d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return label+(x.time?' '+x.time:'');
+  }).join('; ');
+}
 function partnerNameOf(r){
   const booking=(typeof window!=='undefined'&&window.MBCourseBooking)||null;
   if(booking)return booking.partnerNameOf(r);
@@ -954,8 +984,9 @@ function myHistory(s){
 function enrollment(s){
   const c=COURSES[s.course]||{};
   const cap=s.maxStudentsOverride||c.maxStudents||null;
-  const n=filledSeats(s);
-  return{n,cap,pct:cap?Math.min(100,Math.round(n/cap*100)):null};
+  const fact=rosterFact(s);
+  const n=fact.mode==='registered'?filledSeats(s):fact.people;
+  return{n,cap,pct:cap?Math.min(100,Math.round(n/cap*100)):null,fact};
 }
 
 // The row of headline numbers at the top of a card: what it pays, what it costs
@@ -1000,7 +1031,9 @@ function fitChecksHTML(s,idx){
   else rows.push({t:'info',ic:'📘',x:`First time teaching <strong>${escapeHtml(s.course)}</strong> — see the Instructor Guide tab to prepare`});
   if(hist.venue>0&&!(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.isGenericHostLabel(s.location)))rows.push({t:'good',ic:'📍',x:`You have taught at <strong>${escapeHtml(s.location)}</strong> before — you know the drill`});
   const en=enrollment(s);
-  if(!s.isCustomJob&&en.cap){
+  if(!s.isCustomJob&&en.fact&&en.fact.mode!=='registered'){
+    rows.push({t:en.fact.mode==='pending'?'warn':'good',ic:'🎟️',x:`<strong>${escapeHtml(en.fact.phrase)}</strong>`});
+  }else if(!s.isCustomJob&&en.cap){
     const t=en.pct>=70?'good':en.pct>=30?'info':'warn';
     rows.push({t,ic:t==='good'?'🎟️':'🎟️',x:`<strong>${en.n} of ${en.cap} seats filled</strong>${en.pct>=70?' — this class is going ahead':en.n===0?' — enrollment has not opened up yet':''}`,bar:en.pct});
   }
@@ -2262,7 +2295,7 @@ function renderMyJobs(){
         <div class="jc-detail"><div class="jc-detail-label">Your earnings</div>${earningsHtml}</div>
       </div>`}
       ${s.isCustomJob?'':`<div class="jc-details">
-        <div class="jc-detail"><div class="jc-detail-label">${isAdultCourse(s.course)?'Participants registered':'Students registered'}</div><div class="jc-detail-val">${filledSeats(s)}</div></div>
+        <div class="jc-detail"><div class="jc-detail-label">${isAdultCourse(s.course)?'Participants':'Students'}</div><div class="jc-detail-val">${escapeHtml(rosterPhrase(s))}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">Materials</div><div class="jc-detail-val" style="font-size:14px">${matHtml}</div></div>
       </div>`}
       ${bonus>0?`<div style="font-size:13px;color:var(--muted);margin:-6px 0 12px">Earnings include a referral bonus of ${fmt(bonus)} on top of the ${fmt(baseFee)} base fee.</div>`:''}
@@ -2625,7 +2658,10 @@ async function printRoster(sessId){
   const adult=isAdultCourse(s.course);
   const whoLabel=adult?'Participant':'Student';
   const people=regs.reduce((n,r)=>n+(adult&&partnerNameOf(r)?2:1),0);
-  const countPhrase=people+' '+(adult?(people===1?'participant':'participants'):(people===1?'student':'students'));
+  const fact=rosterFact(s);
+  const namePhrase=people+' '+(adult?(people===1?'participant':'participants'):(people===1?'student':'students'));
+  const countPhrase=(fact.mode!=='registered')?fact.phrase:namePhrase;
+  const timeLine=rosterTimeLine(s);
   const rows=regs.length?regs.map((r,i)=>`
     <tr>
       <td style="width:28px;color:#aaa;font-size:13px">${i+1}</td>
@@ -2633,7 +2669,7 @@ async function printRoster(sessId){
       ${adult?'':`<td>${escapeHtml(r.grade)||'—'}</td><td>${escapeHtml(r.parent_name)||'—'}</td>`}
       <td style="font-size:14px">${escapeHtml(r.contact)||'—'}</td>
     </tr>`)
-  .join(''):'<tr><td colspan="'+(adult?3:5)+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
+  .join(''):'<tr><td colspan="'+(adult?3:5)+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">'+(fact.mode!=='registered'?escapeHtml(fact.phrase):('No '+(adult?'participants':'students')+' registered yet'))+'</td></tr>';
 
   const infoRows=[
     (priv.hostAddress&&portalPlace(s,priv).toLowerCase().indexOf(String(priv.hostAddress).toLowerCase())===-1)?`<div><span style="color:#6b7a99">Host / site address:</span><br><strong>${escapeHtml(priv.hostAddress)}</strong></div>`:'',
@@ -2671,11 +2707,11 @@ async function printRoster(sessId){
     <div class="sub">Class Roster &nbsp;·&nbsp; ${escapeHtml(me.name)}</div>
     <div class="session-grid">
       <div><span style="color:#6b7a99">Date:</span> <strong>${d}</strong></div>
-      <div><span style="color:#6b7a99">Time:</span> <strong>${s.time||'TBD'}</strong></div>
+      <div><span style="color:#6b7a99">Time:</span> <strong>${escapeHtml(timeLine)}</strong></div>
       <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(portalPlace(s,priv)||'TBD')}</strong></div>
       ${s.code?`<div><span style="color:#6b7a99">Session code:</span> <strong>${escapeHtml(s.code)}</strong></div>`:''}
-      <div><span style="color:#6b7a99">${adult?'Participants:':'Students:'}</span> <strong>${people}</strong></div>
-      ${_mtgs.length>1?`<div style="grid-column:1/-1;border-top:1px solid #dde4ee;padding-top:8px;margin-top:4px"><span style="color:#6b7a99">Class days:</span> <strong>${_mtgs.map(m=>new Date(m.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(' · ')}</strong>${sessClosures(s).length?`<div style="color:#b86a00;font-size:14px;margin-top:4px">No class: ${sessClosures(s).map(c=>new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+escapeHtml(c.reason)+')':'')).join(' · ')}</div>`:''}</div>`:''}
+      <div><span style="color:#6b7a99">${adult?'Participants:':'Students:'}</span> <strong>${escapeHtml(countPhrase)}</strong></div>
+      ${_mtgs.length>1?`<div style="grid-column:1/-1;border-top:1px solid #dde4ee;padding-top:8px;margin-top:4px"><span style="color:#6b7a99">Class days:</span> <strong>${_mtgs.map(m=>new Date(m.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(m.time?' '+escapeHtml(m.time):'')).join(' · ')}</strong>${sessClosures(s).length?`<div style="color:#b86a00;font-size:14px;margin-top:4px">No class: ${sessClosures(s).map(c=>new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+escapeHtml(c.reason)+')':'')).join(' · ')}</div>`:''}</div>`:''}
     </div>
     <div class="info-box">
       <div class="info-box-label">Session Info</div>
@@ -2735,7 +2771,7 @@ function printJobsCalendar(){
       const d=new Date(it.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
       if(!it.cls)return`<tr style="color:#b86a00"><td style="white-space:nowrap">${d}</td><td colspan="4"><em>No class${it.reason?' — '+escapeHtml(it.reason):''}</em></td></tr>`;
       const label=escapeHtml(s.course)+(days.length>1?` <span style="color:#6b7a99">(class ${it.n} of ${days.length})</span>`:'');
-      return`<tr><td style="white-space:nowrap">${d}</td><td>${escapeHtml(it.time||s.time||'TBD')}</td><td>${label}</td><td>${idx===0?loc:'<span style="color:#aaa">↑ same</span>'}</td><td>${filledSeats(s)}</td></tr>`;
+      return`<tr><td style="white-space:nowrap">${d}</td><td>${escapeHtml(it.time||s.time||'TBD')}</td><td>${label}</td><td>${idx===0?loc:'<span style="color:#aaa">↑ same</span>'}</td><td>${escapeHtml(rosterPhrase(s))}</td></tr>`;
     }).join('');
   }).join('');
   const printTitle='Upcoming Jobs - '+escapeHtml(me.name);
@@ -2841,7 +2877,7 @@ function downloadJobsICS(){
     const loc=portalPlace(s,priv)||'';
     const fee=instrFeeForJob(s,jdi)+(jdi.referralBonus||0);
     const closureNote=sessClosures(s).map(c=>'No class '+new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+c.reason+')':'')).join('; ');
-    const desc=`Mindful Beginnings teaching job.\n${isAdultCourse(s.course)?'Participants':'Students'} registered: ${filledSeats(s)}\nYour fee: ${fmt(fee)}`
+    const desc=`Mindful Beginnings teaching job.\n${rosterPhrase(s)}\nYour fee: ${fmt(fee)}`
       +(closureNote?`\nClosures: ${closureNote}`:'')
       +(s.instructorInfo?`\n\n${s.instructorInfo}`:'');
     days.forEach((day,idx)=>{
@@ -4053,17 +4089,17 @@ function sendJobAcceptedNotification(session){
   const fee=instrFee(session)+(jd.referralBonus||0);
   const hoursNote=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(session):'';
   const feeText=hoursNote?fmt(fee)+'. '+hoursNote:fmt(fee);
-  const when=fmtSessDates(session)+(session.time?' at '+session.time:'');
+  const when=sessionWhenText(session);
   const where=portalPlace(session)||'TBD';
-  const who=isAdultCourse(session.course)?'Participants':'Students';
+  const headcount=rosterPhrase(session);
   const shared={
     instructor_name:me.name,instructor_email:me.email||'not on file',instructor_phone:me.phone||'not on file',
-    course:session.course,date:fmtSessDates(session),time:session.time||'TBD',
+    course:session.course,date:fmtSessDates(session),time:rosterTimeLine(session),
     location:where,
-    fee:feeText,students:filledSeats(session)
+    fee:feeText,students:headcount
   };
-  const lindsayMessage=`${me.name} accepted the ${session.course} session on ${when}.\n\nLocation: ${where}\n${who} registered: ${filledSeats(session)}\nInstructor fee: ${feeText}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}`;
-  const instructorMessage=`You are confirmed to teach ${session.course} on ${when}.\n\nLocation: ${where}\n${who} registered: ${filledSeats(session)}\nYour fee: ${feeText}\n\nIf this is wrong, contact Lindsay at lindsay@mindfulbeginnings.org.`;
+  const lindsayMessage=`${me.name} accepted the ${session.course} session on ${when}.\n\nLocation: ${where}\n${headcount}\nInstructor fee: ${feeText}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}`;
+  const instructorMessage=`You are confirmed to teach ${session.course} on ${when}.\n\nLocation: ${where}\n${headcount}\nYour fee: ${feeText}\n\nIf this is wrong, contact Lindsay at lindsay@mindfulbeginnings.org.`;
   // 1) Notify Lindsay. Her wording stays off the instructor template.
   emailjs.send('service_delt0r4',TPL_LINDSAY_JOB_NOTIFY,Object.assign({},shared,{message:lindsayMessage}))
     .then(() => {
@@ -4108,11 +4144,11 @@ function sendJobCancelledNotification(session){
     instructor_phone:me.phone||'not on file',
     course:'🚨 JOB CANCELLED — '+session.course,
     date:fmtSessDates(session),
-    time:session.time||'TBD',
+    time:rosterTimeLine(session),
     location:portalPlace(session)||'TBD',
     fee:feeText,
-    students:filledSeats(session),
-    message:`🚨 JOB CANCELLED 🚨\n\n${me.name} has cancelled their acceptance of the ${session.course} session on ${fmtSessDates(session)}${session.time?' at '+session.time:''}.\n\nLocation: ${portalPlace(session)||'TBD'}\n${isAdultCourse(session.course)?'Participants':'Students'} registered: ${filledSeats(session)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}\n\nCoverage is needed for this session.${waitNote}`
+    students:rosterPhrase(session),
+    message:`🚨 JOB CANCELLED 🚨\n\n${me.name} has cancelled their acceptance of the ${session.course} session on ${sessionWhenText(session)}.\n\nLocation: ${portalPlace(session)||'TBD'}\n${rosterPhrase(session)}\n\nInstructor contact:\nPhone: ${me.phone||'not on file'}\nEmail: ${me.email||'not on file'}\n\nCoverage is needed for this session.${waitNote}`
   };
   emailjs.send('service_delt0r4',TPL_LINDSAY_JOB_CANCEL,params)
     .catch(err=>console.warn('Cancellation notification failed:',err));

@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261023-host-address';
+window.MB_ADMIN_BUILD='20261026-session-views';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -42,6 +42,7 @@ window.MB_ADMIN_BUILD='20261023-host-address';
 <script src="/js/class-requests-admin.js"></script>
 <script src="/js/invoice-payments.js"></script>
 <script src="/js/session-place.js"></script>
+<script src="/js/session-views.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -428,6 +429,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .pack-time,.pack-place,.pack-course{line-height:1.4}
 .pack-course{font-weight:650}
 .pack-count{margin-top:2px;font-size:14px;font-weight:650;color:#1d6b45;line-height:1.35}
+.pack-meet{margin-top:2px;font-size:13px;font-weight:600;color:#1a5c8a;line-height:1.35}
 .pack-kit,.pack-bring{margin-top:2px;font-size:14px;font-weight:500;line-height:1.35}
 .more-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;max-width:720px}
 .more-link{display:block;width:100%;text-align:left;background:white;border:0.5px solid var(--border);border-radius:var(--r);padding:18px 20px;cursor:pointer;font-family:'Montserrat',sans-serif;color:var(--text)}
@@ -602,6 +604,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
       </div>
+      <div id="view-check"></div>
       <div id="dupe-banner"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="sessions-table"></table></div></div>
     </div>
@@ -956,7 +959,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,isPrivate:r.is_private===true,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -1080,6 +1083,9 @@ function sessionToDB(s){
   // A session object that never loaded the field must not turn a normal class
   // into an organization-registration class, or the reverse.
   if(s.orgHandlesRegistration!==undefined&&(typeof ORG_REG_COL==='undefined'||ORG_REG_COL))o.org_handles_registration=!!s.orgHandlesRegistration;
+  // A session loaded before this field existed must not flip a private class
+  // onto the public list the next time it is saved.
+  if(s.isPrivate!==undefined)o.is_private=!!s.isPrivate;
   if(o.code==null||o.code==='')o.code=null;
   // created_at drives ALL pricing, so write it explicitly rather than trusting a
   // database default to exist. A session that arrives without one is stamped with the
@@ -1881,7 +1887,12 @@ function sessionSpanDays(s){
   const ms=new Date(end+'T12:00:00')-new Date(s.date+'T12:00:00');
   return Number.isFinite(ms)?Math.round(ms/86400000):0;
 }
-function isLongSeries(s){return sessionSpanDays(s)>7;}
+function isLongSeries(s){
+  // Two meeting days stay on Upcoming. Three or more, or a recurring job
+  // longer than a week, stay on the Multi-week series tab. See js/session-views.js.
+  if(typeof MBSessionViews!=='undefined'&&MBSessionViews.isLongSeries)return MBSessionViews.isLongSeries(s);
+  return sessionSpanDays(s)>7;
+}
 const RECUR_NAMES={weekly:'Weekly',biweekly:'Every other week',monthly:'Monthly'};
 function recurLabel(s){
   if(!s.isRecurring)return'';
@@ -3294,6 +3305,20 @@ function fmtSessDate(s,opts){
   }
   return [main,...extras.map(x=>x.toLocaleDateString('en-US',o))].join(' & ');
 }
+// One shared time stays as the time. Different meeting times stay with their day,
+// so a split Safe Sitter does not print the first afternoon on both days.
+function sessionTimeLine(s){
+  const days=(typeof MBSessionViews!=='undefined'&&MBSessionViews.meetingDays)?MBSessionViews.meetingDays(s):[];
+  if(!days.length)return (s&&s.time)||'TBD';
+  if(days.length<2)return days[0].time||(s&&s.time)||'TBD';
+  const times=days.map(function(d){return String(d.time||'').trim();});
+  if(times.every(function(t){return t===times[0];}))return times[0]||(s&&s.time)||'TBD';
+  return days.map(function(d){
+    const dt=new Date(d.date+'T12:00:00');
+    const label=isNaN(dt)?d.date:dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return label+(d.time?' '+d.time:'');
+  }).join('; ');
+}
 // Small "+ Sep 16" lines shown under the main date in tables/lists for multi-day classes.
 function extraDatesHtml(s){
   const days=(s&&s.extraDays&&s.extraDays.length)?s.extraDays:((s&&s.extraDates)||[]).filter(Boolean).map(x=>({date:x,time:''}));
@@ -3367,6 +3392,30 @@ function registeredSeatCount(s, extraRows){
 // Seats taken for the list and for remaining capacity.
 function sessionOccupiedSeats(s, extraRows){
   return Math.max(registeredSeatCount(s, extraRows), orgCommittedParticipants(s), reservedSeatHold(s));
+}
+// People already signed up. Refunded rows are not a headcount. This is the
+// registration side of the roster. Host and organization counts are separate
+// and are applied in sessionRosterFact, which every screen uses.
+function sessionRegisteredPeople(s){
+  if(!s||!s.id||typeof seatsOnSession!=='function')return 0;
+  try{return Math.max(0,Number(seatsOnSession(s.id))||0);}catch(e){return 0;}
+}
+function sessionRosterFact(s){
+  const n=sessionRegisteredPeople(s);
+  if(typeof MBSessionViews!=='undefined'&&MBSessionViews.rosterFact)return MBSessionViews.rosterFact(s,n);
+  const word=n===1?'participant':'participants';
+  return {mode:'registered',count:n,people:n,phrase:n+' '+word+' registered'};
+}
+function sessionStudentsLabel(s){
+  const fact=sessionRosterFact(s);
+  const wl=(typeof registrations!=='undefined'?registrations:[]).filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
+  const wlBit=wl?(' · '+wl+' waitlist'):'';
+  if(!fact||fact.mode==='registered'){
+    const n=sessionOccupiedSeats(s);
+    const reserved=s&&s.isHold&&s.reservedSeats!=null?(' · '+s.reservedSeats+' reserved'):'';
+    return n+' / '+sessionCapLabel(s)+wlBit+reserved;
+  }
+  return fact.phrase+wlBit;
 }
 // ── ACTIVE / INACTIVE INSTRUCTORS ───────────────────────────
 // An inactive instructor is one who is no longer on the roster — someone who never
@@ -6946,7 +6995,8 @@ function renderDashboard(){
         const sd0=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate());
         const dayDiff=Math.round((sd0-today0)/86400000);
         const d=fmtSessDate(s,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-        const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
+        const rosterFact=sessionRosterFact(s);
+        const meetLine=(typeof MBSessionViews!=='undefined'&&MBSessionViews.meetingSummary)?MBSessionViews.meetingSummary(s):'';
         const jd=jobDataCache[s.id]||{};
         const hasInstr=!s.ownerTaught&&((jd.instructorId)||s.instructorId);
         const hasHost=s.hasHost!==false;
@@ -6971,13 +7021,14 @@ function renderDashboard(){
         if(!custom)items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Family reminder — before class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
         const instrLabel=checklistInstructorLabel(s);
         const hostLabel=checklistHostLabel(s);
-        const countBit=preClassShowsStudentCount(s)?` · ${cnt} student${cnt!==1?'s':''}`:'';
+        const countBit=preClassShowsStudentCount(s)?` · ${rosterFact.phrase}`:'';
         const roleLine=(label,value,empty)=>`<span style="min-width:0"><span style="color:var(--muted)">${label}:</span> <span style="${value===empty?'color:var(--muted);font-style:italic':'font-weight:600'}">${escapeHtml(value)}</span></span>`;
         return`<div style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid ${accent}">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">
             <div style="font-size:15px;min-width:0">
               <span style="font-weight:600">${s.course}</span>
               <span style="color:var(--muted);margin-left:6px">${d}${countBit}</span>
+              ${meetLine?`<span style="display:block;color:#1a5c8a;font-size:14px;font-weight:600">${escapeHtml(meetLine)}</span>`:''}
             </div>
             <div style="flex-shrink:0">${badge}</div>
           </div>
@@ -7192,8 +7243,6 @@ function renderSessions(){
       const mgr=bg=>`<td class="mgr-cell" style="text-align:right;background:${bg}"><button type="button" class="btn sm" aria-haspopup="menu" aria-expanded="false" aria-label="Manage session" onclick="openSessionMenu(event,'${s.id}')" onkeydown="sessionMenuButtonKey(event,'${s.id}')">Manage \u25be</button></td>`;
       const where=locCell(s);
       if(s.isHold){
-        const enrolled=sessionOccupiedSeats(s);
-        const wlHold=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
         const whenFull=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):(s.holdTerm||'Date TBD');
         const timeNote=(s.time||'').trim();
         // A parenthetical on the term is the same preferred-time note. Show it once,
@@ -7207,8 +7256,9 @@ function renderSessions(){
         const payCell=revenueCell(s,f,holdNote);
         const pills=[pill('ON HOLD','#e7e0f5','#5b4a8a')];
         if(s.orgHandlesRegistration)pills.push(pill('Org registration','#fdecea','#a33b32','The organization signs people up. No public registration and no session code.'));
+        if(s.isPrivate)pills.push(pill('Private','#eef2f8','#3d4d6a','Off the public class list. It still shows here.'));
         if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
-        const seatLabel=`${enrolled} / ${sessionCapLabel(s)}${wlHold?' · '+wlHold+' waitlist':''}${s.reservedSeats!=null?' · '+s.reservedSeats+' reserved':''}`;
+        const seatLabel=sessionStudentsLabel(s);
         return`<tr style="background:#f6f4fb">
           <td><div class="cell-stack">${whenCell}</div></td>
           <td><div class="cell-stack">${courseCell(pills)}</div></td>
@@ -7227,6 +7277,7 @@ function renderSessions(){
         const pills=[];
         if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
         if(s.orgHandlesRegistration)pills.push(pill('Org registration','#fdecea','#a33b32','The organization signs people up. No public registration and no session code.'));
+        if(s.isPrivate)pills.push(pill('Private','#eef2f8','#3d4d6a','Off the public class list. It still shows here.'));
         pills.push(pill('Custom job','#f5e6c8','#7a5c1e'));
         if(s.requiresRN)pills.push(pill('RN only','#e2efe7','#2d7a5e','Registered nurse instructors only'));
         if(s.requiresSS)pills.push(pill('Safe Sitter only','#e6eff7','#1a5c8a','Safe Sitter® instructors only'));
@@ -7249,23 +7300,48 @@ function renderSessions(){
       const pills=[];
       if(s.isCancelled)pills.push(pill('Cancelled','#fdf0ee','#c0392b'));
       if(s.orgHandlesRegistration)pills.push(pill('Org registration','#fdecea','#a33b32','The organization signs people up. No public registration and no session code.'));
+      if(s.isPrivate)pills.push(pill('Private','#eef2f8','#3d4d6a','Off the public class list. It still shows here.'));
       if(isGirlScoutBadgeCourseName(s.course))pills.push(pill('Girl Scout','#f3e8f5','#6b3a7a','Girl Scout badge class, not a Safe Sitter® class'));
       if(sessionRequiresLeadTeacher(s))pills.push(pill('Lead Teacher','#f7f3ea','#7a5c1e','American Red Cross course. Lead Teachers only.'));
       if(sessionRequiresRN(s))pills.push(pill('RN only','#e2efe7','#2d7a5e','Registered nurse instructors only'));
       if(sessionRequiresSafeSitter(s))pills.push(pill('Safe Sitter only','#e6eff7','#1a5c8a','Safe Sitter® instructors only'));
       if(kit)pills.push(kit);
-      const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
       return`<tr style="${cxRowStyle}">
         <td><div class="cell-stack">${d}</div></td>
         <td><div class="cell-stack">${courseCell(pills)}</div></td>
         <td><div class="cell-stack">${where}</div></td>
         <td><div class="cell-stack"><span class="sess-wrap" title="${escapeHtml(instr)}">${escapeHtml(instr)}</span></div></td>
-        <td><div class="cell-stack"><span class="sess-wrap">${sessionOccupiedSeats(s)} / ${sessionCapLabel(s)}${wl?' · '+wl+' waitlist':''}</span></div></td>
+        <td><div class="cell-stack"><span class="sess-wrap">${sessionStudentsLabel(s)}</span></div></td>
         <td><div class="cell-stack">${revenueCell(s,f)}</div></td>
         <td>${isPast?`<div class="cell-stack"><span>${wrapDots}</span><span class="pay-note" style="color:${wrapAllDone?'var(--success)':'var(--muted)'}">${wrapAllDone?'Done':wrapDone+'/'+wrapTotal}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
         ${mgr('white')}</tr>`;
     }).join(''):`<tr class="empty-row"><td colspan="8">No sessions found.</td></tr>`)+'</tbody>';
   renderDupeBanner();
+  renderViewCheck();
+}
+
+// Same rules as packing and the instructor portal. Flags rows Lindsay should
+// look at. It does not delete anything.
+function renderViewCheck(){
+  const el=document.getElementById('view-check');
+  if(!el)return;
+  if(typeof MBSessionViews==='undefined'||!MBSessionViews.disagreements){el.innerHTML='';return;}
+  const rows=MBSessionViews.disagreements({
+    sessions:typeof sessions!=='undefined'?sessions:[],
+    registrations:typeof registrations!=='undefined'?registrations:[],
+    jobData:typeof jobDataCache!=='undefined'?jobDataCache:{},
+    checkouts:typeof matCheckouts!=='undefined'?matCheckouts:[],
+    classRequests:typeof classRequests!=='undefined'?classRequests:[],
+    today:fmtYMD(new Date())
+  });
+  if(!rows.length){
+    el.innerHTML='<div style="margin:0 0 12px;font-size:14px;color:var(--muted)">View check: Sessions, packing, and headcount use the same rules. Nothing to review.</div>';
+    return;
+  }
+  const body=rows.map(function(r){
+    return '<li><strong>'+escapeHtml(r.code||r.id)+'</strong> '+escapeHtml(r.detail)+'</li>';
+  }).join('');
+  el.innerHTML='<div class="card" style="margin-bottom:12px;background:#fff7e6;border:1px solid #f0d090"><div style="font-weight:600;color:#b86a00">View check: '+rows.length+' record'+(rows.length===1?'':'s')+' to review</div><div style="font-size:14px;color:#b86a00;margin-top:4px">These rows disagree across views, or a saved flag does not match how the roster is counted. Nothing was deleted.</div><ul style="margin:8px 0 0 18px;font-size:15px;line-height:1.45">'+body+'</ul></div>';
 }
 
 
@@ -9229,7 +9305,7 @@ function renderRegs(){
   const pf=document.getElementById('rf-status').value;
   const q=(document.getElementById('rf-search').value||'').toLowerCase();
   const selEl=document.getElementById('rf-session');const cur=selEl.value;
-  selEl.innerHTML='<option value="">All sessions</option>'+sessions.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(s=>{const cnt=sessionOccupiedSeats(s);const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'});const hold=s.isHold?' · on hold':'';return`<option value="${s.id}">${s.course} — ${d}${hold} (${cnt}/${sessionCapLabel(s)}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
+  selEl.innerHTML='<option value="">All sessions</option>'+sessions.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(s=>{const fact=sessionRosterFact(s);const countLabel=fact.mode==='registered'?(sessionOccupiedSeats(s)+'/'+sessionCapLabel(s)):fact.phrase;const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;const d=(typeof MBSessionViews!=='undefined'&&MBSessionViews.meetingSummary&&MBSessionViews.meetingSummary(s))||fmtSessDate(s,{month:'short',day:'numeric',year:'numeric'});const hold=s.isHold?' · on hold':'';return`<option value="${s.id}">${escapeHtml(s.course)} · ${d}${hold} (${countLabel}${wl?' · '+wl+' waitlist':''})</option>`;}).join('');
   selEl.value=cur;
   let list=registrations.filter(r=>{
     if(sf&&r.sessionId!==sf)return false;
@@ -9287,7 +9363,9 @@ function renderRegs(){
   if(sub){
     if(sf){
       const sess=sessions.find(x=>x.id===sf);
-      sub.textContent=sess?(sess.course+' · '+fmtSessDate(sess,{month:'short',day:'numeric',year:'numeric'})):'This session';
+      const fact=sess?sessionRosterFact(sess):null;
+      const when=sess&&typeof MBSessionViews!=='undefined'&&MBSessionViews.meetingSummary&&MBSessionViews.meetingSummary(sess);
+      sub.textContent=sess?(sess.course+' · '+(when||fmtSessDate(sess,{month:'short',day:'numeric',year:'numeric'}))+(fact?' · '+fact.phrase:'')):'This session';
     }else sub.textContent='All students across all sessions';
   }
   const cxEl=document.getElementById('reg-cancelled-note');
@@ -11137,12 +11215,32 @@ function packingInPerson(s){
   return /^\d{4}-\d{2}-\d{2}$/.test(String(s.date||''));
 }
 // today and today+days are both included. sessions.date is YYYY-MM-DD text.
+function packingMeetingDates(s){
+  if(typeof MBSessionViews!=='undefined'&&MBSessionViews.meetingDays){
+    const days=MBSessionViews.meetingDays(s);
+    if(days.length)return days.map(function(d){return d.date;});
+  }
+  const out=[];
+  if(s&&s.date)out.push(s.date);
+  const extras=(s&&s.extraDays&&s.extraDays.length)?s.extraDays:((s&&s.extraDates)||[]);
+  (Array.isArray(extras)?extras:[]).forEach(function(x){
+    const d=typeof x==='string'?x:(x&&x.date);
+    if(d&&out.indexOf(d)<0)out.push(d);
+  });
+  return out;
+}
+function packingMeetingLine(s){
+  if(typeof MBSessionViews!=='undefined'&&MBSessionViews.meetingSummary)return MBSessionViews.meetingSummary(s)||'';
+  return '';
+}
+// A class stays in the window when any meeting day is in range, so the
+// Nov 13 half of a split Safe Sitter does not vanish after Oct 30.
 function packingInRange(s, today, days){
   if(!packingInPerson(s))return false;
   const start=String(today||'');
   const end=matAddDays(start, Number(days)||0);
   if(!start||!end)return false;
-  return s.date>=start&&s.date<=end;
+  return packingMeetingDates(s).some(function(d){return d>=start&&d<=end;});
 }
 function packingPlace(s){
   if(typeof MBSessionPlace!=='undefined'&&MBSessionPlace.plain){
@@ -11242,6 +11340,11 @@ function packingRegisteredCount(s, regList){
   const n=Number(per);
   return live.length*((isFinite(n)&&n>=1)?Math.floor(n):1);
 }
+function packingRosterFact(s, regList){
+  const n=packingRegisteredCount(s, regList);
+  if(typeof MBSessionViews!=='undefined'&&MBSessionViews.rosterFact)return MBSessionViews.rosterFact(s, n);
+  return {mode:'registered', count:n, people:n, phrase:packingRegisteredPhrase(n)};
+}
 function packingRegisteredPhrase(n){
   const count=Math.max(0,Number(n)||0);
   return count+' '+(count===1?'participant':'participants')+' registered';
@@ -11250,9 +11353,13 @@ function packingRegisteredTotal(model){
   return (model&&model.rows||[]).reduce(function(sum,r){return sum+(Number(r&&r.registered)||0);},0);
 }
 function packingTotalPhrase(model){
-  const sessions=(model&&model.rows||[]).length;
-  if(sessions<2)return '';
-  return 'Total: '+packingRegisteredPhrase(packingRegisteredTotal(model));
+  const rows=(model&&model.rows)||[];
+  if(rows.length<2)return '';
+  const pending=rows.some(function(r){return r&&r.countMode==='pending';});
+  const host=rows.some(function(r){return r&&(r.countMode==='host'||r.countMode==='both');});
+  const n=packingRegisteredTotal(model);
+  if(!pending&&!host)return 'Total: '+packingRegisteredPhrase(n);
+  return 'Total headcount: '+n+(pending?'. Headcount pending from host on at least one session':'');
 }
 function packingBusyDays(rows){
   const by={};
@@ -11348,7 +11455,7 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
   const rows=(sessionList||[]).filter(function(s){return packingInRange(s, start, span);}).map(function(s){
     const group=packingInstructorGroup(s, instructorList, jobData);
     const jd=(jobData&&s.id&&jobData[s.id])||{};
-    const registered=packingRegisteredCount(s, regs);
+    const fact=packingRosterFact(s, regs);
     return {
       id:s.id,
       date:s.date,
@@ -11360,8 +11467,11 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
       materialsSent:!!jd.materialsSent,
       materialsSentAt:jd.materialsSentAt||null,
       materialsOutAt:jd.materialsOutAt||null,
-      registered:registered,
-      bring:packingBringLine(s, registered),
+      registered:fact.people,
+      countPhrase:fact.phrase,
+      countMode:fact.mode,
+      meetings:packingMeetingLine(s),
+      bring:packingBringLine(s, fact.people),
       manikins:(typeof sessionUsesManikins==='function')?!!sessionUsesManikins(s):false
     };
   }).sort(function(a,b){
@@ -11400,12 +11510,14 @@ function packingRowHtml(r){
   const parts=packingDayParts(r.date);
   const time=r.time?escapeHtml(r.time):'<span class="pack-muted">Time not set</span>';
   const flag=r.packTogether?'<div class="pack-flag">Pack together</div>':'';
+  const meet=r.meetings?'<div class="pack-meet">'+escapeHtml(r.meetings)+'</div>':'';
+  const count=r.countPhrase||packingRegisteredPhrase(r.registered);
   const id=escapeHtml(r.id);
   const putOut=(r.materialsSent&&r.materialsOutAt)?materialsPutOutPhrase(r.materialsOutAt):'';
   return '<article class="pack-row'+(r.packTogether?' is-pack':'')+'">'+
-    '<div class="pack-date"><div class="pack-dow">'+escapeHtml(parts.dow)+'</div><div class="pack-day">'+escapeHtml(parts.day)+'</div></div>'+
+    '<div class="pack-date"><div class="pack-dow">'+escapeHtml(parts.dow)+'</div><div class="pack-day">'+escapeHtml(parts.day)+'</div>'+meet+'</div>'+
     '<div class="pack-time">'+time+'</div>'+
-    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div>'+packingKitHtml(r)+'</div>'+
+    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(count)+'</div>'+packingKitHtml(r)+'</div>'+
     '<div class="pack-place">'+escapeHtml(r.place)+'</div>'+
     '<div class="pack-mat"><label class="pack-lock"><input type="checkbox" data-sess="'+id+'"'+(r.materialsSent?' checked':'')+' onchange="toggleMaterialsFromPacking(this)"> <span>Materials in lock box</span></label>'+
     '<div class="pack-stamp">'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</div>'+(putOut?'<div class="pack-stamp">'+escapeHtml(putOut)+'</div>':'')+flag+'</div></article>';
@@ -11435,8 +11547,9 @@ function packingPrintHtml(model, generatedAt){
   const sections=model.groups.length?model.groups.map(function(g){
     const body=g.rows.map(function(r){
       const flag=r.packTogether?'<div class="pack-pdf-flag">Pack together</div>':'';
+      const meet=r.meetings?'<div>'+escapeHtml(r.meetings)+'</div>':'';
       const putOut=(r.materialsSent&&r.materialsOutAt)?materialsPutOutPhrase(r.materialsOutAt):'';
-      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+packingKitHtml(r)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+(putOut?'<div>'+escapeHtml(putOut)+'</div>':'')+'</td></tr>';
+      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+meet+flag+'</td><td>'+escapeHtml(r.time||'Time not set')+'</td><td>'+escapeHtml(r.course)+packingKitHtml(r)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(r.countPhrase||packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+(putOut?'<div>'+escapeHtml(putOut)+'</div>':'')+'</td></tr>';
     }).join('');
     return '<section class="pack-pdf-section"><h2>'+escapeHtml(g.name)+'</h2><table class="pack-pdf-table"><colgroup><col style="width:18%"><col style="width:12%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:18%"></colgroup><thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Place</th><th>Registered</th><th>Materials in lock box</th></tr></thead><tbody>'+body+'</tbody></table></section>';
   }).join(''):'<p class="pack-pdf-empty">No in-person classes in this range.</p>';
@@ -11487,21 +11600,23 @@ function materialsChecklistRows(list, today){
     if(!packingInRange(s, start, 14))return false;
     const jd=(jobs&&s.id&&jobs[s.id])||{};
     if(jd.materialsSent)return false;
-    const registered=packingRegisteredCount(s, regs);
-    const bring=packingBringLine(s, registered);
+    const fact=packingRosterFact(s, regs);
+    const bring=packingBringLine(s, fact.people);
     const manikins=typeof sessionUsesManikins==='function'&&sessionUsesManikins(s);
     return !!(bring||manikins);
   }).sort(function(a,b){
     return String(a.date).localeCompare(String(b.date))||packingTimeKey(a.time).localeCompare(packingTimeKey(b.time))||String(a.course||'').localeCompare(String(b.course||''))||String(a.id).localeCompare(String(b.id));
   }).map(function(s){
-    const registered=packingRegisteredCount(s, regs);
+    const fact=packingRosterFact(s, regs);
     const group=packingInstructorGroup(s, people, jobs);
     return {
       id:s.id,
       course:String(s.course||'').trim()||'Class',
       date:s.date,
       instructor:group.name,
-      bring:packingBringLine(s, registered),
+      countPhrase:fact.phrase,
+      meetings:packingMeetingLine(s),
+      bring:packingBringLine(s, fact.people),
       manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)
     };
   });
@@ -11513,6 +11628,8 @@ function renderDashMatChecklist(now){
   if(!rows.length){el.innerHTML='';return;}
   const body=rows.map(function(r){
     const when=packingDayParts(r.date).full;
+    const meet=r.meetings?'<span style="display:block;color:#1a5c8a;font-weight:600">'+escapeHtml(r.meetings)+'</span>':'';
+    const count=r.countPhrase?'<span style="display:block">'+escapeHtml(r.countPhrase)+'</span>':'';
     const kit=packingKitHtml(r);
     const id=String(r.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return '<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);cursor:pointer">'
@@ -11520,6 +11637,7 @@ function renderDashMatChecklist(now){
       +'<span style="min-width:0;font-size:15px;line-height:1.45"><span style="font-weight:650">'+escapeHtml(r.course)+'</span>'
       +' <span style="color:var(--muted)">'+escapeHtml(when)+'</span>'
       +'<span style="display:block;color:var(--muted)">'+escapeHtml(r.instructor)+'</span>'
+      +meet+count
       +kit+'</span></label>';
   }).join('');
   el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Materials checklist</div>'
@@ -11874,7 +11992,9 @@ function classRosterSection(s, regs, opts){
   const privateCols=!!opts.privateCols;
   const adult=isAdultCourse(s&&s.course);
   const n=(regs||[]).length;
-  const peoplePhrase=rosterCountPhrase(s&&s.course, regs);
+  const rosterPeopleN=rosterPeople(regs, s&&s.course);
+  const rosterFact=(typeof MBSessionViews!=='undefined'&&MBSessionViews.rosterFact)?MBSessionViews.rosterFact(s, rosterPeopleN):null;
+  const peoplePhrase=(rosterFact&&rosterFact.mode!=='registered')?rosterFact.phrase:rosterCountPhrase(s&&s.course, regs);
   const whoLabel=adult?'Participant':'Student';
   const cols=privateCols?(adult?6:8):(adult?2:4);
   const head=privateCols
@@ -11891,7 +12011,7 @@ function classRosterSection(s, regs, opts){
       row+='<td>'+(escapeHtml(r.contact)||'—')+'</td><td style="text-align:center">'+(r.cprPermission==='yes'?'✓':'—')+'</td><td style="text-align:center">'+(r.waiverSigned?'✓':'—')+'</td><td style="text-align:center">'+(r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—')+'</td>';
     }
     return row+'</tr>';
-  }).join(''):'<tr><td colspan="'+cols+'" style="text-align:center;color:#aaa;font-style:italic;padding:16px">No '+(adult?'participants':'students')+' registered yet</td></tr>';
+  }).join(''):'<tr><td colspan="'+cols+'" style="text-align:center;color:#aaa;font-style:italic;padding:16px">'+(rosterFact&&rosterFact.mode!=='registered'?escapeHtml(rosterFact.phrase):('No '+(adult?'participants':'students')+' registered yet'))+'</td></tr>';
   return '<div class="section-label">Class roster — print and attach</div><div class="roster-section"><div class="roster-hdr">'+escapeHtml(s.course)+' · '+escapeHtml(when)+' · '+peoplePhrase+'</div><div class="roster-body"><div class="roster-meta"><div><span style="color:#6b7a99">Location:</span> <strong>'+(escapeHtml(where)||'TBD')+'</strong></div><div><span style="color:#6b7a99">Instructor:</span> <strong>'+(escapeHtml(who)||'—')+'</strong></div><div><span style="color:#6b7a99">Session code:</span> <strong style="font-family:monospace">'+escapeHtml(s.code)+'</strong></div></div><table class="roster"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table><div class="facts-note">Generated '+escapeHtml(new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}))+' · Mindful Beginnings</div></div></div>';
 }
 function emailFactsHtml(title, text){
@@ -12340,17 +12460,17 @@ function opsEmailInfo(s){
       if(n||n===0)price=fmt(n);
     }
   }catch(e){price='';}
-  const dateLong=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'To be confirmed';
+  const dateLong=s.date?fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'To be confirmed';
   const dateShort=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'}):'the scheduled date';
   return {
     course:s.course||'Safe Sitter®',
     dateLong:dateLong,
     dateShort:dateShort,
-    time:s.time||'To be confirmed',
+    time:sessionTimeLine(s)||s.time||'To be confirmed',
     address:sessionAddressLine(s),
     instructor:sessionInstructorPlain(s),
     code:s.code||'',
-    countPhrase:rosterCountPhrase(s.course, regs),
+    countPhrase:(function(){const fact=(typeof sessionRosterFact==='function')?sessionRosterFact(s):null;return (fact&&fact.mode!=='registered')?fact.phrase:rosterCountPhrase(s.course, regs);})(),
     hostFirst:hostName,
     mealText:api?api.mealText(mealChunks):'',
     specialNotes:api?api.specialNotes(specialChunks):'',
@@ -13892,16 +14012,16 @@ function sessionUsesManikins(s){
 // Registered students only. Capacity is not a roster, so an empty class of 16
 // still plans the 1+1 baseline until kids are actually signed up.
 function matRegisteredHeadcount(s){
-  if(!s||!s.id||typeof seatsOnSession!=='function')return 0;
-  try{return Math.max(0,Number(seatsOnSession(s.id))||0);}catch(e){return 0;}
+  return sessionHeadcount(s);
 }
 function matKitRoster(draft,s){
-  if(draft&&draft.rosterCount!=null&&draft.rosterCount!=='')return Math.max(0,Number(draft.rosterCount)||0);
+  const fromSession=function(){return matRegisteredHeadcount(s);};
+  if(draft&&draft.rosterCount!=null&&draft.rosterCount!=='')return Math.max(Math.max(0,Number(draft.rosterCount)||0), fromSession());
   if(s&&s.id&&typeof seatsOnSession==='function'){
-    try{return Math.max(0,Number(seatsOnSession(s.id))||0);}catch(e){return 0;}
+    try{return Math.max(Math.max(0,Number(seatsOnSession(s.id))||0), fromSession());}catch(e){return 0;}
   }
   if(draft&&draft.headcount!=null&&draft.headcount!=='')return Math.max(0,Number(draft.headcount)||0);
-  return matRegisteredHeadcount(s);
+  return fromSession();
 }
 function matNeedsForHeadcount(base,headcount){
   if(!base)return base;
@@ -13986,6 +14106,9 @@ function matPlanHits(draft,s,outDate,dueDate,excludeId){
 }
 function sessionHeadcount(s,override){
   if(override!=null&&override!=='')return Math.max(0,Number(override)||0);
+  if(typeof sessionRosterFact==='function'){
+    try{return Math.max(0,Number(sessionRosterFact(s).people)||0);}catch(e){return 0;}
+  }
   if(s&&s.id&&typeof seatsOnSession==='function'){
     try{return Math.max(0,Number(seatsOnSession(s.id))||0);}catch(e){return 0;}
   }
@@ -14188,6 +14311,12 @@ function matPlanForSession(draft){
       s.instructorId=live.instructorId||null;
       s.secondInstructorId=live.secondInstructorId||null;
       s.ownerTaught=!!live.ownerTaught;
+      s.isPrivate=!!live.isPrivate;
+      s.orgHandlesRegistration=!!live.orgHandlesRegistration;
+      s.isCustomJob=!!live.isCustomJob;
+      s.billToOrg=live.billToOrg||'';
+      s.billedHeadcount=live.billedHeadcount==null?null:Number(live.billedHeadcount);
+      s.priceOverride=live.priceOverride==null?null:Number(live.priceOverride);
     }
   }
   const roster=matKitRoster(draft,s);
@@ -14722,7 +14851,14 @@ function matWhoTyped(){_matWhoTouched=true;paintSessionMaterialsStatus();}
 function matReuseTyped(){_matReuseTouched=true;paintSessionMaterialsStatus();}
 function formMatHeadcount(){
   if(_sessionMatEditId){
-    const n=seatsOnSession(_sessionMatEditId);
+    const sess=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x&&x.id===_sessionMatEditId;});
+    if(sess&&typeof sessionRosterFact==='function'){
+      try{
+        const fact=sessionRosterFact(sess);
+        if(fact&&(fact.mode==='host'||fact.mode==='both')&&fact.people>0)return fact.people;
+      }catch(e){}
+    }
+    const n=typeof seatsOnSession==='function'?seatsOnSession(_sessionMatEditId):0;
     if(n>0)return n;
   }
   const ov=document.getElementById('m-maxoverride');
@@ -14731,7 +14867,15 @@ function formMatHeadcount(){
   return (COURSES[course]||{maxStudents:0}).maxStudents||0;
 }
 function formRosterCount(){
-  if(!_sessionMatEditId||typeof seatsOnSession!=='function')return 0;
+  if(!_sessionMatEditId)return 0;
+  const sess=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x&&x.id===_sessionMatEditId;});
+  if(sess&&typeof sessionRosterFact==='function'){
+    try{
+      const fact=sessionRosterFact(sess);
+      if(fact&&fact.mode!=='registered')return Math.max(0,Number(fact.people)||0);
+    }catch(e){}
+  }
+  if(typeof seatsOnSession!=='function')return 0;
   try{return seatsOnSession(_sessionMatEditId)||0;}catch(e){return 0;}
 }
 function sessionMaterialsDraft(){
@@ -16492,7 +16636,9 @@ function openRoster(sessId){
   const instr=sessionInstructorNames(s,'Instructor TBD');
   const adult=isAdultCourse(s.course);
   const whoLabel=adult?'Participant':'Student';
-  const countPhrase=rosterCountPhrase(s.course, regs);
+  const fact=sessionRosterFact(s);
+  const countPhrase=(fact&&fact.mode!=='registered')?fact.phrase:rosterCountPhrase(s.course, regs);
+  const timeLine=sessionTimeLine(s);
   const emptyCols=adult?9:11;
   const rows=regs.length?regs.map((r,i)=>`
     <tr>
@@ -16507,7 +16653,7 @@ function openRoster(sessId){
       <td>${(function(){const list=s?sessionListPrice(s):null;const label=rosterSettlementLabel(r,list);const cls=rosterSettlementTagClass(r,list);const bg=cls==='paid'?'#eaf5f0':cls==='host'?'#d6e9f5':cls==='in_kind'?'#f3e8fb':'#fff7e6';const fg=cls==='paid'?'#2d7a5e':cls==='host'?'#1a5c8a':cls==='in_kind'?'#6D1ED4':'#b86a00';return '<span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500;background:'+bg+';color:'+fg+'">'+escapeHtml(label)+'</span>';})()}${paymentHowText(r)?`<div style="font-size:13px;font-weight:600;margin-top:4px;color:${paymentHowText(r)==='How paid unknown'?'#b86a00':'#1a2744'}">${escapeHtml(paymentHowText(r))}</div>`:''}</td>
       <td style="font-size:14px;color:#888;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,notesWithoutPartner(r.notes)))||''}</td>
     </tr>`).join('')
-    :'<tr><td colspan="'+emptyCols+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
+    :'<tr><td colspan="'+emptyCols+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">'+(fact&&fact.mode!=='registered'?escapeHtml(fact.phrase):('No '+(adult?'participants':'students')+' registered yet'))+'</td></tr>';
 
   const html=`
     <div style="font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:24px">
@@ -16523,11 +16669,11 @@ function openRoster(sessId){
       </div>
       <div style="border-top:2px solid #1a2744;border-bottom:1px solid #dde4ee;padding:10px 0;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:16px">
         <div><span style="color:#6b7a99">Date:</span> <strong>${d}</strong></div>
-        <div><span style="color:#6b7a99">Time:</span> <strong>${s.time||'TBD'}</strong></div>
+        <div><span style="color:#6b7a99">Time:</span> <strong>${escapeHtml(timeLine)}</strong></div>
         <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(adminPlaceText(s)||s.location||'TBD')}</strong></div>
         <div><span style="color:#6b7a99">Instructor:</span> <strong>${instr}</strong></div>
         <div><span style="color:#6b7a99">Session code:</span> <strong>${s.code}</strong></div>
-        <div><span style="color:#6b7a99">${adult?'Total participants:':'Total students:'}</span> <strong>${adult?rosterPeople(regs, s.course):regs.length}</strong></div>
+        <div><span style="color:#6b7a99">${adult?'Total participants:':'Total students:'}</span> <strong>${escapeHtml(countPhrase)}</strong></div>
       </div>
       <div style="background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:14px 18px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:16px">
         <div style="font-size:14px;text-transform:uppercase;letter-spacing:.7px;color:#6b7a99;font-weight:600;grid-column:1/-1;margin-bottom:2px">Session Info</div>
@@ -17219,7 +17365,7 @@ function openInstructorReminder(sessId,specificInstrId){
     if(s.wifiInfo)detailLines.push('WiFi: '+s.wifiInfo);
   }
   detailLines.push('Session code: '+s.code);
-  detailLines.push(rosterCountPhrase(s.course, regs));
+  detailLines.push((function(){const fact=sessionRosterFact(s);return (fact&&fact.mode!=='registered')?fact.phrase:rosterCountPhrase(s.course, regs);})());
   // Instructor-facing notes only. adminPrivateNotes is never included in email.
   if(s.notes)detailLines.push('Notes: '+s.notes);
   const where=s.isVirtual?'Virtual (Zoom)':(s.location?(s.location+(s.city?', '+s.city:'')):'TBD');

@@ -202,7 +202,8 @@ test('an explicit reserved-seat hold still occupies seats when families would ot
 
 test('the sessions list, registration dropdown, and re-enroll warning use the occupied count', () => {
   const render = admin.slice(admin.indexOf('function renderSessions'), admin.indexOf('// "Materials in lock box"'));
-  assert.equal((render.match(/sessionOccupiedSeats\(s\)/g) || []).length, 2);
+  assert.match(render, /sessionStudentsLabel\(s\)/);
+  assert.match(extractFunction(admin, 'sessionStudentsLabel'), /sessionOccupiedSeats\(s\)/);
   assert.doesNotMatch(render, /isLiveReg\(r\)\)\.length\*seatsPerRegistration/);
   const regs = extractFunction(admin, 'renderRegs');
   assert.match(regs, /sessionOccupiedSeats\(s\)/);
