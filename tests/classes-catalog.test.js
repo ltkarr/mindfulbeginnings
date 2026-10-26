@@ -128,7 +128,9 @@ test('booking, custom programs, and group CPR links stay on this site', () => {
   assert.match(page, /Request a custom program/);
   assert.match(page, /We design tailored programs around your audience/);
   assert.match(page, /Past offerings include customizable Girl Scout badge workshops/);
-  assert.equal((page.match(/href="\/cpr-certification"/g) || []).length, 3);
+  // 2 since the 2026-10-26 less-is-more pass removed the duplicate CPR band
+  // from the catalog (nav + footer still link CPR Certification).
+  assert.equal((page.match(/href="\/cpr-certification"/g) || []).length, 2);
   assert.equal((page.match(/>Coming soon</g) || []).length, 0);
 });
 
