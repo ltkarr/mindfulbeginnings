@@ -587,7 +587,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
               <option value="series">Multi-week series</option>
               <option value="completed">Completed sessions</option>
               <option value="cancelled">Cancelled sessions</option>
-              <option value="all">All sessions</option>
+              <option value="all" selected>All sessions</option>
             </select>
           </div>
           <button class="btn primary" onclick="openAddSession()">+ New session</button>
@@ -1872,16 +1872,44 @@ function sessionEndDate(s){
   (s.extraDates||[]).forEach(d=>{if(d&&(!end||d>end))end=d;});
   return end;
 }
-// Days from the first meeting to the last. A session "lasts more than 1 week"
-// when this span exceeds 7 days — e.g. a multi-week school series. Those live
-// in their own Sessions tab so they stop burying one-off upcoming sessions.
+// Days from the first meeting to the last extra date or recurrence end.
+// Span alone does not decide the Series tab. A two-day host class can sit
+// more than a week apart (Oct 30 and Nov 13) and is still one class.
 function sessionSpanDays(s){
   if(!s||!s.date)return 0;
   const end=sessionEndDate(s)||s.date;
   const ms=new Date(end+'T12:00:00')-new Date(s.date+'T12:00:00');
   return Number.isFinite(ms)?Math.round(ms/86400000):0;
 }
-function isLongSeries(s){return sessionSpanDays(s)>7;}
+// Meeting dates on one session row. s.date is day one. Further days are stored
+// two ways that stay in sync on save: extraDates is a plain YYYY-MM-DD list
+// (older rows and the public pages), extraDays is [{date,time}] with a per-day
+// time. Count whichever is present, and count the same day only once.
+function sessionMeetingDates(s){
+  if(!s)return [];
+  const seen=Object.create(null);
+  const add=raw=>{
+    if(raw==null)return;
+    let d=String(raw).trim();
+    if(/^\d{4}-\d{2}-\d{2}/.test(d))d=d.slice(0,10);
+    if(d)seen[d]=true;
+  };
+  add(s.date);
+  [s.extraDates,s.extraDays].forEach(list=>{
+    (list||[]).forEach(item=>{
+      if(item&&typeof item==='object')add(item.date);
+      else add(item);
+    });
+  });
+  return Object.keys(seen).sort();
+}
+// Series tab: a recurring club, or a class with three or more meeting dates.
+// Two dates are a multi-day host class, even when they are more than 7 days apart.
+function isLongSeries(s){
+  if(!s)return false;
+  if(s.isRecurring)return true;
+  return sessionMeetingDates(s).length>=3;
+}
 const RECUR_NAMES={weekly:'Weekly',biweekly:'Every other week',monthly:'Monthly'};
 function recurLabel(s){
   if(!s.isRecurring)return'';
@@ -7105,11 +7133,11 @@ function renderSessions(){
   const cf=document.getElementById('sf-course').value;
   const mf=document.getElementById('sf-month').value;
   // The dropdown above the table (Upcoming / On hold / Series / Completed / Cancelled / All)
-  // scopes which sessions show. A session is "completed" once wrap-up is fully done (not just when the
+  // scopes which sessions show. It opens on All. A session is "completed" once wrap-up is fully done (not just when the
   // date is past). Cancelled sessions are pulled out of Upcoming and Completed entirely so
   // they stop cluttering the working list; they live in their own Cancelled view and still
   // appear under All (nothing is ever hidden from All).
-  const scope=document.getElementById('report-filter')?.value||'upcoming';
+  const scope=document.getElementById('report-filter')?.value||'all';
   if(typeof syncSessionSortBtn==='function')syncSessionSortBtn(scope);
   const now=new Date();
   let list=sessions.filter(s=>{
