@@ -480,6 +480,31 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
   body.pack-printing .pack-print-only{display:block !important}
   body.pack-printing .pack-pdf{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+/* Teaching checklist. Same-page print as the packing list, so Save as PDF
+   works on a phone without a new serverless route. */
+.teach-print-only{display:none}
+.teach-pdf{font-family:'Montserrat',Helvetica,Arial,sans-serif;color:#1a2744;max-width:7.5in}
+.teach-pdf-brand{font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a99}
+.teach-pdf h1{font-family:'Montserrat',sans-serif;font-weight:700;font-size:24px;margin:2px 0 8px;line-height:1.15}
+.teach-course{font-size:17px;font-weight:700;margin:0;line-height:1.3}
+.teach-when,.teach-place{margin:2px 0 0;font-size:14px;line-height:1.4}
+.teach-facts{width:100%;border-collapse:collapse;margin:12px 0 2px}
+.teach-facts th{width:7.2rem;text-align:left;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#6b7a99;font-weight:600;padding:4px 10px 4px 0;vertical-align:top}
+.teach-facts td{font-size:14px;line-height:1.35;padding:4px 0;border-bottom:0.5px solid #e4eaf2;vertical-align:top}
+.teach-pdf h2{font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin:14px 0 6px;padding-bottom:3px;border-bottom:1.5px solid #1a2744}
+.teach-checks{list-style:none;margin:0;padding:0}
+.teach-checks li{break-inside:avoid;page-break-inside:avoid;padding:3px 0;font-size:14px;line-height:1.35}
+.teach-checks li.is-done{color:#1d6b45}
+.teach-box{display:inline-block;width:14px;height:14px;border:1.5px solid #1a2744;margin-right:8px;vertical-align:-2px;text-align:center;font-size:11px;line-height:13px;font-weight:700}
+.teach-empty{font-size:14px;line-height:1.4;margin:0}
+.teach-note{height:22px;border-bottom:1px solid #c5d0e0;margin-top:10px}
+.teach-foot{margin:14px 0 0;font-size:11px;line-height:1.4;color:#6b7a99}
+@media print{
+  body.teach-printing{background:#fff !important;min-height:0 !important;height:auto !important}
+  body.teach-printing > *:not(#teach-print-sheet){display:none !important}
+  body.teach-printing #teach-print-sheet{display:block !important}
+  body.teach-printing .teach-pdf{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 @media print{
   body.ref-printing{background:#fff}
   body.ref-printing > div{display:none !important}
@@ -887,6 +912,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 </div>
 
 <div id="modal-root"></div>
+<div id="teach-print-sheet" class="teach-print-only"></div>
 
 <script src="/js/referral-commissions.js"></script>
 <script src="/js/discount-codes.js"></script>
@@ -6985,6 +7011,7 @@ function renderDashboard(){
             ${roleLine(sessionIsOrganization(s)?'Organization':'Host',hostLabel,sessionIsOrganization(s)?'No organization':'No host')}
             ${roleLine('Where',adminPlaceText(s)||'No location','No location')}
           </div>
+          <div style="margin:0 0 6px"><button type="button" class="btn sm primary" onclick="printTeachingChecklist('${String(s.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">Print checklist (PDF)</button></div>
           ${items.join('')}
         </div>`;
       }).join('');
@@ -7381,6 +7408,7 @@ function openSessionMenu(ev,sessId){
   const items=[];
   // Skim location, time, who is teaching, and both note fields without opening Edit.
   items.push({label:'ℹ️ About',act:`openSessionAbout('${sessId}')`});
+  items.push({label:'Print checklist (PDF)',act:`printTeachingChecklist('${sessId}')`});
   // Troop and organization jobs: a draft the host forwards to families.
   // Holds and custom jobs included. Home classes with no bill-to name are not.
   if(String(s.billToOrg||'').trim()&&!s.orgHandlesRegistration)items.push({label:'✉️ Email for families (host forwards)',act:`openFamilyForward('${sessId}')`});
@@ -11514,12 +11542,14 @@ function renderDashMatChecklist(now){
     const when=packingDayParts(r.date).full;
     const kit=packingKitHtml(r);
     const id=String(r.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);cursor:pointer">'
+    return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);flex-wrap:wrap">'
+      +'<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;min-width:0;flex:1">'
       +'<input type="checkbox" aria-label="Materials in lock box" onchange="toggleMaterialsFromDash(\''+id+'\',this.checked)" style="margin-top:4px;width:16px;height:16px;accent-color:var(--success);cursor:pointer">'
       +'<span style="min-width:0;font-size:15px;line-height:1.45"><span style="font-weight:650">'+escapeHtml(r.course)+'</span>'
       +' <span style="color:var(--muted)">'+escapeHtml(when)+'</span>'
       +'<span style="display:block;color:var(--muted)">'+escapeHtml(r.instructor)+'</span>'
-      +kit+'</span></label>';
+      +kit+'</span></label>'
+      +'<button type="button" class="btn sm primary" onclick="printTeachingChecklist(\''+id+'\')">Print checklist (PDF)</button></div>';
   }).join('');
   el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Materials checklist</div>'
     +'<div style="font-size:15px;color:var(--muted);line-height:1.45;margin:-2px 0 4px">In-person classes in the next 2 weeks. The box is the same as Materials in lock box.</div>'
@@ -11554,6 +11584,282 @@ function downloadPackingPdf(){
   window.print();
 }
 // Tracks whether each pre-class reminder (instructor, host, class) has been sent.
+// Teaching checklist PDF. Built in the browser and printed with the same
+// Save as PDF path as the packing list. No new API route: the Vercel
+// function cap is already full.
+function teachPlain(t){
+  return String(t==null?'':t)
+    .replace(/\u2014/g,' - ')
+    .replace(/\u2013/g,' to ')
+    .replace(/&amp;/g,'&')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function teachEsc(t){
+  if(typeof escapeHtml==='function')return escapeHtml(t);
+  return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});
+}
+const TEACH_GEAR=[
+  ['infant','infant CPR manikin','infant CPR manikins'],
+  ['child','child CPR manikin','child CPR manikins'],
+  ['adult','adult CPR manikin','adult CPR manikins'],
+  ['av','AV kit','AV kits']
+];
+const TEACH_BOOKS=[
+  ['ssHandbook','Safe Sitter handbook','Safe Sitter handbooks'],
+  ['sahHandbook','Safe@Home handbook','Safe@Home handbooks'],
+  ['gpHandbook','Grandparents handbook','Grandparents handbooks'],
+  ['itbHandbook','Intro to Babysitting handbook','Intro to Babysitting handbooks'],
+  ['ssNotebook','Safe Sitter notebook','Safe Sitter notebooks']
+];
+function teachingChecklistCount(s){
+  if(!s)return 0;
+  if(typeof packingRegisteredCount==='function'){
+    try{return Math.max(0,Number(packingRegisteredCount(s))||0);}catch(e){}
+  }
+  const regs=(typeof registrations!=='undefined'&&registrations)||[];
+  let n=0;
+  for(let i=0;i<regs.length;i++){
+    const r=regs[i];
+    if(!r||r.sessionId!==s.id)continue;
+    if(typeof countsTowardSeats==='function'){if(countsTowardSeats(r))n++;}
+    else if(typeof isLiveReg==='function'&&isLiveReg(r))n++;
+  }
+  let per=1;
+  if(typeof seatsPerRegistration==='function'){
+    const p=Number(seatsPerRegistration(s.course));
+    if(isFinite(p)&&p>=1)per=Math.floor(p);
+  }
+  return n*per;
+}
+function teachingChecklistCourseKey(course){
+  return String(course||'').toLowerCase().replace(/[®™]/g,'').replace(/[^a-z0-9@+/]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function teachingChecklistIsRedCross(course){
+  const c=(typeof COURSES!=='undefined'&&COURSES&&COURSES[course])||{};
+  if(c.redCross||c.requiresLeadTeacher)return true;
+  if(typeof courseRequiresLeadTeacher==='function'&&courseRequiresLeadTeacher(course))return true;
+  return /red cross|basic life support|\bbls\b|first aid\/cpr|cpr\/aed/.test(teachingChecklistCourseKey(course));
+}
+function teachingChecklistNeedsManikins(s){
+  if(!s||s.isVirtual)return false;
+  if(typeof sessionUsesManikins==='function'&&sessionUsesManikins(s))return true;
+  if(teachingChecklistIsRedCross(s.course))return true;
+  const norm=teachingChecklistCourseKey(s.course);
+  if(/girl scout/.test(norm))return false;
+  return /\bcpr\b|choking rescue/.test(norm);
+}
+function teachingChecklistPerStudent(n, singular, plural){
+  const count=Math.max(0,Number(n)||0);
+  if(count===1)return '1 '+singular;
+  if(count>1)return count+' '+plural;
+  return plural+', one per student (none registered yet)';
+}
+function teachingChecklistSupplyLines(s){
+  if(!s||s.isVirtual)return [];
+  const count=teachingChecklistCount(s);
+  let counts={};
+  if(typeof packingBringCounts==='function'){
+    try{counts=packingBringCounts(s, count)||{};}catch(e){counts={};}
+  }
+  const lines=[];
+  const seen={};
+  function qty(kind){
+    const n=Number(counts&&counts[kind])||0;
+    if(n>0)seen[kind]=true;
+    return n;
+  }
+  TEACH_GEAR.forEach(function(row){
+    const n=qty(row[0]);
+    if(n>0)lines.push(n+' '+(n===1?row[1]:row[2]));
+  });
+  const needsManikins=lines.some(function(t){return /manikin/i.test(t);})||teachingChecklistNeedsManikins(s);
+  if(needsManikins&&!lines.some(function(t){return /manikin/i.test(t);}))lines.push('CPR manikins');
+  if(needsManikins&&!lines.some(function(t){return /screwdriver/i.test(t);}))lines.push('Batteries + screwdriver');
+  let bookKinds=[];
+  if(typeof matCourseBooks==='function'){
+    try{bookKinds=matCourseBooks(s.course)||[];}catch(e){bookKinds=[];}
+  }
+  TEACH_BOOKS.forEach(function(row){
+    const n=qty(row[0]);
+    if(n>0)lines.push(n+' '+(n===1?row[1]:row[2]));
+  });
+  bookKinds.forEach(function(kind){
+    if(seen[kind])return;
+    const row=TEACH_BOOKS.filter(function(item){return item[0]===kind;})[0];
+    if(!row)return;
+    seen[kind]=true;
+    lines.push(teachingChecklistPerStudent(count, row[1], row[2]));
+  });
+  Object.keys(counts||{}).forEach(function(k){
+    if(seen[k])return;
+    const n=Number(counts[k])||0;
+    if(n>0)lines.push(n+' '+k);
+  });
+  const norm=teachingChecklistCourseKey(s.course);
+  if(bookKinds.indexOf('ssHandbook')>=0){
+    if(norm.indexOf('essentials')>=0)lines.push(teachingChecklistPerStudent(count,'Safe Sitter completion card','Safe Sitter completion cards'));
+    else lines.push(teachingChecklistPerStudent(count,'Safe Sitter certificate','Safe Sitter certificates'));
+  }else if(bookKinds.indexOf('sahHandbook')>=0){
+    lines.push(teachingChecklistPerStudent(count,'Safe@Home certificate','Safe@Home certificates'));
+  }else if(bookKinds.indexOf('gpHandbook')>=0){
+    lines.push(teachingChecklistPerStudent(count,'Grandparents certificate','Grandparents certificates'));
+  }else if(bookKinds.indexOf('itbHandbook')>=0){
+    lines.push(teachingChecklistPerStudent(count,'Intro to Babysitting certificate','Intro to Babysitting certificates'));
+  }
+  if(teachingChecklistIsRedCross(s.course))lines.push(teachingChecklistPerStudent(count,'Red Cross certification wallet card','Red Cross certification wallet cards'));
+  else if(norm.indexOf('baby ready')>=0&&norm.indexOf('cpr')>=0)lines.push(teachingChecklistPerStudent(count,'CPR certification card','CPR certification cards'));
+  const girl=(typeof isGirlScoutBadgeCourseName==='function'&&isGirlScoutBadgeCourseName(s.course))||(/girl scout/.test(norm)&&/badge|workshop/.test(norm));
+  if(girl)lines.push(teachingChecklistPerStudent(count,'certificate of participation','certificates of participation'));
+  else if(norm.indexOf('stay ready')>=0||norm.indexOf('season ready')>=0)lines.push(teachingChecklistPerStudent(count,'certificate of participation','certificates of participation'));
+  return lines;
+}
+function teachingChecklistTodoLabel(s, key){
+  if(key==='materialsSent')return teachPlain(typeof preClassMaterialsLabel==='function'?preClassMaterialsLabel(s):'Put out handbooks and supplies');
+  if(key==='instrReminderSent')return teachPlain(typeof preClassInstrReminderLabel==='function'?preClassInstrReminderLabel(s):'Send reminder to instructor');
+  if(key==='hostReminderSent')return 'Host reminder, 1 week before';
+  if(key==='classReminderSent')return 'Family reminder, before class';
+  return teachPlain(key);
+}
+function teachingChecklistTodos(s){
+  const tasks=typeof preClassTaskList==='function'?preClassTaskList(s):[];
+  return (tasks||[]).map(function(t){
+    return {key:t.key, done:!!t.done, label:teachingChecklistTodoLabel(s, t.key)};
+  });
+}
+function teachingChecklistTime(s){
+  const raw=teachPlain(s&&s.time||'');
+  if(!raw)return 'Time not set';
+  if(/\bto\b/i.test(raw)&&/\d/.test(raw))return raw;
+  let end='';
+  if(typeof sessionEndTime==='function'){
+    try{end=teachPlain(sessionEndTime(s.time, s.course)||'');}catch(e){end='';}
+  }
+  if(end&&raw.toLowerCase().indexOf(end.toLowerCase())<0)return raw+' to '+end;
+  return raw;
+}
+function teachingChecklistExtraTimes(s){
+  const days=(s&&s.extraDays&&s.extraDays.length)?s.extraDays:[];
+  const out=[];
+  days.forEach(function(x){
+    if(!x||!x.date||!String(x.time||'').trim())return;
+    const d=new Date(x.date+'T12:00:00');
+    const label=isNaN(d.getTime())?String(x.date):d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    out.push(label+': '+teachPlain(x.time));
+  });
+  return out;
+}
+function teachingChecklistModel(s, generatedAt){
+  if(!s)return null;
+  const when=typeof fmtSessDate==='function'
+    ?fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'})
+    :(s.date||'Date TBD');
+  let place='';
+  if(s.isVirtual){
+    const link=String(s.zoomLink||'').trim();
+    place=link?('Virtual (Zoom): '+link):'Virtual (Zoom)';
+  }else{
+    place=(typeof adminPlaceText==='function'?adminPlaceText(s):'')||'No location';
+  }
+  const org=typeof sessionIsOrganization==='function'&&sessionIsOrganization(s);
+  const showRoster=typeof preClassShowsStudentCount!=='function'||preClassShowsStudentCount(s);
+  const count=teachingChecklistCount(s);
+  const supplies=teachingChecklistSupplyLines(s);
+  let supplyNote='';
+  if(s.isVirtual)supplyNote='Virtual session. Nothing to pack from the lock box.';
+  else if(!supplies.length)supplyNote='Nothing on the equipment list for this course.';
+  const printed=(generatedAt instanceof Date&&!isNaN(generatedAt.getTime()))?generatedAt:new Date();
+  return {
+    course:teachPlain(s.course||'Class'),
+    code:teachPlain(s.code||''),
+    when:teachPlain(when),
+    time:teachingChecklistTime(s),
+    extras:teachingChecklistExtraTimes(s).map(teachPlain),
+    place:teachPlain(place),
+    instructor:teachPlain(typeof checklistInstructorLabel==='function'?checklistInstructorLabel(s):'No instructor'),
+    hostRole:org?'Organization':'Host',
+    host:teachPlain(typeof checklistHostLabel==='function'?checklistHostLabel(s):(org?'No organization':'No host')),
+    rosterText:showRoster?(count+' '+(count===1?'student':'students')+' registered'):'No class roster',
+    supplies:supplies.map(teachPlain),
+    supplyNote:supplyNote,
+    todos:teachingChecklistTodos(s).map(function(t){return {label:teachPlain(t.label), done:!!t.done};}),
+    printedLabel:printed.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
+  };
+}
+function teachingChecklistHtml(model){
+  if(!model)return '';
+  const facts=[
+    ['Instructor', model.instructor||'No instructor'],
+    [model.hostRole||'Host', model.host||'No host'],
+    ['Registered', model.rosterText||'']
+  ];
+  if(model.code)facts.push(['Session code', model.code]);
+  const factRows=facts.map(function(row){
+    return '<tr><th>'+teachEsc(row[0])+'</th><td>'+teachEsc(row[1])+'</td></tr>';
+  }).join('');
+  function itemList(list, doneAware){
+    return '<ul class="teach-checks">'+list.map(function(item){
+      const text=doneAware?item.label:item;
+      const done=!!(doneAware&&item.done);
+      return '<li'+(done?' class="is-done"':'')+'><span class="teach-box">'+(done?'&#10003;':'')+'</span>'+teachEsc(text)+'</li>';
+    }).join('')+'</ul>';
+  }
+  const supplyBlock=(model.supplies&&model.supplies.length)
+    ?itemList(model.supplies, false)
+    :'<p class="teach-empty">'+teachEsc(model.supplyNote||'Nothing to pack.')+'</p>';
+  const extra=(model.extras&&model.extras.length)
+    ?'<p class="teach-when">'+model.extras.map(function(line){return teachEsc(line);}).join('<br>')+'</p>'
+    :'';
+  return '<div class="teach-pdf"><div class="teach-pdf-brand">Mindful Beginnings</div><h1>Teaching checklist</h1>'+
+    '<p class="teach-course">'+teachEsc(model.course)+'</p>'+
+    '<p class="teach-when">'+teachEsc(model.when)+', '+teachEsc(model.time)+'</p>'+
+    extra+
+    '<p class="teach-place">'+teachEsc(model.place)+'</p>'+
+    '<table class="teach-facts"><tbody>'+factRows+'</tbody></table>'+
+    '<h2>Materials and equipment</h2>'+supplyBlock+
+    '<h2>Before class</h2>'+
+    ((model.todos&&model.todos.length)?itemList(model.todos, true):'<p class="teach-empty">No pre-class to-dos for this session.</p>')+
+    '<h2>Notes</h2><div class="teach-note"></div><div class="teach-note"></div>'+
+    '<p class="teach-foot">Printed '+teachEsc(model.printedLabel)+'. Check each box as you pack. This page does not send any email or text.</p></div>';
+}
+function printTeachingChecklist(sessId){
+  const list=(typeof sessions!=='undefined'&&sessions)||[];
+  const s=list.find(function(x){return x&&String(x.id)===String(sessId);});
+  if(!s){
+    if(typeof showToast==='function')showToast('That session is not open on this dashboard.');
+    return;
+  }
+  const sheet=document.getElementById('teach-print-sheet');
+  if(!sheet){
+    if(typeof showToast==='function')showToast('The checklist could not be opened.');
+    return;
+  }
+  const model=teachingChecklistModel(s, new Date());
+  sheet.innerHTML=teachingChecklistHtml(model);
+  const prevTitle=document.title;
+  const name=teachPlain((model.course||'class')+' '+(model.when||'')).replace(/[^\w]+/g,' ').trim();
+  document.title='Teaching checklist'+(name?(' '+name):'');
+  document.body.classList.add('teach-printing');
+  let cleared=false;
+  function clearTeachPrint(){
+    if(cleared)return;
+    cleared=true;
+    document.body.classList.remove('teach-printing');
+    document.title=prevTitle;
+  }
+  window.addEventListener('afterprint', clearTeachPrint, {once:true});
+  try{
+    const mq=window.matchMedia('print');
+    const onMq=function(e){
+      if(!e.matches){
+        if(mq.removeEventListener)mq.removeEventListener('change', onMq);
+        clearTeachPrint();
+      }
+    };
+    if(mq.addEventListener)mq.addEventListener('change', onMq);
+  }catch(err){}
+  window.print();
+}
 function toggleReminderFlag(sessId,field,checked){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   jobDataCache[sessId][field]=checked;
