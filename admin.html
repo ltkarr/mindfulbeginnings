@@ -5953,6 +5953,7 @@ function clearPendingPaymentNotes(notes){
   return (notes||'')
     .replace(/\[Registered\s*[—-]\s*awaiting payment\]\s*/gi,'')
     .replace(/\[Family marked [^\]]*\]\s*/gi,'')
+    .replace(/\[Possible (?:Venmo|Zelle|PayPal) payment [^\]]*\]\s*/gi,'')
     .replace(/\s{2,}/g,' ')
     .trim();
 }

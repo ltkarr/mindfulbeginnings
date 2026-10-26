@@ -29,6 +29,7 @@ test('admin payment helpers match the shared library', () => {
 
   const cases = [
     { method: 'venmo', ref: 'memo 1', amount: 65, existingNotes: '[Registered — awaiting payment] Nut allergy' },
+    { method: 'venmo', ref: 'memo 1', amount: 65, existingNotes: '[Possible Venmo payment $65.00 from Ada Lovelace on Oct 21 - review] Nut allergy' },
     { method: 'zelle', ref: 'ZELLE-9', detail: '', amount: 185.5, existingNotes: 'Bring an epi pen' },
     { method: 'check', ref: '1042', amount: 40, existingNotes: '' },
     { method: 'other', ref: 'env', detail: 'Cash', amount: 10, existingNotes: '[Registered — awaiting payment]' },
