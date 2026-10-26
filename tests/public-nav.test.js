@@ -2,8 +2,9 @@
 
 // The unified site shares one brand header (mb-header / mb-nav) across every
 // marketing page. This replaces the old site-nav/public.css assertions: the
-// nav lives inline per page with two intentional variations — the Home link
-// is hidden on the homepage, and aria-current marks the active page.
+// nav lives inline per page. Since the 2026-10-26 less-is-more pass the
+// primary nav has no Home link on any page (the logo links home instead),
+// and aria-current marks the active page.
 
 const fs = require('fs');
 const path = require('path');
@@ -41,7 +42,7 @@ test('every marketing page uses the shared unified nav with no em dash', () => {
   });
 });
 
-test('aria-current marks the active page, and Home is hidden on the homepage', () => {
+test('aria-current marks the active page, and the primary nav has no Home link', () => {
   Object.entries(pages).forEach(([file, expectedHref]) => {
     const html = fs.readFileSync(path.join(root, file), 'utf8');
     const nav = navOf(html, file);
@@ -50,10 +51,9 @@ test('aria-current marks the active page, and Home is hidden on the homepage', (
       .map((hit) => (hit[1].match(/href="([^"]*)"/) || [])[1]);
     if (expectedHref) {
       assert.deepEqual(current, [expectedHref], file);
-      assert.match(nav, /<a href="\/">Home<\/a>/, file + ' should link Home');
     } else {
       assert.deepEqual(current, [], file + ' should mark nothing current');
-      assert.doesNotMatch(nav, /<a href="\/">Home<\/a>/, 'homepage should hide the Home link');
     }
+    assert.doesNotMatch(nav, />Home<\/a>/, file + ' primary nav should not link Home (logo does)');
   });
 });
