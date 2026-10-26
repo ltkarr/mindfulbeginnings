@@ -38,6 +38,11 @@
 .club-row h3{font-size:21px;margin:0 0 4px}
 .club-row p{margin:0;font-size:18px;line-height:1.6}
 .club-row .club-meta{margin-top:6px}
+.club-names ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:0 48px}
+.club-names li{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:13px 2px;border-bottom:1px solid rgba(30,49,97,.12);font-size:18px}
+.club-names li strong{color:#1E3161;font-size:19px}
+.club-names li span{color:#5a6b8c;font-weight:600;white-space:nowrap}
+@media(max-width:700px){.club-names ul{grid-template-columns:1fr}}
 .step-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 32px;margin:0 0 20px;padding:0;list-style:none;max-width:860px}
 .step-grid li{padding:10px 0;border-bottom:1px solid rgba(30,49,97,.12)}
 .step-grid li p{margin:0;line-height:1.55}
@@ -93,18 +98,21 @@
 <section class="mb-section tight">
 <div class="mb-wrap">
 <h2 class="mb-h2"><span class="mb-h2-script" style="font-size:1.3em">The clubs</span></h2>
-<div class="club-list">
-<div class="club-row"><h3>My First Babysitter's Club</h3><p>The first step toward babysitting: a trusted extra set of hands while a parent is home, with real practice on dolls, props and role play.</p><p class="club-meta">Grades 4 to 5</p></div>
-<div class="club-row"><h3>Little Medics</h3><p>A first aid club for the youngest helpers: what an emergency is, how to get help fast, and how to handle scrapes, bumps, bug bites and nosebleeds.</p><p class="club-meta">Grades K to 2</p></div>
-<div class="club-row"><h3>Pet Sitter's Club</h3><p>For kids who want to care for animals and earn a little money doing it: what pets need, staying safe around animals, and running a real pet sitting job.</p><p class="club-meta">Grades 3 to 5</p></div>
-<div class="club-row"><h3>Snack Squad</h3><p>A kitchen club with no stove required: a new snack every week, plus kitchen safety, clean hands, food allergies and reading labels.</p><p class="club-meta">Grades 2 to 5</p></div>
-<div class="club-row"><h3>Kid Boss Club</h3><p>Young entrepreneurs turn an idea into a real product or service, then pitch and sell it at a pop up on the final day.</p><p class="club-meta">Grades 4 to 5</p></div>
-<div class="club-row"><h3>Middle School, Here I Come</h3><p>A head start on the biggest school change yet: opening a locker, reading a schedule, keeping track of six teachers and speaking up.</p><p class="club-meta">Grade 5</p></div>
-<div class="club-row"><h3>Big Sibling Club</h3><p>For kids with a baby or little sibling at home, or one on the way: gentle, safe ways to help, and reassurance that big feelings are normal.</p><p class="club-meta">Grades K to 3</p></div>
-<div class="club-row"><h3>My First Phone</h3><p>For kids getting a first phone, or about to: passwords, privacy, group chats, screen time, and what to do the moment something online feels wrong.</p><p class="club-meta">Grades 4 to 5</p></div>
-<div class="club-row"><h3>Walk and Roll Ready</h3><p>Getting around the neighborhood safely on foot, bike or scooter: rules of the road, what to do if they get separated, and planning their real route.</p><p class="club-meta">Grades 2 to 5</p></div>
-<div class="club-row"><h3>Calm and Ready</h3><p>A feelings toolbox for every kid: name what they feel, notice it in their bodies, and use simple tools that work in the moment.</p><p class="club-meta">Grades K to 5</p></div>
+<div class="club-names">
+<ul>
+<li><strong>My First Babysitter's Club</strong><span>Grades 4 to 5</span></li>
+<li><strong>Little Medics</strong><span>Grades K to 2</span></li>
+<li><strong>Pet Sitter's Club</strong><span>Grades 3 to 5</span></li>
+<li><strong>Snack Squad</strong><span>Grades 2 to 5</span></li>
+<li><strong>Kid Boss Club</strong><span>Grades 4 to 5</span></li>
+<li><strong>Middle School, Here I Come</strong><span>Grade 5</span></li>
+<li><strong>Big Sibling Club</strong><span>Grades K to 3</span></li>
+<li><strong>My First Phone</strong><span>Grades 4 to 5</span></li>
+<li><strong>Walk and Roll Ready</strong><span>Grades 2 to 5</span></li>
+<li><strong>Calm and Ready</strong><span>Grades K to 5</span></li>
+</ul>
 </div>
+<p style="font-size:18px;margin-top:22px">Every club meets one hour a week. Contact us for the full club guide with descriptions and pricing for your school.</p>
 </section>
 
 <section class="mb-section tight">
