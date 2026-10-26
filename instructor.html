@@ -898,15 +898,19 @@ function daysUntil(dateStr){
   const d=new Date(dateStr+'T12:00:00');d.setHours(0,0,0,0);
   return Math.round((d-t)/86400000);
 }
-// Sessions this instructor holds that are still real classes. A class the office
-// cancelled is not a job: it stays off My jobs, the home counts, the calendar,
-// schedule-conflict checks, teaching history, and the income summary.
-function myAssignedSessions(){
+// Every session assigned to this instructor, including one the office cancelled.
+// My jobs lists those so the instructor can see the cancellation. Home, the
+// calendar download, conflict checks, teaching history, and the income summary
+// use myAssignedSessions(), which leaves cancelled classes out.
+function myJobsSessions(){
   return allSessions.filter(s=>{
-    if(!s||s.isCancelled)return false;
+    if(!s)return false;
     const jdi=jobDataCache[s.id]||{};
     return jdi.instructorId===me.id;
   });
+}
+function myAssignedSessions(){
+  return myJobsSessions().filter(s=>!s.isCancelled);
 }
 // Every meeting of every job THIS instructor already holds, keyed by date, so a
 // candidate job can be checked against them without rescanning the whole list.
@@ -2209,9 +2213,10 @@ function ensurePrivate(sessId){
 
 // ─── MY JOBS ─────────────────────────────────────────────────
 function renderMyJobs(){
-  // Office cancellations are removed here, not shown with a banner. Open jobs
-  // and Upcoming already skip isCancelled; My jobs uses the same rule.
-  const myJobs=myAssignedSessions().sort((a,b)=>b.date.localeCompare(a.date));
+  // A class the office cancelled stays on this list. The card explains what
+  // happened. Pay messages and actions are removed. Home and the calendar
+  // download use myUpcomingJobs(), which leaves the date off.
+  const myJobs=myJobsSessions().sort((a,b)=>b.date.localeCompare(a.date));
   const el=document.getElementById('myjobs-list');
   if(!myJobs.length){
     // Same honesty rule as Open jobs: a failed load must never look like "you have no jobs".
@@ -2232,12 +2237,18 @@ function renderMyJobs(){
     const hoursBit=hoursNote?` ${escapeHtml(hoursNote)}`:'';
     const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
     const upcoming=new Date(lastSessDate(s)+'T12:00:00')>=startOfToday;
+    // Cancelled by the office. The card stays visible so the instructor can see what
+    // happened rather than watching a job vanish, but every action and every payment
+    // expectation is removed.
+    const cx=!!s.isCancelled;
+    const cxBanner=cx?`<div class="alert warn" style="margin-bottom:14px">🚫 &nbsp;<span><strong>This class was cancelled${s.cancelReason?' due to '+escapeHtml(s.cancelReason):''}.</strong> You do not need to attend. Lindsay has emailed you the details. Please take the date off your calendar.</span></div>`:'';
     let matHtml='';
     if(jdi.materialsMethod==='ship-host'){matHtml=jdi.materialsSent?'<span class="pill pill-mat-ready">✓ Materials shipped to host</span>':'<span class="pill pill-mat-pending">⏳ Materials being shipped to host</span>';}
     else if(jdi.materialsMethod==='pickup'){matHtml=jdi.materialsSent?'<span class="pill pill-mat-ready">✓ Materials picked up</span>':'<span class="pill pill-mat-pending">⏳ Please pick up materials from Lindsay</span>';}
     else{matHtml='<span class="pill pill-taken">Materials delivery TBD</span>';}
     let payHtml='';
-    if(jdi.payStatus==='paid'){payHtml=`<div class="alert success">✓ &nbsp;Payment sent via Zelle on ${jdi.payDate||''}. Amount: ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit}</div>`;}
+    if(cx){payHtml='';}
+    else if(jdi.payStatus==='paid'){payHtml=`<div class="alert success">✓ &nbsp;Payment sent via Zelle on ${jdi.payDate||''}. Amount: ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit}</div>`;}
     else if(jdi.evalReceived){payHtml=`<div class="alert info">🎉 &nbsp;Evaluation received! Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit} will be sent to your Zelle shortly.</div>`;}
     else if(!upcoming){payHtml=s.isCustomJob
       ?`<div class="alert warn">⏳ &nbsp;Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit} will be sent to your Zelle after the event.</div>`
@@ -2258,7 +2269,8 @@ function renderMyJobs(){
     const mapLink=mapQ?` <a href="${escapeHtml(mapQ)}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">Directions ↗</a>`:'';
     return`<div class="job-card">
       <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>
-      <span class="pill ${upcoming?'pill-accepted':'pill-taken'}">${upcoming?'Upcoming':'Completed'}</span></div>
+      <span class="pill ${cx?'pill-taken':(upcoming?'pill-accepted':'pill-taken')}">${cx?'Cancelled':(upcoming?'Upcoming':'Completed')}</span></div>
+      ${cxBanner}
       ${upcoming?heroStripHTML(s,fee):`<div class="jc-details">
         <div class="jc-detail"><div class="jc-detail-label">Time</div><div class="jc-detail-val">${escapeHtml(sessTimeSummary(s))}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">${meetings.length>1?'Class days':'Date'}</div><div class="jc-detail-val">${meetings.length>1?meetings.length+' days'+(closedCount?' · '+closedCount+' off':''):fmtDate(s.date)}</div></div>
@@ -2278,8 +2290,8 @@ function renderMyJobs(){
       ${payHtml}
       ${jdi.notes?`<div style="font-size:14px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:var(--r-sm)">📝 ${escapeHtml(jdi.notes)}</div>`:''}
       <div class="jc-actions" style="margin-top:12px">
-        ${s.isCustomJob?'':`<button class="btn" onclick="printRoster('${s.id}')">Print roster</button>`}
-        ${upcoming?`<button class="btn" onclick="cancelJob('${s.id}')">Cancel my acceptance</button>`:''}
+        ${(s.isCustomJob||cx)?'':`<button class="btn" onclick="printRoster('${s.id}')">Print roster</button>`}
+        ${(upcoming&&!cx)?`<button class="btn" onclick="cancelJob('${s.id}')">Cancel my acceptance</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -2716,7 +2728,10 @@ async function printRoster(sessId){
 
 // ─── UPCOMING JOBS: PRINT CALENDAR / CALENDAR FILE ────────────
 // Shared helper: this instructor's accepted sessions whose last meeting day
-// has not passed, sorted soonest-first.
+// has not passed, sorted soonest-first. Cancelled classes stay off this list
+// on purpose. Home uses it for "your next class", and both calendar buttons
+// use it. The My jobs card already says to take that date off the calendar,
+// so the download must not put the date back.
 function myUpcomingJobs(){
   const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
   return myAssignedSessions().filter(s=>{
