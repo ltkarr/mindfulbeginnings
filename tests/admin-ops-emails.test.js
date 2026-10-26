@@ -54,31 +54,80 @@ test('post-course email picks the right draft per course', () => {
   assert.equal(virtual.subject, 'Your child is Safe@Home ready');
 });
 
-test('host reminder fills the checklist and leaves a meal placeholder', () => {
-  const draft = emails.draft('hostReminder', sample());
-  assert.equal(draft.field, 'to');
-  assert.equal(draft.subject, 'Reminder: Safe Sitter® class on October 10 — hosting checklist');
-  assert.match(draft.body, /^Hi Lindsay,/);
-  assert.match(draft.body, /Your Safe Sitter® class is one week away!/);
-  assert.match(draft.body, /Date: Saturday, October 10, 2026/);
-  assert.match(draft.body, /Time: 9:00 a\.m\. – 3:00 p\.m\./);
-  assert.match(draft.body, /Location: 123 Maple St, Bethesda, MD 20814/);
-  assert.match(draft.body, /Instructor: Priya Shah/);
-  assert.match(draft.body, /Session code: SS-1010/);
-  assert.match(draft.body, /Registration count: 8 students registered/);
-  assert.match(draft.body, /HOSTING CHECKLIST \(from our host form\)/);
-  assert.match(draft.body, /Edit before sending/);
-  assert.doesNotMatch(draft.body, /SPECIAL NOTES/);
-});
-
-test('host reminder uses a stored meal plan and special notes', () => {
-  const draft = emails.draft('hostReminder', sample({
-    mealText: 'You are providing a full meal for participants.',
+test('host reminder matches the one-week host letter wording', () => {
+  const draft = emails.draft('hostReminder', {
+    course: 'Safe@Home',
+    dateLong: 'Monday, November 2, 2026',
+    dateShort: 'November 2',
+    time: '11:00 AM',
+    address: '6104 Roseland Drive, Rockville, MD 20852',
+    instructor: 'Ashira Lavine',
+    code: 'SAH-261102B',
+    countPhrase: '5 students registered',
+    hostFirst: 'Alix',
+    mealText: 'I will provide a full meal for participants.',
     specialNotes: 'Park in the driveway.',
     wifi: 'HomeWifi / sesame'
+  });
+  assert.equal(draft.field, 'to');
+  assert.equal(draft.subject, 'Reminder: Safe@Home class on November 2 - hosting checklist');
+  assert.equal(draft.body, [
+    'Hi Alix,',
+    '',
+    'Your Safe@Home class is one week away! Here is everything you need to remember as the host, plus the session details.',
+    '',
+    'SESSION DETAILS',
+    'Course: Safe@Home',
+    'Date: Monday, November 2, 2026',
+    'Time: 11:00 AM',
+    'Location: 6104 Roseland Drive, Rockville, MD 20852',
+    'Instructor: Ashira Lavine',
+    'Session code: SAH-261102B',
+    'Registration count: 5 students registered (roster attached)',
+    '',
+    'HOSTING CHECKLIST',
+    'Please make sure the following are in place before the instructor and participants arrive:',
+    '',
+    '• Space & seating: A clean floor area for hands-on practice, plus a comfortable seat for every participant.',
+    '• Work surface: A dining table is preferred. If you don\'t have one available, no worries. The instructor will bring clipboards.',
+    '• Tech & projection: A large, blank wall is needed to project videos. We supply the laptop, speakers, and projector.',
+    '• Wi-Fi: Reliable internet access is required. Please share the login credentials with the instructor upon arrival.',
+    '• Refreshments: As the host, please provide light snacks and drinks. Participants usually pack their own meals unless you chose to provide a meal (see your meal plan below).',
+    '• Safety & environment:',
+    '  – An adult must be present for the duration of the course.',
+    '  – Secure entry, access to restrooms, a working phone, and adequate lighting.',
+    '  – Please keep pets in a separate area, away from the teaching space.',
+    '',
+    'YOUR MEAL PLAN FOR THIS CLASS',
+    'Food: I will provide a full meal for participants.',
+    '',
+    'Thank you!'
+  ].join('\n'));
+  assert.doesNotMatch(draft.subject + '\n' + draft.body, /\u2014/);
+  assert.doesNotMatch(draft.body, /Please print the attached class roster/);
+  assert.doesNotMatch(draft.body, /from our host form/);
+  assert.doesNotMatch(draft.body, /SPECIAL NOTES/);
+  assert.doesNotMatch(draft.body, /Park in the driveway/);
+  assert.doesNotMatch(draft.body, /HomeWifi/);
+  assert.doesNotMatch(draft.body, /Warmly/);
+  assert.doesNotMatch(draft.body, /Edit before sending/);
+});
+
+test('host reminder keeps a Food line when the meal plan is missing and does not double the label', () => {
+  const missing = emails.draft('hostReminder', sample());
+  assert.equal(missing.subject, 'Reminder: Safe Sitter® class on October 10 - hosting checklist');
+  assert.match(missing.body, /Registration count: 8 students registered \(roster attached\)/);
+  assert.match(missing.body, /^HOSTING CHECKLIST$/m);
+  assert.doesNotMatch(missing.body, /HOSTING CHECKLIST \(from our host form\)/);
+  assert.match(missing.body, /YOUR MEAL PLAN FOR THIS CLASS\nFood:\n/);
+  assert.doesNotMatch(missing.body, /Edit before sending/);
+  assert.doesNotMatch(missing.body, /\u2014/);
+
+  const prefixed = emails.draft('hostReminder', sample({
+    mealText: 'Food: I will provide snacks and drinks only; participants should pack a meal.'
   }));
-  assert.match(draft.body, /YOUR MEAL PLAN FOR THIS CLASS\nYou are providing a full meal for participants\./);
-  assert.match(draft.body, /SPECIAL NOTES\nPark in the driveway\.\nWi-Fi on file: HomeWifi \/ sesame/);
+  assert.match(prefixed.body, /Food: I will provide snacks and drinks only; participants should pack a meal\./);
+  assert.doesNotMatch(prefixed.body, /Food: Food:/);
 });
 
 test('family reminder is the before-class pack and meal note', () => {

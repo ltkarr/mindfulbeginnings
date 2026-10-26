@@ -60,9 +60,8 @@
   }
 
   function hostMealLine(meal) {
-    var t = String(meal || '').trim();
-    if (!t) return '[Edit before sending \u2014 e.g. \u201cYou are providing a full meal for participants.\u201d or \u201cYou are providing snacks and drinks only; participants should pack a meal.\u201d]';
-    return t;
+    var t = String(meal || '').trim().replace(/^food:\s*/i, '');
+    return t ? ('Food: ' + t) : 'Food:';
   }
 
   function moneyAmount(text) {
@@ -110,14 +109,12 @@
     var countPhrase = val(info, 'countPhrase', '0 students registered');
     var host = val(info, 'hostFirst', '[Host first name]');
     var mealRaw = val(info, 'mealText', '');
-    var special = val(info, 'specialNotes', '');
-    var wifi = val(info, 'wifi', '');
     var lines = [];
 
     if (kind === 'hostReminder') {
       lines.push('Hi ' + host + ',');
       lines.push('');
-      lines.push('Your ' + course + ' class is one week away! Here is everything you need to remember as the host, plus the session details. Please print the attached class roster and have it ready for the instructor.');
+      lines.push('Your ' + course + ' class is one week away! Here is everything you need to remember as the host, plus the session details.');
       lines.push('');
       lines.push('SESSION DETAILS');
       lines.push('Course: ' + course);
@@ -126,13 +123,13 @@
       lines.push('Location: ' + address);
       lines.push('Instructor: ' + (instructor || 'To be confirmed'));
       lines.push('Session code: ' + code);
-      lines.push('Registration count: ' + countPhrase);
+      lines.push('Registration count: ' + countPhrase + ' (roster attached)');
       lines.push('');
-      lines.push('HOSTING CHECKLIST (from our host form)');
+      lines.push('HOSTING CHECKLIST');
       lines.push('Please make sure the following are in place before the instructor and participants arrive:');
       lines.push('');
       lines.push('\u2022 Space & seating: A clean floor area for hands-on practice, plus a comfortable seat for every participant.');
-      lines.push('\u2022 Work surface: A dining table is preferred. If you don\u2019t have one available, no worries \u2014 the instructor will bring clipboards.');
+      lines.push('\u2022 Work surface: A dining table is preferred. If you don\'t have one available, no worries. The instructor will bring clipboards.');
       lines.push('\u2022 Tech & projection: A large, blank wall is needed to project videos. We supply the laptop, speakers, and projector.');
       lines.push('\u2022 Wi-Fi: Reliable internet access is required. Please share the login credentials with the instructor upon arrival.');
       lines.push('\u2022 Refreshments: As the host, please provide light snacks and drinks. Participants usually pack their own meals unless you chose to provide a meal (see your meal plan below).');
@@ -143,23 +140,11 @@
       lines.push('');
       lines.push('YOUR MEAL PLAN FOR THIS CLASS');
       lines.push(hostMealLine(mealRaw));
-      var notes = [];
-      if (special) notes.push(special);
-      if (wifi) notes.push('Wi-Fi on file: ' + wifi);
-      if (notes.length) {
-        lines.push('');
-        lines.push('SPECIAL NOTES');
-        lines.push(notes.join('\n'));
-      }
       lines.push('');
-      lines.push('Please don\u2019t hesitate to reach out with any questions. Thank you again for hosting \u2014 we are so grateful!');
-      lines.push('');
-      lines.push('Warmly,');
-      lines.push('Lindsay');
-      lines.push('Mindful Beginnings');
+      lines.push('Thank you!');
       return {
         field: 'to',
-        subject: 'Reminder: ' + course + ' class on ' + dateShort + ' \u2014 hosting checklist',
+        subject: 'Reminder: ' + course + ' class on ' + dateShort + ' - hosting checklist',
         body: lines.join('\n')
       };
     }

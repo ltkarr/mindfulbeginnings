@@ -17183,7 +17183,7 @@ function openHostReminder(sessId){
     emails:emails,
     subject:draft.subject,
     body:draft.body,
-    note:'This is the one-week hosting checklist. Print the class roster below and attach it. Edit the meal plan in the message if it still shows a placeholder, then copy the message and the host address. Addresses are separated with semicolons.',
+    note:'This is the one-week hosting checklist. Print the class roster below and attach it. The meal line is filled from the host\'s meal plan on file. Copy the message and the host address. Addresses are separated with semicolons.',
     extraHtml:classRosterSection(s, regs, {when:d, where:where, who:instr, privateCols:false}),
     hasRoster:true
   });
