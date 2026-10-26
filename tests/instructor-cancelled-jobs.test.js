@@ -1,8 +1,9 @@
 'use strict';
 
-// Cancelled classes stay off the instructor portal. Open jobs already skipped
-// isCancelled. My jobs used to keep the card and show a red cancellation
-// banner, and the 1099 helper counted the fee. Both now use myAssignedSessions.
+// My jobs shows an assigned class the office cancelled, with the red banner and
+// no pay message or action buttons. Open jobs, home/upcoming, the calendar
+// download, schedule conflicts, teaching history, and the income summary still
+// leave that class out.
 
 const fs = require('fs');
 const path = require('path');
@@ -100,6 +101,7 @@ function loadPortal() {
       extractFn(instructor, 'sessClosures'),
       extractFn(instructor, 'lastSessDate'),
       extractFn(instructor, 'parseTimeRange'),
+      extractFn(instructor, 'myJobsSessions'),
       extractFn(instructor, 'myAssignedSessions'),
       extractFn(instructor, 'myMeetingIndex'),
       extractFn(instructor, 'myHistory'),
@@ -140,16 +142,33 @@ function assign(api, sessions, jobs) {
   api._resetWritten();
 }
 
-test('the portal no longer renders a cancelled-class banner on My jobs', () => {
-  assert.doesNotMatch(instructor, /This class was cancelled/);
-  assert.match(extractFn(instructor, 'renderMyJobs'), /myAssignedSessions\(\)/);
-  assert.match(extractFn(instructor, 'myAssignedSessions'), /s\.isCancelled/);
+function jobCard(html, course) {
+  const cards = html.split('<div class="job-card">').slice(1);
+  const card = cards.find(c => c.includes(course));
+  assert.ok(card, 'missing job card for ' + course);
+  return card;
+}
+
+test('My jobs keeps the cancellation banner and strips pay and actions', () => {
+  assert.match(instructor, /This class was cancelled/);
+  assert.match(instructor, /You do not need to attend/);
+  const jobs = extractFn(instructor, 'renderMyJobs');
+  assert.match(jobs, /myJobsSessions\(\)/);
+  assert.match(jobs, /if\(cx\)\{payHtml='';\}/);
+  assert.match(jobs, /s\.isCustomJob\|\|cx/);
+  assert.match(jobs, /upcoming&&!cx/);
+  assert.match(extractFn(instructor, 'myJobsSessions'), /jdi\.instructorId===me\.id/);
+  assert.doesNotMatch(extractFn(instructor, 'myJobsSessions'), /isCancelled/);
+  assert.match(extractFn(instructor, 'myAssignedSessions'), /!s\.isCancelled/);
   assert.match(extractFn(instructor, 'openJobs'), /s\.isCancelled/);
+  assert.match(extractFn(instructor, 'myUpcomingJobs'), /myAssignedSessions\(\)/);
   assert.match(extractFn(instructor, 'downloadIncomeSummary'), /myAssignedSessions\(\)/);
   assert.match(extractFn(instructor, 'incomeYearOptions'), /myAssignedSessions\(\)/);
+  assert.match(extractFn(instructor, 'printJobsCalendar'), /myUpcomingJobs\(\)/);
+  assert.match(extractFn(instructor, 'downloadJobsICS'), /myUpcomingJobs\(\)/);
 });
 
-test('My jobs, Upcoming, Open jobs, conflicts, and history omit cancelled classes', () => {
+test('My jobs lists cancelled classes; Upcoming, Open jobs, conflicts, and history do not', () => {
   const api = loadPortal();
   assign(api, [
     session({ id: 'live', course: 'Safe Sitter®', date: '2026-11-20' }),
@@ -174,12 +193,31 @@ test('My jobs, Upcoming, Open jobs, conflicts, and history omit cancelled classe
   const html = api._list.innerHTML;
   assert.match(html, /Safe Sitter®/);
   assert.match(html, /Intro to Babysitting/);
-  assert.doesNotMatch(html, /Cancelled Workshop/);
-  assert.doesNotMatch(html, /Old Cancelled/);
+  assert.match(html, /Cancelled Workshop/);
+  assert.match(html, /Old Cancelled/);
   assert.doesNotMatch(html, /Open Cancelled/);
   assert.doesNotMatch(html, /Someone Else/);
-  assert.doesNotMatch(html, /This class was cancelled/);
-  assert.doesNotMatch(html, />Cancelled</);
+
+  const soon = jobCard(html, 'Cancelled Workshop');
+  assert.match(soon, /This class was cancelled due to low enrollment/);
+  assert.match(soon, /You do not need to attend/);
+  assert.match(soon, />Cancelled</);
+  assert.doesNotMatch(soon, /Payment sent/);
+  assert.doesNotMatch(soon, /will be sent/);
+  assert.doesNotMatch(soon, /Waiting for host evaluation/);
+  assert.doesNotMatch(soon, /printRoster\('cx-soon'\)/);
+  assert.doesNotMatch(soon, /Cancel my acceptance/);
+
+  const old = jobCard(html, 'Old Cancelled');
+  assert.match(old, /This class was cancelled\./);
+  assert.match(old, />Cancelled</);
+  assert.doesNotMatch(old, /Payment sent/);
+  assert.doesNotMatch(old, /printRoster\('cx-old'\)/);
+  assert.doesNotMatch(old, /Cancel my acceptance/);
+
+  const live = jobCard(html, 'Safe Sitter®');
+  assert.doesNotMatch(live, /This class was cancelled/);
+  assert.match(live, /Cancel my acceptance/);
 
   assert.deepEqual(api.myUpcomingJobs().map(s => s.id), ['live']);
   assert.deepEqual(api.openJobs().map(s => s.id), ['open-live']);
@@ -195,16 +233,23 @@ test('My jobs, Upcoming, Open jobs, conflicts, and history omit cancelled classe
   assert.equal(history.venue, 1, 'the taught class at School still counts');
 });
 
-test('a portal whose only assigned class was cancelled shows an empty My jobs list', () => {
+test('a portal whose only assigned class was cancelled still shows that class on My jobs', () => {
   const api = loadPortal();
   assign(api, [
-    session({ id: 'cx', course: 'Cancelled Workshop', date: '2026-11-15', isCancelled: true })
+    session({ id: 'cx', course: 'Cancelled Workshop', date: '2026-11-15', isCancelled: true, cancelReason: 'weather' })
   ], {
-    cx: { instructorId: 'me', payStatus: 'paid', paidFee: 250 }
+    cx: { instructorId: 'me', payStatus: 'paid', paidFee: 250, payDate: '2026-11-01' }
   });
   api.renderMyJobs();
-  assert.match(api._list.innerHTML, /No accepted jobs yet/);
-  assert.doesNotMatch(api._list.innerHTML, /Cancelled Workshop/);
+  const html = api._list.innerHTML;
+  assert.doesNotMatch(html, /No accepted jobs yet/);
+  const card = jobCard(html, 'Cancelled Workshop');
+  assert.match(card, /This class was cancelled due to weather/);
+  assert.match(card, /You do not need to attend/);
+  assert.doesNotMatch(card, /Payment sent/);
+  assert.doesNotMatch(card, /will be sent/);
+  assert.doesNotMatch(card, /Cancel my acceptance/);
+  assert.deepEqual(api.myUpcomingJobs(), []);
 });
 
 test('the income summary drops cancelled classes from the year list, rows, and paid totals', () => {
