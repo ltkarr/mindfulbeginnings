@@ -46,7 +46,7 @@ a:hover{color:var(--navy-dark)}
 .mb-logo{width:44px;height:44px;border-radius:50%;display:block}
 .mb-wordmark{font-size:20px;font-weight:800;letter-spacing:0.02em}
 .mb-nav{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
-.mb-nav a{font-size:14px;font-weight:700;color:var(--navy);text-decoration:none}
+.mb-nav a{font-size:15px;font-weight:700;color:var(--navy);text-decoration:none}
 .mb-nav a:hover{text-decoration:underline;text-underline-offset:4px}
 .mb-nav a[aria-current="page"]{text-decoration:underline;text-underline-offset:4px}
 
@@ -70,12 +70,12 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:8px;position:relative}
 .mb-footer-name{margin:0;font-weight:700;font-size:17px}
 .mb-footer-nav{display:flex;flex-wrap:wrap;gap:6px 16px}
-.mb-footer-nav a{color:var(--cream);font-size:14.5px;font-weight:600;text-decoration:none;opacity:.92}
+.mb-footer-nav a{color:var(--cream);font-size:16px;font-weight:600;text-decoration:none;opacity:.92}
 .mb-footer-nav a:hover{color:var(--btn-gold);opacity:1}
-.mb-footer-line{margin:0;font-size:14.5px;opacity:.92}
+.mb-footer-line{margin:0;font-size:16px;opacity:.92}
 .mb-footer-line a{color:var(--cream);font-weight:600;text-decoration:none}
 .mb-footer-line a:hover{color:var(--btn-gold)}
-.mb-footer-copy{margin:6px 0 0;font-size:13px;opacity:.7;padding-right:88px}
+.mb-footer-copy{margin:6px 0 0;font-size:14px;opacity:.7;padding-right:88px}
 .mb-footer-instructor{margin:12px 0 0}
 .mb-footer-instructor a{display:inline-block;background:#fff;color:var(--navy);font-size:13px;font-weight:700;padding:7px 18px;border-radius:100px;text-decoration:none}
 .mb-footer-instructor a:hover{background:var(--btn-gold);color:var(--navy)}
@@ -123,9 +123,9 @@ p:last-child{margin-bottom:0}
 .mb-card-band{background:var(--navy);padding:12px 16px}
 .mb-card-band h3{color:var(--white);font-size:19px;margin:0}
 .mb-card-body{padding:14px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
-.mb-card-price{margin:0;font-size:15px;font-weight:800}
-.mb-card-text{margin:0;font-size:15px}
-.mb-card-list{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:4px}
+.mb-card-price{margin:0;font-size:17px;font-weight:800}
+.mb-card-text{margin:0;font-size:17px}
+.mb-card-list{margin:0;padding-left:18px;font-size:16px;display:flex;flex-direction:column;gap:4px}
 .mb-card .mb-btn{align-self:flex-start;margin-top:auto}
 
 /* ---------- steps ---------- */
@@ -143,14 +143,14 @@ p:last-child{margin-bottom:0}
 /* ---------- forms ---------- */
 .mb-form{max-width:640px;display:flex;flex-direction:column;gap:12px}
 .mb-field{display:flex;flex-direction:column;gap:6px}
-.mb-field label{font-weight:700;font-size:15px}
+.mb-field label{font-weight:700;font-size:16px}
 .mb-field input,.mb-field textarea{
   font-family:inherit;font-size:16px;color:var(--navy);
   border:2px solid var(--navy);border-radius:12px;padding:12px 14px;background:var(--white);
 }
 .mb-field textarea{min-height:140px;resize:vertical}
 .mb-field input:focus,.mb-field textarea:focus{outline:3px solid var(--btn-gold);outline-offset:2px}
-.mb-form-note{font-size:14px}
+.mb-form-note{font-size:16px}
 .mb-form-error{background:#fdecea;color:#a02020;border:2px solid #e8a0a0;border-radius:12px;padding:12px 16px;font-weight:600}
 .mb-form-success{background:#f5f3f1;border-radius:16px;padding:24px;text-align:center;max-width:640px}
 .mb-form-success p{margin:12px 0;font-size:16px}
@@ -252,7 +252,7 @@ p:last-child{margin-bottom:0}
 .mb-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
 .mb-gallery figure{margin:0}
 .mb-gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;display:block}
-.mb-gallery figcaption{font-size:14px;color:var(--navy);margin-top:8px}
+.mb-gallery figcaption{font-size:16px;color:var(--navy);margin-top:8px}
 .mb-gallery-tilt{gap:28px}
 .mb-gallery-tilt img{border-radius:20px;border:5px solid var(--white);box-shadow:0 14px 30px rgba(30,49,97,.16)}
 .mb-gallery-tilt figure:nth-child(odd) img{transform:rotate(-2deg)}

@@ -26,8 +26,8 @@ a:hover{color:#0F1D3F}
 
 
 
-.trust{margin:0;background:#fff;color:#1E3161;text-align:center;font-weight:600;font-size:14px;line-height:1.45;padding:14px 6vw;border-bottom:2px solid #C7A24A}
-.header-note{margin:0;background:#EFC75A;color:#1E3161;text-align:center;font-weight:700;font-size:15px;padding:12px 6vw}
+.trust{margin:0;background:#fff;color:#1E3161;text-align:center;font-weight:600;font-size:16px;line-height:1.45;padding:14px 6vw;border-bottom:2px solid #C7A24A}
+.header-note{margin:0;background:#EFC75A;color:#1E3161;text-align:center;font-weight:700;font-size:16px;padding:12px 6vw}
 .hero{background:#1E3161;color:#F5F2EA;padding:28px 6vw 30px}
 .hero-inner,.band-inner,.section-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .band-split{flex-direction:row;align-items:center;gap:48px}
@@ -36,7 +36,7 @@ a:hover{color:#0F1D3F}
 @media(max-width:640px){.band-split{flex-direction:column;align-items:flex-start;gap:24px}.band-badge{width:240px}}
 .eyebrow{font-family:'Caveat',cursive;font-size:30px;font-weight:700;color:#EFC75A;line-height:1.1}
 h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
-.lede{margin:0;font-size:16px;max-width:720px;font-weight:500;line-height:1.55}
+.lede{margin:0;font-size:17px;max-width:720px;font-weight:500;line-height:1.55}
 .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:4px}
 .gold-btn,.navy-btn,.book{font-weight:800;text-decoration:none;border-radius:999px;display:inline-block;box-sizing:border-box;max-width:100%;align-self:flex-start}
 .gold-btn{background:#EFC75A;color:#1E3161;font-size:16px;padding:12px 22px}
@@ -56,8 +56,13 @@ a.card:hover .card-visual h3{text-decoration:underline}
 .card-visual:after{content:"";position:absolute;left:16px;bottom:0;width:44px;height:5px;background:#EFC75A;border-radius:4px 4px 0 0}
 .card-visual h3{margin:0;position:relative;z-index:1;color:#fff;font-family:'Montserrat',sans-serif;font-size:20px;line-height:1.25;font-weight:700}
 .card-body{padding:16px 16px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
-.meta{margin:0;font-size:14px;font-weight:700;line-height:1.45}
-.desc{margin:0;font-size:16px;line-height:1.55}
+.meta{margin:0;font-size:16px;font-weight:700;line-height:1.45}
+.desc{margin:0;font-size:17px;line-height:1.55}
+.type-pill{margin:0;align-self:flex-start;font-size:14px;font-weight:800;letter-spacing:.02em;border-radius:999px;padding:6px 12px;line-height:1.3}
+.type-pill.cert{background:#1E3161;color:#fff}
+.type-pill.workshop{background:#fff;color:#1E3161;border:2px solid #1E3161}
+.best-if{margin:0;font-size:16px;line-height:1.5;background:#F5F2EA;border-radius:12px;padding:10px 12px}
+
 .band{background:#1E3161;color:#F5F2EA;padding:32px 6vw}
 .band h2{margin:0;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800;color:#F5F2EA}
 .custom h2{margin:0;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800}
@@ -84,10 +89,10 @@ a.card:hover .card-visual h3{text-decoration:underline}
 .filter-wrap{display:flex;flex-wrap:wrap;gap:10px;margin:0}
 .filter-label{display:block;width:100%;margin-bottom:2px}
 .catalog-tools{display:flex;flex-direction:column;gap:12px}
-.flex-note{font-size:14.5px;line-height:1.55;color:#1E3161;margin:0}
-.filter-pill{appearance:none;border:2px solid #1E3161;background:#fff;color:#1E3161;font-family:'Montserrat',sans-serif;font-size:13.5px;font-weight:700;border-radius:999px;padding:9px 16px;cursor:pointer}
+.flex-note{font-size:16px;line-height:1.55;color:#1E3161;margin:0}
+.filter-pill{appearance:none;border:2px solid #1E3161;background:#fff;color:#1E3161;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;border-radius:999px;padding:9px 16px;cursor:pointer}
 .filter-pill[aria-pressed="true"]{background:#1E3161;color:#F5F2EA}
-.filter-label{font-weight:700;font-size:15px;align-self:center;margin-right:4px}
+.filter-label{font-weight:700;font-size:16px;align-self:center;margin-right:4px}
 .age-block[hidden]{display:none}
 /* vibe phase 2 */
 .mb-cat-head{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:center;margin-bottom:10px}
@@ -158,6 +163,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Safe@Home by Safe Sitter®</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 8 to 10 · 90-minute in person · $85 · 60-minute virtual · $40</p>
 <p class="desc">A class that prepares kids to stay home alone safely and know what to do if something goes wrong.</p>
 </div>
@@ -168,6 +174,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Steady and Ready™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 8 to 12 · 60-minute · In-person or virtual · $65</p>
 <p class="desc">A neurodivergent-affirming safety class that builds essential emergency readiness skills in a low-pressure environment.</p>
 </div>
@@ -178,6 +185,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>My First Babysitter's Club</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Grades 4 to 5 · 2.5-hour · In person · $165</p>
 <p class="desc">A 2.5-hour workshop introducing young students to being a parent's helper. Includes a take-home activity tote bag.</p>
 </div>
@@ -188,6 +196,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Social Ready™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 8 to 14 · 60-minute · In-person or virtual · $45</p>
 <p class="desc">An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online.</p>
 </div>
@@ -205,6 +214,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Introduction to Safe Babysitting by Safe Sitter®</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 10 to 12 · 60-minute · In-person or virtual · $40</p>
 <p class="desc">An introduction to the basics of caring for younger children.</p>
 </div>
@@ -215,6 +225,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Ready. Period.™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Girls ages 10 to 12 · 90-minute · In-person or virtual · $75</p>
 <p class="desc">A hands-on workshop for girls that pairs a period pouch craft with nurse-led teaching about puberty and body care.</p>
 </div>
@@ -225,6 +236,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Steady and Ready™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 8 to 12 · 60-minute · In-person or virtual · $65</p>
 <p class="desc">A neurodivergent-affirming safety class that builds essential emergency readiness skills in a low-pressure environment.</p>
 </div>
@@ -235,6 +247,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Social Ready™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 8 to 14 · 60-minute · In-person or virtual · $45</p>
 <p class="desc">An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online.</p>
 </div>
@@ -252,8 +265,10 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Safe Sitter® Babysitting Essentials</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 11 to 14 · 4-hour · In person · $185</p>
 <p class="desc">This babysitting course teaches tweens safety, child care basics, behavior management, and how to rescue a choking child. Students practice with hands-on role-play and leave with a Safe Sitter® completion card and their own handbook.</p>
+<p class="best-if"><strong>Best if:</strong> you want the classic 4-hour Safe Sitter&reg; course and a completion card, with no CPR certification.</p>
 </div>
 </a>
 
@@ -262,8 +277,10 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Safe Sitter® Babysitting with CPR Module</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 11 to 14 · 5-hour · In person · $225</p>
 <p class="desc">A course that builds the skills and confidence to babysit safely, from infant care to handling emergencies. Includes a hands-on CPR module (not an official certification).</p>
+<p class="best-if"><strong>Best if:</strong> you want Safe Sitter&reg; plus hands-on CPR practice, and you do not need an official CPR certificate.</p>
 </div>
 </a>
 
@@ -272,8 +289,10 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Babysitter's Training</h3>
 </div>
 <div class="card-body">
+<p class="type-pill cert">Red Cross course</p>
 <p class="meta">Ages 11 to 15 · 4.25-hour · In person · $185</p>
 <p class="desc">Teens learn child care, safety, and leadership skills for beginning babysitters, with hands-on practice.</p>
+<p class="best-if"><strong>Best if:</strong> you want the Red Cross babysitting course for ages 11 to 15 on its own, without adding Pediatric First Aid/CPR/AED certification.</p>
 </div>
 </a>
 
@@ -282,8 +301,10 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</h3>
 </div>
 <div class="card-body">
+<p class="type-pill cert">Red Cross certificate included</p>
 <p class="meta">Ages 11 to 14 · 7-hour · In person · $295</p>
 <p class="desc">Teens learn child care, safety, and leadership skills, practice infant and child CPR on manikins, and earn American Red Cross Babysitter's Training and Pediatric First Aid/CPR/AED certifications.</p>
+<p class="best-if"><strong>Best if:</strong> you want it all in one day: Red Cross babysitting training plus Pediatric First Aid/CPR/AED certification.</p>
 </div>
 </a>
 
@@ -292,6 +313,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Stay Ready™: Choking Rescue, CPR, and Seizure Response</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 11 and up · 75-minute · In person · $85</p>
 <p class="desc">A hands-on refresher for choking rescue, CPR, and seizure response.</p>
 </div>
@@ -302,6 +324,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>All Kids Welcome™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Experienced sitters · 60-minute · In-person or virtual · $25</p>
 <p class="desc">A class that teaches young caregivers how to care confidently for children with diverse needs.</p>
 </div>
@@ -312,6 +335,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Social Ready™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 8 to 14 · 60-minute · In-person or virtual · $45</p>
 <p class="desc">An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online.</p>
 </div>
@@ -322,6 +346,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Adult &amp; Pediatric First Aid/CPR/AED Certification</h3>
 </div>
 <div class="card-body">
+<p class="type-pill cert">Red Cross certificate included</p>
 <p class="meta">Ages 11 and up · 3 hours 45 minutes · In person · $125</p>
 <p class="desc">A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Participants earn a 2-year American Red Cross certification. An online plus classroom option is about 2 hours online, then a 2-hour skills session, for $125.</p>
 </div>
@@ -339,6 +364,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Season Ready™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Student athletes · 60-minute · In person · $25</p>
 <p class="desc">A hands-on workshop for student athletes on fueling, recovery, injury awareness, and emergency response.</p>
 </div>
@@ -349,6 +375,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Stay Ready™: Choking Rescue, CPR, and Seizure Response</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 11 and up · 75-minute · In person · $85</p>
 <p class="desc">A hands-on refresher for choking rescue, CPR, and seizure response.</p>
 </div>
@@ -366,6 +393,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Campus Ready™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">High school juniors and seniors · 60-minute · In person · $75</p>
 <p class="desc">A class taught by registered nurses that prepares students to stay safe and help a friend in an emergency during college life.</p>
 </div>
@@ -376,6 +404,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Stay Ready™: Choking Rescue, CPR, and Seizure Response</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 11 and up · 75-minute · In person · $85</p>
 <p class="desc">A hands-on refresher for choking rescue, CPR, and seizure response.</p>
 </div>
@@ -386,6 +415,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Adult &amp; Pediatric First Aid/CPR/AED Certification</h3>
 </div>
 <div class="card-body">
+<p class="type-pill cert">Red Cross certificate included</p>
 <p class="meta">High school juniors and seniors · 3 hours 45 minutes · In person · $125</p>
 <p class="desc">A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Participants earn a 2-year American Red Cross certification. An online plus classroom option is about 2 hours online, then a 2-hour skills session, for $125.</p>
 </div>
@@ -403,6 +433,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Baby Ready™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185 per participant</p>
 <p class="desc">A hands-on newborn care class taught by a registered nurse, covering feeding, diapering, bathing, safe sleep, soothing, and infant choking rescue and CPR skills practice on manikins.</p>
 </div>
@@ -413,6 +444,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Baby Ready™ + CPR Certification</h3>
 </div>
 <div class="card-body">
+<p class="type-pill cert">Certificate included</p>
 <p class="meta">Expecting and new parents · 5-hour · In person · $275 per participant</p>
 <p class="desc">Newborn care plus hands-on Pediatric First Aid and CPR. Participants who complete it receive a certification card. Each registration is one person.</p>
 </div>
@@ -423,6 +455,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Adult &amp; Pediatric First Aid/CPR/AED Certification</h3>
 </div>
 <div class="card-body">
+<p class="type-pill cert">Red Cross certificate included</p>
 <p class="meta">Parents, nannies, au pairs, and grandparents · 3 hours 45 minutes · In person · $125</p>
 <p class="desc">A hands-on course covering adult, child, and infant CPR, choking rescue, AED use, and first aid. Participants earn a 2-year American Red Cross certification. An online plus classroom option is about 2 hours online, then a 2-hour skills session, for $125.</p>
 </div>
@@ -433,6 +466,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Adult First Aid/CPR/AED Certification</h3>
 </div>
 <div class="card-body">
+<p class="type-pill cert">Red Cross certificate included</p>
 <p class="meta">Adults · 3 hours 15 minutes · In person · $125</p>
 <p class="desc">Adult skills only: CPR, AED use, choking relief, and basic first aid. Participants earn a 2-year American Red Cross certification. An online plus classroom option is about 2 hours online, then a 2-hour skills session, for $125.</p>
 </div>
@@ -443,6 +477,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Basic Life Support (BLS) Certification</h3>
 </div>
 <div class="card-body">
+<p class="type-pill cert">Red Cross certificate included</p>
 <p class="meta">Healthcare providers · 4 hours · In person · $125</p>
 <p class="desc">The professional-level course for healthcare providers and public safety staff: high-quality CPR with compressions and ventilations, AED use, and team-based scenarios. Participants earn a 2-year American Red Cross certification. An online plus classroom option is 2 hours online, then a 2-hour skills session, for $125.</p>
 </div>
@@ -453,6 +488,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Safe Sitter® Grandparents: Getting Started</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Grandparents and caregivers · 3-hour · In person · $185 per participant</p>
 <p class="desc">A workshop equipping grandparents with current standards, updated guidelines, and practical tips for caring for their grandchildren.</p>
 </div>
@@ -463,6 +499,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Babysitting Grandkids Workshop</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Grandparents of kids from infancy to about age 10 · 60-minute · In person · $75 · 60-minute virtual · $50</p>
 <p class="desc">A conversational workshop for grandparents who babysit, covering current safety basics for kids from infancy to about age 10. Up to 20 participants. Also offered live online, taught by a registered nurse and focused on updated safety guidelines and choking rescue.</p>
 </div>
@@ -473,6 +510,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Care Ready™</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Nannies and au pairs · 2.5-hour · In person · $185 per participant</p>
 <p class="desc">A course that gives nannies and au pairs the practical safety and caregiving skills families count on.</p>
 </div>
@@ -483,6 +521,7 @@ a.card:hover .card-visual h3{text-decoration:underline}
 <h3>Stay Ready™: Choking Rescue, CPR, and Seizure Response</h3>
 </div>
 <div class="card-body">
+<p class="type-pill workshop">Workshop &middot; no certificate</p>
 <p class="meta">Ages 11 and up · 75-minute · In person · $85</p>
 <p class="desc">A hands-on refresher for choking rescue, CPR, and seizure response.</p>
 </div>
