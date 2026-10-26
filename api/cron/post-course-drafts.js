@@ -155,6 +155,9 @@ function buildPostCourseHtml(draft, session, emails) {
     '<div style="height:3px;background:#C7A24A;"></div>' +
     '<div style="padding:28px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#1f2937;">' +
     noEmailsNote + classLine + bodyHtml +
+    '<p style="text-align:center;margin:26px 0 4px 0;">If this class helped your family, ' +
+    'would you leave us a Google review? We are a small local business, and your review ' +
+    'helps other parents find classes like this one. It takes about a minute.</p>' +
     '<div style="text-align:center;margin:30px 0 10px 0;">' +
     '<a href="' + REVIEW_URL + '" style="display:inline-block;background:#1E3161;color:#ffffff;' +
     'text-decoration:none;padding:14px 26px;border-radius:6px;font-weight:bold;font-size:15px;margin:0 8px 12px 0;">' +
