@@ -45,14 +45,14 @@ a:hover{color:var(--navy-dark)}
 .mb-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--navy)}
 .mb-logo{width:44px;height:44px;border-radius:50%;display:block}
 .mb-wordmark{font-size:20px;font-weight:800;letter-spacing:0.02em}
-.mb-nav{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
-.mb-nav a{font-size:16px;font-weight:700;color:var(--navy);text-decoration:none}
+.mb-nav{display:flex;flex-wrap:wrap;gap:10px 30px;align-items:center}
+.mb-nav a{font-size:16px;font-weight:700;color:var(--navy);text-decoration:none;padding:6px 2px;letter-spacing:.01em}
 .mb-nav a:hover{text-decoration:underline;text-underline-offset:4px}
 .mb-nav a[aria-current="page"]{text-decoration:underline;text-underline-offset:4px}
 
 /* ---------- buttons ---------- */
 .mb-btn{
-  display:inline-block;font-weight:800;text-decoration:none;border-radius:999px;
+  display:inline-block;font-weight:800;text-decoration:none;border-radius:14px;
   box-sizing:border-box;max-width:100%;text-align:center;cursor:pointer;border:0;
   font-family:inherit;
 }
@@ -77,7 +77,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-line a:hover{color:var(--btn-gold)}
 .mb-footer-copy{margin:6px 0 0;font-size:14px;opacity:.7;padding-right:88px}
 .mb-footer-instructor{margin:12px 0 0}
-.mb-footer-instructor a{display:inline-block;background:#fff;color:var(--navy);font-size:13px;font-weight:700;padding:7px 18px;border-radius:100px;text-decoration:none}
+.mb-footer-instructor a{display:inline-block;background:#fff;color:var(--navy);font-size:13px;font-weight:700;padding:7px 18px;border-radius:10px;text-decoration:none}
 .mb-footer-instructor a:hover{background:var(--btn-gold);color:var(--navy)}
 .mb-partners{background:var(--cream);padding:30px 6vw}
 .mb-partners-inner{max-width:1080px;margin:0 auto;text-align:center}
@@ -130,7 +130,7 @@ p:last-child{margin-bottom:0}
 
 /* ---------- steps ---------- */
 .mb-steps{display:flex;flex-wrap:wrap;gap:22px}
-.mb-step{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.mb-step{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:10px;background:var(--white);border:1px solid rgba(30,49,97,.09);border-radius:20px;box-shadow:0 10px 30px rgba(30,49,97,.08);padding:24px}
 .mb-step-num{font-size:36px;line-height:1;font-weight:800;color:var(--btn-gold)}
 .mb-section-navy .mb-step h3{color:var(--cream)}
 
