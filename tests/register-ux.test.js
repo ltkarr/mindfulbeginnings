@@ -145,6 +145,12 @@ test('manually sold-out codes always route to the waitlist in checkCode', () => 
   assert.match(check, /isSoldOutCode\(r\.code\)/);
 });
 
+test('website listing overrides hide the school and unlisted sessions and show Nov 2 sold out', () => {
+  assert.match(register, /HIDDEN_PUBLIC_CODES=\['IB-261105','AKWV-261122'\]/);
+  assert.match(register, /code:'SS-1102',course:'Safe Sitter/);
+  assert.match(register, /date:'2026-11-02'/);
+});
+
 test('manually sold-out sessions show a red SOLD OUT banner, no price, and a JOIN WAITLIST contact link', () => {
   assert.match(register, /var SOLD_OUT_CODES=\['SS-1103','SS-1102'\]/);
   assert.match(register, /SOLD_OUT_CONTACT_URL='https:\/\/mindfulbeginnings\.org\/contact'/);
