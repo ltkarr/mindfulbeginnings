@@ -27,7 +27,7 @@ body{
   background:var(--cream);
   color:var(--navy);
   font-family:'Montserrat',system-ui,-apple-system,sans-serif;
-  font-size:16px;
+  font-size:18px;
   line-height:1.55;
 }
 img{max-width:100%}
@@ -46,7 +46,7 @@ a:hover{color:var(--navy-dark)}
 .mb-logo{width:44px;height:44px;border-radius:50%;display:block}
 .mb-wordmark{font-size:20px;font-weight:800;letter-spacing:0.02em}
 .mb-nav{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
-.mb-nav a{font-size:15px;font-weight:700;color:var(--navy);text-decoration:none}
+.mb-nav a{font-size:16px;font-weight:700;color:var(--navy);text-decoration:none}
 .mb-nav a:hover{text-decoration:underline;text-underline-offset:4px}
 .mb-nav a[aria-current="page"]{text-decoration:underline;text-underline-offset:4px}
 
@@ -56,11 +56,11 @@ a:hover{color:var(--navy-dark)}
   box-sizing:border-box;max-width:100%;text-align:center;cursor:pointer;border:0;
   font-family:inherit;
 }
-.mb-btn-gold{background:var(--btn-gold);color:var(--navy);font-size:16px;padding:12px 24px}
+.mb-btn-gold{background:var(--btn-gold);color:var(--navy);font-size:17px;padding:12px 24px}
 .mb-btn-gold:hover{background:var(--white);color:var(--navy)}
-.mb-btn-navy{background:var(--navy);color:var(--cream);font-size:16px;padding:12px 24px}
+.mb-btn-navy{background:var(--navy);color:var(--cream);font-size:17px;padding:12px 24px}
 .mb-btn-navy:hover{background:var(--btn-gold);color:var(--navy)}
-.mb-btn-outline{background:transparent;color:var(--cream);font-size:16px;padding:10px 22px;border:2px solid var(--cream)}
+.mb-btn-outline{background:transparent;color:var(--cream);font-size:17px;padding:10px 22px;border:2px solid var(--cream)}
 .mb-btn-outline:hover{background:var(--cream);color:var(--navy)}
 .mb-btn-sm{font-size:14px;padding:8px 16px;border:2px solid var(--navy)}
 a.mb-btn-sm:hover{border-color:var(--btn-gold)}
@@ -72,7 +72,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-nav{display:flex;flex-wrap:wrap;gap:6px 16px}
 .mb-footer-nav a{color:var(--cream);font-size:16px;font-weight:600;text-decoration:none;opacity:.92}
 .mb-footer-nav a:hover{color:var(--btn-gold);opacity:1}
-.mb-footer-line{margin:0;font-size:16px;opacity:.92}
+.mb-footer-line{margin:0;font-size:17px;opacity:.92}
 .mb-footer-line a{color:var(--cream);font-weight:600;text-decoration:none}
 .mb-footer-line a:hover{color:var(--btn-gold)}
 .mb-footer-copy{margin:6px 0 0;font-size:14px;opacity:.7;padding-right:88px}
@@ -95,8 +95,8 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-narrow{max-width:760px}
 
 h1{margin:0;font-size:clamp(26px,3vw,34px);line-height:1.2;font-weight:800}
-h2{margin:0 0 12px;font-size:clamp(20px,2.2vw,26px);line-height:1.25;font-weight:800;color:var(--navy)}
-h3{margin:0;font-size:19px;line-height:1.3;font-weight:800;color:var(--navy)}
+h2{margin:0 0 12px;font-size:clamp(22px,2.4vw,29px);line-height:1.25;font-weight:800;color:var(--navy)}
+h3{margin:0;font-size:21px;line-height:1.3;font-weight:800;color:var(--navy)}
 p{margin:0 0 10px}
 p:last-child{margin-bottom:0}
 
@@ -108,7 +108,7 @@ p:last-child{margin-bottom:0}
 .mb-script-title{font-family:'Caveat',cursive;font-weight:700;line-height:1.1;color:var(--btn-gold);margin:0;font-size:30px}
 /* Script page titles inside navy heroes must stay gold: .mb-hero h1 (0,1,1) otherwise beats .mb-script-title (0,1,0) */
 .mb-hero h1.mb-script-title{color:var(--btn-gold)}
-.mb-lede{margin:0;font-size:17px;font-weight:500;max-width:720px;line-height:1.6}
+.mb-lede{margin:0;font-size:19px;font-weight:500;max-width:720px;line-height:1.6}
 .mb-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:6px}
 .mb-phone{color:var(--cream);font-size:16px;font-weight:700;text-decoration:none;padding:12px 8px}
 .mb-phone:hover{color:var(--btn-gold)}
@@ -121,11 +121,11 @@ p:last-child{margin-bottom:0}
   overflow:hidden;display:flex;flex-direction:column;
 }
 .mb-card-band{background:var(--navy);padding:12px 16px}
-.mb-card-band h3{color:var(--white);font-size:19px;margin:0}
+.mb-card-band h3{color:var(--white);font-size:21px;margin:0}
 .mb-card-body{padding:14px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
-.mb-card-price{margin:0;font-size:17px;font-weight:800}
-.mb-card-text{margin:0;font-size:17px}
-.mb-card-list{margin:0;padding-left:18px;font-size:16px;display:flex;flex-direction:column;gap:4px}
+.mb-card-price{margin:0;font-size:18px;font-weight:800}
+.mb-card-text{margin:0;font-size:18px;line-height:1.6}
+.mb-card-list{margin:0;padding-left:18px;font-size:17px;display:flex;flex-direction:column;gap:4px}
 .mb-card .mb-btn{align-self:flex-start;margin-top:auto}
 
 /* ---------- steps ---------- */
@@ -137,8 +137,8 @@ p:last-child{margin-bottom:0}
 /* ---------- two-column path cards ---------- */
 .mb-paths{display:grid;grid-template-columns:1fr;gap:16px}
 .mb-path{background:var(--white);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px}
-.mb-path .mb-actions{margin-top:2px;padding-top:4px}
-.mb-path p{font-size:17px}
+.mb-path .mb-actions{margin-top:auto;padding-top:14px}
+.mb-path p{font-size:18px}
 
 /* ---------- forms ---------- */
 .mb-form{max-width:640px;display:flex;flex-direction:column;gap:12px}
@@ -215,7 +215,7 @@ p:last-child{margin-bottom:0}
 }
 
 /* ---------- misc ---------- */
-.mb-checklist{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:16px}
+.mb-checklist{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:17px}
 .mb-note{
   background:var(--white);border-left:6px solid var(--btn-gold);border-radius:0 12px 12px 0;
   padding:18px 20px;font-size:17px;line-height:1.55;

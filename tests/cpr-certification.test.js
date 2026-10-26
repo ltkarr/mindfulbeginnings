@@ -20,7 +20,10 @@ test('group CPR page is static HTML with a title and description', () => {
 });
 
 test('schedule and contact links open the host page and contact page in the same tab', () => {
-  assert.equal((page.match(/href="\/host-a-class\.html"/g) || []).length, 4);
+  // 3 since 2026-10-26: the bottom CTA became "Contact us" per Lindsay
+  // (the hero keeps "Schedule a group class").
+  assert.equal((page.match(/href="\/host-a-class\.html"/g) || []).length, 3);
+  assert.match(page, /href="\/contact\.html"[^>]*>Contact us</);
   assert.match(page, /href="\/host-a-class\.html"[^>]*>Host a Class</);
   assert.match(page, /class="mb-btn mb-btn-gold mb-btn-sm" href="\/register\.html">Register</);
   assert.match(page, /href="\/host-a-class\.html"[^>]*>Schedule a group class</);
