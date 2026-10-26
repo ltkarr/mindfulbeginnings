@@ -137,7 +137,7 @@ p:last-child{margin-bottom:0}
 /* ---------- two-column path cards ---------- */
 .mb-paths{display:grid;grid-template-columns:1fr;gap:16px}
 .mb-path{background:var(--white);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px}
-.mb-path .mb-actions{margin-top:2px;padding-top:4px}
+.mb-path .mb-actions{margin-top:auto;padding-top:14px}
 .mb-path p{font-size:18px}
 
 /* ---------- forms ---------- */
