@@ -13,7 +13,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="/site.css?v=9">
+<link rel="stylesheet" href="/site.css?v=10">
 <style>
 .clubs-hero-badge{width:120px;height:120px}
 .club-card{display:flex;flex-direction:row;gap:16px;align-items:flex-start;text-align:left}
@@ -34,7 +34,10 @@
 .tight{padding-top:30px!important;padding-bottom:30px!important}
 .club-card h3{margin-top:6px}
 .club-list{max-width:860px}
-.club-row{padding:20px 2px;border-bottom:1px solid rgba(30,49,97,.12)}
+.club-row{padding:20px 2px;border-bottom:1px solid rgba(30,49,97,.12);display:flex;gap:18px;align-items:flex-start}
+.club-icon{width:64px;height:64px;flex:none;object-fit:contain}
+.hero-badges{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:290px;margin:0 auto}
+.hero-badges img{width:100%;background:#fff;border-radius:20px;padding:10px;box-sizing:border-box}
 .club-row h3{font-size:21px;margin:0 0 4px}
 .club-row p{margin:0;font-size:18px;line-height:1.6}
 .club-row .club-meta{margin-top:6px}
@@ -79,9 +82,12 @@
 <a class="mb-btn mb-btn-gold" href="/organization.html">Bring clubs to your school</a>
 </div>
 </div>
-<figure style="margin:0;text-align:center">
-<img class="mb-photo" src="/images/real-classes/ages-8-10-floor-practice.jpg" alt="Students practicing first aid skills together during an after school club" style="max-width:320px">
-</figure>
+<div class="hero-badges" aria-hidden="true">
+<img src="/images/clubs/little-medics.png" alt="">
+<img src="/images/clubs/snack-squad.png" alt="">
+<img src="/images/clubs/babysitters-club.png" alt="">
+<img src="/images/clubs/calm-ready.png" alt="">
+</div>
 </div>
 </section>
 
@@ -103,16 +109,16 @@
 <div class="mb-wrap">
 <h2 class="mb-h2">The <span class="mb-h2-script">clubs</span></h2>
 <div class="club-list">
-<div class="club-row"><h3>My First Babysitter's Club</h3><p>The first step toward babysitting: a trusted extra set of hands while a parent is home, with real practice on dolls, props and role play.</p><p class="club-meta">Grades 4 to 5</p></div>
-<div class="club-row"><h3>Little Medics</h3><p>A first aid club for the youngest helpers: what an emergency is, how to get help fast, and how to handle scrapes, bumps, bug bites and nosebleeds.</p><p class="club-meta">Grades K to 2</p></div>
-<div class="club-row"><h3>Pet Sitter's Club</h3><p>For kids who want to care for animals and earn a little money doing it: what pets need, staying safe around animals, and running a real pet sitting job.</p><p class="club-meta">Grades 3 to 5</p></div>
-<div class="club-row"><h3>Snack Squad</h3><p>A kitchen club with no stove required: a new snack every week, plus kitchen safety, clean hands, food allergies and reading labels.</p><p class="club-meta">Grades 2 to 5</p></div>
-<div class="club-row"><h3>Kid Boss Club</h3><p>Young entrepreneurs turn an idea into a real product or service, then pitch and sell it at a pop up on the final day.</p><p class="club-meta">Grades 4 to 5</p></div>
-<div class="club-row"><h3>Middle School, Here I Come</h3><p>A head start on the biggest school change yet: opening a locker, reading a schedule, keeping track of six teachers and speaking up.</p><p class="club-meta">Grade 5</p></div>
-<div class="club-row"><h3>Big Sibling Club</h3><p>For kids with a baby or little sibling at home, or one on the way: gentle, safe ways to help, and reassurance that big feelings are normal.</p><p class="club-meta">Grades K to 3</p></div>
-<div class="club-row"><h3>My First Phone</h3><p>For kids getting a first phone, or about to: passwords, privacy, group chats, screen time, and what to do the moment something online feels wrong.</p><p class="club-meta">Grades 4 to 5</p></div>
-<div class="club-row"><h3>Walk and Roll Ready</h3><p>Getting around the neighborhood safely on foot, bike or scooter: rules of the road, what to do if they get separated, and planning their real route.</p><p class="club-meta">Grades 2 to 5</p></div>
-<div class="club-row"><h3>Calm and Ready</h3><p>A feelings toolbox for every kid: name what they feel, notice it in their bodies, and use simple tools that work in the moment.</p><p class="club-meta">Grades K to 5</p></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/babysitters-club.png" alt=""><div><h3>My First Babysitter's Club</h3><p>The first step toward babysitting: a trusted extra set of hands while a parent is home, with real practice on dolls, props and role play.</p><p class="club-meta">Grades 4 to 5</p></div></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/little-medics.png" alt=""><div><h3>Little Medics</h3><p>A first aid club for the youngest helpers: what an emergency is, how to get help fast, and how to handle scrapes, bumps, bug bites and nosebleeds.</p><p class="club-meta">Grades K to 2</p></div></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/pet-sitters.png" alt=""><div><h3>Pet Sitter's Club</h3><p>For kids who want to care for animals and earn a little money doing it: what pets need, staying safe around animals, and running a real pet sitting job.</p><p class="club-meta">Grades 3 to 5</p></div></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/snack-squad.png" alt=""><div><h3>Snack Squad</h3><p>A kitchen club with no stove required: a new snack every week, plus kitchen safety, clean hands, food allergies and reading labels.</p><p class="club-meta">Grades 2 to 5</p></div></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/kid-boss.png" alt=""><div><h3>Kid Boss Club</h3><p>Young entrepreneurs turn an idea into a real product or service, then pitch and sell it at a pop up on the final day.</p><p class="club-meta">Grades 4 to 5</p></div></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/middle-school.png" alt=""><div><h3>Middle School, Here I Come</h3><p>A head start on the biggest school change yet: opening a locker, reading a schedule, keeping track of six teachers and speaking up.</p><p class="club-meta">Grade 5</p></div></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/big-sibling.png" alt=""><div><h3>Big Sibling Club</h3><p>For kids with a baby or little sibling at home, or one on the way: gentle, safe ways to help, and reassurance that big feelings are normal.</p><p class="club-meta">Grades K to 3</p></div></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/first-phone.png" alt=""><div><h3>My First Phone</h3><p>For kids getting a first phone, or about to: passwords, privacy, group chats, screen time, and what to do the moment something online feels wrong.</p><p class="club-meta">Grades 4 to 5</p></div></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/walk-roll.png" alt=""><div><h3>Walk and Roll Ready</h3><p>Getting around the neighborhood safely on foot, bike or scooter: rules of the road, what to do if they get separated, and planning their real route.</p><p class="club-meta">Grades 2 to 5</p></div></div>
+<div class="club-row"><img class="club-icon" src="/images/clubs/calm-ready.png" alt=""><div><h3>Calm and Ready</h3><p>A feelings toolbox for every kid: name what they feel, notice it in their bodies, and use simple tools that work in the moment.</p><p class="club-meta">Grades K to 5</p></div></div>
 </div>
 </div>
 </section>
