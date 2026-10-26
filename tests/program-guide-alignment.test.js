@@ -82,8 +82,9 @@ test('the public catalog shows both Safe@Home prices and drops couple pricing', 
   assert.doesNotMatch(catalog, /\$495/);
   assert.match(catalog, /Baby Ready™ \+ CPR Certification/);
   assert.match(catalog, /Babysitting Grandkids Workshop/);
-  assert.match(catalog, /online plus classroom option is about 2 hours online, then a 2-hour skills session, for \$125/);
-  assert.match(clubs, /8 weeks is standard/);
+  // 2026-10-26 less-is-more: the catalog now uses the short hybrid note.
+  assert.match(catalog, /Also offered as online plus classroom/);
+  assert.match(clubs, /8-week series/);
   assert.doesNotMatch(clubs, /8-10 weeks/);
   assert.match(clubs, /Grades 4 to 5/);
   assert.match(clubs, /8-16 kids/);
