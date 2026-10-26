@@ -898,13 +898,22 @@ function daysUntil(dateStr){
   const d=new Date(dateStr+'T12:00:00');d.setHours(0,0,0,0);
   return Math.round((d-t)/86400000);
 }
+// Sessions this instructor holds that are still real classes. A class the office
+// cancelled is not a job: it stays off My jobs, the home counts, the calendar,
+// schedule-conflict checks, teaching history, and the income summary.
+function myAssignedSessions(){
+  return allSessions.filter(s=>{
+    if(!s||s.isCancelled)return false;
+    const jdi=jobDataCache[s.id]||{};
+    return jdi.instructorId===me.id;
+  });
+}
 // Every meeting of every job THIS instructor already holds, keyed by date, so a
 // candidate job can be checked against them without rescanning the whole list.
+// Cancelled classes are not held jobs, so they never read as a double-booking.
 function myMeetingIndex(){
   const idx={};
-  allSessions.forEach(s=>{
-    const jdi=jobDataCache[s.id]||{};
-    if(jdi.instructorId!==me.id)return;
+  myAssignedSessions().forEach(s=>{
     sessMeetings(s).forEach(m=>{
       const tr=parseTimeRange(m.time||s.time);
       (idx[m.date]=idx[m.date]||[]).push({
@@ -941,9 +950,8 @@ function sessConflicts(s,idx){
 function myHistory(s){
   let course=0,venue=0;
   const venueKey=(s.location||'').trim().toLowerCase();
-  allSessions.forEach(x=>{
-    const jdi=jobDataCache[x.id]||{};
-    if(jdi.instructorId!==me.id||x.id===s.id)return;
+  myAssignedSessions().forEach(x=>{
+    if(x.id===s.id)return;
     if(x.course===s.course)course++;
     if(venueKey&&(x.location||'').trim().toLowerCase()===venueKey)venue++;
   });
@@ -2201,7 +2209,9 @@ function ensurePrivate(sessId){
 
 // ─── MY JOBS ─────────────────────────────────────────────────
 function renderMyJobs(){
-  const myJobs=allSessions.filter(s=>{const jdi=jobDataCache[s.id]||{};return jdi.instructorId===me.id;}).sort((a,b)=>b.date.localeCompare(a.date));
+  // Office cancellations are removed here, not shown with a banner. Open jobs
+  // and Upcoming already skip isCancelled; My jobs uses the same rule.
+  const myJobs=myAssignedSessions().sort((a,b)=>b.date.localeCompare(a.date));
   const el=document.getElementById('myjobs-list');
   if(!myJobs.length){
     // Same honesty rule as Open jobs: a failed load must never look like "you have no jobs".
@@ -2222,18 +2232,12 @@ function renderMyJobs(){
     const hoursBit=hoursNote?` ${escapeHtml(hoursNote)}`:'';
     const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
     const upcoming=new Date(lastSessDate(s)+'T12:00:00')>=startOfToday;
-    // Cancelled by the office. The card stays visible so the instructor can see what
-    // happened rather than watching a job vanish, but every action and every payment
-    // expectation is removed.
-    const cx=!!s.isCancelled;
-    const cxBanner=cx?`<div class="alert warn" style="margin-bottom:14px">🚫 &nbsp;<span><strong>This class was cancelled${s.cancelReason?' due to '+escapeHtml(s.cancelReason):''}.</strong> You do not need to attend. Lindsay has emailed you the details. Please take the date off your calendar.</span></div>`:'';
     let matHtml='';
     if(jdi.materialsMethod==='ship-host'){matHtml=jdi.materialsSent?'<span class="pill pill-mat-ready">✓ Materials shipped to host</span>':'<span class="pill pill-mat-pending">⏳ Materials being shipped to host</span>';}
     else if(jdi.materialsMethod==='pickup'){matHtml=jdi.materialsSent?'<span class="pill pill-mat-ready">✓ Materials picked up</span>':'<span class="pill pill-mat-pending">⏳ Please pick up materials from Lindsay</span>';}
     else{matHtml='<span class="pill pill-taken">Materials delivery TBD</span>';}
     let payHtml='';
-    if(cx){payHtml='';}
-    else if(jdi.payStatus==='paid'){payHtml=`<div class="alert success">✓ &nbsp;Payment sent via Zelle on ${jdi.payDate||''}. Amount: ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit}</div>`;}
+    if(jdi.payStatus==='paid'){payHtml=`<div class="alert success">✓ &nbsp;Payment sent via Zelle on ${jdi.payDate||''}. Amount: ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit}</div>`;}
     else if(jdi.evalReceived){payHtml=`<div class="alert info">🎉 &nbsp;Evaluation received! Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit} will be sent to your Zelle shortly.</div>`;}
     else if(!upcoming){payHtml=s.isCustomJob
       ?`<div class="alert warn">⏳ &nbsp;Payment of ${fmt(fee)}${bonus>0?` (Base ${fmt(baseFee)} + Referral bonus ${fmt(bonus)})`:''}${hoursBit} will be sent to your Zelle after the event.</div>`
@@ -2254,8 +2258,7 @@ function renderMyJobs(){
     const mapLink=mapQ?` <a href="${escapeHtml(mapQ)}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">Directions ↗</a>`:'';
     return`<div class="job-card">
       <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>
-      <span class="pill ${cx?'pill-taken':(upcoming?'pill-accepted':'pill-taken')}">${cx?'Cancelled':(upcoming?'Upcoming':'Completed')}</span></div>
-      ${cxBanner}
+      <span class="pill ${upcoming?'pill-accepted':'pill-taken'}">${upcoming?'Upcoming':'Completed'}</span></div>
       ${upcoming?heroStripHTML(s,fee):`<div class="jc-details">
         <div class="jc-detail"><div class="jc-detail-label">Time</div><div class="jc-detail-val">${escapeHtml(sessTimeSummary(s))}</div></div>
         <div class="jc-detail"><div class="jc-detail-label">${meetings.length>1?'Class days':'Date'}</div><div class="jc-detail-val">${meetings.length>1?meetings.length+' days'+(closedCount?' · '+closedCount+' off':''):fmtDate(s.date)}</div></div>
@@ -2275,8 +2278,8 @@ function renderMyJobs(){
       ${payHtml}
       ${jdi.notes?`<div style="font-size:14px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:var(--r-sm)">📝 ${escapeHtml(jdi.notes)}</div>`:''}
       <div class="jc-actions" style="margin-top:12px">
-        ${(s.isCustomJob||cx)?'':`<button class="btn" onclick="printRoster('${s.id}')">Print roster</button>`}
-        ${(upcoming&&!cx)?`<button class="btn" onclick="cancelJob('${s.id}')">Cancel my acceptance</button>`:''}
+        ${s.isCustomJob?'':`<button class="btn" onclick="printRoster('${s.id}')">Print roster</button>`}
+        ${upcoming?`<button class="btn" onclick="cancelJob('${s.id}')">Cancel my acceptance</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -2350,7 +2353,7 @@ async function renderMyProfile(){
       <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Download a summary of all your sessions and income for the year to help with tax reporting.</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <select id="income-year" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none">
-          ${[...new Set(allSessions.filter(s=>{const jd=jobDataCache[s.id]||{};return jd.instructorId===me.id;}).map(s=>new Date(s.date+'T12:00:00').getFullYear()))].sort((a,b)=>b-a).map(y=>`<option value="${y}">${y}</option>`).join('')||`<option value="${new Date().getFullYear()}">${new Date().getFullYear()}</option>`}
+          ${incomeYearOptions()}
         </select>
         <button class="btn primary" onclick="downloadIncomeSummary()">📥 Download income summary</button>
       </div>
@@ -2523,11 +2526,19 @@ function uploadErrorText(e){
   return bits.join(' ').trim();
 }
 
+// Years that still have a real class for this instructor. A year whose only
+// assigned session was cancelled does not appear in the 1099 helper.
+function incomeYearOptions(){
+  const years=[...new Set(myAssignedSessions().map(s=>new Date(s.date+'T12:00:00').getFullYear()))].sort((a,b)=>b-a);
+  return years.map(y=>`<option value="${y}">${y}</option>`).join('')||`<option value="${new Date().getFullYear()}">${new Date().getFullYear()}</option>`;
+}
 function downloadIncomeSummary(){
   const year=parseInt(document.getElementById('income-year').value);
-  const mySessions=allSessions.filter(s=>{
-    const jd=jobDataCache[s.id]||{};
-    return jd.instructorId===me.id&&new Date(s.date+'T12:00:00').getFullYear()===year;
+  // Cancelled classes are not income. The contractor agreement pays nothing
+  // for a cancelled session, so they are left out of the rows and the totals
+  // even when a payment flag is still sitting on the job.
+  const mySessions=myAssignedSessions().filter(s=>{
+    return new Date(s.date+'T12:00:00').getFullYear()===year;
   }).sort((a,b)=>a.date.localeCompare(b.date));
 
   let totalEarned=0,totalBaseEarned=0,totalBonusEarned=0;
@@ -2708,10 +2719,8 @@ async function printRoster(sessId){
 // has not passed, sorted soonest-first.
 function myUpcomingJobs(){
   const startOfToday=new Date();startOfToday.setHours(0,0,0,0);
-  return allSessions.filter(s=>{
-    const jdi=jobDataCache[s.id]||{};
-    if(s.isCancelled)return false; // cancelled by the office — never an upcoming job
-    return jdi.instructorId===me.id&&new Date(lastSessDate(s)+'T12:00:00')>=startOfToday;
+  return myAssignedSessions().filter(s=>{
+    return new Date(lastSessDate(s)+'T12:00:00')>=startOfToday;
   }).sort((a,b)=>a.date.localeCompare(b.date));
 }
 
