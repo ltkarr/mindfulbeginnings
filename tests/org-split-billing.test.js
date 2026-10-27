@@ -37,7 +37,7 @@ const names = [
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'holdPaymentReceived', 'orgOrJobFeeReceived',
   'splitBillCaption', 'sessionRevenueNotes',
-  'calcFin', 'invoiceLineFor', 'familyForwardMoney',
+  'calcFin', 'sessionEndDate', 'sessionInvoiceRangeLabel', 'invoiceLineFor', 'familyForwardMoney',
   'escapeHtml', 'fmt'
 ];
 

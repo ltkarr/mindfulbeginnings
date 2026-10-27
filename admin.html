@@ -674,7 +674,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 
     <div class="screen" id="screen-invoices">
       <div class="page-header">
-        <div><div class="page-title">Invoices</div><div class="page-sub">Bills to partner organizations (e.g. Beth El). Sessions marked "Bill to organization" appear here once complete.</div></div>
+        <div><div class="page-title">Invoices</div><div class="page-sub">Bills to partner organizations (e.g. Beth El). A session with Organization registration or an organization fee must name Bill to organization — a blank name is listed here right away, before the class ends. A multi-week series stays incomplete until its last date and can be found under the month it ends.</div></div>
         <button class="btn primary" onclick="openCreateInvoice()">+ Create invoice</button>
       </div>
       <div id="invoice-alerts"></div>
@@ -2116,6 +2116,110 @@ function knownOrgs(){
   return[...set].filter(Boolean).sort((a,b)=>a.localeCompare(b));
 }
 function orgDatalistHtml(){return`<datalist id="org-datalist">${knownOrgs().map(o=>`<option value="${escapeHtml(o)}">`).join('')}</datalist>`;}
+// "Host home" and "Virtual" are place types, not an organization to invoice.
+function billToOrgName(value){
+  const v=String(value||'').trim();
+  if(!v)return '';
+  const low=v.toLowerCase();
+  if(low==='host home'||low==='virtual')return '';
+  return v;
+}
+// Organization registration, or a custom job with an organization fee, is work
+// the organization pays for. A family price override on a normal class is not.
+function sessionNeedsBillToOrg(s){
+  if(!s||s.isCancelled)return false;
+  if(s.orgHandlesRegistration)return true;
+  if(s.isCustomJob){
+    const fee=s.priceOverride==null||s.priceOverride===''?0:Number(s.priceOverride);
+    return fee>0;
+  }
+  return false;
+}
+// Keep a name already entered. Otherwise the location, then the partnership
+// organization. Nothing here writes to the database.
+function suggestedBillToOrg(s){
+  if(!s)return '';
+  const existing=billToOrgName(s.billToOrg);
+  if(existing)return existing;
+  const loc=billToOrgName(s.location);
+  if(loc)return loc;
+  if(s.hostedFor&&typeof orgPartners!=='undefined'&&Array.isArray(orgPartners)){
+    const p=orgPartners.find(x=>x&&x.id===s.hostedFor);
+    if(p){
+      const name=billToOrgName(p.name);
+      if(name)return name;
+    }
+  }
+  return '';
+}
+function missingBillToWhy(s){
+  const early=s&&s.date&&!sessionIsComplete(s)?' Name it now — you do not have to wait until the session ends.':'';
+  const fee=s&&s.isCustomJob&&!(s.priceOverride==null||s.priceOverride==='')&&Number(s.priceOverride)>0;
+  if(s&&s.orgHandlesRegistration&&fee)return 'Organization registration is on and this job has an organization fee, but Bill to organization is blank, so it never appears on an invoice.'+early;
+  if(s&&s.orgHandlesRegistration)return 'Organization registration is on, but Bill to organization is blank, so this session never appears on an invoice.'+early;
+  return 'This job has an organization fee and no organization named, so it never reaches the invoice screen.'+early;
+}
+// Last value this form filled in by itself. A name the admin typed is left alone.
+let _billToAutofill='';
+function formLocationName(){
+  const el=document.getElementById('m-loc')||document.getElementById('cj-loc');
+  return billToOrgName(el&&el.value);
+}
+function formPartnerName(){
+  const sel=document.getElementById('m-hostedfor');
+  if(!sel||!sel.value)return '';
+  const opt=sel.options[sel.selectedIndex];
+  const text=String(opt&&opt.textContent||'').replace(/\s+— Title I$/,'').replace(/\s+\(inactive\)$/,'').trim();
+  return billToOrgName(text);
+}
+function formNeedsBillToOrg(){
+  if(document.getElementById('m-org-reg')?.checked)return true;
+  const fee=document.getElementById('cj-orgfee');
+  if(!fee||fee.value==='')return false;
+  return Number(fee.value)>0;
+}
+function syncBillToRequirement(){
+  const input=document.getElementById('m-billorg')||document.getElementById('cj-billorg');
+  const need=formNeedsBillToOrg();
+  const guess=formLocationName()||formPartnerName();
+  if(input&&need){
+    const cur=String(input.value||'').trim();
+    if(!cur||cur===_billToAutofill){
+      if(guess){input.value=guess;_billToAutofill=guess;}
+    }
+  }
+  if(!need)_billToAutofill='';
+  const standard=document.getElementById('billto-req-label');
+  if(standard){
+    standard.textContent=need
+      ?'(required — Organization registration is on, so this class is invoiced to the organization)'
+      :'(optional — a separate invoice, not added to family checkout)';
+  }
+  const custom=document.getElementById('cj-billto-req-label');
+  if(custom){
+    custom.textContent=need
+      ?'(required — name the organization to invoice)'
+      :'(optional — name the partner to invoice them at month end; the fee above becomes the invoice line)';
+  }
+  const note=document.getElementById('billto-required-note');
+  if(note)note.style.display=need?'block':'none';
+  if(document.getElementById('m-billorg'))toggleOrgHeadcount();
+}
+// Blank is allowed only when this session is not organization-billed. When it
+// is, an empty box is filled from the location or partnership name. Still
+// empty means the save stops — the invoice list cannot see a blank name.
+function resolveBillToOrg(inputId){
+  const input=document.getElementById(inputId);
+  let name=billToOrgName(input&&input.value);
+  if(!formNeedsBillToOrg())return name;
+  if(!name)name=formLocationName()||formPartnerName();
+  if(!name){
+    alert('Bill to organization is required. This session has Organization registration or an organization fee, so it has to name who gets the invoice. The location or organization name is used when that field is filled in — add a name, then save again.');
+    return null;
+  }
+  if(input)input.value=name;
+  return name;
+}
 function toggleOrgHeadcount(){
   const org=(document.getElementById('m-billorg')?.value||'').trim();
   const show=org?'block':'none';
@@ -2143,6 +2247,7 @@ function toggleOrgRegistration(on, codeInputId){
   const input=document.getElementById(codeInputId);
   if(wrap)wrap.style.display=on?'none':'block';
   if(on&&input)input.value='';
+  syncBillToRequirement();
 }
 function orgBillingFieldsHtml(s){
   s=s||{};
@@ -2150,7 +2255,8 @@ function orgBillingFieldsHtml(s){
   const count=s.billedHeadcount!=null?s.billedHeadcount:'';
   const portion=s.orgPortion!=null?s.orgPortion:'';
   return `<div class="fg full" style="background:#eef5f0;border:1px solid #cfe3d6;border-radius:var(--r-sm);padding:12px 14px">
-      <label style="margin-bottom:2px">Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — a separate invoice, not added to family checkout)</span></label>
+      <label style="margin-bottom:2px">Bill to organization <span id="billto-req-label" style="font-weight:400;color:var(--muted)">(optional — a separate invoice, not added to family checkout)</span></label>
+      <div id="billto-required-note" style="display:none;font-size:14px;color:#a33b32;font-weight:600;margin-bottom:8px">Required while Organization registration is checked. The name fills from the location or partnership when that field is set, and the session cannot be saved without it.</div>
       <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Name the organization. If families also register and pay their own price, enter the organization’s flat fee per participant. Leave that fee blank only when the organization pays the full family price (for example Beth El). A troop that pays $30 per participant while each family pays $15 at checkout uses Family price at registration 15, Participants on the org invoice for the roster, and Organization flat fee per participant 30.</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
         <div style="flex:1;min-width:200px"><label style="font-size:14px;margin-bottom:4px;display:block">Organization name</label><input type="text" id="m-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. GS Troop 42086 or Congregation Beth El" oninput="toggleOrgHeadcount()" style="width:100%"></div>
@@ -2724,7 +2830,7 @@ function wrapupInvoiceCta(s){
       +'<span style="font-size:16px">✓ On invoice '+escapeHtml(onInv.invoiceNumber||'')+' to '+escapeHtml(org)+' ('+escapeHtml(onInv.status||'draft')+')</span>'
       +'<button class="btn sm" onclick="openInvoiceDoc(\''+onInv.id+'\')">🖨️ View</button></div>';
   }
-  const ym=(s.date||'').slice(0,7);
+  const ym=sessionBillingMonth(s)||(s.date||'').slice(0,7);
   const ymLbl=(typeof ymLabel==='function'&&ym)?ymLabel(ym):ym;
   return '<div style="background:var(--cream);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px">'
     +'<button class="btn sm primary" onclick="openCreateInvoice(decodeURIComponent(\''+encodeURIComponent(org)+'\'),\''+ym+'\')">🧾 Send invoice to '+escapeHtml(org)+'</button>'
@@ -4312,7 +4418,7 @@ function orgPartnerFieldHtml(s){
   return `<div class="fg full" style="background:#eef5f1;border:1px solid #cfe3d8;border-radius:var(--r-sm);padding:12px 14px">
     <label style="margin-bottom:2px">Hosted in partnership with <span style="font-weight:400;color:var(--muted)">(optional — 50/50 revenue share)</span></label>
     <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Pick the organization whose Community Partnership Agreement covers this class. Their share is half of what is left after instructor pay, materials, job costs and the overhead allocation. Leave blank for anything running on your own.</div>
-    <select id="m-hostedfor" style="width:100%">
+    <select id="m-hostedfor" style="width:100%" onchange="syncBillToRequirement()">
       <option value="">— Not applicable (no partnership on this class) —</option>
       ${active.map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${escapeHtml(p.name)}${p.isTitle1?' — Title I':''}${p.status==='inactive'?' (inactive)':''}</option>`).join('')}
     </select>
@@ -8016,7 +8122,7 @@ function openAddSession(){
       <div id="closures-list"></div>
       <div style="font-size:14px;color:var(--muted);margin-top:6px">Instructors see these on the job board so they know exactly which weeks are off before accepting.</div>
     </div>
-    <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" placeholder="e.g. The Smith Family or Bethesda Community Center"></div>
+    <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" placeholder="e.g. The Smith Family or Bethesda Community Center" oninput="syncBillToRequirement()"></div>
     <div class="fg full"><label>Street Address</label><input type="text" id="m-haddr" placeholder="e.g. 123 Maple St"></div>
     <div class="fg"><label>City</label><input type="text" id="m-city" placeholder="e.g. Bethesda"></div>
     <div class="fg"><label>State</label><input type="text" id="m-state" placeholder="e.g. MD" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
@@ -8118,6 +8224,8 @@ function openAddSession(){
   updateRnNotice();
   refreshSessionInstrMarks();
   toggleInstrSelect('no');
+  _billToAutofill='';
+  syncBillToRequirement();
 }
 
 // ─── CUSTOM JOB ──────────────────────────────────────────────
@@ -8167,7 +8275,7 @@ function openAddCustomJob(){
       </div>
       <div id="closures-list"></div>
     </div>
-    <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" placeholder="e.g. Bethesda Community Center"></div>
+    <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" placeholder="e.g. Bethesda Community Center" oninput="syncBillToRequirement()"></div>
     <div class="fg full"><label>Street Address</label><input type="text" id="cj-addr" placeholder="e.g. 123 Maple St"></div>
     <div class="fg"><label>City</label><input type="text" id="cj-city" placeholder="e.g. Bethesda"></div>
     <div class="fg"><label>State</label><input type="text" id="cj-state" placeholder="MD" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
@@ -8187,12 +8295,12 @@ function openAddCustomJob(){
     <div class="fg full"><label>What the organization pays you <span style="font-weight:400;color:var(--muted)">(optional — what GOTR / the partner pays Mindful Beginnings for this job; counted as revenue)</span></label>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:18px;color:var(--muted)">$</span>
-        <input type="number" id="cj-orgfee" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
+        <input type="number" id="cj-orgfee" placeholder="0" min="0" step="1" oninput="syncBillToRequirement()" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
       </div>
       ${feeReceivedBoxHtml(null,'cj-fee-received')}
       ${customJobSplitHintHtml()}
     </div>
-    <div class="fg full"><label>Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — name the partner here to invoice them at month end from Finances → Organization invoices; the amount above becomes the invoice line)</span></label>
+    <div class="fg full"><label>Bill to organization <span id="cj-billto-req-label" style="font-weight:400;color:var(--muted)">(optional — name the partner to invoice them at month end; the fee above becomes the invoice line)</span></label>
       <input type="text" id="cj-billorg" list="org-datalist" placeholder="e.g. Girls on the Run">
       ${orgDatalistHtml()}
     </div>
@@ -8225,6 +8333,8 @@ function openAddCustomJob(){
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCustomJob()">Add job</button></div>`);
   renderEditDates();renderEditClosures();renderEditCosts();
   fillCjInstrSelect('');updateCjCredNotice();
+  _billToAutofill='';
+  syncBillToRequirement();
 }
 
 // Instructor picker inside the custom-job modals. Rebuilt whenever the RN-only box is
@@ -8334,10 +8444,12 @@ async function saveCustomJob(){
   const preInstrId=instrEl&&instrEl.value?instrEl.value:null;
   const leadBlock=leadTeacherAssignmentBlock(title,preInstrId);
   if(leadBlock){alert(leadBlock);return;}
+  const billToOrg=resolveBillToOrg('cj-billorg');
+  if(billToOrg==null)return;
   if(!confirmNotDuplicate({course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,isVirtual:false,isCancelled:false},null))return;
   if(_savingSession)return; _savingSession=true;
   try{
-  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,orgHandlesRegistration,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
+  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,orgHandlesRegistration,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg,feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
@@ -8371,7 +8483,7 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>Job title *</label><input type="text" id="cj-title" value="${s.course||''}"></div>
     <div class="fg"><label>Date <span id="cj-date-req">${s.isHold?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'* <span style="font-weight:400;color:var(--muted)">(first meeting if recurring)</span>'}</span></label><input type="date" id="cj-date" value="${s.date||''}"></div>
     <div class="fg"><label>Time</label><input type="text" id="cj-time" value="${s.time||''}" placeholder="e.g. 4:00 – 5:00 PM"></div>
-    <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" value="${s.location||''}"></div>
+    <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" value="${s.location||''}" oninput="syncBillToRequirement()"></div>
     <div class="fg full"><label>Street Address</label><input type="text" id="cj-addr" value="${s.hostAddress||''}"></div>
     <div class="fg"><label>City</label><input type="text" id="cj-city" value="${s.city||''}"></div>
     <div class="fg"><label>State</label><input type="text" id="cj-state" value="${s.state||''}" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
@@ -8390,12 +8502,12 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>What the organization pays you <span style="font-weight:400;color:var(--muted)">(optional — counted as revenue)</span></label>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:18px;color:var(--muted)">$</span>
-        <input type="number" id="cj-orgfee" value="${s.priceOverride!=null&&s.priceOverride!==0?s.priceOverride:''}" placeholder="0" min="0" step="1" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
+        <input type="number" id="cj-orgfee" value="${s.priceOverride!=null&&s.priceOverride!==0?s.priceOverride:''}" placeholder="0" min="0" step="1" oninput="syncBillToRequirement()" style="width:140px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
       </div>
       ${feeReceivedBoxHtml(s,'cj-fee-received')}
       ${customJobSplitHintHtml()}
     </div>
-    <div class="fg full"><label>Bill to organization <span style="font-weight:400;color:var(--muted)">(optional — name the partner here to invoice them at month end; the amount above becomes the invoice line)</span></label>
+    <div class="fg full"><label>Bill to organization <span id="cj-billto-req-label" style="font-weight:400;color:var(--muted)">(optional — name the partner to invoice them at month end; the fee above becomes the invoice line)</span></label>
       <input type="text" id="cj-billorg" list="org-datalist" value="${escapeHtml(s.billToOrg||'')}" placeholder="e.g. Girls on the Run">
       ${orgDatalistHtml()}
     </div>
@@ -8496,6 +8608,8 @@ ${lockboxFieldHtml(s)}
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveEditCustomJob('${id}')">Save changes</button></div>`);
   renderEditDates();renderEditClosures();renderEditCosts();
   fillCjInstrSelect(jdi.instructorId||s.instructorId||'');updateCjCredNotice();
+  _billToAutofill='';
+  syncBillToRequirement();
 }
 
 function toggleCustomHoldMode(on){
@@ -8537,12 +8651,14 @@ async function saveEditCustomJob(id){
   }else{
     code=reissueStaleCode(id,code,_prevDate,date,uniqueCustomJobCode(date,id,title,siteName,isRecurring));
   }
+  const billToOrg=resolveBillToOrg('cj-billorg');
+  if(billToOrg==null)return;
   const holdTerm=isHold?(document.getElementById('cj-hold-term')?.value||''):'';
   const holdSeatsRaw=isHold?(document.getElementById('cj-hold-seats')?.value||''):'';
   const reservedSeats=holdSeatsRaw&&Number(holdSeatsRaw)>0?Number(holdSeatsRaw):null;
   const holdPayment=isHold?(document.getElementById('cj-hold-payment')?.value||''):'';
   const prevSnapshot={...s};
-  Object.assign(s,{code,orgHandlesRegistration,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg:(document.getElementById('cj-billorg')?.value||'').trim(),feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
+  Object.assign(s,{code,orgHandlesRegistration,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg,feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
   {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;feeReceivedMissing=!!_r.missingFeeReceived;orgRegMissing=!!_r.missingOrgReg;}
@@ -8718,7 +8834,7 @@ ${lockboxFieldHtml(s)}
     </div>
     <div class="fg"><label>Date <span id="m-date-req">${s.isHold?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'*'}</span></label><input type="date" id="m-date" value="${s.date}"></div>
     <div class="fg"><label>Time</label><input type="text" id="m-time" value="${s.time||''}"></div>
-    <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" value="${s.location||''}"></div>
+    <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" value="${s.location||''}" oninput="syncBillToRequirement()"></div>
     <div class="fg full">
       <label>Session format</label>
       <select id="m-virtual" onchange="toggleVirtualFields(this.value)">
@@ -8857,6 +8973,8 @@ ${lockboxFieldHtml(s)}
   updateRnNotice();
   refreshSessionInstrMarks();
   renderSeriesWarning();
+  _billToAutofill='';
+  syncBillToRequirement();
 }
 
 // Set while a save is in flight, so a second click cannot create a second row.
@@ -8937,7 +9055,8 @@ async function saveSession(editId){
   const isVirtual=document.getElementById('m-virtual')?.value==='yes';
   const allowWaitlist=document.getElementById('m-waitlist')?.checked!==false;
   const zoomLink=(document.getElementById('m-zoom')?.value||'').trim();
-  const billToOrg=(document.getElementById('m-billorg')?.value||'').trim();
+  const billToOrg=resolveBillToOrg('m-billorg');
+  if(billToOrg==null)return;
   const billCountRaw=document.getElementById('m-billcount')?.value;
   const billedHeadcount=(billToOrg&&billCountRaw!==''&&billCountRaw!=null)?Number(billCountRaw):null;
   const orgPortionRaw=document.getElementById('m-org-portion')?.value;
@@ -15850,9 +15969,10 @@ function invoicedSessionIds(){
 // sessions bill participants × the organization rate. A split uses the per-participant
 // organization amount. A full bill uses the registration price.
 function invoiceLineFor(s){
+  const range=sessionInvoiceRangeLabel(s);
   if(s.isCustomJob){
     const amt=s.priceOverride!=null?Number(s.priceOverride):0;
-    return{sessionId:s.id,date:s.date,desc:s.course,qty:null,rate:null,amount:amt,flat:true};
+    return{sessionId:s.id,date:s.date,range,desc:s.course,qty:null,rate:null,amount:amt,flat:true};
   }
   const split=orgPortionAmount(s)!=null;
   // A blank roster on a split follows registered participants (same count as revenue).
@@ -15860,7 +15980,7 @@ function invoiceLineFor(s){
   // which is how an invoice was drawn before split pricing existed.
   const qty=s.billedHeadcount!=null?Number(s.billedHeadcount):(split?orgRevenueHeadcount(s):registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length);
   const rate=orgBillRate(s);
-  return{sessionId:s.id,date:s.date,desc:split?s.course+' — organization flat fee':s.course,qty,rate,amount:qty*rate,flat:false};
+  return{sessionId:s.id,date:s.date,range,desc:split?s.course+' — organization flat fee':s.course,qty,rate,amount:qty*rate,flat:false};
 }
 // Minutes since midnight for the END of a free-text class time ("10:00 AM - 3:00 PM",
 // "1:00-4:00 PM", "6:30–7:30pm", "9:00 a.m. – 3:00 p.m."). Null when no end time
@@ -15944,26 +16064,106 @@ function orgSessionsStillToTeach(list, now){
   const rows=list||sessions;
   return rows.filter(s=>!!(s&&!s.isHold&&!s.isCancelled&&String(s.billToOrg||'').trim()&&s.date&&!sessionIsComplete(s, now)));
 }
-// All org-billed sessions for an org in a YYYY-MM month (holds excluded).
+// The month a series is billed with: the month of its last meeting. Completion
+// still uses that same last date, so an 8-week class is not ready until it ends.
+function sessionBillingMonth(s){
+  const end=sessionEndDate(s)||(s&&s.date)||'';
+  return String(end).slice(0,7);
+}
+// Every YYYY-MM from the first meeting through the last, inclusive.
+function sessionListedMonths(s){
+  if(!s||!s.date)return [];
+  const start=String(s.date).slice(0,7);
+  const end=sessionBillingMonth(s)||start;
+  if(!/^\d{4}-\d{2}$/.test(start))return [];
+  if(!/^\d{4}-\d{2}$/.test(end)||end<start)return [start];
+  const out=[];
+  let y=Number(start.slice(0,4)), m=Number(start.slice(5,7));
+  const ey=Number(end.slice(0,4)), em=Number(end.slice(5,7));
+  while(y<ey||(y===ey&&m<=em)){
+    out.push(y+'-'+String(m).padStart(2,'0'));
+    m++;
+    if(m>12){m=1;y++;}
+    if(out.length>36)break;
+  }
+  return out;
+}
+// Ready-to-invoice cards name the start month and the end month. The dollars
+// sit on the end month only, so a series that crosses months is not billed twice.
+function sessionReadyMonths(s){
+  const all=sessionListedMonths(s);
+  if(all.length<=2)return all;
+  return [all[0], all[all.length-1]];
+}
+// "Sep 8 – Nov 3, 2026" when the class meets more than once. One day stays one day.
+function sessionInvoiceRangeLabel(s){
+  if(!s||!s.date)return '';
+  const end=sessionEndDate(s)||s.date;
+  const fmt=(d,withYear)=>new Date(d+'T12:00:00').toLocaleDateString('en-US',withYear?{month:'short',day:'numeric',year:'numeric'}:{month:'short',day:'numeric'});
+  if(!end||end===s.date)return fmt(s.date,true);
+  const a=new Date(s.date+'T12:00:00'), b=new Date(end+'T12:00:00');
+  if(isNaN(a.getTime())||isNaN(b.getTime()))return fmt(s.date,true);
+  return fmt(s.date,a.getFullYear()!==b.getFullYear())+' – '+fmt(end,true);
+}
+// Checked on the ending month only. Earlier months still list the series so it
+// can be found, and a session already on an invoice stays off.
+function invoiceLineIncluded(s, ym, complete, already){
+  if(!complete||already)return false;
+  const primary=sessionBillingMonth(s);
+  if(!ym||!primary)return true;
+  return ym===primary;
+}
+// All org-billed sessions for an org whose dates touch a YYYY-MM month (holds
+// excluded). A series that starts in September and ends in November is listed
+// when either month — or a month in between — is chosen.
 function orgSessionsForMonth(org,ym){
   const key=(org||'').trim().toLowerCase();
-  return sessions.filter(s=>!s.isHold&&s.billToOrg&&s.billToOrg.trim().toLowerCase()===key&&s.date&&s.date.slice(0,7)===ym)
-    .sort((a,b)=>a.date.localeCompare(b.date));
+  return sessions.filter(s=>!s.isHold&&s.billToOrg&&s.billToOrg.trim().toLowerCase()===key&&s.date&&sessionListedMonths(s).indexOf(ym)>=0)
+    .sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));
 }
-// Completed org sessions not yet on any invoice, grouped by org + month — powers the
-// "ready to invoice" alert cards at the end of each month.
+// Completed org sessions not yet on any invoice, grouped by org + month.
+// A series is ready only after its last date. It is filed under its start
+// month and its end month; the amount is counted on the end month only.
 function uninvoicedOrgGroups(now){
   const done=invoicedSessionIds();
   const groups={};
   sessions.forEach(s=>{
     if(s.isHold||s.isCancelled||!s.billToOrg||!s.date)return;   // a cancelled class is never billed
     if(done.has(s.id)||!sessionIsComplete(s, now))return;
-    const key=s.billToOrg.trim()+'|'+s.date.slice(0,7);
-    if(!groups[key])groups[key]={org:s.billToOrg.trim(),ym:s.date.slice(0,7),sessions:[],total:0};
+    const org=s.billToOrg.trim();
+    const primary=sessionBillingMonth(s);
     const li=invoiceLineFor(s);
-    groups[key].sessions.push(s);groups[key].total+=li.amount;
+    sessionReadyMonths(s).forEach(ym=>{
+      const key=org+'|'+ym;
+      if(!groups[key])groups[key]={org,ym,sessions:[],total:0};
+      groups[key].sessions.push(s);
+      if(ym===primary)groups[key].total+=li.amount;
+    });
   });
-  return Object.values(groups).sort((a,b)=>a.ym.localeCompare(b.ym));
+  return Object.values(groups).sort((a,b)=>a.ym.localeCompare(b.ym)||a.org.localeCompare(b.org));
+}
+function invoiceGroupOpenYm(g){
+  const primary=(g.sessions||[]).find(s=>sessionBillingMonth(s)===g.ym);
+  if(primary)return g.ym;
+  const other=(g.sessions||[])[0];
+  return other?sessionBillingMonth(other):g.ym;
+}
+function invoiceGroupBlurb(g){
+  const bits=(g.sessions||[]).map(s=>{
+    const range=sessionInvoiceRangeLabel(s);
+    const primary=sessionBillingMonth(s);
+    const tail=primary&&primary!==g.ym?' (billed with '+ymLabel(primary)+', once)':'';
+    return escapeHtml((range?range+' · ':'')+(s.course||''))+tail;
+  });
+  const n=(g.sessions||[]).filter(s=>sessionBillingMonth(s)===g.ym).length;
+  const carry=(g.sessions||[]).length-n;
+  if(n&&!carry){
+    return '<strong>Ready to invoice:</strong> '+escapeHtml(g.org)+' — '+n+' completed session'+(n===1?'':'s')+' in '+ymLabel(g.ym)+' ('+fmt(g.total)+'). '+bits.join('; ');
+  }
+  if(!n&&carry){
+    return '<strong>Series spanning '+ymLabel(g.ym)+':</strong> '+escapeHtml(g.org)+' — '+bits.join('; ')+'. Open the ending month to invoice '+(carry===1?'it':'them')+' once.';
+  }
+  return '<strong>Ready to invoice:</strong> '+escapeHtml(g.org)+' — '+n+' session'+(n===1?'':'s')+' billed in '+ymLabel(g.ym)+' ('+fmt(g.total)+'). '+bits.join('; ');
 }
 function ymLabel(ym){return new Date(ym+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'});}
 function nextInvoiceNumber(ym){
@@ -16118,11 +16318,12 @@ function renderInvoices(){
   const alertEl=document.getElementById('invoice-alerts');
   if(alertEl){
     const groups=uninvoicedOrgGroups();
+    groups.forEach(g=>{g.openYm=invoiceGroupOpenYm(g);});
     window._invGroups=groups;
-    alertEl.innerHTML=groups.map((g,gi)=>`
+    alertEl.innerHTML=orgBillingGapBannerHtml()+groups.map((g,gi)=>`
       <div style="background:#eef5f0;border:1px solid #cfe3d6;border-radius:var(--r-sm);padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div style="font-size:16px"><strong>Ready to invoice:</strong> ${escapeHtml(g.org)} — ${g.sessions.length} completed session${g.sessions.length===1?'':'s'} in ${ymLabel(g.ym)} (${fmt(g.total)}) not yet invoiced.</div>
-        <button class="btn sm primary" onclick="openCreateInvoice(_invGroups[${gi}].org,_invGroups[${gi}].ym)">Create invoice</button>
+        <div style="font-size:16px">${invoiceGroupBlurb(g)}</div>
+        <button class="btn sm primary" onclick="openCreateInvoice(_invGroups[${gi}].org,_invGroups[${gi}].openYm)">Create invoice</button>
       </div>`).join('');
   }
   const rows=[...invoices].sort((a,b)=>String(b.invoiceMonth).localeCompare(String(a.invoiceMonth))||String(b.createdAt).localeCompare(String(a.createdAt)));
@@ -16179,30 +16380,57 @@ function gotoInvoices(){
   const nav=[...document.querySelectorAll('.nav-item')].find(n=>(n.getAttribute('onclick')||'').includes("'invoices'"));
   showScreen('invoices',nav);
 }
-// Finished org work that cannot be invoiced correctly as it stands: a custom job
-// carrying an organization fee with no organization named (it never reaches the
-// invoice screen at all), or one named to an organization with no fee entered
-// (the invoice line would print $0). Each can be dismissed — a custom job paid
-// up front, or one that was never an organization job, should stop asking.
-function orgBillingGaps(){
+// Organization work that cannot be invoiced correctly. A session with
+// Organization registration, or a custom job with a fee, and no Bill to
+// organization is listed immediately — including before it ends — because the
+// invoice screen never sees a blank name. A named session whose line would
+// print $0 is still listed only after it is taught. Each can be dismissed.
+function orgBillingGaps(now){
   const skip=orgBillDismissed();
   const done=invoicedSessionIds();
   const gaps=[];
   sessions.forEach(s=>{
-    if(s.isHold||s.isCancelled||!s.date)return;
-    if(!sessionIsComplete(s)||done.has(s.id)||skip.includes(s.id))return;
-    const org=(s.billToOrg||'').trim();
-    const fee=s.priceOverride==null?0:Number(s.priceOverride);
-    if(s.isCustomJob&&!org&&fee>0){
-      gaps.push({s,why:'No organization named on this job, so it never reaches the invoice screen.',fix:'Bill to organization'});
-    }else if(org&&(invoiceLineFor(s).amount||0)<=0){
+    if(!s||s.isCancelled||skip.includes(s.id))return;
+    const org=String(s.billToOrg||'').trim();
+    if(!org&&sessionNeedsBillToOrg(s)&&!done.has(s.id)){
+      gaps.push({s,why:missingBillToWhy(s),fix:'Bill to organization'});
+      return;
+    }
+    if(s.isHold||!s.date)return;
+    if(!sessionIsComplete(s, now)||done.has(s.id))return;
+    if(org&&(invoiceLineFor(s).amount||0)<=0){
       gaps.push({s,why:s.isCustomJob
         ?'No organization fee entered, so the invoice line would come to $0.'
         :'No roster headcount entered, so the invoice line would come to $0.',
         fix:s.isCustomJob?'What the organization pays you':'Roster headcount from the organization'});
     }
   });
-  return gaps.sort((a,b)=>b.s.date.localeCompare(a.s.date));
+  return gaps.sort((a,b)=>{
+    const am=a.fix==='Bill to organization'?0:1;
+    const bm=b.fix==='Bill to organization'?0:1;
+    if(am!==bm)return am-bm;
+    return String(b.s.date||'').localeCompare(String(a.s.date||''));
+  });
+}
+function orgBillingGapBannerHtml(){
+  const gaps=orgBillingGaps().filter(g=>g.fix==='Bill to organization');
+  if(!gaps.length)return '';
+  return `<div style="background:#fdf0ee;border:1px solid #f0c2bc;border-radius:var(--r-sm);padding:12px 16px;margin-bottom:12px">
+    <div style="font-size:17px;font-weight:700;color:#c0392b;margin-bottom:8px">Missing Bill to organization — these sessions will not show up to invoice</div>
+    ${gaps.map(g=>{
+      const when=sessionInvoiceRangeLabel(g.s)||obDate(g.s.date)||'Date TBD';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-top:0.5px solid #f0c2bc">
+        <div style="min-width:0;flex:1">
+          <div style="font-size:16px;font-weight:600">${escapeHtml(g.s.course)}<span style="font-weight:400;color:var(--muted)"> · ${escapeHtml(when)}</span></div>
+          <div style="font-size:15px;color:var(--muted);line-height:1.5">${g.why} Open the job and fill in <strong>${escapeHtml(g.fix)}</strong>.</div>
+        </div>
+        <div style="flex-shrink:0;display:flex;gap:8px">
+          <button class="btn sm" onclick="openSessionForReview('${g.s.id}')">✏️ Open job</button>
+          <button class="btn sm" onclick="dismissOrgBillCheck('${g.s.id}')" title="Hide this one — not an organization job, or already paid another way">Not billable</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 function obDate(d){return d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';}
 function renderOrgBilling(){
@@ -16213,7 +16441,8 @@ function renderOrgBilling(){
   // it here keeps every job in exactly one place on this card.
   const groups=uninvoicedOrgGroups().map(g=>{
     const keep=g.sessions.filter(s=>(invoiceLineFor(s).amount||0)>0);
-    return{org:g.org,ym:g.ym,sessions:keep,total:keep.reduce((n,s)=>n+(invoiceLineFor(s).amount||0),0)};
+    const total=keep.filter(s=>sessionBillingMonth(s)===g.ym).reduce((n,s)=>n+(invoiceLineFor(s).amount||0),0);
+    return{org:g.org,ym:g.ym,sessions:keep,total,openYm:invoiceGroupOpenYm({ym:g.ym,sessions:keep})};
   }).filter(g=>g.sessions.length);
   window._dashInvGroups=groups;
   const drafts=invoices.filter(v=>v.status==='draft');
@@ -16234,14 +16463,20 @@ function renderOrgBilling(){
   let readyHtml='';
   if(groups.length){
     readyHtml=sect('Taught and not yet invoiced — send the bill','#b86a00',groups.map((g,gi)=>{
-      const shown=g.sessions.slice(0,4).map(s=>`${obDate(s.date)} · ${escapeHtml(s.course)}${s.isCustomJob?' <span style="color:#1a5c8a;font-weight:600">custom job</span>':''}`).join('<br>');
+      const shown=g.sessions.slice(0,4).map(s=>{
+        const range=sessionInvoiceRangeLabel(s)||obDate(s.date);
+        const primary=sessionBillingMonth(s);
+        const where=primary&&primary!==g.ym?` <span style="color:#1a5c8a">· billed with ${ymLabel(primary)}, once</span>`:'';
+        return `${escapeHtml(range)} · ${escapeHtml(s.course)}${s.isCustomJob?' <span style="color:#1a5c8a;font-weight:600">custom job</span>':''}${where}`;
+      }).join('<br>');
       const extra=g.sessions.length-4;
+      const billedHere=g.sessions.filter(s=>sessionBillingMonth(s)===g.ym).length;
       return row(
         `<div style="font-size:17px;font-weight:600">${escapeHtml(g.org)} — ${ymLabel(g.ym)}</div>
          <div style="font-size:15px;color:var(--muted);line-height:1.5;margin-top:2px">${shown}${extra>0?`<br>+ ${extra} more session${extra===1?'':'s'}`:''}</div>`,
-        `<div style="text-align:right"><div style="font-size:19px;font-weight:700;color:#b86a00">${fmt(g.total)}</div>
-         <div style="font-size:13px;color:var(--muted)">${g.sessions.length} session${g.sessions.length===1?'':'s'}</div></div>
-         <button class="btn sm primary" onclick="openCreateInvoice(_dashInvGroups[${gi}].org,_dashInvGroups[${gi}].ym)">Create invoice</button>`
+        `<div style="text-align:right"><div style="font-size:19px;font-weight:700;color:#b86a00">${g.total>0?fmt(g.total):'—'}</div>
+         <div style="font-size:13px;color:var(--muted)">${g.total>0?billedHere+' session'+(billedHere===1?'':'s'):'see '+ymLabel(g.openYm)}</div></div>
+         <button class="btn sm primary" onclick="openCreateInvoice(_dashInvGroups[${gi}].org,_dashInvGroups[${gi}].openYm)">Create invoice</button>`
       );
     }).join(''));
   }
@@ -16277,9 +16512,9 @@ function renderOrgBilling(){
   // 4. Org jobs that would bill wrong or never bill at all.
   let gapHtml='';
   if(gaps.length){
-    gapHtml=sect('Check before billing — organization jobs missing invoice details','#c0392b',gaps.map(g=>row(
-      `<div style="font-size:17px;font-weight:600">${escapeHtml(g.s.course)}<span style="font-weight:400;color:var(--muted)"> · ${obDate(g.s.date)}${adminPlaceText(g.s)?' · '+escapeHtml(adminPlaceText(g.s)):''}</span></div>
-       <div style="font-size:15px;color:var(--muted);line-height:1.5">${g.why} Open the job and fill in <strong>${g.fix}</strong>.</div>`,
+    gapHtml=sect('Missing Bill to organization, or a $0 invoice line','#c0392b',gaps.map(g=>row(
+      `<div style="font-size:17px;font-weight:600">${escapeHtml(g.s.course)}<span style="font-weight:400;color:var(--muted)"> · ${escapeHtml(sessionInvoiceRangeLabel(g.s)||obDate(g.s.date))}${adminPlaceText(g.s)?' · '+escapeHtml(adminPlaceText(g.s)):''}</span></div>
+       <div style="font-size:15px;color:var(--muted);line-height:1.5">${g.why} Open the job and fill in <strong>${escapeHtml(g.fix)}</strong>.</div>`,
       `<button class="btn sm" onclick="openSessionForReview('${g.s.id}')">✏️ Open job</button>
        <button class="btn sm" onclick="dismissOrgBillCheck('${g.s.id}')" title="Hide this one — not an organization job, or already paid another way">Not billable</button>`
     )).join(''));
@@ -16321,7 +16556,7 @@ function openCreateInvoice(presetOrg,presetYm){
       <select id="inv-org" onchange="prefillInvoiceOrg();rebuildInvoiceLines()">${orgs.map(o=>`<option ${o===org?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select></div>
     <div class="fg"><label>Billing month *</label><input type="month" id="inv-month" value="${ym}" onchange="rebuildInvoiceLines()"></div>
     <div class="fg full">
-      <label style="margin-bottom:6px">Sessions to include <span style="font-weight:400;color:var(--muted)">(completed sessions for this organization in this month; adjust headcount or rate if the roster changed)</span></label>
+      <label style="margin-bottom:6px">Sessions to include <span style="font-weight:400;color:var(--muted)">(sessions for this organization whose dates fall in this month, including a series that started earlier. The full date range is shown. A series is checked on the month it ends so it is billed once. Adjust headcount or rate if the roster changed.)</span></label>
       <div id="inv-lines"></div>
     </div>
     <div class="fg"><label>Invoice number</label><input type="text" id="inv-number" value=""></div>
@@ -16371,16 +16606,18 @@ function rebuildInvoiceLines(){
   _invLines=sess.map(s=>{
     const li=invoiceLineFor(s);
     const complete=sessionIsComplete(s);
-    return{...li,include:complete&&!done.has(s.id),complete,already:done.has(s.id)};
+    const already=done.has(s.id);
+    const primaryYm=sessionBillingMonth(s);
+    return{...li,include:invoiceLineIncluded(s,ym,complete,already),complete,already,primaryYm};
   });
   const wrap=document.getElementById('inv-lines');if(!wrap)return;
-  if(!_invLines.length){wrap.innerHTML=`<div style="font-size:15.5px;color:var(--muted);background:#f8f9fc;border:1px dashed var(--border);border-radius:var(--r-sm);padding:14px">No sessions for ${escapeHtml(org)} in ${ymLabel(ym)}. Check that the sessions have "Bill to organization" filled in with this exact name.</div>`;recalcInvoiceTotal();return;}
+  if(!_invLines.length){wrap.innerHTML=`<div style="font-size:15.5px;color:var(--muted);background:#f8f9fc;border:1px dashed var(--border);border-radius:var(--r-sm);padding:14px">No sessions for ${escapeHtml(org)} in ${ymLabel(ym)}. A multi-week series is listed under every month it spans, including the month it ends. Check that "Bill to organization" matches this name.</div>`;recalcInvoiceTotal();return;}
   wrap.innerHTML=_invLines.map((li,i)=>`
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 12px;margin-bottom:6px;${li.include?'':'opacity:.55'}">
       <input type="checkbox" ${li.include?'checked':''} onchange="_invLines[${i}].include=this.checked;rebuildInvoiceLineTotals()" style="width:15px;height:15px;cursor:pointer">
       <div style="flex:1;min-width:160px">
         <div style="font-weight:500;font-size:16px">${escapeHtml(li.desc)}</div>
-        <div style="font-size:14px;color:var(--muted)">${new Date(li.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}${li.already?' · <span style="color:var(--warn)">already on another invoice</span>':li.complete?'':' · <span style="color:var(--warn)">not yet taught</span>'}</div>
+        <div style="font-size:14px;color:var(--muted)">${escapeHtml(li.range||'')}${li.already?' · <span style="color:var(--warn)">already on another invoice</span>':''}${li.complete?'':' · <span style="color:var(--warn)">not yet taught</span>'}${li.primaryYm&&ym&&li.primaryYm!==ym?' · <span style="color:var(--warn)">ends '+ymLabel(li.primaryYm)+' — leave unchecked to bill it that month, once</span>':''}</div>
       </div>
       ${li.flat?`<div style="display:flex;align-items:center;gap:6px"><span style="font-size:14px;color:var(--muted)">Flat fee $</span><input type="number" value="${li.amount}" min="0" step="1" onchange="_invLines[${i}].amount=Number(this.value)||0;rebuildInvoiceLineTotals()" style="width:90px;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;outline:none"></div>`
       :`<div style="display:flex;align-items:center;gap:6px"><span style="font-size:14px;color:var(--muted)">Participants</span><input type="number" value="${li.qty}" min="0" step="1" onchange="_invLines[${i}].qty=Number(this.value)||0;_invLines[${i}].amount=_invLines[${i}].qty*_invLines[${i}].rate;rebuildInvoiceLineTotals()" style="width:64px;padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;outline:none">
@@ -16404,6 +16641,9 @@ async function saveInvoice(){
   const included=_invLines.filter(l=>l.include);
   if(!org||!ym){alert('Pick an organization and billing month.');return;}
   if(!included.length){alert('Select at least one session to include on the invoice.');return;}
+  const alreadyBilled=invoicedSessionIds();
+  const dup=included.filter(l=>l.sessionId&&alreadyBilled.has(l.sessionId));
+  if(dup.length){alert('These sessions are already on an invoice, so they were left off to avoid billing them twice:\n\n'+dup.map(l=>l.desc||l.sessionId).join('\n'));return;}
   const v={
     id:sid(),orgName:org,invoiceMonth:ym,
     invoiceNumber:(document.getElementById('inv-number').value||'').trim()||nextInvoiceNumber(ym),
@@ -16411,7 +16651,7 @@ async function saveInvoice(){
     dueDate:document.getElementById('inv-due').value,
     status:'draft',sentDate:'',paidDate:'',
     billTo:{name:document.getElementById('inv-billname').value.trim(),attn:document.getElementById('inv-attn').value.trim(),address:document.getElementById('inv-addr').value.trim(),email:document.getElementById('inv-email').value.trim()},
-    lineItems:included.map(l=>({sessionId:l.sessionId,date:l.date,desc:l.desc,qty:l.qty,rate:l.rate,amount:Number(l.amount)||0,flat:!!l.flat})),
+    lineItems:included.map(l=>({sessionId:l.sessionId,date:l.date,range:l.range||'',desc:l.desc,qty:l.qty,rate:l.rate,amount:Number(l.amount)||0,flat:!!l.flat})),
     total:included.reduce((s,l)=>s+(Number(l.amount)||0),0),
     notes:document.getElementById('inv-notes').value.trim(),
     createdAt:Date.now()
@@ -16448,7 +16688,7 @@ function openInvoiceDoc(id){
   const dfmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'—';
   const bt=v.billTo||{};
   const lineRows=(v.lineItems||[]).map(li=>`<tr>
-      <td style="white-space:nowrap">${new Date(li.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+      <td style="white-space:nowrap">${li.range?escapeHtml(li.range):(li.date?new Date(li.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—')}</td>
       <td>${escapeHtml(li.desc)}</td>
       <td style="text-align:center">${li.flat?'—':li.qty}</td>
       <td style="text-align:right">${li.flat?'flat fee':fmtN(li.rate)}</td>

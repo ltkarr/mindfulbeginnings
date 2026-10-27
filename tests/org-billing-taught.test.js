@@ -47,6 +47,9 @@ vm.runInContext(
     'sessionIsComplete',
     'orgSessionsStillToTeach',
     'invoicedSessionIds',
+    'sessionBillingMonth',
+    'sessionListedMonths',
+    'sessionReadyMonths',
     'uninvoicedOrgGroups'
   ].map((n) => extractFunction(admin, n)).join('\n'),
   sandbox
