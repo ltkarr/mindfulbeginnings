@@ -203,6 +203,16 @@
   },
   {
     "section": "Instructors",
+    "name": "Bailey Goldart",
+    "credentials": "MSN, RN, CPN",
+    "role": "",
+    "photo": "",
+    "bio": [
+      "Bailey Goldart is a pediatric nurse with a Master of Science in Nursing from Vanderbilt University, where she specialized as a Pediatric Acute Care Nurse Practitioner and graduated summa cum laude. A Certified Pediatric Nurse, she has cared for children at Texas Children’s Hospital, including its cardiovascular and special isolation units, and has served as a lead triage nurse and a pediatric nurse manager. She also holds a degree in human development and family sciences with a focus on early childhood development, and she is certified in Basic Life Support and Pediatric Advanced Life Support."
+    ]
+  },
+  {
+    "section": "Instructors",
     "name": "Gaby Hodor",
     "credentials": "",
     "role": "",
@@ -259,6 +269,16 @@
     "photo": "/images/team/16-img_7374.png",
     "bio": [
       "Bela Shah Spooner is an education leader and language educator with over 20 years of experience in youth development. She holds a master’s in sociology and education policy from Columbia University’s Teachers College and a bachelor’s in psychology from the University of Pennsylvania. The founder of Bela’s Velas, she teaches Spanish and helps young learners build confidence and life skills."
+    ]
+  },
+  {
+    "section": "Instructors",
+    "name": "Jessica Trzeciak",
+    "credentials": "RN, MSN",
+    "role": "",
+    "photo": "",
+    "bio": [
+      "Jessica Trzeciak is a registered nurse in the Neonatal Intensive Care Unit at Children’s National Hospital in Washington, DC, where she cares for critically ill and premature newborns in a Level IV NICU. She earned her Master of Science in Nursing from the Johns Hopkins School of Nursing, graduating with a 4.00 GPA, and she previously cared for children at Children First Pediatrics in Rockville and worked one on one with infant twins as a childcare provider. Certified in Basic Life Support, the Neonatal Resuscitation Program, and the S.T.A.B.L.E. Program, she brings deep newborn and infant expertise to the families she teaches."
     ]
   }
 ]
