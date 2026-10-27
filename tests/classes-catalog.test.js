@@ -48,7 +48,7 @@ function cards() {
 
 
 const EXPECTED = [
-  ["ages-8-10", "safe-at-home", "Safe@Home by Safe Sitter®", "Ages 8 to 10 · 90-minute in person · $85 · 60-minute virtual · $40", "A class that prepares kids to stay home alone safely and know what to do if something goes wrong.", null],
+  ["ages-8-10", "safe-at-home", "Safe@Home by Safe Sitter®", "Ages 8 to 10 · 90-minute in person · $65 · 60-minute virtual · $40", "A class that prepares kids to stay home alone safely and know what to do if something goes wrong.", null],
   ["ages-8-10", "steady-ready", "Steady and Ready™", "Ages 8 to 12 · 60-minute · In-person or virtual · $65", "A neurodivergent-affirming safety class that builds essential emergency readiness skills in a low-pressure environment.", null],
   ["ages-8-10", "mfbc", "My First Babysitter's Club", "Grades 4 to 5 · 2.5-hour · In person · $165", "A 2.5-hour workshop introducing young students to being a parent's helper, with a take-home activity tote bag.", null],
   ["ages-8-10", "social-ready", "Social Ready™", "Ages 8 to 14 · 60-minute · In-person or virtual · $45", "An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online.", null],
@@ -62,7 +62,7 @@ const EXPECTED = [
   ["ages-11-14", "all-kids", "All Kids Welcome™", "Experienced sitters · 60-minute · In-person or virtual · $25", "A class that teaches young caregivers how to care confidently for children with diverse needs.", null],
   ["ages-11-14", "adult-cpr", "Adult & Pediatric First Aid/CPR/AED Certification", "Ages 11 and up · 3 hours 45 minutes · In person · $125", "Adult, child, and infant CPR, choking rescue, AED use, and first aid, with a 2-year Red Cross certification. Also offered as online plus classroom.", "Red Cross certificate included"],
   ["student-athletes", "season-ready", "Season Ready™", "Student athletes · 60-minute · In person · $25", "A hands-on workshop for student athletes on fueling, recovery, injury awareness, and emergency response.", null],
-  ["high-school", "campus-ready", "Campus Ready™", "High school juniors and seniors · 60-minute · In person · $75", "A class taught by registered nurses that prepares students to stay safe and help a friend in an emergency during college life.", null],
+  ["high-school", "campus-ready", "Campus Ready™", "High school juniors and seniors · 60-minute · In person · $50", "A class taught by registered nurses that prepares students to stay safe and help a friend in an emergency during college life.", null],
   ["parents-caregivers", "baby-ready", "Baby Ready™", "Parents, nannies, au pairs, and grandparents · 3-hour · In person · $185 per participant", "A hands-on newborn care class taught by a registered nurse, covering feeding, diapering, bathing, safe sleep, soothing, and infant choking rescue and CPR skills practice on manikins.", null],
   ["parents-caregivers", "baby-ready-cpr", "Baby Ready™ + CPR Certification", "Expecting and new parents · 5-hour · In person · $275 per participant", "Newborn care plus hands-on Pediatric First Aid and CPR. Each registration is one person.", "Certification card included"],
   ["parents-caregivers", "adult-cpr", "Adult & Pediatric First Aid/CPR/AED Certification", "Parents, nannies, au pairs, and grandparents · 3 hours 45 minutes · In person · $125", "Adult, child, and infant CPR, choking rescue, AED use, and first aid, with a 2-year Red Cross certification. Also offered as online plus classroom.", "Red Cross certificate included"],

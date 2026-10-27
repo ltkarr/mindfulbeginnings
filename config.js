@@ -269,6 +269,15 @@ const NEW_PRICING_EFFECTIVE='2026-08-06T21:00:00Z';
    config.js, register.html, and admin.html.
 */
 const LATER_PRICE_CHANGES=[
+  // PRICE REASSESSMENT, Oct 28 2026. Lindsay lowered Safe@Home from $85 to
+  // $65 and Campus Ready from $75 to $50 after repeated parent feedback that
+  // the workshop prices were too high. Only sessions CREATED from midnight
+  // ET on Oct 28 2026 charge these; anything already created keeps its price.
+  {from:'2026-10-28T04:00:00Z',
+   prices:{
+     'Safe@Home':65,
+     'Campus Ready: Safety Skills for College Life':50
+   }},
   // PROGRAM GUIDE ALIGNMENT, Oct 19 2026. My First Babysitter's Club 8-week
   // series is $200. The 2.5-hour workshop is $165. Sessions created before
   // midnight ET on Oct 19 keep the price they were booked at. There is no
