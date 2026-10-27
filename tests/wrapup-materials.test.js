@@ -32,7 +32,8 @@ const names = [
   'escapeHtml', 'fmtYMD',
   'wrapupOpenCheckoutsFor', 'wrapupUpcomingKitSessions', 'wrapupPayNeedsMaterialsConfirm',
   'wrapupPayConfirmText', 'wrapupSamePerson',
-  'wrapupCheckoutNames', 'wrapupShortDate', 'wrapupMaterialsNote', 'wrapupInvoiceCta'
+  'wrapupCheckoutNames', 'wrapupShortDate', 'wrapupMaterialsNote',
+  'sessionEndDate', 'sessionBillingMonth', 'wrapupInvoiceCta'
 ];
 
 const TODAY = '2026-10-16';
