@@ -65,6 +65,7 @@ a:hover{color:var(--navy-dark)}
 .mb-btn-sm{font-size:17px;padding:20px 44px;border:0}
 /* Header Register button: navy with white text (Lindsay prefers navy and white over gold, 2026-10-26). */
 .mb-header .mb-btn-gold{background:var(--navy);color:var(--white)}
+.mb-header .mb-nav a.mb-btn-gold{padding:16px 34px;border-radius:10px;line-height:1.2}
 .mb-header .mb-btn-gold:hover{background:var(--navy-dark);color:var(--white)}
 a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 
