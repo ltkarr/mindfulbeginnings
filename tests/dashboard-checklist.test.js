@@ -39,6 +39,7 @@ vm.runInContext(
   [
     'sessionInstructorList',
     'sessionInstructorNames',
+    'sessionIsOrganization',
     'sessionHostDisplayName',
     'checklistInstructorLabel',
     'checklistHostLabel',
@@ -165,7 +166,8 @@ test('checklist cards name the instructor and the host, or say when either is mi
   assert.match(block, /checklistInstructorLabel\(s\)/);
   assert.match(block, /checklistHostLabel\(s\)/);
   assert.match(block, /roleLine\('Instructor',instrLabel,'No instructor'\)/);
-  assert.match(block, /roleLine\('Host',hostLabel,'No host'\)/);
+  assert.match(block, /roleLine\(sessionIsOrganization\(s\)\?'Organization':'Host',hostLabel,sessionIsOrganization\(s\)\?'No organization':'No host'\)/);
+  assert.match(block, /Print checklist \(PDF\)/);
   assert.match(block, /escapeHtml\(value\)/);
   assert.match(block, /preClassMaterialsLabel\(s\)/);
   assert.match(block, /preClassInstrReminderLabel\(s\)/);
