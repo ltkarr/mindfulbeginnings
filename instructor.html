@@ -20,7 +20,6 @@
      of config-instructor.js. If the file is missing, the built-in table below is used. -->
 <script src="/config-instructor.js"></script>
 <script src="/js/course-booking.js"></script>
-<script src="/js/referral-commissions.js"></script>
 <script src="/js/session-place.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -369,7 +368,6 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     <div class="tab" onclick="showTab('open',this)">Open jobs</div>
     <div class="tab" onclick="showTab('myjobs',this)">My jobs</div>
     <div class="tab" id="tab-btn-partner" style="display:none" onclick="showTab('partner',this)">Partnerships</div>
-    <div class="tab" id="tab-btn-referral" style="display:none" onclick="showTab('referral',this)">Commissions</div>
     <div class="tab" onclick="showTab('guide',this)">Instructor Guide</div>
     <div class="tab" onclick="showTab('account',this)">My account</div>
   </div>
@@ -434,18 +432,8 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="screen" id="tab-partner">
       <div class="section-title">Partnerships</div>
-      <div class="section-sub" id="partner-sub">Your commission, how it was calculated, and what is still on its way.</div>
+      <div class="section-sub" id="partner-sub">Your commission, including name referrals and marketing sources, and what is still on its way.</div>
       <div id="partner-content"></div>
-    </div>
-    <div class="screen" id="tab-referral">
-      <div class="section-title">Your commissions</div>
-      <div class="section-sub">Referral sources mapped to you. This is the only page this login can open.</div>
-      <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:0 0 12px">
-        <label>From <input type="date" id="ref-from" onchange="renderReferralPartner()"></label>
-        <label>To <input type="date" id="ref-to" onchange="renderReferralPartner()"></label>
-        <button class="btn" type="button" onclick="printReferralPartner()">Print / Save as PDF</button>
-      </div>
-      <div id="referral-content"></div>
     </div>
   </main>
 </div>
@@ -613,7 +601,7 @@ if(typeof INSTR_EXTRA_HOURS==='undefined'){window.INSTR_EXTRA_HOURS=0.5;}
 let me=null,allSessions=[],jobDataCache={},regCountMap={};
 // Community partner statement, published from the admin. Null for anyone who is
 // not a partner, which is almost everyone.
-let partnerData=null,partnerOnly=false,partnerMonth=null,referralPartnerOnly=false,referralReport=null;
+let partnerData=null,partnerOnly=false,partnerMonth=null;
 let lastFetch=0,fetching=false; // freshness tracking for auto-refresh
 let loadErrors={}; // last data-load failures, shown on the job boards instead of a fake empty state
 // True once we know for certain whether each job carries the per-job "RN instructors
@@ -1205,7 +1193,7 @@ function backToLogin(){
 // automatic refresh closes it. Silent when the RPC is missing or the network is
 // down — a failed check must never lock out an active instructor.
 async function checkStillActive(){
-  if(!me||partnerOnly||referralPartnerOnly||me.active===null)return true;
+  if(!me||partnerOnly||me.active===null)return true;
   let val=null;
   try{const{data:ia}=await sb.rpc('instructor_is_active',{p_pin:me.pin});if(typeof ia==='boolean')val=ia;}
   catch(e){return true;}
@@ -1234,16 +1222,6 @@ async function doLogin(){
         me={id:partner.partnerId||'partner',name:partner.partnerName||'Partner',pin:pin,
           email:'',phone:'',zelle:partner.zelle||''};
         partnerOnly=true;
-        enterApp();
-        return;
-      }
-      // A referral-partner PIN is not an instructor and not a liaison. The
-      // report comes from one RPC keyed by this PIN. Job data is not loaded.
-      const referral=await loadReferralPartner(pin);
-      if(referral){
-        me={id:referral.partnerId||'referral',name:referral.partnerName||'Partner',pin:pin};
-        referralPartnerOnly=true;
-        referralReport=referral;
         enterApp();
         return;
       }
@@ -1401,11 +1379,6 @@ function enterApp(){
     if(partnerOnly||!me||!me.level){lvlEl.style.display='none';lvlEl.innerHTML='';}
     else{lvlEl.style.display='';lvlEl.innerHTML=instructorLevelBadge(me.level,me.isLeadTeacher);}
   }
-  if(referralPartnerOnly){
-    applyReferralAccess();
-    showTab('referral',document.getElementById('tab-btn-referral'));
-    return;
-  }
   if(partnerOnly){
     showTab('partner',document.getElementById('tab-btn-partner'));
     return;
@@ -1440,60 +1413,6 @@ function applyPartnerAccess(){
     document.getElementById('h-name').textContent='Welcome, '+me.name+' — partner portal';
   }
 }
-function applyReferralAccess(){
-  document.body.classList.add('referral-printing');
-  document.querySelectorAll('.tabs .tab').forEach(t=>{
-    t.style.display=t.id==='tab-btn-referral'?'':'none';
-  });
-  const btn=document.getElementById('tab-btn-referral');
-  if(btn)btn.style.display='';
-  document.getElementById('h-name').textContent='Welcome, '+me.name+' — referral partner';
-}
-async function loadReferralPartner(pin){
-  try{
-    const{data,error}=await sb.rpc('referral_partner_report',{p_pin:pin});
-    if(error||!data||data.role!=='referral_partner'||!data.partnerId)return null;
-    referralReport=data;
-    return data;
-  }catch(e){return null;}
-}
-function renderReferralPartner(){
-  const el=document.getElementById('referral-content');
-  if(!el)return;
-  const data=referralReport||{};
-  const report=data.report||{};
-  const lines=Array.isArray(report.lines)?report.lines:[];
-  const from=document.getElementById('ref-from');
-  const to=document.getElementById('ref-to');
-  // The snapshot lines are already attributed. Filter them here. Do not rebuild
-  // from sessions this login cannot see.
-  const fromV=from?from.value:'';
-  const toV=to?to.value:'';
-  const shown=lines.filter(line=>{
-    const d=String(line.date||'').slice(0,10);
-    if(!fromV&&!toV)return true;
-    if(!d)return false;
-    if(fromV&&d<fromV)return false;
-    if(toV&&d>toV)return false;
-    return true;
-  });
-  const summary=report.overheadSummary||(window.MBReferralCommissions?MBReferralCommissions.OVERHEAD_SUMMARY:'');
-  const table=window.MBReferralCommissions?MBReferralCommissions.reportHtml(shown,{readOnly:true,splitPct:data.splitPct}):'';
-  const totals=window.MBReferralCommissions?MBReferralCommissions.summarizeReferralLines(shown):null;
-  const money=window.MBReferralCommissions?MBReferralCommissions.money:function(n){return String(n);};
-  el.innerHTML=`<div class="info-card" style="margin-bottom:12px">
-      <div style="font-weight:600;margin-bottom:6px">${escapeHtml(data.partnerName||'')}</div>
-      <div style="font-size:14px;line-height:1.5">Collected for you: ${totals?money(totals.partnerCollected):''}. Of that, owed ${totals?money(totals.owed):''} and paid ${totals?money(totals.paid):''}. Expected, not owed yet: ${totals?money(totals.partnerExpected):''}.</div>
-    </div>
-    ${table||'<p>No commission report has been published yet.</p>'}
-    <p style="font-size:13px;color:var(--muted);line-height:1.55;margin-top:12px">${escapeHtml(summary)}</p>`;
-}
-function printReferralPartner(){
-  document.body.classList.add('referral-printing');
-  window.addEventListener('afterprint',function(){},{once:true});
-  window.print();
-}
-
 // Obvious patterns a determined guesser tries first. Rejecting these client-side keeps
 // the prompt from being satisfied with 111111 or 123456.
 function weakPin(p){
@@ -1649,7 +1568,7 @@ function flagWarningCard(){
 // triggers) skips if the data is less than a minute old, so tab-hopping
 // doesn't hammer the database.
 async function refreshData(force){
-  if(!me||partnerOnly||referralPartnerOnly||fetching)return;
+  if(!me||partnerOnly||fetching)return;
   if(!force&&Date.now()-lastFetch<60*1000)return;
   fetching=true;updateRefreshBar('Checking for new jobs…');
   try{
@@ -1845,6 +1764,7 @@ function partnerRulesHtml(d){
     <div style="font-weight:500;font-size:15px;margin-bottom:10px">How this is calculated</div>
     <ul style="margin:0;padding-left:18px;font-size:14px;color:var(--muted);line-height:1.9">
       <li>You earn ${rate}% of the profit on every booking you originate, new or repeat, with no tiers, no monthly minimum and no cap. Mindful Beginnings keeps the other ${100-rate}%. The commission is the whole of the compensation.</li>
+      <li>A family who names you, and a family who picks one of your marketing sources, are credited the same way: that student's payment, less the card fee, their share of instructor pay, and one handbook. A class you originated is listed once.${(d.sources||[]).length?' Your sources: '+escapeHtml((d.sources||[]).join(', '))+'.':''}</li>
       <li>Profit means what was collected for the booking, less the direct cost of delivering it. It is not a share of the gross fee. Collected revenue is already net of refunds, discounts and payment-processing fees.</li>
       <li>Direct costs are instructor pay, participant materials, and costs entered on that job. Company overhead is not deducted.</li>
       <li>Commission is earned when the money has been collected <strong>and</strong> the class has been taught. A booking lands on the statement for whichever comes second.</li>
@@ -1857,9 +1777,8 @@ function partnerRulesHtml(d){
 
 function doLogout(){
   me=null;allSessions=[];jobDataCache={};regCountMap={};lastFetch=0;loadErrors={};
-  partnerData=null;partnerOnly=false;partnerMonth=null;referralPartnerOnly=false;referralReport=null;
-  document.body.classList.remove('referral-printing');
-  document.querySelectorAll('.tabs .tab').forEach(t=>{t.style.display=(t.id==='tab-btn-partner'||t.id==='tab-btn-referral')?'none':'';});
+  partnerData=null;partnerOnly=false;partnerMonth=null;
+  document.querySelectorAll('.tabs .tab').forEach(t=>{t.style.display=t.id==='tab-btn-partner'?'none':'';});
   document.getElementById('app').style.display='none';
   const lvlEl=document.getElementById('h-level');
   if(lvlEl){lvlEl.style.display='none';lvlEl.innerHTML='';}
@@ -1889,7 +1808,6 @@ function showTab(name,el){
   if(name==='guide'){renderGuide();renderMaterials();}
   if(name==='account')renderAccount();
   if(name==='partner')renderPartner();
-  if(name==='referral')renderReferralPartner();
 }
 
 // My account is one screen with four stacked sections (profile, contract, W-9,

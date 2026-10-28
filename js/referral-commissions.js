@@ -1,10 +1,9 @@
-/* Referral-partner commissions.
-   Partners are data: a name, the referral-source values that belong to them,
-   and the partner's share of what is left after overhead. Mary Parks is the
-   first one. "Vanessa in Vienna" is her source. This is not the liaison
-   program. A family who picks "Mary Parks" on the form stays on the Liaisons
-   tab. A family, host, or organization who picks "Vanessa in Vienna" is hers
-   here.
+/* Source-text matching for liaison commission.
+   Payable commission lives on the Liaisons tab. A mapped source such as
+   "Vanessa in Vienna" or "Yard sign" is credited with the same per-student
+   40% rule as a family who names the liaison. The helpers below still decide
+   whether an answer belongs to a source. The older session-overhead report
+   is not what gets paid.
 
    Overhead (subtracted before the split) is the per-session cost basis the
    admin already uses, switched on by rules so it can be changed without

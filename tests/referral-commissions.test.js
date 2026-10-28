@@ -299,36 +299,27 @@ test('the public forms offer Vanessa in Vienna and still store a referral answer
   assert.match(register, /referral_source:referralSource\|\|''/);
 });
 
-test('admin commissions view is wired to the existing cost basis and does not replace login', () => {
+test('admin commissions view is the liaison statement and does not replace login', () => {
   assert.match(admin, /function doLogin/);
-  assert.match(admin, /id="screen-referrals"/);
-  assert.match(admin, /Referral partners/);
-  assert.match(admin, /body\.ref-printing/);
-  assert.match(admin, /participantMaterialAllowance\(s\)/);
-  assert.match(admin, /sessionCashSplit\(s\)/);
-  assert.match(admin, /financeSessionFigures\(s\)/);
-  assert.match(admin, /linkedExpenseTotal\(s\.id\)/);
-  assert.match(admin, /MBReferralCommissions\.registrationMoney/);
-  assert.match(admin, /referral_partner_set_pin/);
+  assert.doesNotMatch(admin, /id="screen-referrals"/);
+  assert.doesNotMatch(admin, /more-link-title">Referral partners/);
+  assert.match(admin, /partner_sources/);
+  assert.match(admin, /Marketing sources/);
+  assert.match(admin, /function registrationReferralCredit/);
   assert.doesNotMatch(admin, /sendEmail\(/);
-  const screen = admin.slice(admin.indexOf('id="screen-referrals"'), admin.indexOf('id="screen-reports"'));
-  assert.match(screen, /No email is sent/);
   assert.match(admin, /window\.MB_ADMIN_BUILD='20261023-host-address'/);
 });
 
-test('the instructor portal adds a referral-partner path without opening the job board', () => {
+test('the instructor portal uses the liaison statement and does not open a second referral login', () => {
   const login = instructor.slice(instructor.indexOf('async function doLogin'), instructor.indexOf('function showPinChangeScreen'));
   const failure = login.slice(login.indexOf('if(error||!profile)'), login.indexOf('me={id:profile.id'));
   assert.match(failure, /loadPartnerData\(pin\)/);
-  const afterLiaison = failure.slice(failure.indexOf('loadPartnerData(pin)'));
-  assert.match(afterLiaison, /loadReferralPartner\(pin\)/);
-  const referralBranch = afterLiaison.slice(afterLiaison.indexOf('loadReferralPartner(pin)'), afterLiaison.indexOf('PIN not recognized'));
-  assert.match(referralBranch, /referralPartnerOnly=true/);
-  assert.doesNotMatch(referralBranch, /loadData\(/);
-  assert.match(instructor, /if\(!me\|\|partnerOnly\|\|referralPartnerOnly\|\|fetching\)return/);
-  assert.match(instructor, /id="tab-referral"/);
-  assert.match(instructor, /referral_partner_report/);
-  assert.doesNotMatch(instructor.slice(instructor.indexOf('function renderReferralPartner'), instructor.indexOf('function doLogout')), /markReferralLine/);
+  assert.doesNotMatch(failure, /loadReferralPartner/);
+  assert.doesNotMatch(failure, /referral_partner_report/);
+  assert.doesNotMatch(failure, /loadData\(/);
+  assert.doesNotMatch(instructor, /id="tab-referral"/);
+  assert.match(instructor, /id="tab-partner"/);
+  assert.match(instructor, /Your sources/);
 });
 
 test('the database enforces the partner role and backfills the Vanessa source', () => {
