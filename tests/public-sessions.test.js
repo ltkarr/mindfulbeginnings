@@ -305,8 +305,8 @@ test('sessionCardPlace shows city or Virtual and never a street address', () => 
 
 test('sessionPriceLabel is parent-facing (Free / whole dollars / cents)', () => {
   assert.equal(sessionPriceLabel(0), 'Free');
-  assert.equal(sessionPriceLabel(185), '$185');
-  assert.equal(sessionPriceLabel(40.5), '$40.50');
+  assert.equal(sessionPriceLabel(185), '$185 per person');
+  assert.equal(sessionPriceLabel(40.5), '$40.50 per person');
   assert.equal(sessionPriceLabel(null), '');
 });
 

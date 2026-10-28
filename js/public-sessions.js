@@ -312,7 +312,7 @@
     if (price == null || isNaN(Number(price))) return '';
     var n = Number(price);
     if (n <= 0) return 'Free';
-    return n % 1 === 0 ? ('$' + n) : ('$' + n.toFixed(2));
+    return n % 1 === 0 ? ('$' + n + ' per person') : ('$' + n.toFixed(2) + ' per person');
   }
 
   function matchesPriceFilter(price, filter) {

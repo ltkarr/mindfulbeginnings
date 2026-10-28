@@ -322,7 +322,7 @@ test('class requests offer the course at the per-person rate', () => {
   assert.equal(course.requiresRN, undefined);
   assert.equal(requests.coursesFor('host').some((c) => c.key === 'baby-ready-cpr'), true);
   const label = requests.courseOptionLabel(course);
-  assert.equal(label, 'Baby Ready + CPR Certification — 5 hours · In person · $275');
+  assert.equal(label, 'Baby Ready + CPR Certification — 5 hours · In person · $275 per person');
   assert.match(orgPage, /value="baby-ready-cpr"/);
   assert.match(orgPage, /data-note=""/);
   assert.match(orgPage, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));

@@ -470,6 +470,7 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
       <div class="prow"><span id="pay-course-lbl">Course</span><span id="pay-price-ln">$185.00</span></div>
       <div class="prow" id="pay-discount-row" style="display:none;color:#2d7a5e"><span id="pay-discount-lbl">Discount (MBGSCN)</span><span id="pay-discount-ln">−$10.00</span></div>
       <div class="prow total"><span>Total due today</span><span id="pay-total-ln">$185.00</span></div>
+      <p style="margin:10px 0 0;font-size:13px;color:var(--muted)">All prices are per person.</p>
     </div>
     <div id="promo-wrap" style="margin:14px 16px 4px;display:none">
       <div id="promo-entry">
@@ -1588,7 +1589,7 @@ function setBanner(id){
   const priceCore=price==null?'Custom quote':(isDiscounted
     ?`<span style="text-decoration:line-through;color:#9aa5b8;font-weight:400;font-size:14px;margin-right:6px">$${defaultTotal}</span>$${price}`
     :`$${price}`);
-  const priceHTML=priceCore;
+  const priceHTML=price==null?priceCore:(priceCore+' <span style="font-size:13px;font-weight:600;color:var(--muted)">per person</span>');
   document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(publicCourseName(s.course))}</div><div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div></div><div class="sess-price">${priceHTML}</div>`;
   // Show prerequisite notice for All Kids Welcome and Stay Ready
   let prereqNotice=document.getElementById('akw-prereq-notice');

@@ -153,15 +153,15 @@ test('organization course choices match the catalog, including Girl Scout badge 
   assert.match(orgPage, /host\.html/);
 });
 
-test('After School Clubs is a $200/participant organization option with a club picker', () => {
+test('After School Clubs is a $200 per person organization option with a club picker', () => {
   const asc = model.coursesFor('organization').find(function (c) { return c.key === 'after-school-clubs'; });
   assert.ok(asc, 'catalog has after-school-clubs for organizations');
   assert.equal(asc.price, 200);
   assert.equal(asc.course, 'After School Clubs');
   assert.ok(!model.coursesFor('host').some(function (c) { return c.key === 'after-school-clubs'; }), 'not on the home host form');
   assert.match(orgPage, /value="after-school-clubs"/);
-  assert.match(orgPage, /After School Clubs — 8 weeks standard, customizable · In person · \$200\/participant/);
-  assert.match(orgPage, /\$200\/participant/);
+  assert.match(orgPage, /After School Clubs — 8 weeks standard, customizable · In person · \$200 per person/);
+  assert.match(orgPage, /\$200 per person/);
   assert.match(orgPage, /id="clubs-wrap"/);
   ['My First Babysitter\'s Club', 'Little Medics', 'Pet Sitter\'s Club', 'Snack Squad', 'Kid Boss Club',
    'Middle School, Here I Come', 'Big Sibling Club', 'My First Phone', 'Walk and Roll Ready', 'Calm and Ready'
