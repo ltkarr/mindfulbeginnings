@@ -44,6 +44,10 @@ vm.createContext(sandbox);
 vm.runInContext(
   [
     'const PAYPAL_PCT=0.0299, PAYPAL_FIXED=0.49;',
+    'let partners=[], classRequests=[];',
+    'function registrationReferralCredit(r){const q=referralPartner(r);return q?{partner:q,source:"",via:"name"}:null;}',
+    'function sessionSourceCredit(){return null;}',
+    'function referralUnitMeta(ids){const names=(ids||[]).map(id=>{const r=(registrations||[]).find(x=>x.id===id);return r?(r.studentName||r.parentName||""):"";}).filter(Boolean);return {names,source:""};}',
     admin.slice(rateStart, rateEnd),
     [
       'round2', 'processingFee', 'isLiveReg', 'regEffectivePrice',

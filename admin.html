@@ -480,18 +480,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
   body.pack-printing .pack-print-only{display:block !important}
   body.pack-printing .pack-pdf{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
-@media print{
-  body.ref-printing{background:#fff}
-  body.ref-printing > div{display:none !important}
-  body.ref-printing > #app{display:block !important}
-  body.ref-printing .sidebar{display:none !important}
-  body.ref-printing .screen{display:none !important}
-  body.ref-printing #screen-referrals{display:block !important}
-  body.ref-printing .main-content{margin:0 !important;padding:0 !important;max-width:none !important}
-  body.ref-printing .no-print{display:none !important}
-  body.ref-printing .referral-report{font-size:11px}
-  body.ref-printing .referral-print-sheet{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-}
 .referral-report{width:100%;border-collapse:collapse;font-size:13px}
 .referral-report th,.referral-report td{padding:6px 5px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
 .referral-report th{font-size:11px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted)}
@@ -721,8 +709,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         <div><div class="page-title">More</div><div class="page-sub">Pages you do not need every day.</div></div>
       </div>
       <div class="more-links">
-        <button type="button" class="more-link" onclick="showScreen('partners',document.getElementById('nav-more'))"><span class="more-link-title">Liaisons</span><span class="more-link-sub">People paid on commission, and their statements.</span></button>
-        <button type="button" class="more-link" onclick="showScreen('referrals',document.getElementById('nav-more'))"><span class="more-link-title">Referral partners</span><span class="more-link-sub">Commissions for sources such as Vanessa in Vienna.</span></button>
+        <button type="button" class="more-link" onclick="showScreen('partners',document.getElementById('nav-more'))"><span class="more-link-title">Liaisons</span><span class="more-link-sub">Name referrals, marketing sources, and originated classes, on one statement.</span></button>
         <button type="button" class="more-link" onclick="showScreen('discounts',document.getElementById('nav-more'))"><span class="more-link-title">Discount codes</span><span class="more-link-sub">Single-use codes, $25 off by default. Nothing is emailed.</span></button>
         <button type="button" class="more-link" onclick="showScreen('reports',document.getElementById('nav-more'))"><span class="more-link-title">Reports</span><span class="more-link-sub">How families find you, referrals, donations, and discount codes.</span></button>
         <button type="button" class="more-link" onclick="showScreen('materials',document.getElementById('nav-more'))"><span class="more-link-title">Equipment</span><span class="more-link-sub">Manikins and AV kits, who is holding what, and check-ins.</span></button>
@@ -779,29 +766,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         </select>
       </div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="mat-table"></table></div></div>
-    </div>
-
-    <div class="screen" id="screen-referrals">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Referral partners</div>
-          <div class="page-sub">Commission on host sites, sessions, registrations, and organizations that came in through a mapped referral source. No email is sent from this page.</div>
-        </div>
-        <div class="btn-row no-print">
-          <button class="btn" type="button" onclick="openReferralPartnerEditor(null)">+ Add partner</button>
-          <button class="btn primary" type="button" onclick="printReferralReport()">Print report</button>
-        </div>
-      </div>
-      <div id="referrals-setup"></div>
-      <div id="referrals-partners" class="no-print"></div>
-      <div id="referrals-rules" class="no-print"></div>
-      <div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:8px 0 14px">
-        <div class="fg" style="margin:0"><label for="ref-from">From</label><input type="date" id="ref-from" onchange="renderReferralScreen()"></div>
-        <div class="fg" style="margin:0"><label for="ref-to">To</label><input type="date" id="ref-to" onchange="renderReferralScreen()"></div>
-        <button class="btn" type="button" onclick="clearReferralRange()">All dates</button>
-      </div>
-      <div id="referrals-summary"></div>
-      <div id="referrals-report"></div>
     </div>
 
     <div class="screen" id="screen-reports">
@@ -1852,8 +1816,7 @@ let equipment=[],matCheckouts=[],equipmentTablesReady=true;
 // partnersTableReady goes false when the setup SQL has not been run yet, and the
 // Partners screen shows the instructions instead of an empty table.
 let partners=[],partnerPayouts=[],partnersTableReady=true,partnerPeriod=null;
-// Referral partners (Mary Parks / Vanessa in Vienna). Separate from liaisons.
-let referralPartners=[],referralPayouts=[],referralRules=null,referralTablesReady=true;
+// Marketing sources (Vanessa in Vienna, Yard sign) live on the liaison record.
 let classRequests=[],classRequestsTableReady=true;
 let discountCodes=[],discountCodesTableReady=true;
 // Community Partnerships: ORGANIZATIONS on a revenue share, not individuals on
@@ -2404,15 +2367,12 @@ async function loadData(){
     ]);
     // Partner tables are newer. If the setup SQL has not been run yet the rest of
     // the app still loads and the Partners tab explains what to do.
-    const [pt,pp,op,opp,rp,rs,rpay,rrules]=await Promise.all([
+    const [pt,pp,op,opp,psrc]=await Promise.all([
       fetchAll('partners',q=>q.order('name',{ascending:true})),
       fetchAll('partner_payouts'),
       fetchAll('community_partners',q=>q.order('name',{ascending:true})),
       fetchAll('community_partner_payouts'),
-      fetchAll('referral_partners',q=>q.order('name',{ascending:true})),
-      fetchAll('referral_partner_sources'),
-      fetchAll('referral_commission_payouts'),
-      fetchAll('referral_overhead_rules')
+      fetchAll('partner_sources')
     ]);
     // Community Partnerships tables are newer still. Same treatment: if the setup
     // SQL has not been run, everything else loads and that one tab explains why.
@@ -2428,6 +2388,13 @@ async function loadData(){
     // If the loaded rows have no instructor_id, the setup SQL has not been run.
     if((pt.data||[]).length&&!('instructor_id' in pt.data[0]))PARTNER_INSTRUCTOR_COL=false;
     partners=(pt.data||[]).map(partnerFromDB);
+    const srcBy={};
+    ((psrc&&psrc.data)||[]).forEach(row=>{
+      if(!row||!row.partner_id)return;
+      (srcBy[row.partner_id]=srcBy[row.partner_id]||[]).push(row.source_value);
+    });
+    if(psrc&&psrc.error)console.warn('Liaison sources were not loaded (run migrations/20261028_merge_referral_partners.sql):',psrc.error);
+    partners.forEach(p=>{p.sources=srcBy[p.id]||[];});
     partnerPayouts=(pp.data||[]).map(payoutFromDB);
     const cr=await fetchAll('class_requests',q=>q.order('created_at',{ascending:false}));
     classRequestsTableReady=!cr.error;
@@ -2438,7 +2405,6 @@ async function loadData(){
     discountCodesTableReady=!dc.error;
     if(dc.error)console.warn('Discount codes table not loaded (run migrations/20261023_single_use_discount_codes.sql):',dc.error);
     discountCodes=(dc.data||[]).map(discountCodeFromDB);
-    applyReferralTables(rp,rs,rpay,rrules);
     // Supabase returns errors on the result object instead of throwing. If any table
     // failed to load, say so loudly — otherwise the dashboard quietly shows wrong numbers.
     // The two equipment tables are newer — if they haven't been created yet the rest of
@@ -2480,7 +2446,6 @@ async function loadData(){
       syncCheckoutInstructors();
       syncLargeClassKits();
     }
-    await publishReferralSnapshots();
   }catch(e){
     console.error('Failed to load data:',e);
     showToast('⚠️ Could not connect to database. Check your Supabase config.');
@@ -4095,45 +4060,149 @@ function partnerRevenueEvents(s){
 }
 
 // ─── WHAT COUNTS AS "HERS" ────────────────────────────
-// Two ways a partner earns on a booking:
+// One liaison record covers three ways she earns, all at 40% of per-student profit:
 //
-//   ORIGINATED — she brought you the whole class. You set her as "Originated by"
-//     on the session, and every dollar the session collects is hers to earn on.
+//   ORIGINATED — she brought the whole class. Every live non-host student's line
+//     is summed, so a $0 seat still reduces the profit.
 //
-//   REFERRED — she sent you one family, who found a class you were already running
-//     and named her under "how did you hear about us". Only that family's money is
-//     hers to earn on, not the rest of the room.
+//   NAMED — one family named her. Only that student's payment, card fee, instructor
+//     share, and handbook are hers.
 //
-// Both are paid at the same flat 40% of profit (§3.A). Each live non-host student
-// keeps their own payment, minus the card fee, minus instructor pay divided by
-// that headcount, minus one handbook. A referral uses only that family's line.
-// An originated class sums every student's line, so a $0 seat still reduces the
-// profit by its instructor share and handbook. Lindsay keeps the other 60%.
-// If a session is BOTH originated and referred, origination wins and the whole
-// session counts once — never twice.
+//   SOURCE — a mapped marketing source on her record (Vanessa in Vienna, Yard sign)
+//     matches the family's answer. Same per-student line as a name. A source saved
+//     on the session or the class request, and nobody else originated that class,
+//     sums the same per-student lines across the roster.
+//
+// The same student is never credited twice to the same liaison. Origination wins
+// over a name or a source on that same class. A student named to a different
+// liaison is left out of a session-level source. Lindsay keeps the other 60%.
+function partnerSourceList(p){
+  return ((p&&p.sources)||[]).map(s=>String(s||'').trim()).filter(Boolean);
+}
+function matchedPartnerSource(p, raw){
+  if(!p||raw==null||raw==='')return '';
+  const match=typeof MBReferralCommissions!=='undefined'&&MBReferralCommissions&&MBReferralCommissions.referralSourceMatches;
+  if(!match)return '';
+  let found='', foundLen=-1;
+  partnerSourceList(p).forEach(src=>{
+    if(!match(raw, src))return;
+    const len=src.length;
+    if(len>foundLen){found=src;foundLen=len;}
+  });
+  return found;
+}
+function bestSourcePartner(raw){
+  let best=null, bestLen=-1;
+  (partners||[]).forEach(p=>{
+    const src=matchedPartnerSource(p, raw);
+    if(!src||src.length<=bestLen)return;
+    best={partner:p,source:src};
+    bestLen=src.length;
+  });
+  return best;
+}
+function registrationHeardText(r){
+  const label=typeof referralSourceLabel==='function'?referralSourceLabel(r):'';
+  return !label||label==='Not specified'?'':label;
+}
+// One credit for this registration: a liaison named on the form, else a mapped
+// source, else a referral_partner_id that now points at a liaison. Name wins,
+// so a family who types Mary Parks is not also paid as Vanessa in Vienna.
+function registrationReferralCredit(r){
+  if(!r)return null;
+  const named=referralPartner(r);
+  if(named)return {partner:named, source:'', via:'name'};
+  const byText=bestSourcePartner(registrationHeardText(r));
+  if(byText)return {partner:byText.partner, source:byText.source, via:'source'};
+  const byId=r.referralPartnerId?partnerById(r.referralPartnerId):null;
+  if(!byId)return null;
+  return {partner:byId, source:partnerSourceList(byId)[0]||'', via:'source'};
+}
+function sessionSourceTexts(s){
+  const out=[];
+  if(s&&typeof MBReferralCommissions!=='undefined'&&MBReferralCommissions&&MBReferralCommissions.labeledReferralText){
+    const labeled=MBReferralCommissions.labeledReferralText(s.adminPrivateNotes||'');
+    if(labeled)out.push(labeled);
+  }
+  (classRequests||[]).forEach(row=>{
+    if(!row||!s)return;
+    const sid=row.session_id||row.sessionId||'';
+    if(sid!==s.id)return;
+    const text=String((row.payload||{}).referral||'').trim();
+    if(text)out.push(text);
+  });
+  return out;
+}
+// A host site or organization that came in through a mapped source. Skipped
+// when someone already originated the class, so that roster is not paid twice.
+function sessionSourceCredit(s){
+  if(!s||s.originatedBy)return null;
+  let best=null, bestLen=-1;
+  sessionSourceTexts(s).forEach(text=>{
+    const hit=bestSourcePartner(text);
+    if(!hit||hit.source.length<=bestLen)return;
+    best=hit;
+    bestLen=hit.source.length;
+  });
+  if(best)return best;
+  const byId=s.referralPartnerId?partnerById(s.referralPartnerId):null;
+  if(!byId)return null;
+  return {partner:byId, source:partnerSourceList(byId)[0]||''};
+}
+function referralUnitMeta(ids, fallbackSource){
+  const names=[];
+  const sources=[];
+  (ids||[]).forEach(id=>{
+    const r=(registrations||[]).find(x=>x.id===id);
+    const who=r?(r.studentName||r.parentName||''):'';
+    if(who)names.push(who);
+    const c=registrationReferralCredit(r);
+    if(c&&c.source&&sources.indexOf(c.source)<0)sources.push(c.source);
+  });
+  if(!sources.length&&fallbackSource)sources.push(fallbackSource);
+  return {names, source:sources.join(', ')};
+}
 function partnerBookingUnits(partnerId){
-  const referredIds={};
+  const regIdsBySession={};
   (registrations||[]).forEach(r=>{
-    const q=referralPartner(r);
-    if(q&&q.id===partnerId)(referredIds[r.sessionId]=referredIds[r.sessionId]||[]).push(r.id);
+    const c=registrationReferralCredit(r);
+    if(!c||c.partner.id!==partnerId)return;
+    (regIdsBySession[r.sessionId]=regIdsBySession[r.sessionId]||[]).push(r.id);
   });
   const units=[];
   (sessions||[]).forEach(sx=>{
     if(sx.originatedBy===partnerId){
-      units.push({session:sx,events:partnerRevenueEvents(sx),isReferral:false,refNames:[]});
+      units.push({session:sx,events:partnerRevenueEvents(sx),isReferral:false,refNames:[],source:''});
       return;
     }
-    const ids=referredIds[sx.id];
+    const whole=sessionSourceCredit(sx);
+    if(whole&&whole.partner.id===partnerId){
+      const evs=partnerRevenueEvents(sx).filter(e=>{
+        if(e.kind!=='family')return true;
+        const reg=(registrations||[]).find(r=>r.id===e.regId);
+        const c=registrationReferralCredit(reg);
+        return !(c&&c.partner.id!==partnerId);
+      });
+      if(!evs.length)return;
+      const ids=evs.filter(e=>e.kind==='family').map(e=>e.regId);
+      const meta=referralUnitMeta(ids, whole.source);
+      units.push({session:sx,events:evs,isReferral:true,refNames:meta.names,source:meta.source});
+      return;
+    }
+    const ids=regIdsBySession[sx.id];
     if(!ids||!ids.length)return;
     const evs=partnerRevenueEvents(sx).filter(e=>e.kind==='family'&&ids.indexOf(e.regId)>=0&&Number(e.gross)>0);
     if(!evs.length)return;
-    const names=ids.map(id=>{
-      const r=(registrations||[]).find(x=>x.id===id);
-      return r?(r.studentName||r.parentName||''):'';
-    }).filter(Boolean);
-    units.push({session:sx,events:evs,isReferral:true,refNames:names});
+    const meta=referralUnitMeta(ids, '');
+    units.push({session:sx,events:evs,isReferral:true,refNames:meta.names,source:meta.source});
   });
   return units;
+}
+function liaisonReferralText(row){
+  const who=(row&&row.refLabel)||'referred family';
+  const src=row&&row.source?String(row.source).trim():'';
+  if(src)return src+' — '+who;
+  return 'Referral — '+who;
 }
 
 // First time each client party ever paid Mindful Beginnings anything, looking at
@@ -4233,6 +4302,7 @@ function partnerStatement(partnerId,period){
     const s=unit.session;
     const isRef=!!unit.isReferral;
     const refLabel=unit.refNames&&unit.refNames.length?unit.refNames.join(', '):'referred family';
+    const source=unit.source||'';
     const evs=unit.events;
     const uncollected=evs.filter(e=>!e.collected);
     if(uncollected.length){
@@ -4257,7 +4327,7 @@ function partnerStatement(partnerId,period){
         costs:round2(uncollected.reduce((a,e)=>a+(e.cost||0),0)),
         net:round2(uncollected.reduce((a,e)=>a+(e.net||0),0)),
         familyCount:uncollected.filter(e=>e.kind==='family'&&Number(e.gross)>0).length,
-        reason,notTaught,isReferral:isRef,refLabel,
+        reason,notTaught,isReferral:isRef,refLabel,source,
         isOrg:isRef?false:sessionIsOrgBooking(s),org:isRef?'':sessionOrgName(s),
         isRepeat:!!(first&&first.sessionId!==s.id),
         partyKey:key,estBonus:0,
@@ -4281,7 +4351,7 @@ function partnerStatement(partnerId,period){
         costs:round2(inMonth.reduce((a,r)=>a+(r.cost||0),0)),
         net:round2(inMonth.reduce((a,r)=>a+(r.net||0),0)),
         familyCount:inMonth.filter(e=>e.kind==='family'&&Number(e.gross)>0).length,
-        isReferral:isRef,refLabel,
+        isReferral:isRef,refLabel,source,
         isOrg:isRef?false:sessionIsOrgBooking(s),org:isRef?'':sessionOrgName(s),
         isRepeat,firstCollectedOn:earliest,partyKey:key,accelerated:false
       });
@@ -5172,6 +5242,7 @@ function partnerCardHtml(p,st){
             ?`<span style="color:var(--warn)">⚠ Missing: ${onboarding.join(', ')}</span>`
             :'<span style="color:var(--success)">✓ Agreement signed · W-9 on file</span>'}
         </div>
+        ${(p.sources||[]).length?`<div style="font-size:14px;margin-top:5px;color:var(--muted)">Sources: ${escapeHtml((p.sources||[]).join(', '))}</div>`:''}
         <div style="font-size:14px;margin-top:5px;color:var(--muted)">
           ${p.instructorId&&(instructors||[]).find(x=>x.id===p.instructorId)
             ?`Portal: signs in with their instructor PIN as ${escapeHtml(((instructors||[]).find(x=>x.id===p.instructorId)||{}).name||'')}`
@@ -5206,7 +5277,7 @@ function partnerCardHtml(p,st){
       <tbody>${st.rows.map(r=>`<tr>
         <td style="font-size:15px;white-space:nowrap">${fmtShortDate(r.firstCollectedOn)}</td>
         <td style="font-size:15px">${escapeHtml(r.session.course)}${r.session.date?`<br><span style="color:var(--muted);font-size:14px">held ${fmtShortDate(r.session.date)}</span>`:''}</td>
-        <td style="font-size:15px">${escapeHtml(liaisonClientLabel(r.session,r.org,'plain'))}
+        <td style="font-size:15px">${r.isReferral?escapeHtml(liaisonReferralText(r)):escapeHtml(liaisonClientLabel(r.session,r.org,'plain'))}
           ${r.isRepeat?'<br><span class="tag pending" style="margin-top:3px">Repeat</span>':'<br><span class="tag host" style="margin-top:3px">First booking</span>'}</td>
         <td style="font-weight:500">${fmt(r.collected)}${r.fees?`<br><span style="color:var(--muted);font-size:14px">${fmt(r.gross)} less ${fmt(r.fees)} fees</span>`:''}${r.familyCount?`<br><span style="color:var(--muted);font-size:14px">${r.familyCount} famil${r.familyCount===1?'y':'ies'}</span>`:''}</td>
         <td style="font-weight:500;color:var(--success)">${fmt(r.commission)}</td>
@@ -5227,7 +5298,7 @@ function partnerCardHtml(p,st){
           <td style="font-size:15px;white-space:nowrap">${x.projectedMonth?periodLabel(x.projectedMonth):'—'}</td>
           <td style="font-size:15px">${escapeHtml(x.session.course)}${x.isRepeat?'<br><span class="tag pending" style="margin-top:3px">Repeat</span>':''}</td>
           <td style="font-size:15px">${fmtShortDate(x.session.date)}</td>
-          <td style="font-size:15px">${escapeHtml(liaisonClientLabel(x.session,x.org,'pending'))}</td>
+          <td style="font-size:15px">${x.isReferral?escapeHtml(liaisonReferralText(x)):escapeHtml(liaisonClientLabel(x.session,x.org,'pending'))}</td>
           <td style="font-weight:500">${fmt(x.amount)}${x.fees?`<br><span style="color:var(--muted);font-size:14px">${fmt(x.gross)} less ${fmt(x.fees)} fees</span>`:''}</td>
           <td style="font-weight:500;color:var(--warn)">${fmt(x.estCommission||0)}</td>
           <td style="font-size:14px;color:var(--muted)">${escapeHtml(x.reason)}</td>
@@ -5274,7 +5345,8 @@ function partnerPortalPeriods(partnerId){
 // One statement row, stripped down to what a partner is entitled to see.
 function portalRow(r){
   return{date:(r.session&&r.session.date)||'',course:(r.session&&r.session.course)||'',
-    client:r.isReferral?'Referred family':liaisonClientLabel(r.session,r.org,'plain'),
+    client:r.isReferral?(r.source||'Referred family'):liaisonClientLabel(r.session,r.org,'plain'),
+    source:r.source||'',
     isOrg:!!r.isOrg,isReferral:!!r.isReferral,
     familyCount:r.familyCount||0,collected:r.collected||0,
     costs:r.costs||0,net:r.net!=null?r.net:(r.collected||0),rate:r.rate||0,
@@ -5282,7 +5354,8 @@ function portalRow(r){
 }
 function portalPending(x){
   return{date:(x.session&&x.session.date)||'',course:(x.session&&x.session.course)||'',
-    client:x.isReferral?'Referred family':liaisonClientLabel(x.session,x.org,'pending'),
+    client:x.isReferral?(x.source||'Referred family'):liaisonClientLabel(x.session,x.org,'pending'),
+    source:x.source||'',
     isOrg:!!x.isOrg,isReferral:!!x.isReferral,
     amount:x.amount||0,costs:x.costs||0,net:x.net!=null?x.net:(x.amount||0),
     reason:x.reason||'',estRate:x.estRate==null?null:x.estRate,
@@ -5327,6 +5400,7 @@ function buildPartnerPortalPayload(p){
     tiers:PARTNER_TIERS.map(t=>({name:t.name,label:t.label,rate:t.rate,min:t.min,
       max:t.max===Infinity?null:t.max})),
     flatRate:PARTNER_FLAT_RATE,newOrgBonus:PARTNER_NEW_ORG_BONUS,
+    sources:(p.sources||[]).slice(),
     lifetime:{revenue:lt.revenue,earned:lt.earned,paid:lt.paid,unpaid:lt.unpaid},
     months,
     pending:(live.pending||[]).map(portalPending),
@@ -5403,6 +5477,31 @@ function partnerPortalFieldsHtml(p){
     <div style="font-size:14px;color:var(--muted);margin-top:4px">Only needed for a liaison who does not teach. Same portal address as the instructors use.</div>
   </div>`;
 }
+function partnerSourcesFieldHtml(p){
+  const sources=((p&&p.sources)||[]).join('\n');
+  return `<div class="fg full"><label>Marketing sources</label><textarea id="m-psources" rows="3" placeholder="Vanessa in Vienna">${escapeHtml(sources)}</textarea>
+    <div style="font-size:14px;color:var(--muted);margin-top:4px">One source per line. A family, host, or organization who picks that source is credited here, with the same per-student commission as a family who names this liaison. A class she originated is not credited again.</div></div>`;
+}
+function partnerSourcesFromForm(){
+  const seen={};
+  const out=[];
+  String((document.getElementById('m-psources')||{}).value||'').split(/\n/).forEach(line=>{
+    const s=line.trim();
+    const key=s.toLowerCase();
+    if(!s||seen[key])return;
+    seen[key]=true;
+    out.push(s);
+  });
+  return out;
+}
+async function savePartnerSources(partnerId, sources){
+  if(!sb)return false;
+  let ok=await dbWrite(sb.from('partner_sources').delete().eq('partner_id',partnerId),'Liaison sources');
+  if(!ok)return false;
+  if(!sources.length)return true;
+  ok=await dbWrite(sb.from('partner_sources').insert(sources.map(source=>({partner_id:partnerId,source_value:source}))),'Liaison sources');
+  return !!ok;
+}
 
 function openAddPartner(){
   showModal(`<div class="modal-head"><h3>Add liaison</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -5414,6 +5513,7 @@ function openAddPartner(){
     <div class="fg"><label>Agreement effective date</label><input type="date" id="m-pstart"></div>
     <div class="fg"><label>Status</label><select id="m-pstatus" style="width:100%"><option value="active" selected>Active</option><option value="inactive">Inactive (agreement ended)</option></select></div>
     ${partnerPortalFieldsHtml(null)}
+    ${partnerSourcesFieldHtml(null)}
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Paperwork</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-pcontract" style="width:auto;margin:0"> Signed Community Partnerships Liaison agreement on file</label>
@@ -5436,6 +5536,7 @@ function openEditPartner(id){
     <div class="fg"><label>Status</label><select id="m-pstatus" style="width:100%"><option value="active" ${p.status!=='inactive'?'selected':''}>Active</option><option value="inactive" ${p.status==='inactive'?'selected':''}>Inactive (agreement ended)</option></select></div>
     <div class="fg full"><label>Termination date <span style="font-weight:400;color:var(--muted)">(only if the agreement ended)</span></label><input type="date" id="m-pend" value="${p.endDate||''}"><div style="font-size:14px;color:var(--muted);margin-top:4px">After termination, commission is only payable on courses delivered or already scheduled as of this date (§7). Bookings made later earn nothing, so leave "Originated by" blank on those.</div></div>
     ${partnerPortalFieldsHtml(p)}
+    ${partnerSourcesFieldHtml(p)}
     <div class="fg full" style="background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
       <div style="font-size:14px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Paperwork</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;margin-bottom:8px"><input type="checkbox" id="m-pcontract" ${p.contractSigned?'checked':''} style="width:auto;margin:0"> Signed Community Partnerships Liaison agreement on file</label>
@@ -5463,7 +5564,8 @@ async function savePartner(editId){
     w9Submitted:!!document.getElementById('m-pw9')?.checked,
     notes:(document.getElementById('m-pnotes').value||'').trim(),
     instructorId:(document.getElementById('m-plinked')?.value||'')||null,
-    pin:(document.getElementById('m-ppin')?.value||'').trim()
+    pin:(document.getElementById('m-ppin')?.value||'').trim(),
+    sources:partnerSourcesFromForm()
   };
   if(data.pin&&!/^\d{4,6}$/.test(data.pin)){showToast('A portal PIN must be 4 to 6 digits.');return;}
   // Two people cannot share a PIN, or the portal cannot tell them apart.
@@ -5494,8 +5596,11 @@ async function savePartner(editId){
     if(ok)showToast('Saved, but the instructor link needs partner_portal_setup.sql to be run first.');
   }
   if(ok){
+    const srcOk=await savePartnerSources(p.id,p.sources||[]);
     publishPartnerPortal(p.id,true);
-    showToast(editId?'Partner updated.':'Partner added. Pick them under "Originated by" on any session they bring you.');
+    showToast(srcOk
+      ?(editId?'Partner updated.':'Partner added. Pick them under "Originated by" on any session they bring you.')
+      :'The liaison was saved, but the marketing sources were not. Run the liaison sources migration, then edit them again.');
   }
   else{await loadData();renderPartners();}
 }
@@ -5503,7 +5608,7 @@ async function savePartner(editId){
 async function deletePartner(id){
   const p=partnerById(id);if(!p)return;
   const credited=sessions.filter(s=>s.originatedBy===id).length;
-  const referred=(registrations||[]).filter(r=>{const q=referralPartner(r);return q&&q.id===id;}).length;
+  const referred=(registrations||[]).filter(r=>{const q=registrationReferralCredit(r);return q&&q.partner.id===id;}).length;
   const paidOut=partnerPayouts.filter(x=>x.partnerId===id&&x.paidDate).length;
   let msg='Remove '+p.name+' from your partners?';
   if(credited)msg+='\n\n'+credited+' session'+(credited===1?'':'s')+' credited to them will lose that credit, and any commission history on this page will disappear with it.';
@@ -5569,7 +5674,7 @@ function openPartnerStatement(partnerId){
       <td>${fmtShortDate(r.firstCollectedOn)}</td>
       <td>${escapeHtml(r.session.course)}</td>
       <td>${r.isReferral
-        ?'<span style="color:#6b7a99;font-size:14px">Referral —</span> '+escapeHtml(r.refLabel||'referred family')
+        ?escapeHtml(liaisonReferralText(r))
         :escapeHtml(liaisonClientLabel(r.session,r.org,'statement'))}${r.isRepeat&&!r.isReferral?' <span style="color:#6b7a99;font-size:14px">(repeat)</span>':''}</td>
       <td style="text-align:right">${fmt(r.collected)}</td>
       <td style="text-align:right">${fmt(r.commission)}</td>
@@ -5585,7 +5690,8 @@ function openPartnerStatement(partnerId){
       <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)">
         <div><div style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px">Liaison</div>
           <div style="font-weight:500">${escapeHtml(p.name)}</div>
-          ${p.zelle?`<div style="color:var(--muted);font-size:15px">Zelle: ${escapeHtml(p.zelle)}</div>`:''}</div>
+          ${p.zelle?`<div style="color:var(--muted);font-size:15px">Zelle: ${escapeHtml(p.zelle)}</div>`:''}
+          ${(p.sources||[]).length?`<div style="color:var(--muted);font-size:15px">Sources: ${escapeHtml((p.sources||[]).join(', '))}</div>`:''}</div>
         <div style="text-align:right"><div style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px">Period</div>
           <div style="font-weight:500">${periodLabel(st.period)}</div>
           <div style="color:var(--muted);font-size:15px">${paid?'Paid '+fmtShortDate(st.payout.paidDate):partnerPeriodKind(st.period)==='projected'?'Projected — not payable yet':partnerPeriodKind(st.period)==='current'?'In progress — payable after this month closes':'Payable by the 10th of the following month'}</div></div>
@@ -5614,7 +5720,7 @@ function openPartnerStatement(partnerId){
           <tbody>${st.pending.map(x=>`<tr>
             <td style="padding:4px">${x.projectedMonth?periodLabel(x.projectedMonth):'—'}</td>
             <td style="padding:4px">${escapeHtml(x.session.course)}</td>
-            <td style="padding:4px">${x.isReferral?'<span style="color:#6b7a99">Referral —</span> '+escapeHtml(x.refLabel||'referred family'):escapeHtml(liaisonClientLabel(x.session,x.org,'pending'))}</td>
+            <td style="padding:4px">${x.isReferral?escapeHtml(liaisonReferralText(x)):escapeHtml(liaisonClientLabel(x.session,x.org,'pending'))}</td>
             <td style="padding:4px;text-align:right">${fmt(x.amount)}</td>
             <td style="padding:4px;text-align:right">${fmt(x.estCommission||0)}</td>
           </tr>`).join('')}
@@ -5623,7 +5729,7 @@ function openPartnerStatement(partnerId){
           </tbody></table>`:''}
       </div>`:''}
       <div style="margin-top:18px;font-size:14px;color:var(--muted);line-height:1.6">
-        Calculated under Section 3 of the Independent Contractor Agreement — Community Partnerships Liaison. The liaison earns ${Math.round(PARTNER_FLAT_RATE*100)}% of the profit on what they bring in, and Mindful Beginnings keeps ${Math.round((1-PARTNER_FLAT_RATE)*100)}%. Profit is collected revenue less the direct cost of that booking. It is not a percentage of gross revenue. Rows marked <em>Referral</em> are families who named ${escapeHtml(p.name)} under “how did you hear about us” when registering for a class she did not originate; commission is earned on that registration alone, at the same rate, after that child’s share of instructor pay, materials and processing fees. Collected Revenue is net of refunds, chargebacks, discounts, taxes and third-party payment processing fees, and is credited in the month the course was delivered or the month payment was received, whichever is later. No commission is earned on a course that has not been taught, or on a cancelled course. Remitted via Zelle by the tenth day of the following month.
+        Calculated under Section 3 of the Independent Contractor Agreement — Community Partnerships Liaison. The liaison earns ${Math.round(PARTNER_FLAT_RATE*100)}% of the profit on what they bring in, and Mindful Beginnings keeps ${Math.round((1-PARTNER_FLAT_RATE)*100)}%. Profit is collected revenue less the direct cost of that booking. It is not a percentage of gross revenue. A referral row is one family who named ${escapeHtml(p.name)}, or who came in through one of her sources${(p.sources||[]).length?(' ('+escapeHtml(p.sources.join(', '))+')'):''}. Commission on that registration is the same rate, after that child’s card fee, instructor share, and one handbook. A source on the class itself, when she did not already originate it, sums those same lines. A class she originated is listed once. Collected Revenue is net of refunds, chargebacks, discounts, taxes and third-party payment processing fees, and is credited in the month the course was delivered or the month payment was received, whichever is later. No commission is earned on a course that has not been taught, or on a cancelled course. Remitted via Zelle by the tenth day of the following month.
       </div>
     </div>
   </div>
@@ -5655,12 +5761,12 @@ function exportPartnersCSV(){
       paid?'Paid '+fmt(st.payout.amount):'Outstanding',paid?st.payout.paidDate:'','','','','','','','']);
     st.rows.forEach(r=>{
       rows.push(['','','','','','','','',r.firstCollectedOn,r.session.course,r.session.date||'',
-        r.isReferral?('Referral — '+(r.refLabel||'referred family')):liaisonClientLabel(r.session,r.org,'plain'),
+        r.isReferral?liaisonReferralText(r):liaisonClientLabel(r.session,r.org,'plain'),
         r.collected.toFixed(2),r.commission.toFixed(2)]);
     });
     st.pending.forEach(x=>{
       rows.push(['','','','','','','','','NOT YET PAYABLE'+(x.projectedMonth?' → '+x.projectedMonth:''),x.session.course,x.session.date||'',
-        x.isReferral?('Referral — '+(x.refLabel||'referred family')):liaisonClientLabel(x.session,x.org,'pending'),
+        x.isReferral?liaisonReferralText(x):liaisonClientLabel(x.session,x.org,'pending'),
         x.amount.toFixed(2),(x.estCommission||0).toFixed(2)]);
     });
   });
@@ -5668,316 +5774,12 @@ function exportPartnersCSV(){
 }
 
 // ─── SCREENS ─────────────────────────────────────────────────
-// ─── REFERRAL PARTNERS ───────────────────────────────────────
-// Overhead flags and the partner split are editable. The dollar math lives in
-// js/referral-commissions.js so the admin report and Mary's portal match.
-function applyReferralTables(rp,rs,rpay,rrules){
-  referralTablesReady=!(rp&&rp.error);
-  if(rp&&rp.error)console.warn('Referral partners table not loaded (run migrations/20261022_referral_partners.sql):',rp.error);
-  const sources={};
-  ((rs&&rs.data)||[]).forEach(row=>{
-    if(!row||!row.partner_id)return;
-    (sources[row.partner_id]=sources[row.partner_id]||[]).push(row.source_value);
-  });
-  const norm=window.MBReferralCommissions?MBReferralCommissions.normalizeSplit:function(n){return Number(n)||0.4;};
-  referralPartners=((rp&&rp.data)||[]).map(row=>({
-    id:row.id,name:row.name||'',splitPct:norm(row.split_pct),active:row.active!==false,
-    notes:row.notes||'',hasPin:!!(row.pin&&String(row.pin).length),sources:sources[row.id]||[]
-  }));
-  referralPayouts=((rpay&&rpay.data)||[]).map(row=>({
-    id:row.id,partnerId:row.partner_id,lineKey:row.line_key,amount:Number(row.amount)||0,paidAt:row.paid_at||''
-  }));
-  const ruleRow=((rrules&&rrules.data)||[])[0];
-  referralRules=ruleRow?{
-    instructorPay:ruleRow.instructor_pay!==false,
-    materialAllowance:ruleRow.material_allowance!==false,
-    sessionExpenses:ruleRow.session_expenses!==false,
-    netOfProcessingFees:ruleRow.net_of_processing_fees!==false
-  }:(window.MBReferralCommissions?MBReferralCommissions.DEFAULT_OVERHEAD_RULES:null);
-}
-function referralRulesNow(){
-  if(window.MBReferralCommissions)return MBReferralCommissions.normalizeRules(referralRules);
-  return referralRules||{instructorPay:true,materialAllowance:true,sessionExpenses:true,netOfProcessingFees:true};
-}
-function referralSessionFinance(s,rules){
-  const f=calcFin(s);
-  const cash=sessionCashSplit(s);
-  const figures=financeSessionFigures(s);
-  let overhead=0;
-  if(rules.instructorPay)overhead+=figures.instr||0;
-  if(rules.materialAllowance&&!(s&&s.isCancelled))overhead+=participantMaterialAllowance(s);
-  if(rules.sessionExpenses)overhead+=(figures.legacy||0)+linkedExpenseTotal(s.id);
-  const org=Number(f&&f.orgRevenue)||0;
-  const orgIn=orgOrJobFeeReceived(s);
-  const familyGross=Number(f&&f.familyGross)||0;
-  let collected=cash.collected||0;
-  if(rules.netOfProcessingFees===false)collected+=(Number(f&&f.procFee)||0);
-  return{
-    grossCollected:MBReferralCommissions.round2(familyGross+(orgIn?org:0)),
-    grossExpected:MBReferralCommissions.round2(orgIn?0:org),
-    collected:MBReferralCommissions.round2(collected),
-    expected:MBReferralCommissions.round2(cash.expected||0),
-    overhead:MBReferralCommissions.round2(overhead)
-  };
-}
-function referralBundle(audience,useRange){
-  const rules=referralRulesNow();
-  const fromEl=document.getElementById('ref-from');
-  const toEl=document.getElementById('ref-to');
-  return{
-    partners:referralPartners,payouts:referralPayouts,rules:rules,audience:audience||'admin',
-    from:useRange&&fromEl?fromEl.value:'',to:useRange&&toEl?toEl.value:'',
-    sessions:(sessions||[]).map(s=>({
-      id:s.id,date:s.date||'',course:s.course||'',code:s.code||'',
-      referralPartnerId:s.referralPartnerId||null,adminPrivateNotes:s.adminPrivateNotes||'',
-      finance:referralSessionFinance(s,rules)
-    })),
-    registrations:(registrations||[]).map(r=>{
-      const s=(sessions||[]).find(x=>x.id===r.sessionId);
-      const heard=referralSourceLabel(r);
-      const price=s?regEffectivePrice(r,s):(Number(r.pricePaid)||0);
-      return{
-        id:r.id,sessionId:r.sessionId,payStatus:r.payStatus,referralPartnerId:r.referralPartnerId||null,
-        referralText:heard==='Not specified'?'':heard,studentName:r.studentName||'',createdAt:r.createdAt,
-        money:MBReferralCommissions.registrationMoney(r,price,processingFee(price),rules)
-      };
-    }),
-    requests:(classRequests||[]).map(row=>{
-      const payload=row.payload||{};
-      return{
-        id:row.id,kind:row.kind,sessionId:row.session_id||null,referralPartnerId:row.referral_partner_id||null,
-        referralText:payload.referral||'',createdAt:row.created_at,
-        who:row.kind==='organization'?(row.organization_name||payload.organizationName||''):(row.submitter_name||'')
-      };
-    })
-  };
-}
-function referralLinesFor(audience,useRange){
-  if(!window.MBReferralCommissions)return [];
-  return MBReferralCommissions.buildReferralLines(referralBundle(audience,useRange));
-}
-async function publishReferralSnapshots(){
-  if(!referralTablesReady||!window.MBReferralCommissions||!sb)return;
-  try{
-    const lines=referralLinesFor('partner',false);
-    const by={};
-    referralPartners.forEach(p=>{by[p.id]=[];});
-    lines.forEach(line=>{(by[line.partnerId]=by[line.partnerId]||[]).push(line);});
-    for(const id of Object.keys(by)){
-      const partner=referralPartners.find(p=>p.id===id);
-      const payload={
-        lines:MBReferralCommissions.partnerSnapshot(by[id]),
-        rules:referralRulesNow(),
-        overheadSummary:MBReferralCommissions.OVERHEAD_SUMMARY,
-        splitPct:partner?partner.splitPct:0.4,
-        sources:partner?(partner.sources||[]):[],
-        updatedAt:new Date().toISOString()
-      };
-      const res=await sb.from('referral_commission_snapshots').upsert({partner_id:id,payload:payload,updated_at:payload.updatedAt});
-      if(res&&res.error){console.warn('Referral snapshot was not published',res.error);return;}
-    }
-  }catch(e){console.warn('Referral snapshot was not published',e);}
-}
-function renderReferralPartnerCards(){
-  const el=document.getElementById('referrals-partners');
-  if(!el)return;
-  el.innerHTML=referralPartners.map(p=>{
-    const rate=Math.round(MBReferralCommissions.normalizeSplit(p.splitPct)*100);
-    return `<div class="card" style="padding:12px 14px;margin-bottom:10px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
-      <div><strong>${escapeHtml(p.name)}</strong><div style="color:var(--muted);font-size:14px">${escapeHtml((p.sources||[]).join(', ')||'No sources yet')} · ${rate}% of net · ${p.hasPin?'Login ready':'No login yet'}</div></div>
-      <div class="btn-row">
-        <button class="btn sm" type="button" onclick="openReferralPartnerEditor('${p.id}')">Edit</button>
-        <button class="btn sm primary" type="button" onclick="createReferralLogin('${p.id}')">${p.hasPin?'New PIN':'Create login'}</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-function renderReferralRules(){
-  const el=document.getElementById('referrals-rules');
-  if(!el)return;
-  const r=referralRulesNow();
-  const box=(key,label)=>`<label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0"><input type="checkbox" ${r[key]?'checked':''} onchange="setReferralRule('${key}',this.checked)"> <span>${label}</span></label>`;
-  el.innerHTML=`<div class="card" style="padding:12px 14px;margin-bottom:12px">
-    <div style="font-weight:600;margin-bottom:4px">What counts as overhead</div>
-    <div style="font-size:14px;color:var(--muted);margin-bottom:6px">These come off attributed revenue before the partner split. Uncheck one to leave it out, then the report recalculates.</div>
-    ${box('instructorPay','Instructor pay, including a second instructor and any instructor referral bonus')}
-    ${box('materialAllowance','Per-participant material allowance (course material cost × registrations that are not comped host seats)')}
-    ${box('sessionExpenses','Costs entered on the session, and one-time expenses linked to that session')}
-    ${box('netOfProcessingFees','Collected revenue is net of card-processing fees, matching the dashboard')}
-  </div>`;
-}
-function renderReferralScreen(){
-  const setup=document.getElementById('referrals-setup');
-  if(!setup)return;
-  if(!window.MBReferralCommissions){
-    setup.innerHTML='<div class="alert warn">The commission script did not load. Refresh the page.</div>';
-    return;
-  }
-  if(!referralTablesReady){
-    setup.innerHTML='<div class="alert warn">Referral partners are not in the database yet. Run migrations/20261022_referral_partners.sql in the Supabase SQL editor, then refresh.</div>';
-    const partnersEl=document.getElementById('referrals-partners');
-    const reportEl=document.getElementById('referrals-report');
-    if(partnersEl)partnersEl.innerHTML='';
-    if(reportEl)reportEl.innerHTML='';
-    return;
-  }
-  setup.innerHTML='';
-  renderReferralPartnerCards();
-  renderReferralRules();
-  const lines=referralLinesFor('admin',true);
-  const totals=MBReferralCommissions.summarizeReferralLines(lines);
-  const money=MBReferralCommissions.money;
-  const summary=document.getElementById('referrals-summary');
-  if(summary)summary.innerHTML=`<div class="metrics">
-      <div class="metric"><div class="m-label">Collected gross</div><div class="m-val">${money(totals.grossCollected)}</div><div class="m-sub">Charged, before overhead</div></div>
-      <div class="metric"><div class="m-label">Expected gross</div><div class="m-val">${money(totals.grossExpected)}</div><div class="m-sub">Not cash yet</div></div>
-      <div class="metric"><div class="m-label">Overhead</div><div class="m-val">${money(totals.overhead)}</div></div>
-      <div class="metric"><div class="m-label">Partner on collected</div><div class="m-val">${money(totals.partnerCollected)}</div><div class="m-sub">Owed ${money(totals.owed)} · Paid ${money(totals.paid)}</div></div>
-      <div class="metric"><div class="m-label">Owner on collected</div><div class="m-val">${money(totals.ownerCollected)}</div></div>
-    </div>`;
-  const groups=referralPartners.map(p=>{
-    const mine=lines.filter(line=>line.partnerId===p.id);
-    const rate=Math.round(MBReferralCommissions.normalizeSplit(p.splitPct)*100);
-    return `<div class="card" style="padding:14px 16px;margin-bottom:14px">
-      <div style="font-weight:650;font-size:18px">${escapeHtml(p.name)}</div>
-      <div style="color:var(--muted);font-size:14px;margin:2px 0 10px">${escapeHtml((p.sources||[]).join(', ')||'No sources yet')} · partner ${rate}% · owner ${100-rate}%</div>
-      ${MBReferralCommissions.reportHtml(mine,{readOnly:false,splitPct:p.splitPct})}
-      <p style="font-size:13px;color:var(--muted);line-height:1.55;margin-top:10px">${escapeHtml(MBReferralCommissions.OVERHEAD_SUMMARY)} Families who choose Mary Parks by name stay on the Liaisons tab. This report is only the sources listed above.</p>
-    </div>`;
-  }).join('');
-  const report=document.getElementById('referrals-report');
-  if(report)report.innerHTML=groups||'<div class="card" style="padding:16px">No referral partners yet.</div>';
-}
-function clearReferralRange(){
-  const a=document.getElementById('ref-from'),b=document.getElementById('ref-to');
-  if(a)a.value='';
-  if(b)b.value='';
-  renderReferralScreen();
-}
-async function setReferralRule(key,on){
-  const rules=Object.assign({},referralRulesNow());
-  rules[key]=!!on;
-  referralRules=rules;
-  renderReferralScreen();
-  const row={
-    id:1,
-    instructor_pay:!!rules.instructorPay,
-    material_allowance:!!rules.materialAllowance,
-    session_expenses:!!rules.sessionExpenses,
-    net_of_processing_fees:!!rules.netOfProcessingFees,
-    updated_at:new Date().toISOString()
-  };
-  const ok=await dbWrite(sb.from('referral_overhead_rules').upsert(row),'Overhead setting');
-  if(ok)await publishReferralSnapshots();
-}
-function openReferralPartnerEditor(id){
-  const p=id?referralPartners.find(x=>x.id===id):null;
-  const rate=p?Math.round(MBReferralCommissions.normalizeSplit(p.splitPct)*100):40;
-  const sources=(p&&p.sources||[]).join('\n');
-  showModal(`<div class="modal-head"><h3>${p?'Edit referral partner':'Add referral partner'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body"><div class="form-grid">
-      <div class="fg full"><label>Name</label><input id="m-ref-name" value="${escapeHtml(p?p.name:'')}" placeholder="Mary Parks"></div>
-      <div class="fg"><label>Partner share (%)</label><input id="m-ref-split" type="number" min="0" max="100" step="1" value="${rate}"></div>
-      <div class="fg full"><label>Referral sources</label><textarea id="m-ref-sources" rows="4" placeholder="Vanessa in Vienna">${escapeHtml(sources)}</textarea>
-        <div style="font-size:14px;color:var(--muted);margin-top:4px">One source per line. An answer matches when it is that source, or clearly names it.</div></div>
-      <div class="fg full"><label>Notes</label><textarea id="m-ref-notes" rows="2">${escapeHtml(p?p.notes:'')}</textarea></div>
-    </div></div>
-    <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveReferralPartner(${p?"'"+p.id+"'":'null'})">Save</button></div>`);
-}
-async function saveReferralPartner(id){
-  const name=(document.getElementById('m-ref-name').value||'').trim();
-  if(!name){showToast('Enter a name.');return;}
-  const split=MBReferralCommissions.normalizeSplit((Number(document.getElementById('m-ref-split').value)||0)/100);
-  const sources=(document.getElementById('m-ref-sources').value||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
-  const notes=(document.getElementById('m-ref-notes').value||'').trim();
-  const partnerId=id||crypto.randomUUID();
-  const row={id:partnerId,name:name,split_pct:split,active:true,notes:notes||null};
-  let ok=await dbWrite(sb.from('referral_partners').upsert(row),'Referral partner');
-  if(!ok)return;
-  ok=await dbWrite(sb.from('referral_partner_sources').delete().eq('partner_id',partnerId),'Referral sources');
-  if(!ok)return;
-  if(sources.length){
-    ok=await dbWrite(sb.from('referral_partner_sources').insert(sources.map(source=>({partner_id:partnerId,source_value:source}))),'Referral sources');
-    if(!ok)return;
-  }
-  closeModal();
-  await reloadReferralTables();
-  showToast('Saved '+name+'.');
-}
-async function reloadReferralTables(){
-  const [rp,rs,rpay,rrules]=await Promise.all([
-    fetchAll('referral_partners',q=>q.order('name',{ascending:true})),
-    fetchAll('referral_partner_sources'),
-    fetchAll('referral_commission_payouts'),
-    fetchAll('referral_overhead_rules')
-  ]);
-  applyReferralTables(rp,rs,rpay,rrules);
-  await publishReferralSnapshots();
-  renderReferralScreen();
-}
-function weakReferralPin(pin){
-  if(/^(\d)\1{5}$/.test(pin))return true;
-  return '0123456789'.includes(pin)||'9876543210'.includes(pin);
-}
-async function createReferralLogin(id){
-  const p=referralPartners.find(x=>x.id===id);
-  if(!p)return;
-  let result='';
-  let pin='';
-  for(let i=0;i<8;i++){
-    const bytes=new Uint32Array(1);
-    crypto.getRandomValues(bytes);
-    pin=String(100000+(bytes[0]%900000));
-    if(weakReferralPin(pin))continue;
-    const res=await sb.rpc('referral_partner_set_pin',{p_id:id,p_pin:pin});
-    result=res&&res.data?res.data:(res&&res.error?'error':'');
-    if(result==='ok')break;
-    if(result!=='taken')break;
-  }
-  if(result!=='ok'){
-    showToast(result==='forbidden'?'Sign in again, then create the login.':'Could not create that login. Try again.');
-    return;
-  }
-  p.hasPin=true;
-  showModal(`<div class="modal-head"><h3>Login for ${escapeHtml(p.name)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <p style="margin-bottom:10px">Give this PIN to ${escapeHtml(p.name)} yourself. Nothing is emailed.</p>
-      <p style="font-size:32px;letter-spacing:6px;font-weight:700;margin:8px 0">${escapeHtml(pin)}</p>
-      <p>She signs in at <strong>instructorportal.mindfulbeginnings.org/instructor</strong> with this PIN. That login shows only her referral commission report.</p>
-      <p style="margin-top:8px;color:var(--muted)">This PIN is not shown again. Create a new one here if it is lost.</p>
-    </div>
-    <div class="modal-foot"><button class="btn primary" onclick="closeModal()">Done</button></div>`);
-  renderReferralPartnerCards();
-}
-async function markReferralLine(partnerId,lineKey,paid){
-  const lines=referralLinesFor('admin',false);
-  const line=lines.find(x=>x.partnerId===partnerId&&x.lineKey===lineKey);
-  const amount=line?line.partnerCollected:0;
-  let ok=false;
-  if(paid){
-    ok=await dbWrite(sb.from('referral_commission_payouts').upsert({
-      partner_id:partnerId,line_key:lineKey,amount:amount,paid_at:new Date().toISOString()
-    },{onConflict:'partner_id,line_key'}),'Mark commission paid');
-  }else{
-    ok=await dbWrite(sb.from('referral_commission_payouts').delete().eq('partner_id',partnerId).eq('line_key',lineKey),'Undo commission paid');
-  }
-  if(!ok)return;
-  await reloadReferralTables();
-  showToast(paid?'Marked paid.':'Marked owed again.');
-}
-function printReferralReport(){
-  document.body.classList.add('ref-printing');
-  const cleanup=function(){document.body.classList.remove('ref-printing');};
-  window.addEventListener('afterprint',cleanup,{once:true});
-  window.print();
-}
-window.addEventListener('beforeprint',function(){
-  const screen=document.getElementById('screen-referrals');
-  if(screen&&screen.classList.contains('active'))document.body.classList.add('ref-printing');
-});
-window.addEventListener('afterprint',function(){document.body.classList.remove('ref-printing');});
+// Marketing-source commission used to be a separate Referral partners screen.
+// Those sources now live on each liaison, and the statement on this tab is the
+// only payout. The old tables are kept in the database as a backup.
 
 function showScreen(name,el){
+  if(name==='referrals')name='partners';
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -5992,7 +5794,6 @@ function showScreen(name,el){
   if(name==='codes')renderCodes();
   if(name==='instructors')renderInstructors();
   if(name==='partners')renderPartners();
-  if(name==='referrals')renderReferralScreen();
   if(name==='orgpartners'&&typeof renderOrgPartners==='function')renderOrgPartners();
   if(name==='jobs'&&typeof renderJobs==='function')renderJobs();
   if(name==='materials'&&typeof renderMaterials==='function')renderMaterials();
@@ -6121,7 +5922,8 @@ function referralRegEvent(r){
 // the partner originated is excluded — its whole roster already earns commission,
 // and it must not be counted twice.
 function referralRegCommission(r){
-  const q=referralPartner(r);
+  const credit=registrationReferralCredit(r);
+  const q=credit&&credit.partner;
   if(!q)return{net:0,commission:0,earned:false,originated:false,event:null};
   const s=sessions.find(x=>x.id===r.sessionId);
   if(s&&s.originatedBy===q.id)return{net:0,commission:0,earned:false,originated:true,event:null};
