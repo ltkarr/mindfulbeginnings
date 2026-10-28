@@ -94,7 +94,8 @@ test('a Safe Sitter class no longer subtracts the per-student handbook rate from
   const oldYearProfit = fin.revenue - (instructor + 40 + 162.8 + oldHandbook + overheadOrder);
   assert.equal(Math.round((yearProfit - oldYearProfit) * 100) / 100, Math.round((162.8 + oldHandbook) * 100) / 100);
 
-  // Partner statements still treat the allowance, and any stored job line, as a direct cost.
+  // The pooled partnerDirectCosts figure still adds the allowance and any stored job line.
+  // Liaison statements no longer use that pool; each student is costed on their own.
   assert.equal(sandbox.participantMaterialAllowance(session), oldHandbook);
   assert.equal(sandbox.partnerDirectCosts(session), Math.round((instructor + oldHandbook + 40 + 162.8) * 100) / 100);
 });
