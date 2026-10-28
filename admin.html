@@ -3774,11 +3774,12 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 // new field you fill in is "Originated by" on the session form.
 //
 //  §3.A  A flat 40% of PROFIT on what the liaison brings in. Lindsay keeps 60%.
-//        Profit is Collected Revenue for a booking, less the direct cost of
-//        delivering it: instructor pay, the per-participant material allowance,
-//        and any job costs stored on that session. It is not a share of gross
-//        revenue. Company overhead expenses — where handbook orders are recorded —
-//        are NOT deducted. Only costs attached to the booking itself are.
+//        Profit for one student is what that student paid, minus the card fee,
+//        minus an equal share of instructor pay, minus one handbook (the course
+//        matCost). Instructor pay is split across every live non-host student,
+//        including seats that paid $0. It is not a share of gross revenue, and
+//        facility rentals and other job extras are not deducted. Company overhead
+//        — where the handbook order itself is recorded — is not deducted again.
 //  §3.B  Retired. There is no volume ladder and no accelerator to sit on top of.
 //  §3.C  Retired. There is no new-organization bonus. Commission is the whole
 //        of the compensation.
@@ -3794,9 +3795,10 @@ function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
 // unchanged.
 // Amended again: the same flat rate also applies to a single family the partner
 // refers into a class she did not originate. There, the 40% is taken on that one
-// registration's profit — what the family paid, less the processing fee, less that
-// child's materials and their share of the instructor and job costs — not on the
-// whole room and not on the gross fee. See partnerBookingUnits().
+// registration's profit — payment, less the processing fee, less that child's
+// share of instructor pay, less one handbook — not on the whole room and not on
+// the gross fee. An originated class sums that same per-student profit across
+// every live non-host student. See partnerBookingUnits().
 const PARTNER_FLAT_RATE=0.40;      // §3.A — 40% of profit; Lindsay keeps 60%
 const PARTNER_TIERS=[
   {min:0, max:Infinity, rate:PARTNER_FLAT_RATE, name:'Flat rate', label:Math.round(PARTNER_FLAT_RATE*100)+'% of profit'}
@@ -3976,22 +3978,15 @@ function partnerEventDates(s,ev,paidOn){
 }
 
 // ─── DIRECT COST OF A BOOKING (for §3.A net) ─────────────────
-// What it costs to deliver one session for a partner statement: instructor pay,
-// the per-participant material allowance, and any job costs stored on it
-// (including a leftover per-student materials line). Payment processing fees are
-// NOT included here, because revenue is already reported net of them and counting
-// them twice would understate her commission.
-//
-// Company overhead (insurance, software, the website, and the handbook order
-// itself) is deliberately excluded. Those are costs of being in business, not
-// costs of her booking. The allowance above is the agreement's stand-in for
-// participant materials; it is not the overhead expense, and company session
-// profit does not deduct it a second time.
+// Older screens still ask for one pooled session cost (instructor pay, the
+// material allowance, and typed job lines). Liaison commission does not use
+// that pool. It uses the per-student rule below, so a referred child is not
+// charged a pro-rata slice of the facility rental.
 function partnerDirectCosts(s){
   if(!s)return 0;
   const f=calcFin(s);
-  // Handbook lines typed on the session stay in the partner cost, resolved or
-  // not, so a payout calculated before this change does not move.
+  // Handbook lines typed on the session stay in this pooled figure, resolved or
+  // not. Commission no longer reads it.
   const materials=(s.additionalCosts||[]).reduce((sum,x)=>{
     if(!isPerStudentMaterialLine(x))return sum;
     return sum+Number(x.amount||0);
@@ -4000,14 +3995,69 @@ function partnerDirectCosts(s){
   const linked=linkedExpenseTotal(s.id);
   return round2(Math.max(0,(f.instrFee||0)+participantMaterialAllowance(s)+materials+unresolved+linked));
 }
-// Spreads that cost across the session's revenue lines in proportion to size, so a
-// booking where only half the families have paid carries only half the cost so far.
+// Live students who take a seat. A comped host is not one of them. A free or
+// unpaid seat is, so instructor pay is split across the whole roster.
+function partnerLiveKids(s){
+  if(!s)return [];
+  return (registrations||[]).filter(r=>r&&r.sessionId===s.id&&isLiveReg(r)&&r.payStatus!=='host');
+}
+function partnerInstructorPay(s){
+  if(!s)return 0;
+  const f=calcFin(s);
+  return round2(Math.max(0,Number(f&&f.instrFee)||0));
+}
+function partnerCourseHandbook(s){
+  if(!s||s.isCustomJob)return 0;
+  const rate=Number((COURSES[s.course]||{}).matCost||0);
+  return isFinite(rate)&&rate>0?round2(rate):0;
+}
+// One student's share of instructor pay, plus one handbook.
+function partnerPerStudentFigures(s){
+  const kids=partnerLiveKids(s);
+  const n=kids.length;
+  const instructorPay=partnerInstructorPay(s);
+  const share=n?round2(instructorPay/n):0;
+  const handbook=partnerCourseHandbook(s);
+  return {kids,n,instructorPay,share,handbook,cost:n?round2(share+handbook):0};
+}
+// Payment, card fee, and what is left before the per-student costs.
+function partnerStudentMoney(s,r){
+  const paid=!!(r&&r.payStatus==='paid');
+  const gross=paid?round2(Number(regEffectivePrice(r,s))||0):0;
+  const fee=gross>0?round2(processingFee(gross)):0;
+  return {gross,fee,amount:round2(gross-fee)};
+}
+// Gives every live student their own cost, instead of spreading a pooled total
+// in proportion to what each family paid. An organization or custom-job fee
+// does not take a second copy of those costs when students are already listed.
+// With no students, that fee carries the instructor pay by itself.
 function partnerAttachCosts(s,events){
-  const costs=partnerDirectCosts(s);
-  const total=events.reduce((a,x)=>a+(Number(x.amount)||0),0);
-  events.forEach(x=>{
-    x.cost=total>0?round2(costs*((Number(x.amount)||0)/total)):0;
+  const fig=partnerPerStudentFigures(s);
+  const seen={};
+  (events||[]).forEach(x=>{
+    if(x.kind==='family'&&x.regId){
+      seen[x.regId]=true;
+      x.cost=fig.cost;
+      x.instrShare=fig.share;
+      x.handbook=fig.handbook;
+      x.liveKids=fig.n;
+    }else{
+      x.cost=fig.n?0:fig.instructorPay;
+    }
     x.net=round2((Number(x.amount)||0)-x.cost);
+  });
+  fig.kids.forEach(r=>{
+    if(seen[r.id])return;
+    const money=partnerStudentMoney(s,r);
+    let paidOn='';
+    if(money.gross>0)paidOn=regCollectedDate(r)||'';
+    else if(partnerSessionHasEnded(s))paidOn=partnerSessionEndDate(s)||'';
+    events.push(partnerEventDates(s,{
+      sessionId:s.id,kind:'family',regId:r.id,
+      gross:money.gross,amount:money.amount,fee:money.fee,
+      cost:fig.cost,instrShare:fig.share,handbook:fig.handbook,liveKids:fig.n,
+      net:round2(money.amount-fig.cost)
+    },paidOn));
   });
   return events;
 }
@@ -4026,20 +4076,10 @@ function partnerRevenueEvents(s){
     const amt=s.priceOverride!=null?Number(s.priceOverride):0;
     if(amt>0){
       const c=sessionOrgCollectedDate(s);
-      out.push(partnerEventDates(s,{sessionId:s.id,kind:'org',gross:amt,amount:round2(amt),fee:0},c));
+      out.push(partnerEventDates(s,{sessionId:s.id,kind:'org',gross:round2(amt),amount:round2(amt),fee:0},c));
     }
     return partnerAttachCosts(s,out);
   }
-
-  // Individual families who have paid.
-  (registrations||[]).filter(r=>r.sessionId===s.id&&r.payStatus==='paid').forEach(r=>{
-    const gross=regEffectivePrice(r,s);
-    if(!(gross>0))return;
-    const fee=processingFee(gross);
-    const d=regCollectedDate(r);
-    out.push(partnerEventDates(s,{sessionId:s.id,kind:'family',regId:r.id,gross:round2(gross),
-      amount:round2(gross-fee),fee:round2(fee)},d));
-  });
 
   // An organization's roster, invoiced at month end. No processing fee applies —
   // you are paid by check or transfer, not through PayPal. A split uses the
@@ -4064,14 +4104,13 @@ function partnerRevenueEvents(s){
 //     and named her under "how did you hear about us". Only that family's money is
 //     hers to earn on, not the rest of the room.
 //
-// Both are paid at the same flat 40% of profit (§3.A), so they run through the same
-// engine. partnerRevenueEvents has already deducted the processing fee from each
-// family's payment and spread the session's direct costs — instructor pay, per-student
-// handbooks and materials, and any job costs you entered — across its revenue lines in
-// proportion to size. So one referred child in a class of eight carries their own
-// handbook plus their share of the instructor, and the commission is 40% of what is
-// left. Lindsay keeps the other 60%. If a session is BOTH originated and referred,
-// origination wins and the whole session counts once — never twice.
+// Both are paid at the same flat 40% of profit (§3.A). Each live non-host student
+// keeps their own payment, minus the card fee, minus instructor pay divided by
+// that headcount, minus one handbook. A referral uses only that family's line.
+// An originated class sums every student's line, so a $0 seat still reduces the
+// profit by its instructor share and handbook. Lindsay keeps the other 60%.
+// If a session is BOTH originated and referred, origination wins and the whole
+// session counts once — never twice.
 function partnerBookingUnits(partnerId){
   const referredIds={};
   (registrations||[]).forEach(r=>{
@@ -4086,7 +4125,7 @@ function partnerBookingUnits(partnerId){
     }
     const ids=referredIds[sx.id];
     if(!ids||!ids.length)return;
-    const evs=partnerRevenueEvents(sx).filter(e=>e.kind==='family'&&ids.indexOf(e.regId)>=0);
+    const evs=partnerRevenueEvents(sx).filter(e=>e.kind==='family'&&ids.indexOf(e.regId)>=0&&Number(e.gross)>0);
     if(!evs.length)return;
     const names=ids.map(id=>{
       const r=(registrations||[]).find(x=>x.id===id);
@@ -4217,7 +4256,7 @@ function partnerStatement(partnerId,period){
         fees:round2(uncollected.reduce((a,e)=>a+(e.fee||0),0)),
         costs:round2(uncollected.reduce((a,e)=>a+(e.cost||0),0)),
         net:round2(uncollected.reduce((a,e)=>a+(e.net||0),0)),
-        familyCount:uncollected.filter(e=>e.kind==='family').length,
+        familyCount:uncollected.filter(e=>e.kind==='family'&&Number(e.gross)>0).length,
         reason,notTaught,isReferral:isRef,refLabel,
         isOrg:isRef?false:sessionIsOrgBooking(s),org:isRef?'':sessionOrgName(s),
         isRepeat:!!(first&&first.sessionId!==s.id),
@@ -4241,7 +4280,7 @@ function partnerStatement(partnerId,period){
         fees:round2(inMonth.reduce((a,r)=>a+(r.fee||0),0)),
         costs:round2(inMonth.reduce((a,r)=>a+(r.cost||0),0)),
         net:round2(inMonth.reduce((a,r)=>a+(r.net||0),0)),
-        familyCount:inMonth.filter(e=>e.kind==='family').length,
+        familyCount:inMonth.filter(e=>e.kind==='family'&&Number(e.gross)>0).length,
         isReferral:isRef,refLabel,
         isOrg:isRef?false:sessionIsOrgBooking(s),org:isRef?'':sessionOrgName(s),
         isRepeat,firstCollectedOn:earliest,partyKey:key,accelerated:false
@@ -6077,10 +6116,10 @@ function referralRegEvent(r){
   if(!s)return null;
   return partnerRevenueEvents(s).find(e=>e.kind==='family'&&e.regId===r.id)||null;
 }
-// What the partner earns on one referred registration: the flat §3.A rate applied to
-// what is left after the processing fee, this child's materials and their share of
-// instructor pay and job costs. A session the partner originated is excluded — its
-// whole revenue already earns commission, and it must not be counted twice.
+// What the partner earns on one referred registration: 40% of what is left after
+// the card fee, this child's share of instructor pay, and one handbook. A session
+// the partner originated is excluded — its whole roster already earns commission,
+// and it must not be counted twice.
 function referralRegCommission(r){
   const q=referralPartner(r);
   if(!q)return{net:0,commission:0,earned:false,originated:false,event:null};
