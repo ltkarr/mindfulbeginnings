@@ -957,7 +957,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -3872,6 +3872,51 @@ function sessionOrgName(s){
 }
 function sessionIsOrgBooking(s){return !!sessionOrgName(s);}
 
+// Public venue, private host, or organization. These are the same flags the
+// session form already uses: "No host — public venue" is hasHost false;
+// organization registration, Bill to organization, a partnership, or a custom
+// job is an organization class. A public class stores the venue rental
+// contact in contactName, and that person is not the client.
+function sessionBookingKind(s){
+  if(!s)return 'public';
+  if(String(s.billToOrg||'').trim()||s.orgHandlesRegistration||s.hostedFor||s.isCustomJob)return 'org';
+  // is_private keeps a class off the public list (a troop or a private booking)
+  // even when host registration is turned off. That contact is still the client.
+  if(s.hasHost!==false||s.isPrivate)return 'host';
+  return 'public';
+}
+function sessionClientName(s){
+  const kind=sessionBookingKind(s);
+  if(kind==='public')return 'Public Course';
+  if(kind==='org'){
+    const org=sessionOrgName(s);
+    if(org)return org;
+    if(s.hostedFor&&typeof orgPartners!=='undefined'&&Array.isArray(orgPartners)){
+      const p=orgPartners.find(x=>x&&x.id===s.hostedFor);
+      const name=p&&String(p.name||'').trim();
+      if(name)return name;
+    }
+    return String(s.contactName||'').trim();
+  }
+  return String(s.contactName||'').trim();
+}
+// How the Client column reads. Referrals stay labeled as referrals by the caller.
+// style 'statement' keeps "Private home class — Host" on printable statements.
+// style 'pending' uses an em dash when a private host has no name.
+function liaisonClientLabel(s, orgName, style){
+  const kind=sessionBookingKind(s);
+  if(kind==='public')return 'Public Course';
+  if(kind==='org'){
+    const named=String(orgName||'').trim()||sessionClientName(s);
+    if(named)return named;
+    return style==='pending'?'—':'';
+  }
+  const host=String(s&&s.contactName||'').trim();
+  if(style==='statement')return host?('Private home class — '+host):'Private home class';
+  if(style==='pending')return host||'—';
+  return host||'Private home class';
+}
+
 // A stable identity for the client behind a booking, used to tell a brand-new
 // relationship from a repeat or renewal. Organizations key on their name; private
 // home classes key on the host's name. A booking with neither can never be
@@ -4585,7 +4630,7 @@ function orgPartnerRows(partnerId){
       rows.push({session:s,sessionId:s.id,month:m,collected:b.collected,costs:b.costs,
         overhead,net,lines:b.lines,title1,
         share:title1?0:round2(net*sharePct),
-        client:s.billToOrg||s.contactName||p.name});
+        client:sessionClientName(s)||p.name});
     });
   });
   rows.sort((a,b)=>(a.month+a.session.date).localeCompare(b.month+b.session.date));
@@ -5122,7 +5167,7 @@ function partnerCardHtml(p,st){
       <tbody>${st.rows.map(r=>`<tr>
         <td style="font-size:15px;white-space:nowrap">${fmtShortDate(r.firstCollectedOn)}</td>
         <td style="font-size:15px">${escapeHtml(r.session.course)}${r.session.date?`<br><span style="color:var(--muted);font-size:14px">held ${fmtShortDate(r.session.date)}</span>`:''}</td>
-        <td style="font-size:15px">${r.isOrg?escapeHtml(r.org):escapeHtml(r.session.contactName||'Private home class')}
+        <td style="font-size:15px">${escapeHtml(liaisonClientLabel(r.session,r.org,'plain'))}
           ${r.isRepeat?'<br><span class="tag pending" style="margin-top:3px">Repeat</span>':'<br><span class="tag host" style="margin-top:3px">First booking</span>'}</td>
         <td style="font-weight:500">${fmt(r.collected)}${r.fees?`<br><span style="color:var(--muted);font-size:14px">${fmt(r.gross)} less ${fmt(r.fees)} fees</span>`:''}${r.familyCount?`<br><span style="color:var(--muted);font-size:14px">${r.familyCount} famil${r.familyCount===1?'y':'ies'}</span>`:''}</td>
         <td style="font-weight:500;color:var(--success)">${fmt(r.commission)}</td>
@@ -5143,7 +5188,7 @@ function partnerCardHtml(p,st){
           <td style="font-size:15px;white-space:nowrap">${x.projectedMonth?periodLabel(x.projectedMonth):'—'}</td>
           <td style="font-size:15px">${escapeHtml(x.session.course)}${x.isRepeat?'<br><span class="tag pending" style="margin-top:3px">Repeat</span>':''}</td>
           <td style="font-size:15px">${fmtShortDate(x.session.date)}</td>
-          <td style="font-size:15px">${escapeHtml(x.org||x.session.contactName||'—')}</td>
+          <td style="font-size:15px">${escapeHtml(liaisonClientLabel(x.session,x.org,'pending'))}</td>
           <td style="font-weight:500">${fmt(x.amount)}${x.fees?`<br><span style="color:var(--muted);font-size:14px">${fmt(x.gross)} less ${fmt(x.fees)} fees</span>`:''}</td>
           <td style="font-weight:500;color:var(--warn)">${fmt(x.estCommission||0)}</td>
           <td style="font-size:14px;color:var(--muted)">${escapeHtml(x.reason)}</td>
@@ -5190,7 +5235,7 @@ function partnerPortalPeriods(partnerId){
 // One statement row, stripped down to what a partner is entitled to see.
 function portalRow(r){
   return{date:(r.session&&r.session.date)||'',course:(r.session&&r.session.course)||'',
-    client:r.isReferral?'Referred family':(r.org||(r.session&&r.session.contactName)||''),
+    client:r.isReferral?'Referred family':liaisonClientLabel(r.session,r.org,'plain'),
     isOrg:!!r.isOrg,isReferral:!!r.isReferral,
     familyCount:r.familyCount||0,collected:r.collected||0,
     costs:r.costs||0,net:r.net!=null?r.net:(r.collected||0),rate:r.rate||0,
@@ -5198,7 +5243,7 @@ function portalRow(r){
 }
 function portalPending(x){
   return{date:(x.session&&x.session.date)||'',course:(x.session&&x.session.course)||'',
-    client:x.isReferral?'Referred family':(x.org||(x.session&&x.session.contactName)||''),
+    client:x.isReferral?'Referred family':liaisonClientLabel(x.session,x.org,'pending'),
     isOrg:!!x.isOrg,isReferral:!!x.isReferral,
     amount:x.amount||0,costs:x.costs||0,net:x.net!=null?x.net:(x.amount||0),
     reason:x.reason||'',estRate:x.estRate==null?null:x.estRate,
@@ -5450,7 +5495,7 @@ async function markPartnerPaid(partnerId){
     commission:st.commission,bonuses:st.bonuses,bonusTotal:st.bonusTotal,
     settings:partnerSettings(),
     lines:st.rows.map(r=>({sessionId:r.sessionId,course:r.session.course,date:r.session.date,
-      client:r.isOrg?r.org:(r.session.contactName||'Private home class'),
+      client:liaisonClientLabel(r.session,r.org,'plain'),
       collected:r.collected,rate:r.rate,commission:r.commission,reason:r.reason,repeat:r.isRepeat}))
   };
   const existing=partnerPayouts.find(x=>x.partnerId===partnerId&&x.period===partnerPeriod);
@@ -5486,7 +5531,7 @@ function openPartnerStatement(partnerId){
       <td>${escapeHtml(r.session.course)}</td>
       <td>${r.isReferral
         ?'<span style="color:#6b7a99;font-size:14px">Referral —</span> '+escapeHtml(r.refLabel||'referred family')
-        :escapeHtml(r.isOrg?r.org:(r.session.contactName?'Private home class — '+r.session.contactName:'Private home class'))}${r.isRepeat&&!r.isReferral?' <span style="color:#6b7a99;font-size:14px">(repeat)</span>':''}</td>
+        :escapeHtml(liaisonClientLabel(r.session,r.org,'statement'))}${r.isRepeat&&!r.isReferral?' <span style="color:#6b7a99;font-size:14px">(repeat)</span>':''}</td>
       <td style="text-align:right">${fmt(r.collected)}</td>
       <td style="text-align:right">${fmt(r.commission)}</td>
     </tr>`).join('');
@@ -5530,7 +5575,7 @@ function openPartnerStatement(partnerId){
           <tbody>${st.pending.map(x=>`<tr>
             <td style="padding:4px">${x.projectedMonth?periodLabel(x.projectedMonth):'—'}</td>
             <td style="padding:4px">${escapeHtml(x.session.course)}</td>
-            <td style="padding:4px">${x.isReferral?'<span style="color:#6b7a99">Referral —</span> '+escapeHtml(x.refLabel||'referred family'):escapeHtml(x.org||x.session.contactName||'—')}</td>
+            <td style="padding:4px">${x.isReferral?'<span style="color:#6b7a99">Referral —</span> '+escapeHtml(x.refLabel||'referred family'):escapeHtml(liaisonClientLabel(x.session,x.org,'pending'))}</td>
             <td style="padding:4px;text-align:right">${fmt(x.amount)}</td>
             <td style="padding:4px;text-align:right">${fmt(x.estCommission||0)}</td>
           </tr>`).join('')}
@@ -5571,12 +5616,12 @@ function exportPartnersCSV(){
       paid?'Paid '+fmt(st.payout.amount):'Outstanding',paid?st.payout.paidDate:'','','','','','','','']);
     st.rows.forEach(r=>{
       rows.push(['','','','','','','','',r.firstCollectedOn,r.session.course,r.session.date||'',
-        r.isReferral?('Referral — '+(r.refLabel||'referred family')):(r.isOrg?r.org:(r.session.contactName||'Private home class')),
+        r.isReferral?('Referral — '+(r.refLabel||'referred family')):liaisonClientLabel(r.session,r.org,'plain'),
         r.collected.toFixed(2),r.commission.toFixed(2)]);
     });
     st.pending.forEach(x=>{
       rows.push(['','','','','','','','','NOT YET PAYABLE'+(x.projectedMonth?' → '+x.projectedMonth:''),x.session.course,x.session.date||'',
-        x.isReferral?('Referral — '+(x.refLabel||'referred family')):(x.org||x.session.contactName||''),
+        x.isReferral?('Referral — '+(x.refLabel||'referred family')):liaisonClientLabel(x.session,x.org,'pending'),
         x.amount.toFixed(2),(x.estCommission||0).toFixed(2)]);
     });
   });
