@@ -73,22 +73,12 @@
   },
   {
     "section": "Lead Instructors",
-    "name": "Kim Varner",
-    "credentials": "RN, BSN",
+    "name": "Daniela Flores",
+    "credentials": "BSN, RN",
     "role": "",
-    "photo": "/images/team/11-img_5201.jpeg",
+    "photo": "/images/team/daniela-flores-initials.png",
     "bio": [
-      "Kim Varner is a registered nurse with a Bachelor of Science in Nursing from the University of Maryland, Baltimore, and a Bachelor of Science in Psychology from the University of Michigan. She has been Head Nurse at the German International School Washington D.C., a school nurse at Sheppard Pratt, and a newborn and mother nurse at Adventist HealthCare Shady Grove Medical Center. A former preschool lead teacher, she makes health and safety concepts clear for young learners."
-    ]
-  },
-  {
-    "section": "Lead Instructors",
-    "name": "Ashira Lavine",
-    "credentials": "MA",
-    "role": "",
-    "photo": "/images/team/26-mindfulbeginningsheadshot2.jpg",
-    "bio": [
-      "Ashira Lavine is a trauma-informed educator and founder of Mind Body Fusion, LLC, with over a decade of experience teaching mindfulness and life skills in the DC area. She holds a Master of Arts from the University of Maryland and a Bachelor of Science from Towson University, and she is a Registered Yoga Teacher (RYT-500). She helps young learners build confidence and practical skills with a grounded, reassuring approach."
+      "Daniela Flores is a registered nurse with more than eight years of experience in neonatal intensive care. She cares for critically ill and premature newborns in the Level IV NICUs at Children's National Hospital and Georgetown University Hospital, and she has also served as a school nurse at an international school in Frankfurt, Germany. A five-time DAISY Award nominee, she precepts new nurses and spends much of her work teaching families how to care for their babies and keep them safe. Fluent in English and Spanish and certified in Basic Life Support, the Neonatal Resuscitation Program, and S.T.A.B.L.E., she brings calm, expert newborn and infant care to the families she teaches."
     ]
   },
   {
@@ -103,12 +93,22 @@
   },
   {
     "section": "Lead Instructors",
-    "name": "Daniela Flores",
-    "credentials": "BSN, RN",
+    "name": "Ashira Lavine",
+    "credentials": "MA",
     "role": "",
-    "photo": "/images/team/daniela-flores-initials.png",
+    "photo": "/images/team/26-mindfulbeginningsheadshot2.jpg",
     "bio": [
-      "Daniela Flores is a registered nurse with more than eight years of experience in neonatal intensive care. She cares for critically ill and premature newborns in the Level IV NICUs at Children's National Hospital and Georgetown University Hospital, and she has also served as a school nurse at an international school in Frankfurt, Germany. A five-time DAISY Award nominee, she precepts new nurses and spends much of her work teaching families how to care for their babies and keep them safe. Fluent in English and Spanish and certified in Basic Life Support, the Neonatal Resuscitation Program, and S.T.A.B.L.E., she brings calm, expert newborn and infant care to the families she teaches."
+      "Ashira Lavine is a trauma-informed educator and founder of Mind Body Fusion, LLC, with over a decade of experience teaching mindfulness and life skills in the DC area. She holds a Master of Arts from the University of Maryland and a Bachelor of Science from Towson University, and she is a Registered Yoga Teacher (RYT-500). She helps young learners build confidence and practical skills with a grounded, reassuring approach."
+    ]
+  },
+  {
+    "section": "Lead Instructors",
+    "name": "Kim Varner",
+    "credentials": "RN, BSN",
+    "role": "",
+    "photo": "/images/team/11-img_5201.jpeg",
+    "bio": [
+      "Kim Varner is a registered nurse with a Bachelor of Science in Nursing from the University of Maryland, Baltimore, and a Bachelor of Science in Psychology from the University of Michigan. She has been Head Nurse at the German International School Washington D.C., a school nurse at Sheppard Pratt, and a newborn and mother nurse at Adventist HealthCare Shady Grove Medical Center. A former preschool lead teacher, she makes health and safety concepts clear for young learners."
     ]
   },
   {
