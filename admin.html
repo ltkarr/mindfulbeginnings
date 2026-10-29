@@ -648,7 +648,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <option value="">All categories</option>
           <option>Business Development</option>
           <option>Equipment</option><option>Instructor Training</option><option>Insurance</option><option>Supplies</option>
-          <option>Marketing</option><option>Software</option><option>Travel</option><option>Charitable Donation</option><option>Curriculum Development</option><option>Rentals</option><option>Other</option>
+          <option>Marketing</option><option>Software</option><option>Travel</option><option>Charitable Donation</option><option>Curriculum Development</option><option>Rentals</option><option>Teacher Appreciation</option><option>Other</option>
         </select>
         <select id="ef-link" onchange="renderExpenses()">
           <option value="">All expenses</option>
@@ -13349,7 +13349,7 @@ function downloadAllWaivers(){
 }
 
 // ─── EXPENSES ────────────────────────────────────────────────
-const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Curriculum Development','Rentals','Other'];
+const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Curriculum Development','Rentals','Teacher Appreciation','Other'];
 // Stable swatch for each known category on the annual expense chart.
 // Labels that are not expense categories (instructor fees, card fees, and so on)
 // fall through to the chart palette.
@@ -13365,6 +13365,7 @@ const EXP_CAT_COLORS={
   'Charitable Donation':'#a04060',
   'Curriculum Development':'#0f6f8a',
   'Rentals':'#c46b2d',
+  'Teacher Appreciation':'#d4a017',
   'Other':'#888'
 };
 // How an overhead expense was paid. Stored lowercase; the label is what shows
