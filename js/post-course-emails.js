@@ -139,6 +139,16 @@
       ]
     },
     {
+      keys: ['Lunchroom Lifesaver'],
+      subject: 'Lunchroom Lifesaver',
+      greeting: 'Hello,',
+      taker: 'complete',
+      paragraphs: [
+        'Thank you for completing Lunchroom Lifesaver with Mindful Beginnings. You practiced how to recognize choking, give back blows and abdominal thrusts, respond if a child becomes unresponsive, and call 911, plus the basics of hands-only CPR and using an AED.',
+        'Keep the choking response steps somewhere visible in the lunchroom, and talk through them with your team once in a while so they stay fresh. When you are ready for full certification, our First Aid/CPR/AED course builds on everything you learned.'
+      ]
+    },
+    {
       keys: ['My First Babysitters Club', 'My First Babysitters Club — Single Session'],
       subject: 'Club\'s in session',
       greeting: 'Hi there,',

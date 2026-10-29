@@ -585,7 +585,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="filter-row">
         <select id="sf-course" onchange="renderSessions()">
           <option value="">All courses</option>
-          <option>Safe Sitter®</option><option>Safe Sitter® Babysitting Essentials</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Safe Sitter® Grandparents: Getting Started</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>Baby Ready + CPR Certification</option><option>Babysitting Grandkids Workshop</option><option>Babysitting Grandkids Workshop — Virtual</option><option>All Kids Welcome</option><option>Stay Ready™: Choking Rescue, CPR, and Seizure Response</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>Middle School Ready</option><option>Middle School Ready — Virtual</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Little Medics</option><option>Pet Sitter's Club</option><option>Snack Squad</option><option>Kid Boss Club</option><option>Middle School, Here I Come</option><option>Big Sibling Club</option><option>My First Phone</option><option>Walk and Roll Ready</option><option>Calm and Ready</option><option>Ready. Period.</option><option>Season Ready™: Safety Skills for Student Athletes</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Babysitter's Training</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option><option>Adult First Aid/CPR/AED Certification</option><option>Basic Life Support (BLS) Certification</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification (Hybrid)</option><option>Adult First Aid/CPR/AED Certification (Hybrid)</option><option>Basic Life Support (BLS) Certification (Hybrid)</option><option>Group CPR Certification for Workplaces</option>
+          <option>Safe Sitter®</option><option>Safe Sitter® Babysitting Essentials</option><option>Intro to Babysitting</option><option>Safe@Home</option><option>Safe@Home — Virtual</option><option>Safe@Home — Series</option><option>Safe Sitter® Grandparents: Getting Started</option><option>Grandparents: Getting Started</option><option>Care Ready</option><option>Baby Ready</option><option>Baby Ready + CPR Certification</option><option>Babysitting Grandkids Workshop</option><option>Babysitting Grandkids Workshop — Virtual</option><option>All Kids Welcome</option><option>Stay Ready™: Choking Rescue, CPR, and Seizure Response</option><option>Stay Ready: Choking Rescue and CPR</option><option>Campus Ready: Safety Skills for College Life</option><option>Steady and Ready</option><option>Middle School Ready</option><option>Middle School Ready — Virtual</option><option>Lunchroom Lifesaver</option><option>My First Babysitters Club</option><option>My First Babysitters Club — Single Session</option><option>Little Medics</option><option>Pet Sitter's Club</option><option>Snack Squad</option><option>Kid Boss Club</option><option>Middle School, Here I Come</option><option>Big Sibling Club</option><option>My First Phone</option><option>Walk and Roll Ready</option><option>Calm and Ready</option><option>Ready. Period.</option><option>Season Ready™: Safety Skills for Student Athletes</option><option>Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes</option><option>Social Ready</option><option>Girl Scouts — First Aid Badge Workshop</option><option>Girl Scout Badge Class</option><option>Babysitter's Training</option><option>Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification</option><option>Adult First Aid/CPR/AED Certification</option><option>Basic Life Support (BLS) Certification</option><option>Adult &amp; Pediatric First Aid/CPR/AED Certification (Hybrid)</option><option>Adult First Aid/CPR/AED Certification (Hybrid)</option><option>Basic Life Support (BLS) Certification (Hybrid)</option><option>Group CPR Certification for Workplaces</option>
         </select>
         <input type="month" id="sf-month" onchange="renderSessions()">
         <button class="btn" id="sf-sort-btn" onclick="toggleSessionSort()" style="white-space:nowrap">Date ↑ Oldest first</button>
@@ -1530,6 +1530,7 @@ const COURSES={
   'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1,maxStudents:8},
   'Middle School Ready':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:0,hours:1,maxStudents:20},
   'Middle School Ready — Virtual':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,instrFlatFee:75,maxStudents:20,virtual:true},
+  'Lunchroom Lifesaver':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:0.75,maxStudents:12},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug 2026 program
   // guide confirmed $165 for the 8-week series, so future sessions charge $165.
   // Material allowance is $30/student — an 8-week series consumes far more supplies than a
@@ -1713,6 +1714,7 @@ const LATER_PRICE_CHANGES=[
      'Steady and Ready':65,
      'Middle School Ready':40,
      'Middle School Ready — Virtual':25,
+     'Lunchroom Lifesaver':35,
      'Campus Ready: Safety Skills for College Life':75,
      'Stay Ready: Choking Rescue and CPR':75
    }},
@@ -1963,7 +1965,7 @@ const COURSE_ABBR={
   'Stay Ready: Choking Rescue and CPR':'SR',
   'Stay Ready™: Choking Rescue, CPR, and Seizure Response':'SR',
   'Campus Ready: Safety Skills for College Life':'CR',
-  'Steady and Ready':'STR','Middle School Ready':'MSR','Middle School Ready — Virtual':'MSRV','My First Babysitters Club':'MFBC',
+  'Steady and Ready':'STR','Middle School Ready':'MSR','Middle School Ready — Virtual':'MSRV','Lunchroom Lifesaver':'LL','My First Babysitters Club':'MFBC',
   'My First Babysitters Club — Single Session':'MFBC1',
   'Ready. Period.':'RP',
   // SEAR, not SR — SR already belongs to Stay Ready, and two classes on the same
@@ -2004,14 +2006,14 @@ const TITLE_ABBR=[
   [/safe\s*@?\s*home/i,'SAH'],[/intro to babysit/i,'IB'],
   [/grandparent/i,'GP'],[/baby ready.{0,20}cpr|cpr certification/i,'BRCPR'],[/baby\s*ready/i,'BR'],[/care\s*ready/i,'CRE'],[/all kids welcome/i,'AKW'],
   [/choking|cpr|stay ready/i,'SR'],[/campus ready/i,'CR'],
-  [/steady and ready/i,'STR'],[/middle school ready/i,'MSR'],[/social ready/i,'SOC'],[/first aid badge/i,'GSFA'],[/girl scout badge/i,'GSB'],[/girls on the run|gotr/i,'GOTR'],
+  [/steady and ready/i,'STR'],[/middle school ready/i,'MSR'],[/lunchroom lifesaver/i,'LL'],[/social ready/i,'SOC'],[/first aid badge/i,'GSFA'],[/girl scout badge/i,'GSB'],[/girls on the run|gotr/i,'GOTR'],
   [/caregiv/i,'CARE'],[/babysitting course/i,'BC']
 ];
 const ADMIN_COURSE_OPTIONS=[
   'Safe Sitter®','Safe Sitter® Babysitting Essentials','Intro to Babysitting',
   'Safe@Home','Safe@Home — Virtual','Safe@Home — Series',
   'Safe Sitter® Grandparents: Getting Started','Care Ready','Baby Ready','Baby Ready + CPR Certification','Babysitting Grandkids Workshop',
-  'All Kids Welcome','Stay Ready™: Choking Rescue, CPR, and Seizure Response','Campus Ready: Safety Skills for College Life','Steady and Ready','Middle School Ready','Middle School Ready — Virtual',
+  'All Kids Welcome','Stay Ready™: Choking Rescue, CPR, and Seizure Response','Campus Ready: Safety Skills for College Life','Steady and Ready','Middle School Ready','Middle School Ready — Virtual','Lunchroom Lifesaver',
   'My First Babysitters Club','My First Babysitters Club — Single Session',
   'Little Medics','Pet Sitter\'s Club','Snack Squad','Kid Boss Club','Middle School, Here I Come','Big Sibling Club','My First Phone','Walk and Roll Ready','Calm and Ready',
   'Ready. Period.','Season Ready™: Safety Skills for Student Athletes','Social Ready',
