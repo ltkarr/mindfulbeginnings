@@ -19,7 +19,7 @@ body{margin:0;background:#F5F2EA}
 a{color:#1E3161}
 a:hover{color:#0F1D3F}
 .wrap{font-family:'Montserrat',sans-serif;color:#1E3161;background:#F5F2EA;line-height:1.5;font-size:16px}
-.hero{background:#1E3161;color:#F5F2EA;padding:34px 6vw 36px}
+.hero{background:#1E3161;color:#F5F2EA;padding:28px 6vw 30px}
 .hero-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .eyebrow{font-family:'Caveat',cursive;font-size:30px;font-weight:700;color:#EFC75A;line-height:1.1}
 h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
@@ -30,29 +30,29 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 .phone{color:#F5F2EA;font-size:16px;font-weight:700;text-decoration:underline;text-underline-offset:3px;padding:12px 8px}
 .phone:hover{color:#EFC75A}
 .catalog-section{padding:10px 6vw 8px}
-.catalog{max-width:920px;margin:0 auto}
-.jump{margin:22px 0 6px;font-size:16px;font-weight:600;text-align:center;line-height:2}
+.catalog{max-width:1120px;margin:0 auto}
+.jump{position:sticky;top:0;z-index:5;background:#F5F2EA;margin:6px 0 0;padding:10px 0 9px;border-bottom:1px solid rgba(30,49,97,.16);font-size:15px;font-weight:600;line-height:1.9;white-space:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .jump a{text-decoration:none;border-bottom:2px solid #C7A24A;padding-bottom:2px;margin:0 8px;white-space:nowrap}
-.age-block{padding:44px 0 8px}
+.age-block{padding:26px 0 4px;scroll-margin-top:56px;display:grid;grid-template-columns:1fr;column-gap:48px}
+.age-block>*{min-width:0}
+.age-block>h2,.mb-cat-head{grid-column:1/-1}
+@media(min-width:900px){.age-block{grid-template-columns:1fr 1fr}}
 .age-block h2{margin:0 0 10px;font-size:clamp(22px,2.4vw,28px);line-height:1.2;font-weight:800}
 .age-block h2 .mb-h2-script{font-size:1em}
-.mb-cat-head{display:grid;grid-template-columns:1.5fr 1fr;gap:24px;align-items:center;margin-bottom:6px}
-.mb-cat-head figure{margin:0}
-.mb-cat-head .mb-photo{width:100%;aspect-ratio:4/3;object-fit:cover}
-.mb-cat-intro{margin:0;font-size:16.5px;line-height:1.6;color:#33475f;max-width:560px}
-@media(max-width:860px){.mb-cat-head{grid-template-columns:1fr}}
-.course{display:block;text-decoration:none;color:inherit;padding:22px 2px 20px;border-bottom:1px solid rgba(30,49,97,.14)}
+.mb-cat-head{margin-bottom:2px}
+.mb-cat-intro{margin:0;font-size:16.5px;line-height:1.55;color:#33475f;max-width:760px}
+.course{display:block;text-decoration:none;color:inherit;padding:15px 2px 14px;border-bottom:1px solid rgba(30,49,97,.14)}
 .course:last-child{border-bottom:0}
 .course h3{margin:0 0 6px;font-size:21px;line-height:1.3;font-weight:700;color:#1E3161}
 a.course:hover h3{text-decoration:underline;text-underline-offset:3px}
-.course .desc{margin:0 0 8px;font-size:16.5px;line-height:1.55;color:#33475f;max-width:640px}
+.course .desc{margin:0 0 8px;font-size:16.5px;line-height:1.5;color:#33475f}
 .course .meta{margin:0;font-size:15px;font-weight:700;line-height:1.45;color:#1E3161}
 .course .cert{margin:6px 0 0;font-size:15px;font-weight:700;color:#9C7C1E}
-.band{background:#1E3161;color:#F5F2EA;padding:36px 6vw;margin-top:48px}
+.band{background:#1E3161;color:#F5F2EA;padding:32px 6vw;margin-top:30px}
 .band-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
 .band h2{margin:0;font-size:clamp(20px,2.2vw,26px);line-height:1.2;font-weight:800;color:#F5F2EA}
 .band p{margin:0;font-size:16px;max-width:720px;line-height:1.55}
-.custom{padding:48px 6vw 40px}
+.custom{padding:36px 6vw 30px}
 .custom-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:center;max-width:1080px;margin:0 auto}
 .custom h2{margin:0 0 10px;font-size:clamp(22px,2.4vw,28px);line-height:1.2;font-weight:800}
 .custom p{margin:0 0 12px;font-size:16.5px;max-width:640px;line-height:1.6;color:#33475f}
@@ -93,7 +93,7 @@ a.course:hover h3{text-decoration:underline;text-underline-offset:3px}
 <div class="catalog">
 <p class="jump"><a href="#ages-8-10">Ages 8&ndash;10</a><a href="#ages-10-12">Ages 10&ndash;12</a><a href="#ages-11-14">Ages 11&ndash;14</a><a href="#student-athletes">Student athletes</a><a href="#high-school">High school</a><a href="#parents-caregivers">Parents &amp; caregivers</a></p>
 <section class="age-block" id="ages-8-10">
-<div class="mb-cat-head"><div><h2>Ages 8&ndash;10 <span class="mb-h2-script">first steps to independence</span></h2><p class="mb-cat-intro">Home-alone safety, parent's helper basics, and online smarts for younger kids taking their first steps toward independence.</p></div><figure><img class="mb-photo" src="/images/host/host-safe-at-home-diaper.jpg" alt="A young student practicing diaper changing in class" loading="lazy"></figure></div>
+<div class="mb-cat-head"><div><h2>Ages 8&ndash;10 <span class="mb-h2-script">first steps to independence</span></h2><p class="mb-cat-intro">Home-alone safety, parent's helper basics, and online smarts for younger kids taking their first steps toward independence.</p></div></div>
 <a class="course" href="/host.html" data-group="ages-8-10" data-key="safe-at-home">
 <h3>Safe@Home by Safe Sitter®</h3>
 <p class="desc">A class that prepares kids to stay home alone safely and know what to do if something goes wrong.</p>
@@ -116,7 +116,7 @@ a.course:hover h3{text-decoration:underline;text-underline-offset:3px}
 </a>
 </section>
 <section class="age-block" id="ages-10-12">
-<div class="mb-cat-head"><div><h2>Ages 10&ndash;12 <span class="mb-h2-script">growing independence</span></h2><p class="mb-cat-intro">The bridge to babysitting. Kids build on home-alone confidence and start learning what it takes to care for younger children.</p></div><figure><img class="mb-photo" src="/images/host/host-safe-sitter-setup.jpg" alt="A Safe Sitter class set up and ready to go" loading="lazy"></figure></div>
+<div class="mb-cat-head"><div><h2>Ages 10&ndash;12 <span class="mb-h2-script">growing independence</span></h2><p class="mb-cat-intro">The bridge to babysitting. Kids build on home-alone confidence and start learning what it takes to care for younger children.</p></div></div>
 <a class="course" href="/host.html" data-group="ages-10-12" data-key="intro">
 <h3>Introduction to Safe Babysitting by Safe Sitter®</h3>
 <p class="desc">An introduction to the basics of caring for younger children.</p>
@@ -134,7 +134,7 @@ a.course:hover h3{text-decoration:underline;text-underline-offset:3px}
 </a>
 </section>
 <section class="age-block" id="ages-11-14">
-<div class="mb-cat-head"><div><h2>Ages 11&ndash;14 <span class="mb-h2-script">babysitting &amp; beyond</span></h2><p class="mb-cat-intro">Full babysitter training, CPR certification, and life skills for teens ready to earn, lead, and handle emergencies.</p></div><figure><img class="mb-photo" src="/images/host/host-safe-sitter-graduates.jpg" alt="Teens with their Safe Sitter completion cards" loading="lazy"></figure></div>
+<div class="mb-cat-head"><div><h2>Ages 11&ndash;14 <span class="mb-h2-script">babysitting &amp; beyond</span></h2><p class="mb-cat-intro">Full babysitter training, CPR certification, and life skills for teens ready to earn, lead, and handle emergencies.</p></div></div>
 <a class="course" href="/host.html" data-group="ages-11-14" data-key="essentials">
 <h3>Safe Sitter® Babysitting Essentials</h3>
 <p class="desc">Babysitting essentials for new sitters: safety, child care basics, behavior management, and choking rescue, with hands-on practice and a Safe Sitter® completion card.</p>
@@ -184,7 +184,7 @@ a.course:hover h3{text-decoration:underline;text-underline-offset:3px}
 </a>
 </section>
 <section class="age-block" id="high-school">
-<div class="mb-cat-head"><div><h2>High School <span class="mb-h2-script">off to college</span></h2><p class="mb-cat-intro">Campus safety, first aid, and CPR certification. Everything they need before they leave home.</p></div><figure><img class="mb-photo" src="/images/host/host-campus-ready-living-room-v3.jpg" alt="A Campus Ready class in a family living room" loading="lazy"></figure></div>
+<div class="mb-cat-head"><div><h2>High School <span class="mb-h2-script">off to college</span></h2><p class="mb-cat-intro">Campus safety, first aid, and CPR certification. Everything they need before they leave home.</p></div></div>
 <a class="course" href="/host.html" data-group="high-school" data-key="campus-ready">
 <h3>Campus Ready™</h3>
 <p class="desc">A class taught by registered nurses that prepares students to stay safe and help a friend in an emergency during college life.</p>
