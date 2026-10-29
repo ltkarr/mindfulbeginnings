@@ -54,6 +54,7 @@ const EXPECTED = [
   ["ages-8-10", "social-ready", "Social Ready™", "Ages 8 to 14 · 60-minute · In-person or virtual · $45 per person", "An interactive workshop that teaches phone safety, digital boundaries, handling group chats, and recognizing red flags before kids head online.", null],
   ["ages-10-12", "intro", "Introduction to Safe Babysitting by Safe Sitter®", "Ages 10 to 12 · 60-minute · In-person or virtual · $40 per person", "An introduction to the basics of caring for younger children.", null],
   ["ages-10-12", "ready-period", "Ready. Period.™", "Girls ages 10 to 12 · 90-minute · In-person or virtual · $75 per person", "A hands-on workshop for girls that pairs a period pouch craft with nurse-led teaching about puberty and body care.", null],
+  ["ages-10-12", "middle-school-ready", "Middle School Ready™", "Grades 5 to 7 · 60-minute in person · $40 per person · 60-minute virtual · $25 per person", "A workshop that helps new middle schoolers navigate the building, the rules, and the adults, with practice asking for help, being heard, and handling misunderstandings.", null],
   ["ages-11-14", "essentials", "Safe Sitter® Babysitting Essentials", "Ages 11 to 14 · 4-hour · In person · $185 per person", "Babysitting essentials for new sitters: safety, child care basics, behavior management, and choking rescue, with hands-on practice and a Safe Sitter® completion card.", null],
   ["ages-11-14", "sitter-cpr", "Safe Sitter® Babysitting with CPR Module", "Ages 11 to 14 · 5-hour · In person · $225 per person", "Safe Sitter® plus a hands-on CPR module, for sitters who want the practice without an official CPR certification.", null],
   ["ages-11-14", "babysitters-training", "Babysitter's Training", "Ages 11 to 15 · 4.25-hour · In person · $185 per person", "Child care, safety, and leadership skills for beginning babysitters, with hands-on practice.", "American Red Cross course"],
@@ -106,7 +107,7 @@ test('classes are simple text rows with no pills, bands, or best-if boxes', () =
 });
 
 test('booking, custom programs, and group CPR links stay on this site', () => {
-  assert.equal((page.match(/href="\/host\.html"/g) || []).length, 24);
+  assert.equal((page.match(/href="\/host\.html"/g) || []).length, 25);
   assert.match(page, /href="\/contact\.html"/);
   assert.match(page, /Request a custom program/);
   assert.match(page, /We design tailored programs around your audience/);

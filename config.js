@@ -127,6 +127,13 @@ const COURSES={
   // $50, which Lindsay confirmed is a typo in the guide, not a price change.
   // Published length is 60 minutes.
   'Steady and Ready':{price:65,price2027:65,priceNew:65,priceNew2027:65,matCost:10,hours:1,maxStudents:8,audience:'Ages 8 to 12'},
+  // Middle School Ready (new Oct 29 2026): 60-minute workshop on navigating
+  // middle school for students entering or starting it — asking for help and
+  // being heard, handling misunderstandings, finding trusted adults. $40 in
+  // person; the virtual version is its own key at $25, like Safe@Home.
+  // Any instructor may teach it.
+  'Middle School Ready':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:0,hours:1,maxStudents:20,audience:'Grades 5 to 7'},
+  'Middle School Ready — Virtual':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Grades 5 to 7 · Virtual'},
   // My First Babysitters Club: the 8-week series is $200 per participant for
   // sessions created on/after Oct 19 2026 (see LATER_PRICE_CHANGES). Earlier
   // sessions stay at the price they were booked at ($165 after Aug 26 2026).
@@ -421,6 +428,8 @@ const MAX_STUDENTS={
   'Stay Ready™: Choking Rescue, CPR, and Seizure Response':12,
   'Campus Ready: Safety Skills for College Life':12,
   'Steady and Ready':8,
+  'Middle School Ready':20,
+  'Middle School Ready — Virtual':20,
   'My First Babysitters Club':16,
   'My First Babysitters Club — Single Session':16,
   'Little Medics':16,

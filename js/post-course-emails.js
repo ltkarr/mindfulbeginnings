@@ -129,6 +129,16 @@
       ]
     },
     {
+      keys: ['Middle School Ready', 'Middle School Ready — Virtual'],
+      subject: 'Middle School Ready',
+      greeting: 'Hi there,',
+      taker: 'have your child complete',
+      paragraphs: [
+        'Thank you for choosing Middle School Ready. Your child practiced how to navigate a new building and a new set of adults: asking for help and being heard, speaking up calmly when something feels unfair, and finding the trusted adults they can go to.',
+        'The first weeks of middle school are the hardest. Ask them to walk you through their plan for a tough moment: who they would go to, and what they would say. Knowing they have words ready makes the real moment so much easier.'
+      ]
+    },
+    {
       keys: ['My First Babysitters Club', 'My First Babysitters Club — Single Session'],
       subject: 'Club\'s in session',
       greeting: 'Hi there,',

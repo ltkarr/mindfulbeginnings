@@ -37,6 +37,8 @@ const COURSES={
   "Stay Ready™: Choking Rescue, CPR, and Seizure Response":{hours:1.25,maxStudents:12,requiresRN:true},
   "Campus Ready: Safety Skills for College Life":{hours:1,maxStudents:12,instrFlatFee:100,requiresRN:true},
   "Steady and Ready":{hours:1,maxStudents:8},
+  "Middle School Ready":{hours:1,maxStudents:20},
+  "Middle School Ready — Virtual":{hours:1,maxStudents:20,instrFlatFee:75,virtual:true},
   "My First Babysitters Club":{hours:1,maxStudents:16},
   "My First Babysitters Club — Single Session":{hours:2.5,maxStudents:16},
   "Little Medics":{hours:1,maxStudents:16},
