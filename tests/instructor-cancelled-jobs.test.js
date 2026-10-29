@@ -77,6 +77,7 @@ function loadPortal() {
       'function scheduleHTML(){return ""}',
       'function locationHTML(){return ""}',
       'function goodToKnowHTML(){return ""}',
+      'function safeAtHomeClassChecklistHTML(){return ""}',
       'function portalMaps(){return ""}',
       'function portalPlace(s){return (s&&s.location)||""}',
       'function fmtSessDates(s){return s.date}',
