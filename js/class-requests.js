@@ -408,6 +408,42 @@
     return (v >= 1 && v <= 80) ? v : null;
   }
 
+  function gradeTokenToTroopLevel(token) {
+    var t = String(token || '').trim().toLowerCase();
+    if (t === 'k' || t === 'kindergarten') return 'daisy';
+    var n = parseInt(t, 10);
+    if (!isFinite(n)) return null;
+    if (n === 1) return 'daisy';
+    if (n === 2 || n === 3) return 'brownie';
+    if (n === 4 || n === 5) return 'junior';
+    if (n >= 6 && n <= 8) return 'cadette';
+    if (n === 9 || n === 10) return 'senior';
+    if (n === 11 || n === 12) return 'ambassador';
+    return null;
+  }
+
+  function troopLevelFromText(text) {
+    var raw = String(text || '');
+    if (!raw.trim()) return null;
+    var body = raw.split(/\n/).filter(function (line) { return !/^\s*clubs\s*:/i.test(line); }).join('\n');
+    var words = { daisies: 'daisy', daisy: 'daisy', brownies: 'brownie', brownie: 'brownie', juniors: 'junior', junior: 'junior', cadettes: 'cadette', cadette: 'cadette', seniors: 'senior', senior: 'senior', ambassadors: 'ambassador', ambassador: 'ambassador' };
+    var found = {};
+    var re = /\b(daisies|daisy|brownies|brownie|juniors|junior|cadettes|cadette|seniors|senior|ambassadors|ambassador)\b/ig;
+    var m;
+    while ((m = re.exec(body))) found[words[m[1].toLowerCase()]] = true;
+    var ids = Object.keys(found);
+    if (ids.length === 1) return ids[0];
+    if (ids.length > 1) return null;
+    var grades = {};
+    var single = /\b(?:grades?\s+)?(kindergarten|\d{1,2})(?:st|nd|rd|th)?\s+graders?\b/ig;
+    while ((m = single.exec(body))) {
+      var id = gradeTokenToTroopLevel(m[1]);
+      if (id) grades[id] = true;
+    }
+    var gradeIds = Object.keys(grades);
+    return gradeIds.length === 1 ? gradeIds[0] : null;
+  }
+
   function mapBilling(input) {
     input = input || {};
     var catalog = input.catalogPrice;
@@ -720,6 +756,7 @@
       bill_to_org: n.billing.billToOrg || null,
       billed_headcount: n.billing.billedHeadcount == null ? null : n.billing.billedHeadcount,
       participants_expected: parseParticipantCount(n.expectedCount),
+      troop_level: troopLevelFromText([n.badge, n.organizationName, n.expectedCount, n.course && n.course.course].filter(Boolean).join('\n')),
       org_portion: n.billing.orgPortion == null ? null : n.billing.orgPortion,
       extra_dates: extra.map(function (d) { return d.date; }),
       extra_days: extra.map(function (d) { return { date: d.date, time: d.time || '' }; }),
@@ -945,6 +982,7 @@
     datedCode: datedCode,
     uniqueCode: uniqueCode,
     parseParticipantCount: parseParticipantCount,
+    troopLevelFromText: troopLevelFromText,
     buildSessionRow: buildSessionRow,
     buildDraft: buildDraft,
     checklistAfterSubmit: checklistAfterSubmit,
