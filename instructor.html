@@ -1138,6 +1138,22 @@ function notesHTML(s){
   return`<div class="jc-section"><div class="jc-section-t">Notes</div>
     <div class="notes-box">${escapeHtml(n).replace(/\n/g,'<br>')}</div></div>`;
 }
+// Safe@Home classes (SAH- and SAHV- codes, plus every Safe@Home course name)
+// get the same kind of student-evaluation step Safe Sitter puts on its
+// teaching checklist. No Safe@Home student evaluation form is linked from
+// this portal or the resource center, so the step names the task only.
+const SAFE_AT_HOME_EVAL_STEP='Have students complete the Safe@Home student evaluation';
+function sessionIsSafeAtHome(s){
+  if(!s)return false;
+  const code=String(s.code||'').trim().toUpperCase();
+  if(/^SAH(V|S)?-/.test(code))return true;
+  return /safe\s*@\s*home|safe\s+at\s+home|safeathome/i.test(String(s.course||''));
+}
+function safeAtHomeClassChecklistHTML(s){
+  if(!sessionIsSafeAtHome(s))return '';
+  return `<div class="jc-section"><div class="jc-section-t">Class checklist</div>
+    <div style="font-size:14px;line-height:1.6">☐ ${escapeHtml(SAFE_AT_HOME_EVAL_STEP)}</div></div>`;
+}
 // "Good to know": the admin's instructor-facing job details, plus what the course needs.
 function goodToKnowHTML(s){
   const c=COURSES[s.course]||{};
@@ -2204,6 +2220,7 @@ function renderMyJobs(){
       ${scheduleHTML(s)}
       ${locationHTML(s,true,privCache[s.id],mapLink)}
       ${goodToKnowHTML(s)}
+      ${cx?'':safeAtHomeClassChecklistHTML(s)}
       <div style="height:14px"></div>
       ${payHtml}
       ${jdi.notes?`<div style="font-size:14px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:var(--r-sm)">📝 ${escapeHtml(jdi.notes)}</div>`:''}
@@ -3556,7 +3573,12 @@ const FAQ_SECTIONS=[
     ['','These are the video files that can be saved in the event that Wi-Fi is not strong. They can be played in a media player. You can save them to the laptop. See the full download list in Instructor Resources below.']
   ]}
 ]},
-{title:'4. Hands-on CPR and choking practice',blocks:[
+{title:'4. Teaching Safe@Home',blocks:[
+  {sub:'Student evaluation',items:[
+    ['Before the class ends.','Have students complete the Safe@Home student evaluation. This covers the 90-minute class, the virtual class, the series, and any session coded SAH- or SAHV-.']
+  ]}
+]},
+{title:'5. Hands-on CPR and choking practice',blocks:[
   {items:[
     ['Manikins only.','Students practice compressions, rescue breaths, back blows, and abdominal thrusts on the manikins. They never practice on each other, and you never demonstrate on a student.'],
     ['Plan for the floor.','The child manikin is a torso, not a full body. It goes on the floor and students kneel beside it to practice. Clear enough floor space for the whole group to kneel comfortably, and tell students in advance so they dress for it.'],
@@ -3565,7 +3587,7 @@ const FAQ_SECTIONS=[
     ['Supervise closely.','Stay on your feet and circulate during practice so you can correct positioning and stop horseplay before it starts.']
   ]}
 ]},
-{title:'5. Equipment and technology',blocks:[
+{title:'6. Equipment and technology',blocks:[
   {sub:'Manikins',items:[
     ['Before class.','Install fresh lung bags. Install batteries if needed. Screwdrivers are provided to help with battery installation.'],
     ['No indicator lights.','Remove and reinstall the batteries. This resolves most power issues.'],
@@ -3579,7 +3601,7 @@ const FAQ_SECTIONS=[
     ['Total tech failure.','Teach the course cleanly without slides. Rely on your instructor guide, stay calm, and keep the class moving.']
   ]}
 ]},
-{title:'6. Virtual classes (Zoom)',blocks:[
+{title:'7. Virtual classes (Zoom)',blocks:[
   {items:[
     ['Account.','An active Zoom account is required. A free personal account is sufficient.'],
     ['Join.','Use the meeting link Lindsay sends before the session.'],
@@ -3597,7 +3619,7 @@ const FAQ_SECTIONS=[
     ['','Claim host inside the meeting with host key 385515 (Participants, then Claim Host).']
   ]}
 ]},
-{title:'7. Schedule changes and cancellations',blocks:[
+{title:'8. Schedule changes and cancellations',blocks:[
   {sub:'If you need to cancel a job',items:[
     ['More than one week out.','Cancel through the portal.'],
     ['Fewer than 48 hours out.','Securing a replacement is your responsibility. Contact the instructor sub list right away.'],
@@ -3611,7 +3633,7 @@ const FAQ_SECTIONS=[
     ['Materials.','Return them to the storage box within 48 hours.']
   ]}
 ]},
-{title:'8. After class',blocks:[
+{title:'9. After class',blocks:[
   {sub:'Returning materials',items:[
     ['Drop-off.','Return all materials to the locked storage box at 8803 Bradmoor Drive, Bethesda, MD 20817 within 48 hours of course completion. For a multi-week series, return materials after your final class.'],
     ['Condition.','Return everything, including extra supplies, neatly and in original condition.'],
@@ -3623,7 +3645,7 @@ const FAQ_SECTIONS=[
     ['Cancelled courses.','A course that does not take place is unpaid, with one exception: a course cancelled on the scheduled class day is paid in full.']
   ]}
 ]},
-{title:'9. Professional expectations',blocks:[
+{title:'10. Professional expectations',blocks:[
   {items:[
     ['ID badges.','Wear your official Mindful Beginnings ID badge while teaching and bring it to every in-person session.'],
     ['Private course referrals.','Earn a $50 bonus when a private, in-home course you referred is successfully held with a minimum of 6 participants.'],
@@ -3632,7 +3654,7 @@ const FAQ_SECTIONS=[
     ['Questions?','Contact Lindsay \u00b7 703-987-5979 \u00b7 lindsay@mindfulbeginnings.org']
   ]}
 ]},
-{title:'10. After School Clubs',blocks:[
+{title:'11. After School Clubs',blocks:[
   {sub:'How clubs run',items:[
     ['Ten clubs.','My First Babysitter\'s Club (ages 8 to 10), Little Medics (ages 5 to 8), Pet Sitter\'s Club (ages 8 to 11), Snack Squad (ages 7 to 11), Kid Boss Club (ages 9 to 11), Middle School, Here I Come (ages 10 to 11), Big Sibling Club (ages 5 to 9), My First Phone (ages 9 to 11), Walk and Roll Ready (ages 7 to 11), and Calm and Ready (ages 5 to 11).'],
     ['Schedule.','One hour a week after dismissal. My First Babysitter\'s Club is an 8-week series only. The other clubs run 8 or 10 weeks. More than one club can run at the same time in different rooms.'],
