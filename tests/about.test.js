@@ -96,7 +96,7 @@ test('hero is just the script title now that the header carries the tagline', ()
 });
 
 test('team cards match the uploaded people, in section order, with exact bios', () => {
-  assert.equal(people.length, 29);
+  assert.equal(people.length, 28);
   const found = cards();
   assert.equal(found.length, people.length);
   const headings = [...page.matchAll(/<h2>([\s\S]*?)<\/h2>/g)].map((hit) => decode(hit[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()));
@@ -124,8 +124,8 @@ test('team cards match the uploaded people, in section order, with exact bios', 
 test('each person is a button that opens a bio dialog', () => {
   assert.doesNotMatch(page, /Expand all bios/);
   assert.doesNotMatch(page, /expand-bios/);
-  assert.equal((page.match(/class="bio" hidden/g) || []).length, 30);
-  assert.equal((page.match(/<button type="button" class="card"/g) || []).length, 30);
+  assert.equal((page.match(/class="bio" hidden/g) || []).length, 29);
+  assert.equal((page.match(/<button type="button" class="card"/g) || []).length, 29);
   assert.match(page, /<dialog class="bio-dialog" id="bio-dialog"/);
   assert.match(page, /<button type="button" class="bio-close">Close<\/button>/);
   assert.match(page, /dialog\.showModal\(\)/);
