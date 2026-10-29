@@ -30,6 +30,7 @@ const names = [
   'participantMaterialAllowance',
   'processingFee', 'isLiveReg', 'regEffectivePrice',
   'paidTravelHoursOf', 'sessionTeachingHours', 'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
+  'payOverrideIsSet', 'sessionJobData', 'sessionPrimaryInstructorId', 'instrEstimateFee', 'instructorCostIsEstimate',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'calcFin', 'round2', 'financeYearFigures', 'partnerDirectCosts', 'loadEditCosts'
 ];
@@ -75,7 +76,7 @@ test('a Safe Sitter class no longer subtracts the per-student handbook rate from
   sandbox.jobDataCache = {};
   const fin = sandbox.calcFin(session);
   const revenue = 8 * (225 - fee(225));
-  const instructor = 5 * 50 + 50 + 0.5 * 50; // hours + travel + extra half hour
+  const instructor = 5 * 75 + 75 + 0.5 * 75; // unassigned: Lead Teacher estimate, hours + travel + extra half hour
   const oldHandbook = 8 * 20.35;
 
   assert.equal(fin.matCost, 0);

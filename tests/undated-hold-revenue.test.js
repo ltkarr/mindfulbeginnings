@@ -33,6 +33,7 @@ const names = [
   'participantMaterialAllowance',
   'processingFee', 'isLiveReg', 'regEffectivePrice',
   'paidTravelHoursOf', 'sessionTeachingHours', 'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
+  'payOverrideIsSet', 'sessionJobData', 'sessionPrimaryInstructorId', 'instrEstimateFee', 'instructorCostIsEstimate',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'calcFin',
   'holdPaymentReceived', 'undatedHoldMoneyIn',

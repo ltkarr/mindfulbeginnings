@@ -34,6 +34,7 @@ const names = [
   'expenseLedger', 'linkedExpenses', 'linkedExpenseTotal',
   'isLiveReg', 'regEffectivePrice', 'processingFee',
   'paidTravelHoursOf', 'sessionTeachingHours', 'instrBaseFee', 'instrDisplayFee', 'secondInstrDisplayFee',
+  'payOverrideIsSet', 'sessionJobData', 'sessionPrimaryInstructorId', 'instrEstimateFee', 'instructorCostIsEstimate',
   'orgPortionAmount', 'familyPrice', 'orgBillRate', 'orgRevenueHeadcount', 'orgBillAmount',
   'holdPaymentReceived', 'orgOrJobFeeReceived',
   'splitBillCaption', 'sessionRevenueNotes',
