@@ -91,7 +91,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 
 /* ---------- layout helpers ---------- */
 .mb-wrap{max-width:1080px;margin:0 auto}
-.mb-section{padding:36px 6vw}
+.mb-section{padding:28px 6vw}
 .mb-section-cream{background:var(--cream)}
 .mb-section-white{background:var(--white)}
 .mb-section-navy{background:var(--navy);color:var(--cream)}
@@ -105,7 +105,7 @@ p{margin:0 0 10px}
 p:last-child{margin-bottom:0}
 
 /* ---------- hero ---------- */
-.mb-hero{background:var(--navy);color:var(--cream);padding:30px 6vw 34px}
+.mb-hero{background:var(--navy);color:var(--cream);padding:26px 6vw 28px}
 .mb-hero-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .mb-hero h1{color:var(--cream)}
 .mb-eyebrow{font-family:'Caveat',cursive;font-size:30px;font-weight:700;color:var(--btn-gold);line-height:1.1}
@@ -201,8 +201,8 @@ p:last-child{margin-bottom:0}
 }
 .mb-photo-alt{transform:rotate(1.5deg)}
 .mb-caption{font-family:'Caveat',cursive;font-size:26px;font-weight:700;color:var(--btn-gold);margin-top:14px;transform:rotate(-2deg);text-align:center}
-.mb-hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
-.mb-split{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.mb-hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center}
+.mb-split{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center}
 @media(max-width:860px){
   .mb-hero-grid,.mb-split{grid-template-columns:1fr;gap:28px}
   .mb-photo{transform:rotate(-1deg)}
@@ -241,7 +241,7 @@ p:last-child{margin-bottom:0}
   .mb-header{padding:12px 5vw}
   .mb-wordmark{font-size:17px}
   .mb-hero{padding:24px 6vw 28px}
-  .mb-section{padding:26px 6vw}
+  .mb-section{padding:22px 6vw}
 }
 
 .mb-social{position:absolute;right:0;bottom:0;display:inline-flex;gap:14px}
@@ -249,9 +249,9 @@ p:last-child{margin-bottom:0}
 .mb-social a:hover{color:var(--btn-gold)}
 .mb-social svg{width:30px;height:30px;display:block}
 
-.mb-cta-band{padding:72px 6vw}
+.mb-cta-band{padding:44px 6vw}
 .mb-cta-band .mb-actions{margin-top:14px}
-.mb-cta-band h2{max-width:800px}
+.mb-cta-band h2{max-width:800px;margin-left:auto;margin-right:auto}
 
 .mb-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
 .mb-gallery figure{margin:0}

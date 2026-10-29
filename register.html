@@ -14,7 +14,7 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="apple-touch-icon" href="/email-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="/site.css?v=16">
+<link rel="stylesheet" href="/site.css?v=17">
 <!-- Pinned. crossorigin is safe here: jsDelivr sends Access-Control-Allow-Origin: *. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js" crossorigin="anonymous"></script>
@@ -44,7 +44,7 @@
 }
 body{font-family:'Montserrat',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:16px;line-height:1.55}
 button,input,select,textarea{font-family:inherit}
-.hero{background:#1E3161;color:#F5F2EA;padding:48px 6vw 40px;text-align:center}
+.hero{background:#1E3161;color:#F5F2EA;padding:30px 6vw 26px;text-align:center}
 .hero h1{font-family:'Montserrat',sans-serif;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800;margin:0 0 12px}
 .hero p{font-size:16px;font-weight:500;line-height:1.55;max-width:640px;margin:0 auto}
 .steps-wrap{background:#fff;border-bottom:2px solid #C7A24A}
@@ -57,11 +57,11 @@ button,input,select,textarea{font-family:inherit}
 .step-label{font-size:15px;font-weight:700;color:var(--muted)}
 .step.active .step-label{color:var(--navy)}
 .step.done .step-label{color:var(--navy)}
-main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
+main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 .screen{display:none}.screen.active{display:block;animation:fadeIn .25s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @media (prefers-reduced-motion:reduce){.screen.active{animation:none}}
-.code-card{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);padding:32px 28px;text-align:center;margin-bottom:20px}
+.code-card{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);padding:24px 22px;text-align:center;margin-bottom:20px}
 .code-icon{width:56px;height:56px;background:#FBF6E4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px}
 .code-card h2{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800;line-height:1.25;margin:0 0 8px;color:var(--navy)}
 .code-card p{color:var(--text);font-size:15px;margin:0 auto 22px;max-width:420px;line-height:1.55}
@@ -172,9 +172,9 @@ main{max-width:720px;margin:0 auto;padding:36px 6vw 64px}
 .perm-item.err{border-color:var(--danger);background:#FDF2F0}
 .waiver-check input[type=checkbox]{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:var(--navy);cursor:pointer}
 @media(max-width:520px){
-  .hero{padding:32px 5vw 28px}
+  .hero{padding:24px 5vw 20px}
   .hero h1{font-size:28px}
-  main{padding:24px 5vw 48px}
+  main{padding:20px 5vw 36px}
   .code-card{padding:24px 16px}
   .fgrid{grid-template-columns:1fr}.fgrid .full{grid-column:1}
   .step-label{display:block;font-size:10.5px}
