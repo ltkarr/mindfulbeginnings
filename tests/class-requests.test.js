@@ -229,6 +229,9 @@ test('multi-day organization text follows the Beth El SS-261102 extra-day shape'
   assert.equal(plan.row.bill_to_org, 'Congregation Beth El');
   assert.equal(plan.row.billed_headcount, 10);
   assert.equal(plan.row.participants_expected, 10);
+  const brownie = model.buildSessionRow(model.normalizeSubmission(orgBody({ badge: 'Brownie First Aid' })), []);
+  assert.equal(brownie.created, true);
+  assert.equal(brownie.row.troop_level, 'brownie');
   assert.equal(plan.row.has_host, false);
   assert.equal(plan.row.is_private, true);
   assert.equal(plan.row.is_hold, false);

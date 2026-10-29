@@ -921,7 +921,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),troopLevel:r.troop_level||null,extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -1001,6 +1001,10 @@ let FEE_RECEIVED_COL=true;
 // Anon is not granted this column. See migrations/20261029_participants_expected.sql.
 let PARTICIPANTS_EXPECTED_COL=true;
 const PARTICIPANTS_EXPECTED_SQL_TOAST='⚠️ Saved, but WITHOUT Participants expected — run migrations/20261029_participants_expected.sql in the Supabase SQL editor, then re-save this session.';
+// Girl Scout troop level for the packing list. Null means not chosen.
+// Anon is not granted this column. See migrations/20261029_troop_level.sql.
+let TROOP_LEVEL_COL=true;
+const TROOP_LEVEL_SQL_TOAST='⚠️ Saved, but WITHOUT Troop level — run migrations/20261029_troop_level.sql in the Supabase SQL editor, then re-save this session.';
 const FEE_RECEIVED_SQL_TOAST='⚠️ Saved, but WITHOUT the received mark — run migrations/fee_received.sql in the Supabase SQL editor, then mark it received again.';
 // Organization registration: public limit 0, no session code, hidden from
 // public listings. Anon never reads this column; the public RPCs enforce it.
@@ -1103,6 +1107,10 @@ function sessionToDB(s){
     const n=s.participantsExpected;
     o.participants_expected=(n==null||n==='')?null:(Number(n)>0?Math.floor(Number(n)):null);
   }
+  if((typeof TROOP_LEVEL_COL==='undefined'||TROOP_LEVEL_COL)&&s.troopLevel!==undefined){
+    const level=String(s.troopLevel||'').trim().toLowerCase();
+    o.troop_level=level&&typeof troopLevelLabel==='function'&&troopLevelLabel(level)?level:null;
+  }
   return o;
 }
 // Which optional column PostgREST rejected, if any. A missing column fails the
@@ -1129,6 +1137,7 @@ function sessionUpsertRejectColumn(msg){
   if((typeof PAID_TRAVEL_HOURS_COL==='undefined'||PAID_TRAVEL_HOURS_COL)&&/paid_travel_hours/i.test(msg))return 'paid_travel';
   if((typeof TEACHING_HOURS_COL==='undefined'||TEACHING_HOURS_COL)&&/teaching_hours/i.test(msg))return 'teaching_hours';
   if((typeof PARTICIPANTS_EXPECTED_COL==='undefined'||PARTICIPANTS_EXPECTED_COL)&&/participants_expected/i.test(msg))return 'participants_expected';
+  if((typeof TROOP_LEVEL_COL==='undefined'||TROOP_LEVEL_COL)&&/troop_level/i.test(msg))return 'troop_level';
   return '';
 }
 function applySessionUpsertReject(which,flags){
@@ -1150,10 +1159,11 @@ function applySessionUpsertReject(which,flags){
   else if(which==='paid_travel'){PAID_TRAVEL_HOURS_COL=false;flags.missingPaidTravel=true;}
   else if(which==='teaching_hours'){TEACHING_HOURS_COL=false;flags.missingTeachingHours=true;}
   else if(which==='participants_expected'){PARTICIPANTS_EXPECTED_COL=false;flags.missingParticipantsExpected=true;}
+  else if(which==='troop_level'){TROOP_LEVEL_COL=false;flags.missingTroopLevel=true;}
   return !!which;
 }
 function blankSessionUpsertFlags(){
-  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false,missingParticipantsExpected:false};
+  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false,missingParticipantsExpected:false,missingTroopLevel:false};
 }
 // Every session write goes through here: course sessions, custom jobs, holds,
 // publish, cancel. One unknown column used to abort custom-job and hold saves
@@ -1195,6 +1205,7 @@ function sessionOptionalColToast(f){
   if(f.missingSpanishCol)return SPANISH_COL_SQL_TOAST;
   if(f.missingPaidTravel||f.missingTeachingHours)return '⚠️ Saved, but WITHOUT class length / paid travel hours — run migrations/20261020_paid_travel_hours.sql in the Supabase SQL editor, then re-save this session.';
   if(f.missingParticipantsExpected)return PARTICIPANTS_EXPECTED_SQL_TOAST;
+  if(f.missingTroopLevel)return TROOP_LEVEL_SQL_TOAST;
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
   return '';
@@ -8123,6 +8134,7 @@ function openAddSession(){
       </div>
     </div>
     ${participantsExpectedFieldHtml(null)}
+    ${troopLevelFieldHtml(null)}
     <div class="fg full"><label>Host registration</label>
       <select id="m-hashost"><option value="yes">Allow host registration (private home)</option><option value="no">No host — public venue</option></select></div>
     <div class="fg full"><label>WiFi info <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="m-wifi" placeholder="e.g. Network: HomeWifi · Password: abc123"></div>
@@ -8305,6 +8317,7 @@ function openAddCustomJob(){
     <div class="fg full"><label>Notes / job description <span style="font-weight:400;color:var(--muted)">(optional — what the instructor needs to know)</span></label>
       <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
     ${participantsExpectedFieldHtml(null,'cj-expected')}
+    ${troopLevelFieldHtml(null,'cj-troop-level')}
     ${adminPrivateNotesFieldHtml('')}
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCustomJob()">Add job</button></div>`);
@@ -8426,10 +8439,12 @@ async function saveCustomJob(){
   if(!confirmNotDuplicate({course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,isVirtual:false,isCancelled:false},null))return;
   const participantsExpected=readParticipantsExpected('cj-expected');
   if(Number.isNaN(participantsExpected)){alert('Participants expected needs to be blank, or a whole number of 1 or more.');return;}
+  const troopLevel=readTroopLevel('cj-troop-level');
   if(_savingSession)return; _savingSession=true;
   try{
   const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,orgHandlesRegistration,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg,feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
   if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
+  if(troopLevel!==undefined)s.troopLevel=troopLevel;
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
@@ -8583,6 +8598,7 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>Notes / job description</label>
       <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea></div>
     ${participantsExpectedFieldHtml(s,'cj-expected')}
+    ${troopLevelFieldHtml(s,'cj-troop-level')}
     ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
 </div></details>
   </div>
@@ -8640,9 +8656,11 @@ async function saveEditCustomJob(id){
   const holdPayment=isHold?(document.getElementById('cj-hold-payment')?.value||''):'';
   const participantsExpected=readParticipantsExpected('cj-expected');
   if(Number.isNaN(participantsExpected)){alert('Participants expected needs to be blank, or a whole number of 1 or more.');return;}
+  const troopLevel=readTroopLevel('cj-troop-level');
   const prevSnapshot={...s};
   Object.assign(s,{code,orgHandlesRegistration,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg,feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
   if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
+  if(troopLevel!==undefined)s.troopLevel=troopLevel;
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
   {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;feeReceivedMissing=!!_r.missingFeeReceived;orgRegMissing=!!_r.missingOrgReg;}
@@ -8926,6 +8944,7 @@ ${lockboxFieldHtml(s)}
       </div>
     </div>
     ${participantsExpectedFieldHtml(s)}
+    ${troopLevelFieldHtml(s)}
     <div class="fg full"><label>WiFi info <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="m-wifi" value="${s.wifiInfo||''}" placeholder="e.g. Network: HomeWifi · Password: abc123"></div>
     ${externalRegistrationFieldHtml(s)}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
@@ -9077,6 +9096,7 @@ async function saveSession(editId){
   if(!confirmNotDuplicate({course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,isVirtual,isCancelled:false},editId||null))return;
   const participantsExpected=readParticipantsExpected('m-expected');
   if(Number.isNaN(participantsExpected)){alert('Participants expected needs to be blank, or a whole number of 1 or more.');return;}
+  const troopLevel=readTroopLevel('m-troop-level');
   if(_savingSession)return; _savingSession=true;
   try{
   let s, prevSnapshot=null;
@@ -9090,6 +9110,7 @@ async function saveSession(editId){
   }
   const matChoice=sessionMaterialsFromForm(editId);
   if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
+  if(troopLevel!==undefined)s.troopLevel=troopLevel;
   closeModal();renderSessions();renderDashboard();renderCodes();
   // Save session first, then job data (so foreign key is satisfied).
   // Supabase returns errors on the result object (it does not throw for RLS / constraint failures),
@@ -11605,6 +11626,7 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
       materialsOutAt:jd.materialsOutAt||null,
       registered:registered,
       expected:expected,
+      troopPhrase:packingTroopPhrase(s),
       bring:packingBringLine(s, packingKitCount(s, registered)),
       manikins:(typeof sessionUsesManikins==='function')?!!sessionUsesManikins(s):false
     };
@@ -11640,6 +11662,115 @@ function packingBusyHtml(model){
   }).join('');
   return open+'<p class="pack-busy-lead">Equipment is tight on these dates.</p><ul class="pack-busy-list">'+items+'</ul></div>';
 }
+const TROOP_LEVELS=[
+  {id:'daisy',name:'Daisy',grades:'K–1'},
+  {id:'brownie',name:'Brownie',grades:'2–3'},
+  {id:'junior',name:'Junior',grades:'4–5'},
+  {id:'cadette',name:'Cadette',grades:'6–8'},
+  {id:'senior',name:'Senior',grades:'9–10'},
+  {id:'ambassador',name:'Ambassador',grades:'11–12'}
+];
+function troopLevelLabel(id){
+  const key=String(id||'').trim().toLowerCase();
+  const row=TROOP_LEVELS.find(function(x){return x.id===key;});
+  return row?row.name+' (grades '+row.grades+')':'';
+}
+function gradeTokenToTroopLevel(token){
+  const t=String(token||'').trim().toLowerCase();
+  if(t==='k'||t==='kindergarten')return 'daisy';
+  const n=parseInt(t,10);
+  if(!isFinite(n))return null;
+  if(n===1)return 'daisy';
+  if(n===2||n===3)return 'brownie';
+  if(n===4||n===5)return 'junior';
+  if(n>=6&&n<=8)return 'cadette';
+  if(n===9||n===10)return 'senior';
+  if(n===11||n===12)return 'ambassador';
+  return null;
+}
+// One troop level from a name, badge, or note. "Brownie First Aid" is Brownie.
+// "7th graders" is Cadette. A span that crosses two levels, or two different
+// level names, is not a guess. Club-offering lines are ignored.
+function troopLevelFromText(text){
+  const raw=String(text||'');
+  if(!raw.trim())return null;
+  const body=raw.split(/\n/).filter(function(line){return !/^\s*clubs\s*:/i.test(line);}).join('\n');
+  const words={
+    daisies:'daisy',daisy:'daisy',
+    brownies:'brownie',brownie:'brownie',
+    juniors:'junior',junior:'junior',
+    cadettes:'cadette',cadette:'cadette',
+    seniors:'senior',senior:'senior',
+    ambassadors:'ambassador',ambassador:'ambassador'
+  };
+  const found={};
+  const re=/\b(daisies|daisy|brownies|brownie|juniors|junior|cadettes|cadette|seniors|senior|ambassadors|ambassador)\b/ig;
+  let m;
+  while((m=re.exec(body))){
+    const id=words[m[1].toLowerCase()];
+    if(id)found[id]=true;
+  }
+  const ids=Object.keys(found);
+  if(ids.length===1)return ids[0];
+  if(ids.length>1)return null;
+  const grades={};
+  const single=/\b(?:grades?\s+)?(kindergarten|\d{1,2})(?:st|nd|rd|th)?\s+graders?\b/ig;
+  while((m=single.exec(body))){
+    const id=gradeTokenToTroopLevel(m[1]);
+    if(id)grades[id]=true;
+  }
+  const span=/\bgrades?\s+(kindergarten|k|\d{1,2})\s*[-–—]\s*(kindergarten|k|\d{1,2})\b/ig;
+  while((m=span.exec(body))){
+    const a=gradeTokenToTroopLevel(m[1]), b=gradeTokenToTroopLevel(m[2]);
+    if(a&&b&&a===b)grades[a]=true;
+    else if(a&&b&&a!==b)return null;
+  }
+  const gradeIds=Object.keys(grades);
+  if(gradeIds.length===1)return gradeIds[0];
+  return null;
+}
+function sessionIsGirlScoutTroop(s){
+  if(!s)return false;
+  if(typeof isGirlScoutBadgeCourseName==='function'&&isGirlScoutBadgeCourseName(s.course))return true;
+  if(/^GS/i.test(String(s.code||'').trim()))return true;
+  const org=String(s.billToOrg||'');
+  if(/\btroop\b/i.test(org)||/girl scout/i.test(org))return true;
+  const notes=String(s.notes||'')+'\n'+String(s.adminPrivateNotes||'');
+  if(/girl scout badge/i.test(notes)||/\btroop\b/i.test(notes))return true;
+  return false;
+}
+function derivedTroopLevel(s){
+  if(!s)return null;
+  return troopLevelFromText([s.course,s.code,s.billToOrg,s.notes,s.adminPrivateNotes,s.badge].filter(Boolean).join('\n'));
+}
+function troopLevelForSession(s){
+  const saved=String(s&&s.troopLevel||'').trim().toLowerCase();
+  if(saved&&troopLevelLabel(saved))return saved;
+  return derivedTroopLevel(s);
+}
+function packingTroopPhrase(s){
+  if(!sessionIsGirlScoutTroop(s)&&!(s&&s.troopLevel))return '';
+  const level=troopLevelForSession(s);
+  if(level)return troopLevelLabel(level);
+  return 'Troop level: not set';
+}
+function readTroopLevel(inputId){
+  const el=document.getElementById(inputId||'m-troop-level');
+  if(!el)return undefined;
+  const v=String(el.value||'').trim().toLowerCase();
+  if(!v)return null;
+  return troopLevelLabel(v)?v:null;
+}
+function troopLevelFieldHtml(s, inputId){
+  const id=inputId||'m-troop-level';
+  const current=String(s&&s.troopLevel||'').trim().toLowerCase();
+  const opts=['<option value="">—</option>'].concat(TROOP_LEVELS.map(function(row){
+    return '<option value="'+row.id+'"'+(current===row.id?' selected':'')+'>'+row.name+' (grades '+row.grades+')</option>';
+  })).join('');
+  return '<div class="fg"><label for="'+id+'">Troop level <span style="font-weight:400;color:var(--muted)">(Girl Scout troops)</span></label>'
+    +'<select id="'+id+'" style="width:100%">'+opts+'</select>'
+    +'<div style="font-size:14px;color:var(--muted);margin-top:4px">Shown on the packing list. Leave blank to use the badge or troop name in the notes, such as Brownie First Aid.</div></div>';
+}
 function packingRowHtml(r){
   const parts=packingDayParts(r.date);
   const time=r.time?escapeHtml(r.time):'<span class="pack-muted">Time not set</span>';
@@ -11649,7 +11780,7 @@ function packingRowHtml(r){
   return '<article class="pack-row'+(r.packTogether?' is-pack':'')+'">'+
     '<div class="pack-date"><div class="pack-dow">'+escapeHtml(parts.dow)+'</div><div class="pack-day">'+escapeHtml(parts.day)+'</div></div>'+
     '<div class="pack-time">'+time+'</div>'+
-    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div><div class="pack-count">'+escapeHtml(packingExpectedPhrase(r.expected))+'</div>'+packingKitHtml(r)+'</div>'+
+    '<div class="pack-course">'+escapeHtml(r.course)+(r.troopPhrase?'<div class="pack-count">'+escapeHtml(r.troopPhrase)+'</div>':'')+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div><div class="pack-count">'+escapeHtml(packingExpectedPhrase(r.expected))+'</div>'+packingKitHtml(r)+'</div>'+
     '<div class="pack-place">'+escapeHtml(r.place)+'</div>'+
     '<div class="pack-mat"><label class="pack-lock"><input type="checkbox" data-sess="'+id+'"'+(r.materialsSent?' checked':'')+' onchange="toggleMaterialsFromPacking(this)"> <span>Materials in lock box</span></label>'+
     '<div class="pack-stamp">'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</div>'+(putOut?'<div class="pack-stamp">'+escapeHtml(putOut)+'</div>':'')+flag+'</div></article>';
@@ -11680,7 +11811,7 @@ function packingPrintHtml(model, generatedAt){
     const body=g.rows.map(function(r){
       const flag=r.packTogether?'<div class="pack-pdf-flag">Pack together</div>':'';
       const putOut=(r.materialsSent&&r.materialsOutAt)?materialsPutOutPhrase(r.materialsOutAt):'';
-      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+packingKitHtml(r)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'<div>'+escapeHtml(packingExpectedPhrase(r.expected))+'</div></td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+(putOut?'<div>'+escapeHtml(putOut)+'</div>':'')+'</td></tr>';
+      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+(r.troopPhrase?'<div>'+escapeHtml(r.troopPhrase)+'</div>':'')+packingKitHtml(r)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'<div>'+escapeHtml(packingExpectedPhrase(r.expected))+'</div></td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+(putOut?'<div>'+escapeHtml(putOut)+'</div>':'')+'</td></tr>';
     }).join('');
     return '<section class="pack-pdf-section"><h2>'+escapeHtml(g.name)+'</h2><table class="pack-pdf-table"><colgroup><col style="width:18%"><col style="width:12%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:18%"></colgroup><thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Place</th><th>Registered</th><th>Materials in lock box</th></tr></thead><tbody>'+body+'</tbody></table></section>';
   }).join(''):'<p class="pack-pdf-empty">No in-person classes in this range.</p>';
