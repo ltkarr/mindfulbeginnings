@@ -139,6 +139,10 @@ test('admin expense categories include Curriculum Development', () => {
   assert.ok(list.includes('Curriculum Development'));
   assert.ok(list.includes('Business Development'));
   assert.ok(list.includes('Charitable Donation'));
+  assert.match(admin, /<option>Teacher Appreciation<\/option>/);
+  assert.match(admin, /'Teacher Appreciation':'#d4a017'/);
+  assert.ok(list.includes('Teacher Appreciation'));
+  assert.ok(list.indexOf('Teacher Appreciation') < list.indexOf('Other'));
 });
 
 test('Rentals is an expense category, and edit keeps a category that is not in the list', () => {
@@ -170,6 +174,11 @@ test('Rentals is an expense category, and edit keeps a category that is not in t
   assert.match(rentals, /<option selected>Rentals<\/option>/);
   assert.equal((rentals.match(/ selected/g) || []).length, 1);
   assert.match(rentals, /<option>Business Development<\/option>/);
+
+  const appreciation = sandbox.expenseCategoryOptions('Teacher Appreciation');
+  assert.match(appreciation, /<option selected>Teacher Appreciation<\/option>/);
+  assert.equal((appreciation.match(/ selected/g) || []).length, 1);
+  assert.equal((appreciation.match(/>Teacher Appreciation</g) || []).length, 1);
 
   const unknown = sandbox.expenseCategoryOptions('Facility');
   assert.match(unknown, /^<option selected>Facility<\/option>/);
