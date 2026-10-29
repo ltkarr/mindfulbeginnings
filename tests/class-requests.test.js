@@ -463,16 +463,20 @@ test('submitting creates no session, stores a pending request, keeps the confirm
   assert.match(notices[0].draft_body, /not sent|Warmly|private registration link/i);
   assert.equal(notices[0].session_code, null);
 
+  const spamSaved = [];
   const honeypot = await submitClassRequest(orgBody({ companyWebsite: 'http://spam.example' }), {
     insertSession: async function () { throw new Error('spam must not create a session'); },
-    insertRequest: async function () { throw new Error('spam must not be saved'); },
-    createOutlookDraft: async function () { throw new Error('spam must not draft mail'); },
-    notifyLindsay: async function () { throw new Error('spam must not notify'); }
+    insertRequest: async function (row) { spamSaved.push(row); return row; },
+    createOutlookDraft: async function () { return { created: false, reason: 'missing_credentials' }; },
+    notifyLindsay: async function () { return { sent: false, reason: 'missing_credentials' }; }
   });
   assert.equal(honeypot.status, 200);
   assert.equal(honeypot.body.ok, true);
-  assert.equal(honeypot.body.id, null);
   assert.equal(honeypot.body.sessionCreated, false);
+  assert.equal(spamSaved.length, 1);
+  assert.equal(spamSaved[0].payload.spam_flag, 'honeypot_filled');
+  assert.equal(spamSaved[0].payload.companyWebsite, undefined);
+  assert.equal(honeypot.body.id, spamSaved[0].id);
 
   const unclear = await submitClassRequest(orgBody({ billing: 'split', portionText: 'call me' }), {
     insertSession: async function () { throw new Error('submit must not create a session'); },

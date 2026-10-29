@@ -96,9 +96,10 @@
     add('Special instructions', n.specialInstructions);
     add('Custom request', n.customRequest);
     add('Referral', n.referral);
+    if (row.payload && row.payload.spam_flag) add('Review flag', 'Hidden spam-check field was filled (bot, or a real browser autofill). Saved so a real lead is never discarded.');
     if (row.session_error) add('Session was not saved', row.session_error);
-    if (row.outlook_error && row.outlook_error !== 'missing_credentials') add('Outlook draft', row.outlook_error);
-    if (row.notify_error) add('Lindsay notification', row.notify_error);
+    if (row.outlook_error) add('Outlook draft', row.outlook_error === 'missing_credentials' ? 'Not set up yet, so no draft was created' : row.outlook_error);
+    if (row.notify_error) add('Lindsay notification', row.notify_error === 'missing_credentials' ? 'Not set up yet, so no email was sent' : row.notify_error);
     return rows.join('');
   }
 
