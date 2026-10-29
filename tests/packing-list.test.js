@@ -317,8 +317,9 @@ test('each session shows registered participants, and a multi-session list shows
   assert.match(screen, /class="pack-count">1 participant registered/);
   assert.match(screen, /class="pack-total">Total: 7 participants registered/);
   assert.match(pdf, /<th>Registered<\/th>/);
-  assert.match(pdf, />2 participants registered</);
-  assert.match(pdf, />4 participants registered</);
+  assert.match(pdf, />2 participants registered<div>Participants expected: not set</);
+  assert.match(pdf, />4 participants registered<div>Participants expected: not set</);
+  assert.match(screen, /Participants expected: not set/);
   assert.match(pdf, /class="pack-pdf-total">Total: 7 participants registered/);
   const one = sandbox.packingBuildModel([sessions[2]], instructors, {}, TODAY, 60, regs);
   assert.equal(sandbox.packingTotalPhrase(one), '');

@@ -921,7 +921,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -995,6 +995,12 @@ const ORG_PORTION_SQL_TOAST='⚠️ Saved, but WITHOUT the organization per-part
 // received. Null means not marked. Family registrations keep their own pay status.
 // See migrations/fee_received.sql. Anon is not granted the column.
 let FEE_RECEIVED_COL=true;
+// How many people Lindsay is packing for, when that number is not the same as
+// who has registered yet. Null means "not typed in" — the packing list can
+// still read a host request, an organization roster, or the notes.
+// Anon is not granted this column. See migrations/20261029_participants_expected.sql.
+let PARTICIPANTS_EXPECTED_COL=true;
+const PARTICIPANTS_EXPECTED_SQL_TOAST='⚠️ Saved, but WITHOUT Participants expected — run migrations/20261029_participants_expected.sql in the Supabase SQL editor, then re-save this session.';
 const FEE_RECEIVED_SQL_TOAST='⚠️ Saved, but WITHOUT the received mark — run migrations/fee_received.sql in the Supabase SQL editor, then mark it received again.';
 // Organization registration: public limit 0, no session code, hidden from
 // public listings. Anon never reads this column; the public RPCs enforce it.
@@ -1011,6 +1017,25 @@ function adminPrivateNotesFieldHtml(value){
 function readAdminPrivateNotes(){
   const el=document.getElementById('m-private-notes');
   return el?(el.value||''):'';
+}
+// Blank clears the saved count. A missing input means this form does not edit it.
+// NaN is not a number Lindsay can save.
+function readParticipantsExpected(inputId){
+  const el=document.getElementById(inputId||'m-expected');
+  if(!el)return undefined;
+  const raw=String(el.value==null?'':el.value).trim();
+  if(raw==='')return null;
+  const n=Number(raw);
+  if(!isFinite(n)||n<1)return NaN;
+  return Math.floor(n);
+}
+function participantsExpectedFieldHtml(s, inputId){
+  const id=inputId||'m-expected';
+  const v=(s&&s.participantsExpected!=null&&s.participantsExpected!=='')?String(Math.floor(Number(s.participantsExpected))):'';
+  return `<div class="fg"><label for="${id}">Participants expected <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <input type="number" id="${id}" value="${escapeHtml(v)}" placeholder="e.g. 6" min="1" step="1" style="width:120px;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none">
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">How many people to pack for. The packing list uses this or who has registered, whichever is larger. Leave blank to use the host request, the organization roster, or a count written in the notes.</div>
+    </div>`;
 }
 function externalRegistrationFieldHtml(s){
   const v=escapeHtml((s&&s.externalRegistrationUrl)||'');
@@ -1072,6 +1097,12 @@ function sessionToDB(s){
   // Only written when the in-memory session actually has the field, so a
   // partial update cannot blank notes that were never loaded.
   if(ADMIN_PRIVATE_NOTES_COL&&s.adminPrivateNotes!==undefined)o.admin_private_notes=s.adminPrivateNotes?String(s.adminPrivateNotes):null;
+  // Only written when this session object actually has the field, so a save
+  // that never loaded it cannot blank a count already stored.
+  if((typeof PARTICIPANTS_EXPECTED_COL==='undefined'||PARTICIPANTS_EXPECTED_COL)&&s.participantsExpected!==undefined){
+    const n=s.participantsExpected;
+    o.participants_expected=(n==null||n==='')?null:(Number(n)>0?Math.floor(Number(n)):null);
+  }
   return o;
 }
 // Which optional column PostgREST rejected, if any. A missing column fails the
@@ -1097,6 +1128,7 @@ function sessionUpsertRejectColumn(msg){
   if(INSTR_INFO_COL&&/instructor_info/i.test(msg))return 'instructor_info';
   if((typeof PAID_TRAVEL_HOURS_COL==='undefined'||PAID_TRAVEL_HOURS_COL)&&/paid_travel_hours/i.test(msg))return 'paid_travel';
   if((typeof TEACHING_HOURS_COL==='undefined'||TEACHING_HOURS_COL)&&/teaching_hours/i.test(msg))return 'teaching_hours';
+  if((typeof PARTICIPANTS_EXPECTED_COL==='undefined'||PARTICIPANTS_EXPECTED_COL)&&/participants_expected/i.test(msg))return 'participants_expected';
   return '';
 }
 function applySessionUpsertReject(which,flags){
@@ -1117,10 +1149,11 @@ function applySessionUpsertReject(which,flags){
   else if(which==='instructor_info'){INSTR_INFO_COL=false;flags.missingDetail=true;}
   else if(which==='paid_travel'){PAID_TRAVEL_HOURS_COL=false;flags.missingPaidTravel=true;}
   else if(which==='teaching_hours'){TEACHING_HOURS_COL=false;flags.missingTeachingHours=true;}
+  else if(which==='participants_expected'){PARTICIPANTS_EXPECTED_COL=false;flags.missingParticipantsExpected=true;}
   return !!which;
 }
 function blankSessionUpsertFlags(){
-  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false};
+  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false,missingParticipantsExpected:false};
 }
 // Every session write goes through here: course sessions, custom jobs, holds,
 // publish, cancel. One unknown column used to abort custom-job and hold saves
@@ -1161,6 +1194,7 @@ function sessionOptionalColToast(f){
   if(f.missingSsCol)return SS_COL_SQL_TOAST;
   if(f.missingSpanishCol)return SPANISH_COL_SQL_TOAST;
   if(f.missingPaidTravel||f.missingTeachingHours)return '⚠️ Saved, but WITHOUT class length / paid travel hours — run migrations/20261020_paid_travel_hours.sql in the Supabase SQL editor, then re-save this session.';
+  if(f.missingParticipantsExpected)return PARTICIPANTS_EXPECTED_SQL_TOAST;
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
   return '';
@@ -8088,6 +8122,7 @@ function openAddSession(){
         <span id="m-maxoverride-hint" style="font-size:15px;color:var(--muted)"></span>
       </div>
     </div>
+    ${participantsExpectedFieldHtml(null)}
     <div class="fg full"><label>Host registration</label>
       <select id="m-hashost"><option value="yes">Allow host registration (private home)</option><option value="no">No host — public venue</option></select></div>
     <div class="fg full"><label>WiFi info <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="m-wifi" placeholder="e.g. Network: HomeWifi · Password: abc123"></div>
@@ -8269,6 +8304,7 @@ function openAddCustomJob(){
     ${externalRegistrationFieldHtml(null)}
     <div class="fg full"><label>Notes / job description <span style="font-weight:400;color:var(--muted)">(optional — what the instructor needs to know)</span></label>
       <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
+    ${participantsExpectedFieldHtml(null,'cj-expected')}
     ${adminPrivateNotesFieldHtml('')}
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCustomJob()">Add job</button></div>`);
@@ -8388,9 +8424,12 @@ async function saveCustomJob(){
   const billToOrg=resolveBillToOrg('cj-billorg');
   if(billToOrg==null)return;
   if(!confirmNotDuplicate({course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,isVirtual:false,isCancelled:false},null))return;
+  const participantsExpected=readParticipantsExpected('cj-expected');
+  if(Number.isNaN(participantsExpected)){alert('Participants expected needs to be blank, or a whole number of 1 or more.');return;}
   if(_savingSession)return; _savingSession=true;
   try{
   const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,orgHandlesRegistration,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg,feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
+  if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
@@ -8543,6 +8582,7 @@ ${lockboxFieldHtml(s)}
     ${externalRegistrationFieldHtml(s)}
     <div class="fg full"><label>Notes / job description</label>
       <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea></div>
+    ${participantsExpectedFieldHtml(s,'cj-expected')}
     ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
 </div></details>
   </div>
@@ -8598,8 +8638,11 @@ async function saveEditCustomJob(id){
   const holdSeatsRaw=isHold?(document.getElementById('cj-hold-seats')?.value||''):'';
   const reservedSeats=holdSeatsRaw&&Number(holdSeatsRaw)>0?Number(holdSeatsRaw):null;
   const holdPayment=isHold?(document.getElementById('cj-hold-payment')?.value||''):'';
+  const participantsExpected=readParticipantsExpected('cj-expected');
+  if(Number.isNaN(participantsExpected)){alert('Participants expected needs to be blank, or a whole number of 1 or more.');return;}
   const prevSnapshot={...s};
   Object.assign(s,{code,orgHandlesRegistration,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg,feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
+  if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
   {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;feeReceivedMissing=!!_r.missingFeeReceived;orgRegMissing=!!_r.missingOrgReg;}
@@ -8882,6 +8925,7 @@ ${lockboxFieldHtml(s)}
         ${s.maxStudentsOverride?`<span style="font-size:15px;color:var(--warn)">⚠ Capacity overridden to ${s.maxStudentsOverride} (default is ${courseDefaultCapText(s.course)})</span>`:`<span style="font-size:15px;color:var(--muted)">Course default: ${courseDefaultCapText(s.course)}</span>`}
       </div>
     </div>
+    ${participantsExpectedFieldHtml(s)}
     <div class="fg full"><label>WiFi info <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="m-wifi" value="${s.wifiInfo||''}" placeholder="e.g. Network: HomeWifi · Password: abc123"></div>
     ${externalRegistrationFieldHtml(s)}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
@@ -9031,6 +9075,8 @@ async function saveSession(editId){
   // Duplicate check runs while the modal is still open, so backing out leaves
   // everything she typed exactly where it was.
   if(!confirmNotDuplicate({course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,isVirtual,isCancelled:false},editId||null))return;
+  const participantsExpected=readParticipantsExpected('m-expected');
+  if(Number.isNaN(participantsExpected)){alert('Participants expected needs to be blank, or a whole number of 1 or more.');return;}
   if(_savingSession)return; _savingSession=true;
   try{
   let s, prevSnapshot=null;
@@ -9043,6 +9089,7 @@ async function saveSession(editId){
     sessions.push(s);
   }
   const matChoice=sessionMaterialsFromForm(editId);
+  if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
   closeModal();renderSessions();renderDashboard();renderCodes();
   // Save session first, then job data (so foreign key is satisfied).
   // Supabase returns errors on the result object (it does not throw for RLS / constraint failures),
@@ -11345,6 +11392,102 @@ function packingRegisteredPhrase(n){
   const count=Math.max(0,Number(n)||0);
   return count+' '+(count===1?'participant':'participants')+' registered';
 }
+// A written count: "6", "11 7th graders", or "4-6" / "4 to 6". A range uses the
+// higher number so the kit is not short. Times, prices, and "6-foot" do not match.
+function parseParticipantCount(raw){
+  const t=String(raw==null?'':raw).trim();
+  if(!t)return null;
+  // Only the start of the text. "6 kids ages 10–14" is 6, not the age range.
+  const range=t.match(/^(\d+)\s*(?:-|–|—|\bto\b)\s*(\d+)/i);
+  if(range){
+    const a=Number(range[1]), b=Number(range[2]);
+    if(a>=1&&b>=1&&a<=80&&b<=80)return Math.max(a,b);
+  }
+  const n=t.match(/^(\d+)/);
+  if(!n)return null;
+  const v=Number(n[1]);
+  return (v>=1&&v<=80)?v:null;
+}
+function expectedFromNotes(text){
+  const t=String(text||'');
+  if(!t)return null;
+  const labeled=t.match(/expected participants:\s*([^\n]+)/i);
+  if(labeled){
+    const n=parseParticipantCount(labeled[1]);
+    if(n)return n;
+  }
+  const about=t.match(/\babout\s+(\d+)\s+students expected\b/i);
+  if(about){
+    const n=Number(about[1]);
+    if(n>=1&&n<=80)return n;
+  }
+  const tilde=t.match(/~\s*(\d+)\s+(?:girls|scouts|kids|students|participants)\b/i);
+  if(tilde){
+    const n=Number(tilde[1]);
+    if(n>=1&&n<=80)return n;
+  }
+  const rangePeople=t.match(/\b(\d+)\s*[-–—]\s*(\d+)\s+(moms|kids|children|students|participants|girls|scouts|brownies)\b/i);
+  if(rangePeople){
+    const a=Number(rangePeople[1]), b=Number(rangePeople[2]);
+    if(a>=1&&b>=1&&a<=80&&b<=80)return Math.max(a,b);
+  }
+  const people=t.match(/\b(\d+)\s+(kids|children|participants|students|girls|scouts|moms|brownies)\b/i);
+  if(people){
+    const n=Number(people[1]);
+    if(n>=1&&n<=80)return n;
+  }
+  return null;
+}
+function requestExpectedForSession(s){
+  if(!s)return null;
+  const list=(typeof classRequests!=='undefined'&&classRequests)||[];
+  const row=(list||[]).find(function(r){
+    if(!r)return false;
+    return r.session_id===s.id||r.sessionId===s.id;
+  });
+  if(!row)return null;
+  const payload=row.payload||{};
+  const raw=payload.expectedCount!=null?payload.expectedCount:(row.expectedCount!=null?row.expectedCount:row.expected_count);
+  return parseParticipantCount(raw);
+}
+function storedParticipantsExpected(s){
+  if(!s||s.participantsExpected==null||s.participantsExpected==='')return null;
+  const n=Number(s.participantsExpected);
+  if(!isFinite(n)||n<=0)return null;
+  return Math.floor(n);
+}
+// A saved field wins. Otherwise: the class request, the organization roster,
+// a count in the notes, then the capacity on a private home host session.
+// A public course cap (Safe Sitter holds 16) is not an expected headcount.
+function derivedParticipantsExpected(s){
+  if(!s)return null;
+  const fromRequest=requestExpectedForSession(s);
+  if(fromRequest)return fromRequest;
+  if(s.billedHeadcount!=null&&s.billedHeadcount!==''){
+    const n=Number(s.billedHeadcount);
+    if(isFinite(n)&&n>0)return Math.floor(n);
+  }
+  const fromNotes=expectedFromNotes(s.notes)||expectedFromNotes(s.adminPrivateNotes);
+  if(fromNotes)return fromNotes;
+  if(s.hasHost&&s.maxStudentsOverride!=null&&s.maxStudentsOverride!==''){
+    const n=Number(s.maxStudentsOverride);
+    if(isFinite(n)&&n>0)return Math.floor(n);
+  }
+  return null;
+}
+function participantsExpectedCount(s){
+  return storedParticipantsExpected(s)||derivedParticipantsExpected(s);
+}
+function packingKitCount(s, registered){
+  const reg=Math.max(0,Number(registered)||0);
+  const exp=participantsExpectedCount(s);
+  if(!(exp>0))return reg;
+  return Math.max(reg, exp);
+}
+function packingExpectedPhrase(n){
+  if(!(Number(n)>0))return 'Participants expected: not set';
+  return 'Participants expected: '+Math.floor(Number(n));
+}
 function packingRegisteredTotal(model){
   return (model&&model.rows||[]).reduce(function(sum,r){return sum+(Number(r&&r.registered)||0);},0);
 }
@@ -11448,6 +11591,7 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
     const group=packingInstructorGroup(s, instructorList, jobData);
     const jd=(jobData&&s.id&&jobData[s.id])||{};
     const registered=packingRegisteredCount(s, regs);
+    const expected=participantsExpectedCount(s);
     return {
       id:s.id,
       date:s.date,
@@ -11460,7 +11604,8 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
       materialsSentAt:jd.materialsSentAt||null,
       materialsOutAt:jd.materialsOutAt||null,
       registered:registered,
-      bring:packingBringLine(s, registered),
+      expected:expected,
+      bring:packingBringLine(s, packingKitCount(s, registered)),
       manikins:(typeof sessionUsesManikins==='function')?!!sessionUsesManikins(s):false
     };
   }).sort(function(a,b){
@@ -11504,7 +11649,7 @@ function packingRowHtml(r){
   return '<article class="pack-row'+(r.packTogether?' is-pack':'')+'">'+
     '<div class="pack-date"><div class="pack-dow">'+escapeHtml(parts.dow)+'</div><div class="pack-day">'+escapeHtml(parts.day)+'</div></div>'+
     '<div class="pack-time">'+time+'</div>'+
-    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div>'+packingKitHtml(r)+'</div>'+
+    '<div class="pack-course">'+escapeHtml(r.course)+'<div class="pack-count">'+escapeHtml(packingRegisteredPhrase(r.registered))+'</div><div class="pack-count">'+escapeHtml(packingExpectedPhrase(r.expected))+'</div>'+packingKitHtml(r)+'</div>'+
     '<div class="pack-place">'+escapeHtml(r.place)+'</div>'+
     '<div class="pack-mat"><label class="pack-lock"><input type="checkbox" data-sess="'+id+'"'+(r.materialsSent?' checked':'')+' onchange="toggleMaterialsFromPacking(this)"> <span>Materials in lock box</span></label>'+
     '<div class="pack-stamp">'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+'</div>'+(putOut?'<div class="pack-stamp">'+escapeHtml(putOut)+'</div>':'')+flag+'</div></article>';
@@ -11535,7 +11680,7 @@ function packingPrintHtml(model, generatedAt){
     const body=g.rows.map(function(r){
       const flag=r.packTogether?'<div class="pack-pdf-flag">Pack together</div>':'';
       const putOut=(r.materialsSent&&r.materialsOutAt)?materialsPutOutPhrase(r.materialsOutAt):'';
-      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+packingKitHtml(r)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'</td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+(putOut?'<div>'+escapeHtml(putOut)+'</div>':'')+'</td></tr>';
+      return '<tr><td>'+escapeHtml(packingDayParts(r.date).full)+flag+'</td><td>'+escapeHtml(r.time||'—')+'</td><td>'+escapeHtml(r.course)+packingKitHtml(r)+'</td><td>'+escapeHtml(r.place)+'</td><td>'+escapeHtml(packingRegisteredPhrase(r.registered))+'<div>'+escapeHtml(packingExpectedPhrase(r.expected))+'</div></td><td>'+escapeHtml(packingMaterialsText(r.materialsSent, r.materialsSentAt))+(putOut?'<div>'+escapeHtml(putOut)+'</div>':'')+'</td></tr>';
     }).join('');
     return '<section class="pack-pdf-section"><h2>'+escapeHtml(g.name)+'</h2><table class="pack-pdf-table"><colgroup><col style="width:18%"><col style="width:12%"><col style="width:20%"><col style="width:16%"><col style="width:16%"><col style="width:18%"></colgroup><thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Place</th><th>Registered</th><th>Materials in lock box</th></tr></thead><tbody>'+body+'</tbody></table></section>';
   }).join(''):'<p class="pack-pdf-empty">No in-person classes in this range.</p>';
@@ -11587,7 +11732,7 @@ function materialsChecklistRows(list, today){
     const jd=(jobs&&s.id&&jobs[s.id])||{};
     if(jd.materialsSent)return false;
     const registered=packingRegisteredCount(s, regs);
-    const bring=packingBringLine(s, registered);
+    const bring=packingBringLine(s, packingKitCount(s, registered));
     const manikins=typeof sessionUsesManikins==='function'&&sessionUsesManikins(s);
     return !!(bring||manikins);
   }).sort(function(a,b){
@@ -11600,7 +11745,7 @@ function materialsChecklistRows(list, today){
       course:String(s.course||'').trim()||'Class',
       date:s.date,
       instructor:group.name,
-      bring:packingBringLine(s, registered),
+      bring:packingBringLine(s, packingKitCount(s, registered)),
       manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)
     };
   });
@@ -15081,7 +15226,8 @@ function syncOneSessionKit(s){
   if(!base||!(base.infant||base.child))return false;
   const existing=(matCheckouts||[]).find(function(c){return c.sessionId===s.id&&!c.returnedDate;});
   if(existing&&coNoEquipment(existing))return false;
-  const roster=matRegisteredHeadcount(s);
+  const registeredNow=matRegisteredHeadcount(s);
+  const roster=(typeof packingKitCount==='function')?packingKitCount(s, registeredNow):registeredNow;
   const large=roster>MAT_LARGE_CLASS;
   if(!existing&&!large)return false;
   const person=(existing&&existing.person)||dashMatPersonName(s)||'';

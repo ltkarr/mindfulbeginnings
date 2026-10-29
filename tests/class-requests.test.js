@@ -115,6 +115,8 @@ test('Social Ready is $45 per kid; virtual courses are organization-only, never 
   assert.equal(hostPlan.row.code, 'SOC-261102');
   assert.equal(hostPlan.row.is_virtual, false);
   assert.equal(hostPlan.row.price_override, null);
+  assert.equal(hostPlan.row.participants_expected, 8);
+  assert.equal(hostPlan.row.billed_headcount, null);
   assert.match(model.buildDraft(host, hostPlan.row).body, /\$45 per participant/);
 
   const virtual = model.normalizeSubmission(hostBody({ courseKey: 'social-ready-virtual', address: 'Virtual' }));
@@ -226,6 +228,7 @@ test('multi-day organization text follows the Beth El SS-261102 extra-day shape'
   assert.equal(plan.row.org_portion, 225);
   assert.equal(plan.row.bill_to_org, 'Congregation Beth El');
   assert.equal(plan.row.billed_headcount, 10);
+  assert.equal(plan.row.participants_expected, 10);
   assert.equal(plan.row.has_host, false);
   assert.equal(plan.row.is_private, true);
   assert.equal(plan.row.is_hold, false);

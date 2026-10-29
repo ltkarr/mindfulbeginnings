@@ -394,6 +394,20 @@
     return splitPrices(catalog, Number(dol[1]));
   }
 
+  function parseParticipantCount(raw) {
+    var t = String(raw == null ? '' : raw).trim();
+    if (!t) return null;
+    var range = t.match(/^(\d+)\s*(?:-|–|—|\bto\b)\s*(\d+)/i);
+    if (range) {
+      var a = Number(range[1]), b = Number(range[2]);
+      if (a >= 1 && b >= 1 && a <= 80 && b <= 80) return Math.max(a, b);
+    }
+    var n = t.match(/^(\d+)/);
+    if (!n) return null;
+    var v = Number(n[1]);
+    return (v >= 1 && v <= 80) ? v : null;
+  }
+
   function mapBilling(input) {
     input = input || {};
     var catalog = input.catalogPrice;
@@ -705,6 +719,7 @@
       is_cancelled: false,
       bill_to_org: n.billing.billToOrg || null,
       billed_headcount: n.billing.billedHeadcount == null ? null : n.billing.billedHeadcount,
+      participants_expected: parseParticipantCount(n.expectedCount),
       org_portion: n.billing.orgPortion == null ? null : n.billing.orgPortion,
       extra_dates: extra.map(function (d) { return d.date; }),
       extra_days: extra.map(function (d) { return { date: d.date, time: d.time || '' }; }),
@@ -929,6 +944,7 @@
     canCreateSession: canCreateSession,
     datedCode: datedCode,
     uniqueCode: uniqueCode,
+    parseParticipantCount: parseParticipantCount,
     buildSessionRow: buildSessionRow,
     buildDraft: buildDraft,
     checklistAfterSubmit: checklistAfterSubmit,
