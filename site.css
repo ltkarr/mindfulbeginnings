@@ -133,7 +133,7 @@ p:last-child{margin-bottom:0}
 .mb-card .mb-btn{align-self:flex-start;margin-top:auto}
 
 /* ---------- steps ---------- */
-.mb-steps{display:flex;flex-wrap:wrap;gap:22px}
+.mb-steps{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
 .mb-step{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:10px;background:var(--white);border:1px solid rgba(30,49,97,.09);border-radius:20px;box-shadow:0 10px 30px rgba(30,49,97,.08);padding:24px}
 .mb-step-num{font-size:36px;line-height:1;font-weight:800;color:var(--btn-gold)}
 .mb-section-navy .mb-step h3{color:var(--cream)}

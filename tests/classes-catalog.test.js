@@ -20,7 +20,7 @@ function decode(text) {
 
 function cards() {
   const out = [];
-  const re = /<a class="course"([^>]*)>([\s\S]*?)<\/a>/g;
+  const re = /<article class="course"([^>]*)>([\s\S]*?)<\/article>/g;
   let match;
   while ((match = re.exec(page))) {
     const attrs = match[1];
@@ -40,7 +40,6 @@ function cards() {
       meta: pick('meta'),
       desc: pick('desc'),
       cert: pick('cert'),
-      book: /href="\/host\.html"/.test(attrs)
     });
   }
   return out;
@@ -89,12 +88,11 @@ test('classes catalog matches the public class list', () => {
     assert.equal(card.meta, row[3], 'meta ' + row[1]);
     assert.equal(card.desc, row[4], 'desc ' + row[1]);
     assert.equal(card.cert, row[5] || '', 'cert ' + row[1]);
-    assert.equal(card.book, true, 'book ' + row[1]);
   });
 });
 
 test('classes are simple text rows with no pills, bands, or best-if boxes', () => {
-  const rows = page.match(/<a class="course"[\s\S]*?<\/a>/g) || [];
+  const rows = page.match(/<article class="course"[\s\S]*?<\/article>/g) || [];
   assert.equal(rows.length, EXPECTED.length);
   rows.forEach((row) => {
     assert.match(row, /<h3>[\s\S]*?<\/h3>/);
@@ -106,8 +104,9 @@ test('classes are simple text rows with no pills, bands, or best-if boxes', () =
   assert.match(page, /Red Cross certificate included/);
 });
 
-test('booking, custom programs, and group CPR links stay on this site', () => {
-  assert.equal((page.match(/href="\/host\.html"/g) || []).length, 25);
+test('course rows are not links, and the group path is one clear button', () => {
+  assert.equal(page.includes('<a class="course"'), false);
+  assert.equal((page.match(/href="\/host-a-class.html"[^>]*>Bring a course to your group/g) || []).length, 2);
   assert.match(page, /href="\/contact\.html"/);
   assert.match(page, /Request a custom program/);
   assert.match(page, /We design tailored programs around your audience/);
