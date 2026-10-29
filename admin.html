@@ -2609,6 +2609,39 @@ function instrBaseFee(s,instr){
 function usualInstrPayAmount(course,virtual){
   return instrBaseFee({course:course,isVirtual:!!virtual},null);
 }
+// A flat session amount is what each assigned instructor is paid. It is not
+// an hourly guess, and it is not affected by anyone's rate.
+function payOverrideIsSet(s){
+  return !!(s&&s.instrPayOverride!=null&&s.instrPayOverride!==''&&isFinite(Number(s.instrPayOverride)));
+}
+function sessionJobData(s){
+  return (typeof jobDataCache!=='undefined'&&jobDataCache&&s&&s.id)?(jobDataCache[s.id]||{}):{};
+}
+// Accepted on the job board (job_data.instructor_id) or typed on the session.
+function sessionPrimaryInstructorId(s){
+  const jdi=sessionJobData(s);
+  return jdi.instructorId||(s&&s.instructorId)||null;
+}
+// Company budget for a slot nobody has accepted. Every course is priced as a
+// Lead Teacher: class hours, travel, and the extra 30 minutes at $75. This is
+// not the pay text on the job board or in the open-jobs email. Those still
+// use each instructor's own rate. A flat override still wins inside
+// instrBaseFee, and a paid job keeps its frozen fee in the display helpers.
+function instrEstimateFee(s){
+  return instrBaseFee(s,{isLeadTeacher:true});
+}
+// True when the company instructor cost includes that Lead Teacher guess
+// because the primary slot is still empty. Lindsay teaching it, a flat
+// override, or a frozen paid fee is a real number. A second instructor is
+// separate: their own rate does not clear an empty primary slot.
+function instructorCostIsEstimate(s){
+  if(!s||s.isCustomJob||s.ownerTaught)return false;
+  if(payOverrideIsSet(s))return false;
+  const jdi=sessionJobData(s);
+  if(jdi.payStatus==='paid'&&jdi.paidFee!=null)return false;
+  return !sessionPrimaryInstructorId(s);
+}
+const INSTR_EST_TITLE='Estimated at the Lead Teacher rate of $75/hr until an instructor accepts the job';
 
 // Fee to DISPLAY/COUNT for the primary instructor slot. Once a job is marked paid we
 // freeze the dollar amount that was actually paid (jdi.paidFee) so later hourly-rate
@@ -3031,7 +3064,7 @@ function calcFin(s){
     const linkedCosts=linkedExpenseTotal(s.id);
     const legacyCosts=sessionExtraCosts(s.additionalCosts);
     const extra=linkedCosts+legacyCosts;
-    return{revenue:orgFee,grossRevenue:orgFee,procFee:0,matCost:0,instrFee:pay,extraCosts:extra,linkedCosts,legacyCosts,refPayout:0,referralBonus:0,totalCost:pay+extra,profit:orgFee-pay-extra,paidCount:0,totalCount:0,orgRevenue:orgFee,orgHeadcount:0,orgRate:null,familyGross:0};
+    return{revenue:orgFee,grossRevenue:orgFee,procFee:0,matCost:0,instrFee:pay,extraCosts:extra,linkedCosts,legacyCosts,refPayout:0,referralBonus:0,totalCost:pay+extra,profit:orgFee-pay-extra,paidCount:0,totalCount:0,orgRevenue:orgFee,orgHeadcount:0,orgRate:null,familyGross:0,instrEstimated:false};
   }
   const regs=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r));
   const paying=regs.filter(r=>r.payStatus==='paid');
@@ -3056,33 +3089,37 @@ function calcFin(s){
   // Handbook and student-supply cost is an overhead expense, not a per-student
   // deduction. matCost stays on the result so older readers keep working.
   const matCost=0;
-  // Build list of instructor IDs for this session (primary from jobs, second from session)
-  const primaryInstrId=(jobDataCache[s.id]||{}).instructorId||s.instructorId||null;
-  const instrIds=[];
-  if(primaryInstrId)instrIds.push(primaryInstrId);
-  if(s.secondInstructorId&&s.secondInstructorId!==primaryInstrId)instrIds.push(s.secondInstructorId);
-  // Calculate instructor fees: charge per assigned instructor. If none assigned yet, fall back to 1× default fee for budgeting purposes.
-  // Paid slots use the frozen amount that was actually paid; unpaid slots compute live from the current rate.
-  const jdiFin=jobDataCache[s.id]||{};
+  // Instructor cost. An accepted or assigned person is paid their own rate:
+  // a Lead Teacher at $75, otherwise their hourly rate, otherwise $50. The
+  // same rule applies to the second slot. An empty primary slot is estimated
+  // at the Lead Teacher rate for every course. A flat override wins, and a
+  // paid slot keeps the frozen amount.
+  const jdiFin=sessionJobData(s);
+  const primaryId=sessionPrimaryInstructorId(s);
+  const secondId=(s.secondInstructorId&&s.secondInstructorId!==primaryId)?s.secondInstructorId:null;
   let instrFee=0;
+  const addPerson=(id,isSecond)=>{
+    const roster=(typeof instructors!=='undefined'&&instructors)||[];
+    const inst=roster.find(x=>x&&x.id===id)||{hourlyRate:(typeof INSTR_RATE!=='undefined')?INSTR_RATE:50};
+    instrFee+=isSecond?secondInstrDisplayFee(s,inst,jdiFin):instrDisplayFee(s,inst,jdiFin);
+  };
   if(s.ownerTaught){
     // You teach for free — but a co-instructor, if assigned, is still paid.
-    if(s.secondInstructorId){
-      const inst=instructors.find(x=>x.id===s.secondInstructorId);
-      instrFee=secondInstrDisplayFee(s,inst,jdiFin);
-    }
-  }else if(instrIds.length===0){
-    // No instructor assigned yet — estimate per instructor slot (1 by default, 2 if second slot is set)
-    const slots=s.secondInstructorId?2:1;
-    instrFee=instrBaseFee(s,null)*slots;
+    if(secondId)addPerson(secondId,true);
+  }else if(instructorCostIsEstimate(s)){
+    instrFee+=instrEstimateFee(s);
+    if(secondId)addPerson(secondId,true);
+  }else if(!primaryId){
+    // Override, or a fee frozen when the job was marked paid, with nobody
+    // currently in the primary slot. Do not also invent a Lead Teacher guess.
+    if(jdiFin.payStatus==='paid'&&jdiFin.paidFee!=null)instrFee+=Number(jdiFin.paidFee)||0;
+    else if(payOverrideIsSet(s)&&!secondId)instrFee+=Number(s.instrPayOverride);
+    if(secondId)addPerson(secondId,true);
   }else{
-    instrFee=instrIds.reduce((sum,iid)=>{
-      const inst=instructors.find(x=>x.id===iid);
-      // The primary slot freezes on jdiFin.paidFee; the second slot on jdiFin.secondInstrPaidFee.
-      const isSecond=(iid===s.secondInstructorId&&iid!==primaryInstrId);
-      return sum+(isSecond?secondInstrDisplayFee(s,inst,jdiFin):instrDisplayFee(s,inst,jdiFin));
-    },0);
+    addPerson(primaryId,false);
+    if(secondId)addPerson(secondId,true);
   }
+  const instrEstimated=instructorCostIsEstimate(s);
   const linkedCosts=linkedExpenseTotal(s.id);
   const legacyCosts=sessionExtraCosts(s.additionalCosts);
   const extraCosts=linkedCosts+legacyCosts;
@@ -3092,7 +3129,7 @@ function calcFin(s){
   const refPayout=0;
   const referralBonus=(jobDataCache[s.id]||{}).referralBonus||0;
   const totalCost=matCost+instrFee+extraCosts+referralBonus;
-  return{revenue,grossRevenue,procFee,matCost,instrFee,extraCosts,linkedCosts,legacyCosts,refPayout,referralBonus,totalCost,profit:revenue-totalCost,paidCount:paying.length,totalCount:regs.length,orgRevenue,orgHeadcount,orgRate,familyGross};
+  return{revenue,grossRevenue,procFee,matCost,instrFee,extraCosts,linkedCosts,legacyCosts,refPayout,referralBonus,totalCost,profit:revenue-totalCost,paidCount:paying.length,totalCount:regs.length,orgRevenue,orgHeadcount,orgRate,familyGross,instrEstimated};
 }
 // What one session contributes to company totals. A cancelled session drops its
 // revenue, processing fees, estimated instructor pay, and unpaid older costs.
@@ -3104,7 +3141,7 @@ function financeSessionFigures(s){
   if(s&&s.isCancelled){
     const instr=paidOutInstructorFee(s);
     const legacy=financeLegacyCosts(s);
-    return {rev:0,fee:0,instr:instr,legacy:legacy,students:0,sess:0};
+    return {rev:0,fee:0,instr:instr,legacy:legacy,students:0,sess:0,instrEstimated:false};
   }
   return {
     rev:f.revenue,
@@ -3112,7 +3149,8 @@ function financeSessionFigures(s){
     instr:(f.instrFee||0)+(f.referralBonus||0),
     legacy:f.legacyCosts||0,
     students:f.paidCount,
-    sess:1
+    sess:1,
+    instrEstimated:!!f.instrEstimated
   };
 }
 // Cancelled sessions keep a calendar slot so paid costs land on the class date.
@@ -3259,7 +3297,7 @@ function feeReceivedControl(s, amount){
 function dashboardRevenueTotals(now){
   const n=now instanceof Date?now:new Date();
   const m=n.getMonth(),y=n.getFullYear();
-  let mRev=0,mCost=0,yRev=0,yCollected=0,yExpected=0;
+  let mRev=0,mCost=0,yRev=0,yCollected=0,yExpected=0,mEst=false;
   sessions.forEach(s=>{
     const slot=financeRevenueSlot(s, n);
     if(!slot||slot.year!==y)return;
@@ -3268,9 +3306,9 @@ function dashboardRevenueTotals(now){
     yRev+=p.rev;
     yCollected+=cash.collected;
     yExpected+=cash.expected;
-    if(slot.month===m){mRev+=p.rev;mCost+=p.instr+p.legacy;}
+    if(slot.month===m){mRev+=p.rev;mCost+=p.instr+p.legacy;if(p.instrEstimated)mEst=true;}
   });
-  return {mRev:mRev,mCost:mCost,yRev:yRev,yCollected:yCollected,yExpected:yExpected};
+  return {mRev:mRev,mCost:mCost,yRev:yRev,yCollected:yCollected,yExpected:yExpected,mEst:mEst};
 }
 // Six months anchored on the current month (3 back, 2 ahead). Undated paid
 // holds contribute only when sessionRevenueSlot gives them the current month.
@@ -3290,6 +3328,7 @@ function dashboardChartRevenue(now){
     if(!buckets[k])return;
     const p=financeSessionFigures(s);
     buckets[k].rev+=p.rev;buckets[k].cost+=p.instr+p.legacy;
+    if(p.instrEstimated)buckets[k].instrEstimated=true;
   });
   // Session-linked expenses land in the month of the expense date. Unlinked
   // overhead stays on the Finances yearly view, same as before.
@@ -3325,6 +3364,7 @@ function financeRevenueBuckets(now, view){
     const k=view==='monthly'?slot.year+'-'+(slot.month+1).toString().padStart(2,'0'):String(slot.year);
     if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,extra:0,linked:0,legacy:0,cost:0,profit:0,sess:0,students:0};
     buckets[k].rev+=p.rev;buckets[k].fee+=p.fee;buckets[k].instr+=p.instr;
+    if(p.instrEstimated)buckets[k].instrEstimated=true;
     buckets[k].legacy+=p.legacy;buckets[k].cost+=p.instr+p.legacy;
     if(p.sess){buckets[k].sess++;buckets[k].students+=p.students;}
   });
@@ -3363,6 +3403,7 @@ function annualSessionBuckets(year, now){
     if(s&&s.isCancelled&&!p.rev&&!p.fee&&!p.instr&&!p.legacy)return;
     const b=slot.month==null?undated:months[slot.month];
     b.rev+=p.rev;b.fee+=p.fee;b.instr+=p.instr;
+    if(p.instrEstimated)b.instrEstimated=true;
     b.legacy+=p.legacy;b.ship+=p.legacy;b.cost+=p.instr+p.legacy;
     if(p.sess){b.sess++;b.students+=p.students;}
   });
@@ -3381,6 +3422,7 @@ function courseRevenueForYear(year, now){
     if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,fee:0,sess:0,students:0,profit:0};
     courseBuckets[s.course].rev+=p.rev;courseBuckets[s.course].fee+=p.fee;
     if(p.sess){courseBuckets[s.course].sess++;courseBuckets[s.course].students+=p.students;}
+    if(p.instrEstimated)courseBuckets[s.course].instrEstimated=true;
     courseBuckets[s.course].profit+=p.rev-(p.instr+p.legacy);
   });
   return courseBuckets;
@@ -3736,6 +3778,7 @@ function checklistHostLabel(s){
 }
 function fmt(n){const v=Math.abs(n);return'$'+(Number.isInteger(v)?v.toLocaleString('en-US'):v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));}
 function fmtSigned(n){return(n<0?'-':'')+fmt(n)}
+function estPrefix(text, estimated){return estimated?('est. '+text):text;}
 
 // ─── COMMUNITY PARTNERSHIPS LIAISON: COMMISSION ENGINE ───────
 // Implements Section 3 of the Community Partnerships Liaison agreement. Every
@@ -4862,10 +4905,10 @@ function orgPartnerCardHtml(p,st){
       <td>${r.session.date||''}</td>
       <td>${escapeHtml(r.client||'')}</td>
       <td>${fmt(r.collected)}</td>
-      <td style="color:var(--muted)">${fmt(r.costs)}</td>
+      <td style="color:var(--muted)"${instructorCostIsEstimate(r.session)?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(r.costs), instructorCostIsEstimate(r.session))}</td>
       <td style="color:var(--muted)">${fmt(r.overhead)}</td>
-      <td>${fmt(r.net)}</td>
-      <td style="font-weight:500;color:var(--success)">${fmt(r.share)}</td>
+      <td${instructorCostIsEstimate(r.session)?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(r.net), instructorCostIsEstimate(r.session))}</td>
+      <td style="font-weight:500;color:var(--success)"${instructorCostIsEstimate(r.session)?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(r.share), instructorCostIsEstimate(r.session))}</td>
     </tr>`).join('')
     :`<tr><td colspan="8" style="color:var(--muted);padding:16px 12px">Nothing completed and collected in ${escapeHtml(periodLabel(st.period))}.</td></tr>`;
 
@@ -4895,9 +4938,9 @@ function orgPartnerCardHtml(p,st){
     ${paid?`<div class="alert info" style="display:block;margin-bottom:12px">Paid ${fmt(st.payout.amount)} on ${st.payout.paidDate}${st.payout.method?' by '+escapeHtml(st.payout.method):''}. These figures are frozen as sent.</div>`:''}
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
       <div class="metric"><div class="m-label">Collected</div><div class="m-val" style="font-size:23px">${fmt(st.collected)}</div></div>
-      <div class="metric"><div class="m-label">Direct costs</div><div class="m-val" style="font-size:23px">${fmt(st.costs)}</div></div>
+      <div class="metric"><div class="m-label">Direct costs</div><div class="m-val" style="font-size:23px"${(st.rows||[]).some(r=>instructorCostIsEstimate(r.session))?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(st.costs), (st.rows||[]).some(r=>instructorCostIsEstimate(r.session)))}</div></div>
       <div class="metric"><div class="m-label">Overhead ${p.overheadPct}%</div><div class="m-val" style="font-size:23px">${fmt(st.overhead)}</div></div>
-      <div class="metric"><div class="m-label">Net</div><div class="m-val" style="font-size:23px">${fmt(st.net)}</div></div>
+      <div class="metric"><div class="m-label">Net</div><div class="m-val" style="font-size:23px"${(st.rows||[]).some(r=>instructorCostIsEstimate(r.session))?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(st.net), (st.rows||[]).some(r=>instructorCostIsEstimate(r.session)))}</div></div>
       <div class="metric"><div class="m-label">Their share</div><div class="m-val" style="font-size:23px;color:var(--success)">${fmt(st.share)}</div></div>
       <div class="metric"><div class="m-label">You keep</div><div class="m-val" style="font-size:23px">${fmt(round2(st.overhead+st.kept))}</div><div class="m-sub">Overhead plus your half</div></div>
     </div>
@@ -5268,7 +5311,7 @@ function partnerCardHtml(p,st){
     <div class="metrics" style="margin-bottom:16px">
       <div class="metric"><div class="m-label">Collected revenue</div><div class="m-val">${fmt(st.monthTotal)}</div><div class="m-sub">Originated in ${periodLabel(st.period)}</div></div>
       <div class="metric"><div class="m-label">Commission rate</div><div class="m-val" style="font-size:23px">${Math.round(st.tier.rate*100)}%</div><div class="m-sub">${Math.round(PARTNER_FLAT_RATE*100)}% of profit — you keep ${Math.round((1-PARTNER_FLAT_RATE)*100)}%. Originated or referred.</div></div>
-      <div class="metric"><div class="m-label">Commission</div><div class="m-val">${fmt(st.commission)}</div><div class="m-sub">40% of profit, floor $0</div></div>
+      <div class="metric"><div class="m-label">Commission</div><div class="m-val"${(st.rows||[]).some(r=>instructorCostIsEstimate(r.session))?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(st.commission), (st.rows||[]).some(r=>instructorCostIsEstimate(r.session)))}</div><div class="m-sub">40% of profit, floor $0${(st.rows||[]).some(r=>instructorCostIsEstimate(r.session))?' · instructor cost est.':''}</div></div>
       <div class="metric"><div class="m-label">${paid?'Paid':'Total due'}</div><div class="m-val ${paid?'green':''}">${fmt(paid?st.payout.amount:st.total)}</div><div class="m-sub">${dueSub}</div></div>
     </div>
 
@@ -5284,7 +5327,7 @@ function partnerCardHtml(p,st){
         <td style="font-size:15px">${r.isReferral?escapeHtml(liaisonReferralText(r)):escapeHtml(liaisonClientLabel(r.session,r.org,'plain'))}
           ${r.isRepeat?'<br><span class="tag pending" style="margin-top:3px">Repeat</span>':'<br><span class="tag host" style="margin-top:3px">First booking</span>'}</td>
         <td style="font-weight:500">${fmt(r.collected)}${r.fees?`<br><span style="color:var(--muted);font-size:14px">${fmt(r.gross)} less ${fmt(r.fees)} fees</span>`:''}${r.familyCount?`<br><span style="color:var(--muted);font-size:14px">${r.familyCount} famil${r.familyCount===1?'y':'ies'}</span>`:''}</td>
-        <td style="font-weight:500;color:var(--success)">${fmt(r.commission)}</td>
+        <td style="font-weight:500;color:var(--success)"${instructorCostIsEstimate(r.session)?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(r.commission), instructorCostIsEstimate(r.session))}${instructorCostIsEstimate(r.session)?'<br><span style="color:var(--muted);font-size:13px;font-weight:400">instructor cost est.</span>':''}</td>
       </tr>`).join('')}
       <tr style="background:var(--cream);font-weight:500">
         <td colspan="3">${periodLabel(st.period)} total (payable)</td>
@@ -5304,7 +5347,7 @@ function partnerCardHtml(p,st){
           <td style="font-size:15px">${fmtShortDate(x.session.date)}</td>
           <td style="font-size:15px">${x.isReferral?escapeHtml(liaisonReferralText(x)):escapeHtml(liaisonClientLabel(x.session,x.org,'pending'))}</td>
           <td style="font-weight:500">${fmt(x.amount)}${x.fees?`<br><span style="color:var(--muted);font-size:14px">${fmt(x.gross)} less ${fmt(x.fees)} fees</span>`:''}</td>
-          <td style="font-weight:500;color:var(--warn)">${fmt(x.estCommission||0)}</td>
+          <td style="font-weight:500;color:var(--warn)"${instructorCostIsEstimate(x.session)?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(x.estCommission||0), instructorCostIsEstimate(x.session))}</td>
           <td style="font-size:14px;color:var(--muted)">${escapeHtml(x.reason)}</td>
         </tr>`).join('')}
         <tr style="background:var(--warn-bg);font-weight:500">
@@ -5354,7 +5397,8 @@ function portalRow(r){
     isOrg:!!r.isOrg,isReferral:!!r.isReferral,
     familyCount:r.familyCount||0,collected:r.collected||0,
     costs:r.costs||0,net:r.net!=null?r.net:(r.collected||0),rate:r.rate||0,
-    reason:r.reason||'',commission:r.commission||0,accelerated:!!r.accelerated};
+    reason:r.reason||'',commission:r.commission||0,accelerated:!!r.accelerated,
+    instrEstimated:!!(r.session&&instructorCostIsEstimate(r.session))};
 }
 function portalPending(x){
   return{date:(x.session&&x.session.date)||'',course:(x.session&&x.session.course)||'',
@@ -5364,6 +5408,7 @@ function portalPending(x){
     amount:x.amount||0,costs:x.costs||0,net:x.net!=null?x.net:(x.amount||0),
     reason:x.reason||'',estRate:x.estRate==null?null:x.estRate,
     estCommission:x.estCommission||0,estBonus:x.estBonus||0,
+    instrEstimated:!!(x.session&&instructorCostIsEstimate(x.session)),
     projectedMonth:x.projectedMonth||''};
 }
 
@@ -5387,6 +5432,7 @@ function buildPartnerPortalPayload(p){
       rows:st.rows.map(portalRow),
       bonuses:(st.bonuses||[]).map(b=>({org:b.org||'',amount:b.amount||0,date:b.date||''})),
       commission:st.commission,bonusTotal:st.bonusTotal,total:st.total,
+      instrEstimated:(st.rows||[]).some(r=>r.session&&instructorCostIsEstimate(r.session)),
       payout:paidOut?{amount:st.payout.amount,paidDate:st.payout.paidDate,method:st.payout.method||'Zelle'}:null
     };
   }).filter(Boolean);
@@ -5681,7 +5727,7 @@ function openPartnerStatement(partnerId){
         ?escapeHtml(liaisonReferralText(r))
         :escapeHtml(liaisonClientLabel(r.session,r.org,'statement'))}${r.isRepeat&&!r.isReferral?' <span style="color:#6b7a99;font-size:14px">(repeat)</span>':''}</td>
       <td style="text-align:right">${fmt(r.collected)}</td>
-      <td style="text-align:right">${fmt(r.commission)}</td>
+      <td style="text-align:right"${instructorCostIsEstimate(r.session)?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(r.commission), instructorCostIsEstimate(r.session))}${instructorCostIsEstimate(r.session)?'<div style="color:#6b7a99;font-size:13px">instructor cost est.</div>':''}</td>
     </tr>`).join('');
 
   showModal(`<div class="modal-head"><h3>Commission statement</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -5709,7 +5755,7 @@ function openPartnerStatement(partnerId){
         <tfoot><tr style="border-top:1px solid var(--border);font-weight:500">
           <td colspan="3" style="padding:8px 4px">Total — ${Math.round(PARTNER_FLAT_RATE*100)}% of profit</td>
           <td style="padding:8px 4px;text-align:right">${fmt(st.monthTotal)}</td>
-          <td style="padding:8px 4px;text-align:right;font-size:18px">${fmt(st.total)}</td>
+          <td style="padding:8px 4px;text-align:right;font-size:18px"${(st.rows||[]).some(r=>instructorCostIsEstimate(r.session))?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(st.total), (st.rows||[]).some(r=>instructorCostIsEstimate(r.session)))}</td>
         </tr></tfoot>
       </table>`:'<div style="color:var(--muted);font-style:italic;padding:20px 0;text-align:center">No collected revenue originated in this period.</div>'}
       ${st.pending.length?`<div style="margin-top:16px;padding:10px 12px;background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);font-size:15px;color:var(--warn)">
@@ -6687,7 +6733,7 @@ function upcomingCommittedExpenses(now){
     if(customJobPayMissing(s))unset++;
     const owed=instructorPayStillOwed(s);
     if(!(owed>0))return;
-    const row={id:s.id,code:s.code||'',course:s.course||'',date:s.date||sessionEndDate(s)||'',amount:owed,inThisMonth:financeSlotIsCurrentMonth(s, n),breakdown:(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):''};
+    const row={id:s.id,code:s.code||'',course:s.course||'',date:s.date||sessionEndDate(s)||'',amount:owed,estimated:(typeof instructorCostIsEstimate==='function')&&instructorCostIsEstimate(s),inThisMonth:financeSlotIsCurrentMonth(s, n),breakdown:(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):''};
     if(isVendorFairSession(s))vendorRows.push(row);
     else if(isNoFeeJob(s))noFeeRows.push(row);
     else classRows.push(row);
@@ -6752,10 +6798,11 @@ function cashForecast30(now){
     if(typeof customJobPayMissing==='function'&&customJobPayMissing(s))unset++;
     const owed=(typeof instructorPayStillOwed==='function')?instructorPayStillOwed(s):0;
     if(!(owed>0))return;
-    rows.push({date:d,course:s.course||'',names:(typeof sessionInstructorNames==='function')?sessionInstructorNames(s):'',amount:owed,breakdown:(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):''});
+    rows.push({date:d,course:s.course||'',names:(typeof sessionInstructorNames==='function')?sessionInstructorNames(s):'',amount:owed,estimated:(typeof instructorCostIsEstimate==='function')&&instructorCostIsEstimate(s),breakdown:(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):''});
   });
   rows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const total=round2(rows.reduce((a,r)=>a+r.amount,0));
+  const totalEstimated=rows.some(r=>r.estimated);
   // Invoices out: sent but not paid, due inside the same 30-day window.
   const inRows=[];
   (invoices||[]).forEach(v=>{
@@ -6768,7 +6815,7 @@ function cashForecast30(now){
   });
   inRows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const inTotal=round2(inRows.reduce((a,r)=>a+r.amount,0));
-  return {rows,total,inRows,inTotal,unset,today,endStr};
+  return {rows,total,totalEstimated,inRows,inTotal,unset,today,endStr};
 }
 function renderCashForecast(now){
   const el=document.getElementById('dash-cash');
@@ -6783,7 +6830,7 @@ function renderCashForecast(now){
     :`<div style="font-size:17px;font-weight:700;color:var(--success);margin-top:8px">You are covered \u2014 ${fmt(cushion)} cushion.</div>`;
   const rows=fc.rows.length?fc.rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:15px">
       <div style="min-width:0"><span style="color:var(--muted)">${fmtD(r.date)}</span> <span style="font-weight:600">${escapeHtml(r.course)}</span><div style="color:var(--muted);font-size:14px">${escapeHtml(r.names)}</div>${r.breakdown?`<div style="color:var(--muted);font-size:14px">${escapeHtml(r.breakdown)}</div>`:''}</div>
-      <div style="font-weight:650;white-space:nowrap">${fmt(r.amount)}</div>
+      <div style="font-weight:650;white-space:nowrap"${r.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(r.amount), r.estimated)}</div>
     </div>`).join('')
     :'<div style="font-size:15px;color:var(--muted);padding:8px 0">No instructor pay due in the next 30 days.</div>';
   const unsetLine=fc.unset?`<div style="font-size:14px;color:var(--warn);margin-top:8px">Pay is not set yet on ${fc.unset} upcoming job${fc.unset===1?'':'s'}, so ${fc.unset===1?'it is':'they are'} not in this total.</div>`:'';
@@ -6791,7 +6838,7 @@ function renderCashForecast(now){
     <div class="card-title">30-day cash forecast</div>
     <div style="font-size:15px;color:var(--muted);line-height:1.45;margin-top:-2px">Instructor pay due ${fmtD(fc.today)} \u2013 ${fmtD(fc.endStr)}, net of invoices due in.</div>
     <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:10px">
-      <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Pay out, 30 days</div><div style="font-size:24px;font-weight:700;color:var(--danger)">${fmt(fc.total)}</div></div>
+      <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Pay out, 30 days</div><div style="font-size:24px;font-weight:700;color:var(--danger)"${fc.totalEstimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(fc.total), fc.totalEstimated)}</div></div>
       <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Invoices in, 30 days</div><div style="font-size:24px;font-weight:700;color:var(--success)">${fmt(fc.inTotal)}</div></div>
       <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">In the account now</div><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-size:20px;font-weight:600">$</span><input type="number" id="cash-bal" value="${bal}" min="0" step="1" onchange="setCashForecastBalance(Number(this.value)||0);renderCashForecast(new Date())" style="width:110px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:18px;font-family:Montserrat,sans-serif;outline:none"></div></div>
     </div>
@@ -6821,11 +6868,12 @@ function renderUpcomingExpenses(now){
   };
   const rowHtml=(r)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:15px">
       <div style="min-width:0"><span style="color:var(--muted)">${when(r.date)}</span> <span style="font-weight:600">${escapeHtml(r.course||r.code||'Session')}</span><div style="color:var(--muted);font-size:14px">${upcomingWhenNote(r.inThisMonth)}</div>${r.breakdown?`<div style="color:var(--muted);font-size:14px">${escapeHtml(r.breakdown)}</div>`:''}</div>
-      <div style="font-weight:650;color:var(--danger);white-space:nowrap">${money(r.amount)}</div>
+      <div style="font-weight:650;color:var(--danger);white-space:nowrap"${r.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(money(r.amount), r.estimated)}</div>
     </div>`;
   const vendorBlock=ahead.vendorRows.length?`<div style="font-size:14px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px">Vendor fairs · ${money(ahead.vendor)}</div>${ahead.vendorRows.map(rowHtml).join('')}`:'';
   const noFeeBlock=ahead.noFeeRows.length?`<div style="font-size:14px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:14px 0 4px">Jobs with no class fee · ${money(ahead.noFee)}</div>${ahead.noFeeRows.map(rowHtml).join('')}`:'';
-  const classLine=ahead.classes?`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:15px"><div>Classes and other jobs still to pay <span style="color:var(--muted)">(${ahead.classRows.length})</span></div><div style="font-weight:650;color:var(--danger)">${money(ahead.classes)}</div></div>`:'';
+  const classEst=ahead.classRows.some(r=>r.estimated);
+  const classLine=ahead.classes?`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:15px"><div>Classes and other jobs still to pay <span style="color:var(--muted)">(${ahead.classRows.length})</span></div><div style="font-weight:650;color:var(--danger)"${classEst?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(money(ahead.classes), classEst)}</div></div>`:'';
   const classTravel=ahead.classRows.filter(r=>r.breakdown).map(r=>`<div style="font-size:14px;color:var(--muted);padding:2px 0 6px">${escapeHtml(r.course||r.code||'Session')}: ${escapeHtml(r.breakdown)}. ${money(r.amount)}. Already inside the classes total.</div>`).join('');
   const billLine=ahead.bills?`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;font-size:15px"><div>Bills tied to a session and dated ahead</div><div style="font-weight:650;color:var(--danger)">${money(ahead.bills)}</div></div>`:'';
   const unsetLine=ahead.unset?`<div style="font-size:15px;color:var(--warn);margin-top:8px">Pay is not set yet on ${ahead.unset} upcoming job${ahead.unset===1?'':'s'}, so ${ahead.unset===1?'that one is':'those are'} not in this total.</div>`:'';
@@ -6888,9 +6936,9 @@ function renderDashboard(){
   const otherAhead=round2((ahead.noFee||0)+(ahead.classes||0));
   document.getElementById('dash-metrics').innerHTML=`
     <div class="metric" title="Revenue this month is the booked total for classes dated in ${monthName} ${y} only. Collected in ${y} is money already in for the whole year: paid family registrations after PayPal and Venmo fees, plus an organization bill or custom-job fee only once it has been received. Expected in ${y} is booked organization bills and custom-job fees for the year that have not been received. Booked in ${y} is Collected plus Expected. The year figures are larger than this month on purpose."><div class="m-label">Revenue this month</div><div class="m-val">${fmt(mRev)}</div><div class="m-sub">Booked for classes dated in ${monthName} ${y}</div><div class="m-sub" style="line-height:1.45;margin-top:6px"><span style="color:#1d6b45;font-weight:650">Collected in ${y} ${fmt(yCollected)}</span><br><span style="color:#b86a00;font-weight:650">Expected in ${y} ${fmt(yExpected)}</span><br>Booked in ${y} ${fmt(yRev)}</div><div class="m-sub" style="margin-top:6px">This month is ${monthName} only. Collected and Expected are all of ${y}, so they will not add up to the month.</div></div>
-    <div class="metric" title="Instructor pay for classes, vendor fairs, and other jobs dated this month, whether or not it has been sent yet, plus class expenses and liaison commission. Company overhead is on the yearly view."><div class="m-label">Class costs this month</div><div class="m-val red">${fmt(mCost)}</div>${includedLine}${mOverhead?`<div class="m-sub">${fmt(mOverhead)} overhead is on the yearly view</div>`:''}</div>
-    <div class="metric" title="Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${fmtSigned(mProfit)}</div><div class="m-sub">Revenue minus class costs and liaison commission</div></div>
-    <div class="metric" title="Instructor pay not sent yet for sessions that are still ahead, plus bills tied to a session and dated today or later. Sessions dated this month are already inside class costs. Later sessions are not in this month's profit."><div class="m-label">Upcoming expenses</div><div class="m-val red">${fmt(ahead.total)}</div><div class="m-sub">Instructor pay not sent yet, for sessions that are not finished</div><div class="m-sub">Vendor fairs ${fmt(ahead.vendor)}</div><div class="m-sub">Other sessions ${fmt(otherAhead)}</div>${ahead.bills?`<div class="m-sub">Bills dated ahead ${fmt(ahead.bills)}</div>`:''}<div class="m-sub">${fmt(ahead.alreadyInMonth)} is already inside class costs. ${fmt(ahead.later)} is for later.</div></div>
+    <div class="metric" title="Instructor pay for classes, vendor fairs, and other jobs dated this month, whether or not it has been sent yet, plus class expenses and liaison commission. Company overhead is on the yearly view."><div class="m-label">Class costs this month</div><div class="m-val red">${fmt(mCost)}</div>${includedLine}${revTotals.mEst?'<div class="m-sub">Instructor pay is est. until someone accepts</div>':''}${mOverhead?`<div class="m-sub">${fmt(mOverhead)} overhead is on the yearly view</div>`:''}</div>
+    <div class="metric" title="Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view."><div class="m-label">Profit this month</div><div class="m-val ${mProfit>=0?'green':'red'}">${estPrefix(fmtSigned(mProfit), revTotals.mEst)}</div><div class="m-sub">Revenue minus class costs and liaison commission${revTotals.mEst?' · instructor pay est.':''}</div></div>
+    <div class="metric" title="Instructor pay not sent yet for sessions that are still ahead, plus bills tied to a session and dated today or later. Sessions dated this month are already inside class costs. Later sessions are not in this month's profit."><div class="m-label">Upcoming expenses</div><div class="m-val red">${estPrefix(fmt(ahead.total), [].concat(ahead.vendorRows,ahead.noFeeRows,ahead.classRows).some(function(r){return r.estimated;}))}</div><div class="m-sub">Instructor pay not sent yet, for sessions that are not finished</div><div class="m-sub">Vendor fairs ${fmt(ahead.vendor)}</div><div class="m-sub">Other sessions ${fmt(otherAhead)}</div>${ahead.bills?`<div class="m-sub">Bills dated ahead ${fmt(ahead.bills)}</div>`:''}<div class="m-sub">${fmt(ahead.alreadyInMonth)} is already inside class costs. ${fmt(ahead.later)} is for later.</div></div>
     <div class="metric" title="Paid, pending, and unpaid registrations for classes dated ${y}. Host seats, the waitlist, and cancelled registrations are not included. Reports counts host seats and, on All time, every year."><div class="m-label">Registrations this year</div><div class="m-val">${totRegs}</div><div class="m-sub">Paid, pending, and unpaid for classes in ${y}. Host seats, waitlist, and cancelled are not included.</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'All of these are paid.'}</div></div>
     <div class="metric" title="Classes still ahead. Holds and cancelled classes are not included."><div class="m-label">Upcoming sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled&&sessionEndDate(s)>=fmtYMD(now)).length}</div></div>
   `;
@@ -6917,12 +6965,12 @@ function renderDashboard(){
     }else if(b.profit>=0){
       segs=`<div class="bar-fill profit" style="width:${w(b.profit)}%;border-radius:0" title="Kept ${fmtSigned(b.profit)}"></div><div class="bar-fill cost" style="width:${w(b.cost)}%;border-radius:0" title="Spent ${fmt(b.cost)}"></div>`;
       const m=b.rev?Math.round(b.profit/b.rev*100):0;
-      val=`<span style="color:var(--success);font-weight:600">+${fmt(b.profit)}</span> <span style="color:var(--muted);font-size:13px">${m}%</span>`;
+      val=`<span style="color:var(--success);font-weight:600"${b.instrEstimated?` title="${INSTR_EST_TITLE}"`:''}>${b.instrEstimated?'est. ':''}+${fmt(b.profit)}</span> <span style="color:var(--muted);font-size:13px">${m}%</span>`;
     }else{
       segs=`<div class="bar-fill cost" style="width:${w(b.rev)}%;border-radius:0" title="Spent ${fmt(b.rev)} of income"></div><div class="bar-fill loss" style="width:${w(b.cost-b.rev)}%;border-radius:0" title="Over budget ${fmt(b.cost-b.rev)}"></div>`;
       val=`<span style="color:var(--danger);font-weight:600">-${fmt(Math.abs(b.profit))}</span> <span style="color:var(--muted);font-size:13px">loss</span>`;
     }
-    return`<div class="bar-row" title="${mo} — revenue ${fmt(b.rev)}, expenses ${fmt(b.cost)}, net ${fmtSigned(b.profit)}"><span class="bar-label">${mo}</span><div class="bar-bg" style="flex:1;display:flex">${segs}</div><span class="bar-val" style="min-width:96px">${val}</span></div>`;
+    return`<div class="bar-row" title="${mo} — revenue ${fmt(b.rev)}, expenses ${fmt(b.cost)}, net ${estPrefix(fmtSigned(b.profit), !!b.instrEstimated)}"><span class="bar-label">${mo}</span><div class="bar-bg" style="flex:1;display:flex">${segs}</div><span class="bar-val" style="min-width:96px">${val}</span></div>`;
   }).join('');
   // ── Instructor milestone alerts ──
   // Celebrates each instructor the first time their lifetime taught-class count
@@ -7178,7 +7226,7 @@ function renderSessions(){
   // Profit rides under Revenue, which drops the table to eight columns without losing
   // anything. The Manage cell is pinned to the right edge so it is always clickable.
   const codeLine=c=>c?`<span class="code-badge" onclick="copyCode('${c}')" title="Click to copy">${c}</span>`:'';
-  const netLine=v=>`<span class="pay-note" style="color:${v>=0?'var(--success)':'var(--danger)'}">Net ${fmtSigned(v)}</span>`;
+  const netLine=(v,estimated)=>`<span class="pay-note" style="color:${v>=0?'var(--success)':'var(--danger)'}"${estimated?` title="${INSTR_EST_TITLE}"`:''}>Net ${estPrefix(fmtSigned(v), estimated)}</span>`;
   const pill=(label,bg,color,title)=>`<span class="sess-pill" style="background:${bg};color:${color}"${title?` title="${escapeHtml(title)}"`:''}>${label}</span>`;
   const orgLine=s=>{
     const org=s&&s.billToOrg;
@@ -7191,7 +7239,7 @@ function renderSessions(){
     const cap=splitBillCaption(s,f);
     const title=cap?` title="${escapeHtml(cap)}"`:'';
     const costNote=f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:'';
-    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${feeReceivedControl(s,f.orgRevenue)}${extra}${costNote}${netLine(f.profit)}`;
+    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${feeReceivedControl(s,f.orgRevenue)}${extra}${costNote}${netLine(f.profit, !!f.instrEstimated)}`;
   };
   const locCell=s=>adminPlaceHtml(s);
   t.innerHTML=`<colgroup><col class="c-date"><col class="c-course"><col class="c-loc"><col class="c-instr"><col class="c-seats"><col class="c-pay"><col class="c-wrap"><col class="c-mgr"></colgroup><thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Wrap-up</th><th class="mgr-cell" style="background:white"></th></tr></thead><tbody>`+
@@ -7276,7 +7324,7 @@ function renderSessions(){
           <td><div class="cell-stack">${where}</div></td>
           <td><div class="cell-stack">${instrStatus}</div></td>
           <td><div class="cell-stack"><span class="sess-sub">—</span></div></td>
-          <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.orgRevenue?`<span class="pay-note">Org fee ${fmt(f.orgRevenue)}</span>${feeReceivedControl(s,f.orgRevenue)}`:''}${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit)}</div></td>
+          <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.orgRevenue?`<span class="pay-note">Org fee ${fmt(f.orgRevenue)}</span>${feeReceivedControl(s,f.orgRevenue)}`:''}${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit, !!f.instrEstimated)}</div></td>
           <td>${isPast?`<div class="cell-stack"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${instrPaidNow?'var(--success)':'#dde4ee'};margin-right:2px"></span></span><span class="pay-note" style="color:${instrPaidNow?'var(--success)':'var(--muted)'}">${instrPaidNow?'Paid':'Unpaid'}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
           ${mgr('#fdf8f0')}</tr>`;
       }
@@ -7649,12 +7697,14 @@ function sessionAboutPayHtml(s){
   if(s&&s.ownerTaught&&!s.secondInstructorId){
     return '<div class="about-empty">No instructor pay — you are teaching</div>';
   }
-  const amount=sessionInstructorPayAmount(s);
+  const est=instructorCostIsEstimate(s);
+  const amount=est?instrEstimateFee(s):sessionInstructorPayAmount(s);
   if(amount==null||!isFinite(Number(amount))){
     return '<div class="about-empty">Pay isn\'t set yet</div>';
   }
   const note=(typeof paidHoursBreakdown==='function')?paidHoursBreakdown(s):'';
-  return '<div class="about-value">'+escapeHtml(fmt(amount))+'</div>'+(note?'<div style="font-size:14px;color:var(--muted);margin-top:4px">'+escapeHtml(note)+'</div>':'');
+  const shown=estPrefix(fmt(amount), est);
+  return '<div class="about-value"'+(est?' title="Estimated at the Lead Teacher rate of $75/hr until an instructor accepts the job"':'')+'>'+escapeHtml(shown)+'</div>'+(note?'<div style="font-size:14px;color:var(--muted);margin-top:4px">'+escapeHtml(note)+'</div>':'');
 }
 function sessionAboutBodyHtml(s){
   const who=sessionAboutInstructors(s);
@@ -7752,7 +7802,8 @@ function sessionProfitSummaryHtml(s){
     </div>`;
   }).join(''):'';
   const legacyBlock=legacy.length?`<div style="margin-top:10px"><div style="font-size:13px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)">Older costs entered on this session</div>${legacyRows}</div>`:'';
-  return `<div style="font-size:15px;margin-bottom:8px"><strong>Session profit ${fmtSigned(f.profit)}</strong> <span style="color:var(--muted)">= revenue ${fmt(f.revenue)} minus instructor pay ${fmt(f.instrFee||0)}${f.referralBonus?` minus referral bonus ${fmt(f.referralBonus)}`:''} minus linked expenses ${fmt(f.linkedCosts||0)} minus older costs ${fmt(f.legacyCosts||0)}</span></div>
+  const est=!!f.instrEstimated;
+  return `<div style="font-size:15px;margin-bottom:8px"><strong${est?` title="${INSTR_EST_TITLE}"`:''}>Session profit ${estPrefix(fmtSigned(f.profit), est)}</strong> <span style="color:var(--muted)">= revenue ${fmt(f.revenue)} minus instructor pay ${estPrefix(fmt(f.instrFee||0), est)}${f.referralBonus?` minus referral bonus ${fmt(f.referralBonus)}`:''} minus linked expenses ${fmt(f.linkedCosts||0)} minus older costs ${fmt(f.legacyCosts||0)}</span></div>
     <div style="font-size:13px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Linked expenses</div>
     ${linkedRows}${legacyBlock}`;
 }
@@ -9989,7 +10040,8 @@ function profitBySessionRows(year){
     const legacy=cancelled?financeLegacyCosts(s):(f.legacyCosts||0);
     const profit=rev-instr-linked-legacy;
     const margin=rev?profit/rev:null;
-    return {s,rev,instr,linked,legacy,profit,margin,cancelled};
+    const estimated=!cancelled&&!!f.instrEstimated;
+    return {s,rev,instr,linked,legacy,profit,margin,cancelled,estimated};
   });
 }
 function renderProfitBySession(){
@@ -10000,7 +10052,7 @@ function renderProfitBySession(){
   const tools=document.getElementById('profit-session-tools');
   if(tools)tools.innerHTML=`<label style="display:inline-flex;align-items:center;gap:8px;margin:0 0 10px;font-size:15px;cursor:pointer"><input type="checkbox" ${profitShowCancelled?'checked':''} onchange="toggleProfitCancelled(this.checked)"> Show cancelled sessions</label>`;
   const rows=profitBySessionRows(year).sort((a,b)=>profitBySessionDir*(a.profit-b.profit)||String(a.s.date||'').localeCompare(String(b.s.date||'')));
-  const tot=rows.reduce((a,r)=>({rev:a.rev+r.rev,instr:a.instr+r.instr,linked:a.linked+r.linked,legacy:a.legacy+r.legacy,profit:a.profit+r.profit}),{rev:0,instr:0,linked:0,legacy:0,profit:0});
+  const tot=rows.reduce((a,r)=>({rev:a.rev+r.rev,instr:a.instr+r.instr,linked:a.linked+r.linked,legacy:a.legacy+r.legacy,profit:a.profit+r.profit,estimated:a.estimated||r.estimated}),{rev:0,instr:0,linked:0,legacy:0,profit:0,estimated:false});
   const marginText=m=>m==null?'n/a':(Math.round(m*1000)/10).toFixed(1)+'%';
   const arrow=profitBySessionDir<0?'↓':'↑';
   const t=document.getElementById('fin-table');
@@ -10013,16 +10065,16 @@ function renderProfitBySession(){
       <td style="white-space:nowrap">${escapeHtml(d)}</td>
       <td>${course}</td>
       <td>${fmt(r.rev)}</td>
-      <td style="color:var(--danger)">${fmt(r.instr)}${((typeof paidHoursBreakdown==='function')&&paidHoursBreakdown(s))?`<div style="font-size:13px;color:var(--muted);font-weight:400">${escapeHtml(paidHoursBreakdown(s))}</div>`:''}</td>
+      <td style="color:var(--danger)"${r.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(r.instr), r.estimated)}${((typeof paidHoursBreakdown==='function')&&paidHoursBreakdown(s))?`<div style="font-size:13px;color:var(--muted);font-weight:400">${escapeHtml(paidHoursBreakdown(s))}</div>`:''}</td>
       <td style="color:var(--danger)">${fmt(r.linked)}</td>
       <td style="color:var(--danger)">${fmt(r.legacy)}</td>
-      <td style="font-weight:600;color:${r.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(r.profit)}</td>
+      <td style="font-weight:600;color:${r.profit>=0?'var(--success)':'var(--danger)'}"${r.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmtSigned(r.profit), r.estimated)}</td>
       <td>${marginText(r.margin)}</td>
     </tr>`;
   }).join(''):'<tr class="empty-row"><td colspan="9">No sessions in this year.</td></tr>';
   const totMargin=tot.rev?tot.profit/tot.rev:null;
   t.innerHTML=`<thead><tr><th>Code</th><th>Date</th><th>Course</th><th>Revenue</th><th>Instructor pay</th><th>Linked expenses</th><th>Older costs</th><th><button type="button" class="btn sm" onclick="toggleProfitSort()">Profit ${arrow}</button></th><th>Margin</th></tr></thead><tbody>${body}</tbody>
-    <tfoot><tr style="font-weight:650"><td colspan="3">Total</td><td>${fmt(tot.rev)}</td><td style="color:var(--danger)">${fmt(tot.instr)}</td><td style="color:var(--danger)">${fmt(tot.linked)}</td><td style="color:var(--danger)">${fmt(tot.legacy)}</td><td style="color:${tot.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(tot.profit)}</td><td>${marginText(totMargin)}</td></tr></tfoot>`;
+    <tfoot><tr style="font-weight:650"><td colspan="3">Total</td><td>${fmt(tot.rev)}</td><td style="color:var(--danger)"${tot.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(tot.instr), tot.estimated)}</td><td style="color:var(--danger)">${fmt(tot.linked)}</td><td style="color:var(--danger)">${fmt(tot.legacy)}</td><td style="color:${tot.profit>=0?'var(--success)':'var(--danger)'}"${tot.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmtSigned(tot.profit), tot.estimated)}</td><td>${marginText(totMargin)}</td></tr></tfoot>`;
 }
 function renderFinances(){
   invalidateCommissionCache();
@@ -10082,7 +10134,7 @@ function renderFinances(){
   const sumKey=key=>keys.reduce((a,k)=>a+(Number(buckets[k]&&buckets[k][key])||0),0);
   const optCols=[
     {show:sumKey('fee')!==0,head:`<th title="${feeTitle}">Processing fees</th>`,cell:b=>`<td style="color:${yearly?'var(--danger)':'var(--muted)'}" title="${feeCell}">${fmt(b.fee||0)}</td>`},
-    {show:sumKey('instr')!==0,head:'<th>Instructor fees</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.instr||0)}</td>`},
+    {show:sumKey('instr')!==0,head:'<th>Instructor fees</th>',cell:b=>`<td style="color:var(--danger)"${b.instrEstimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(b.instr||0), !!b.instrEstimated)}</td>`},
     {show:sumKey('linked')!==0,head:'<th title="Finances expenses linked to a session, placed on the expense date. Counted once.">Session-linked expenses</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.linked||0)}</td>`},
     {show:yearly&&sumKey('overhead')!==0,head:'<th title="Finances expenses that are not linked to a session.">Other expenses</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`},
     {show:sumKey('legacy')!==0,head:'<th title="Costs still typed on a session. Lines already moved to Finances are not included. On a cancelled session, only a line with a date paid is included.">Costs entered on the session</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.legacy||0)}</td>`},
@@ -10097,7 +10149,7 @@ function renderFinances(){
         <td style="font-weight:500">${fmt(b.gross)}</td>
         ${optCols.map(c=>c.cell(b)).join('')}
         <td style="color:var(--danger)">${fmt(b.expenses)}</td>
-        <td style="font-weight:500;color:${b.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(b.profit)}</td></tr>`;
+        <td style="font-weight:500;color:${b.profit>=0?'var(--success)':'var(--danger)'}"${b.instrEstimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmtSigned(b.profit), !!b.instrEstimated)}</td></tr>`;
     }).join(''):`<tr class="empty-row"><td colspan="${finColspan}">No financial data yet.</td></tr>`)+'</tbody>';
   const feeHost=document.getElementById('fin-fee-section');
   if(feeHost){
@@ -10108,7 +10160,7 @@ function renderFinances(){
       const rows=keys.map(k=>{
         const b=buckets[k];
         const here=k===focus;
-        return `<tr style="${here?'background:#f7f4ee':''}"><td style="font-weight:${here?'650':'500'}">${k}</td><td style="color:var(--danger);font-weight:600">${fmt(b.fee||0)}</td><td>${fmt(b.gross)}</td><td>${fmt(b.expenses)}</td><td style="font-weight:600;color:${b.profit>=0?'var(--success)':'var(--danger)'}">${fmtSigned(b.profit)}</td></tr>`;
+        return `<tr style="${here?'background:#f7f4ee':''}"><td style="font-weight:${here?'650':'500'}">${k}</td><td style="color:var(--danger);font-weight:600">${fmt(b.fee||0)}</td><td>${fmt(b.gross)}</td><td>${fmt(b.expenses)}</td><td style="font-weight:600;color:${b.profit>=0?'var(--success)':'var(--danger)'}"${b.instrEstimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmtSigned(b.profit), !!b.instrEstimated)}</td></tr>`;
       }).join('');
       const focusBucket=focus&&buckets[focus]?buckets[focus]:null;
       const focusFee=focusBucket?focusBucket.fee||0:0;
@@ -16838,14 +16890,14 @@ function printYearReport(){
       <td style="text-align:center">${m.sess||'-'}</td>
       <td style="text-align:center">${m.students||'-'}</td>
       <td style="text-align:right;font-weight:500">${m.gross?fmtN(m.gross):'-'}</td>
-      <td style="text-align:right;color:#c0392b">${cell(m.instr)}</td>
+      <td style="text-align:right;color:#c0392b">${m.instr&&m.instrEstimated?('est. '+cell(m.instr)):cell(m.instr)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.linked)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.legacy)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.comm)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.overhead)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.fee)}</td>
       <td style="text-align:right;color:#c0392b">${m.expenses?fmtN(m.expenses):'-'}</td>
-      <td style="text-align:right;font-weight:600;color:${profitColor(m.profit)}">${monthActive(m)?fmtS(m.profit):'-'}</td>
+      <td style="text-align:right;font-weight:600;color:${profitColor(m.profit)}">${monthActive(m)?estPrefix(fmtS(m.profit), !!m.instrEstimated):'-'}</td>
     </tr>`).join('');
   if(undatedLive){
     monthRows+=`<tr>
@@ -16853,7 +16905,7 @@ function printYearReport(){
       <td style="text-align:center">${undatedHold.sess||'-'}</td>
       <td style="text-align:center">${undatedHold.students||'-'}</td>
       <td style="text-align:right;font-weight:500">${undatedHold.gross?fmtN(undatedHold.gross):'-'}</td>
-      <td style="text-align:right;color:#c0392b">${cell(undatedHold.instr)}</td>
+      <td style="text-align:right;color:#c0392b">${undatedHold.instr&&undatedHold.instrEstimated?('est. '+cell(undatedHold.instr)):cell(undatedHold.instr)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.linked)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.legacy)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.comm)}</td>
@@ -16870,7 +16922,7 @@ function printYearReport(){
       <td style="text-align:center">${b.sess}</td>
       <td style="text-align:center">${b.students}</td>
       <td style="text-align:right;font-weight:500">${fmtN(b.rev+(b.fee||0))}</td>
-      <td style="text-align:right;color:${profitColor(b.profit)};font-weight:600">${fmtS(b.profit)}</td>
+      <td style="text-align:right;color:${profitColor(b.profit)};font-weight:600">${estPrefix(fmtS(b.profit), !!b.instrEstimated)}</td>
     </tr>`).join('');
 
   const catRows=Object.entries(catBuckets).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>`
@@ -16922,7 +16974,7 @@ function printYearReport(){
     <div class="kpi-row">
       <div class="kpi"><div class="label">Gross payments</div><div class="val">${fmtN(tot.gross)}</div><div style="font-size:14px;color:#6b7a99;margin-top:2px">before processing fees</div></div>
       <div class="kpi"><div class="label">Total expenses</div><div class="val red">${fmtN(tot.expenses)}</div><div style="font-size:14px;color:#6b7a99;margin-top:2px">includes ${fmtN(tot.fee)} card fees</div></div>
-      <div class="kpi"><div class="label">Net profit</div><div class="val ${tot.profit>=0?'green':'red'}">${fmtS(tot.profit)}</div></div>
+      <div class="kpi"><div class="label">Net profit</div><div class="val ${tot.profit>=0?'green':'red'}">${estPrefix(fmtS(tot.profit), !!(months.some(m=>m.instrEstimated)||undatedHold.instrEstimated))}</div></div>
       <div class="kpi"><div class="label">Sessions · Students</div><div class="val">${tot.sess} · ${tot.students}</div></div>
     </div>
 
@@ -16933,7 +16985,7 @@ function printYearReport(){
         <tr><td>Processing fees for ${year}</td><td style="text-align:right;color:#c0392b;font-weight:600">${fmtN(tot.fee)}</td></tr>
         <tr><td>Gross payments</td><td style="text-align:right;font-weight:500">${fmtN(tot.gross)}</td></tr>
         <tr><td>Total expenses, including these fees</td><td style="text-align:right;color:#c0392b">${fmtN(tot.expenses)}</td></tr>
-        <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td></tr>
+        <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${estPrefix(fmtS(tot.profit), !!(months.some(m=>m.instrEstimated)||undatedHold.instrEstimated))}</td></tr>
       </tbody>
     </table>
 
@@ -16955,14 +17007,14 @@ function printYearReport(){
         <td style="text-align:center">${tot.sess}</td>
         <td style="text-align:center">${tot.students}</td>
         <td style="text-align:right">${fmtN(tot.gross)}</td>
-        <td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td>
+        <td style="text-align:right;color:#c0392b">${(months.some(m=>m.instrEstimated)||undatedHold.instrEstimated)&&tot.instr?('est. '+fmtN(tot.instr)):fmtN(tot.instr)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.linked)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.overhead)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.fee)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.expenses)}</td>
-        <td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td>
+        <td style="text-align:right;color:${profitColor(tot.profit)}">${estPrefix(fmtS(tot.profit), !!(months.some(m=>m.instrEstimated)||undatedHold.instrEstimated))}</td>
       </tr></tfoot>
     </table>
     ${undatedLive?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">On-hold sessions with no class date are listed on their own row when their year is not the current year. Their revenue is in the year total and is not assigned to a calendar month until a date is saved. Paid costs on a cancelled session with no date stay on that row too.</p>':''}
@@ -17102,7 +17154,7 @@ function printMonthReport(){
     ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
     :expenses).filter(inThisMonth);
 
-  const tot={rev:0,fee:0,mat:0,instr:0,legacy:0,linked:0,extra:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0,regs:0};
+  const tot={rev:0,fee:0,mat:0,instr:0,legacy:0,linked:0,extra:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0,regs:0,instrEstimated:false};
   const courseBuckets={};
   let linkedOnRows=0;
 
@@ -17111,12 +17163,14 @@ function printMonthReport(){
     const p=financeSessionFigures(s);
     const linkedHere=linkedExpenses(s.id).filter(inThisMonth).reduce((sum,e)=>sum+(Number(e.amount)||0),0);
     tot.rev+=p.rev;tot.fee+=p.fee;tot.instr+=p.instr;tot.legacy+=p.legacy;
+    if(p.instrEstimated)tot.instrEstimated=true;
     linkedOnRows+=linkedHere;
     if(p.sess){tot.sess++;tot.students+=p.students;tot.regs+=f.totalCount;}
     const rowProfit=p.rev-p.instr-p.legacy-linkedHere;
     if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,sess:0,regs:0,students:0,profit:0};
     courseBuckets[s.course].rev+=p.rev;
     courseBuckets[s.course].profit+=rowProfit;
+    if(p.instrEstimated)courseBuckets[s.course].instrEstimated=true;
     if(p.sess){
       courseBuckets[s.course].sess++;
       courseBuckets[s.course].regs+=f.totalCount;
@@ -17131,10 +17185,10 @@ function printMonthReport(){
       <td style="text-align:center">${p.sess?f.totalCount:'-'}</td>
       <td style="text-align:center">${p.sess?p.students:'-'}</td>
       <td style="text-align:right;font-weight:500">${fmtN(p.rev)}</td>
-      <td style="text-align:right;color:#c0392b">${dash(p.instr)}${((typeof paidHoursBreakdown==='function')&&paidHoursBreakdown(s))?`<div style="font-size:12px;color:#6b7a99;font-weight:400">${escapeHtml(paidHoursBreakdown(s))}</div>`:''}</td>
+      <td style="text-align:right;color:#c0392b">${p.instrEstimated&&p.instr?('est. '+dash(p.instr)):dash(p.instr)}${((typeof paidHoursBreakdown==='function')&&paidHoursBreakdown(s))?`<div style="font-size:12px;color:#6b7a99;font-weight:400">${escapeHtml(paidHoursBreakdown(s))}</div>`:''}</td>
       <td style="text-align:right;color:#c0392b">${dash(linkedHere)}</td>
       <td style="text-align:right;color:#c0392b">${dash(p.legacy)}</td>
-      <td style="text-align:right;font-weight:600;color:${profitColor(rowProfit)}">${fmtS(rowProfit)}</td>
+      <td style="text-align:right;font-weight:600;color:${profitColor(rowProfit)}">${estPrefix(fmtS(rowProfit), !!p.instrEstimated)}</td>
     </tr>`;
   }).join('');
 
@@ -17168,7 +17222,7 @@ function printMonthReport(){
       <td style="text-align:center">${b.regs}</td>
       <td style="text-align:center">${b.students}</td>
       <td style="text-align:right;font-weight:500">${fmtN(b.rev)}</td>
-      <td style="text-align:right;color:${profitColor(b.profit)};font-weight:600">${fmtS(b.profit)}</td>
+      <td style="text-align:right;color:${profitColor(b.profit)};font-weight:600">${estPrefix(fmtS(b.profit), !!b.instrEstimated)}</td>
     </tr>`).join('');
 
   const html=`<!DOCTYPE html><html><head><title>${monthName} Report · Mindful Beginnings</title>
@@ -17216,7 +17270,7 @@ function printMonthReport(){
     <div class="kpi-row">
       <div class="kpi"><div class="label">Revenue</div><div class="val">${fmtN(tot.rev)}</div><div class="sub">net · ${fmtN(tot.fee)} processing fees</div></div>
       <div class="kpi"><div class="label">Total expenses</div><div class="val red">${fmtN(tot.cost)}</div></div>
-      <div class="kpi"><div class="label">Net profit</div><div class="val ${tot.profit>=0?'green':'red'}">${fmtS(tot.profit)}</div></div>
+      <div class="kpi"><div class="label">Net profit</div><div class="val ${tot.profit>=0?'green':'red'}">${estPrefix(fmtS(tot.profit), !!tot.instrEstimated)}</div></div>
       <div class="kpi"><div class="label">Sessions</div><div class="val">${tot.sess}</div><div class="sub">${tot.regs} registrations · ${tot.students} paid</div></div>
     </div>
 
@@ -17236,10 +17290,10 @@ function printMonthReport(){
         <td style="text-align:center">${tot.regs}</td>
         <td style="text-align:center">${tot.students}</td>
         <td style="text-align:right">${fmtN(tot.rev)}</td>
-        <td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td>
+        <td style="text-align:right;color:#c0392b">${tot.instrEstimated&&tot.instr?('est. '+fmtN(tot.instr)):fmtN(tot.instr)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(linkedOnRows)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td>
-        <td style="text-align:right;color:${profitColor(rowProfitTot)}">${fmtS(rowProfitTot)}</td>
+        <td style="text-align:right;color:${profitColor(rowProfitTot)}">${estPrefix(fmtS(rowProfitTot), !!tot.instrEstimated)}</td>
       </tr></tfoot>`:''}
     </table>
     ${monthSessions.length||tot.linked||tot.cost?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Operating net profit is revenue minus instructor fees, session-linked expenses dated this month, older session costs, and partner commission. Revenue is net of payment processing fees (PayPal 2.99% + $0.49/transaction). Handbook orders and other expenses are reported annually. A cancelled session adds no revenue. It still adds instructor pay that was marked paid, linked expenses, and older costs that have a date paid.</p>':''}
@@ -17260,11 +17314,11 @@ function printMonthReport(){
     <table>
       <tbody>
         <tr><td>Revenue</td><td style="text-align:right;font-weight:500">${fmtN(tot.rev)}</td></tr>
-        <tr><td>Instructor fees</td><td style="text-align:right;color:#c0392b">${fmtN(tot.instr)}</td></tr>
+        <tr><td>Instructor fees</td><td style="text-align:right;color:#c0392b">${tot.instrEstimated&&tot.instr?('est. '+fmtN(tot.instr)):fmtN(tot.instr)}</td></tr>
         <tr><td>Session-linked expenses</td><td style="text-align:right;color:#c0392b">${fmtN(tot.linked)}</td></tr>
         <tr><td>Costs entered on the session</td><td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td></tr>
         ${tot.comm?`<tr><td>Community partner commission</td><td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td></tr>`:''}
-        <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${fmtS(tot.profit)}</td></tr>
+        <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${estPrefix(fmtS(tot.profit), !!tot.instrEstimated)}</td></tr>
       </tbody>
     </table>
 

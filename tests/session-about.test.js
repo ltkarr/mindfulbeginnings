@@ -51,6 +51,12 @@ function loadAbout() {
       extractFn(admin, 'payHourShort'),
       extractFn(admin, 'paidHoursBreakdown'),
       extractFn(admin, 'instrBaseFee'),
+      extractFn(admin, 'payOverrideIsSet'),
+      extractFn(admin, 'sessionJobData'),
+      extractFn(admin, 'sessionPrimaryInstructorId'),
+      extractFn(admin, 'instrEstimateFee'),
+      extractFn(admin, 'instructorCostIsEstimate'),
+      extractFn(admin, 'estPrefix'),
       extractFn(admin, 'instrDisplayFee'),
       extractFn(admin, 'secondInstrDisplayFee'),
       extractFn(admin, 'wrapupPayAmount'),
@@ -253,8 +259,9 @@ test('About shows instructor pay, including a flat session override', () => {
     time: '4:00 PM',
     location: 'Library'
   });
-  // 2.5 hours × $50 + travel + 30 minutes, default rate, nobody assigned yet.
-  assert.match(openUsual, /\$200/);
+  // Nobody assigned yet: Lead Teacher estimate, 2.5 hours × $75 + travel + 30 minutes.
+  assert.match(openUsual, /est\. \$300/);
+  assert.doesNotMatch(openUsual, /\$200/);
   assert.doesNotMatch(openUsual, /Pay isn't set yet/);
 });
 

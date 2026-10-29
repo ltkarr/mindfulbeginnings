@@ -1678,9 +1678,9 @@ function partnerTierCardHtml(d,cur){
   return `<div class="info-card">
     <div style="font-weight:500;font-size:15px;margin-bottom:12px">How you are paid</div>
     ${cur?`<div class="info-row"><span>Collected revenue, ${pMonthLabel(cur.period)}</span><span>${fmt(gross)}</span></div>
-    <div class="info-row"><span>Less direct costs of delivery</span><span>${costs?'−'+fmt(costs):fmt(0)}</span></div>
-    <div class="info-row" style="font-weight:500"><span>Profit</span><span>${fmt(net)}</span></div>
-    <div class="info-row" style="font-weight:500;font-size:16px"><span>Your ${rate}%</span><span>${fmt(cur.commission)}</span></div>`:''}
+    <div class="info-row"><span>Less direct costs of delivery</span><span>${cur.instrEstimated?'est. ':''}${costs?'−'+fmt(costs):fmt(0)}</span></div>
+    <div class="info-row" style="font-weight:500"><span>Profit</span><span>${cur.instrEstimated?'est. ':''}${fmt(net)}</span></div>
+    <div class="info-row" style="font-weight:500;font-size:16px"><span>Your ${rate}%</span><span>${cur.instrEstimated?'est. ':''}${fmt(cur.commission)}</span></div>`:''}
   </div>`;
 }
 
@@ -1698,9 +1698,9 @@ function partnerStatementBodyHtml(cur){
           <div style="font-size:13px;color:var(--muted);margin-top:3px">${escapeHtml(r.reason||'')}</div>
         </div>
         <div style="text-align:right;min-width:118px">
-          <div style="font-weight:500;font-size:13px">${fmt(r.commission)}</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:2px">${pRate(r.rate)} of ${fmt(r.net!=null?r.net:r.collected)} profit</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:2px">${fmt(r.collected)} in, ${fmt(r.costs||0)} costs</div>
+          <div style="font-weight:500;font-size:13px">${r.instrEstimated?'est. ':''}${fmt(r.commission)}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${pRate(r.rate)} of ${r.instrEstimated?'est. ':''}${fmt(r.net!=null?r.net:r.collected)} profit</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${fmt(r.collected)} in, ${r.instrEstimated?'est. ':''}${fmt(r.costs||0)} costs${r.instrEstimated?' · instructor cost est.':''}</div>
         </div>
       </div>`).join('')}
       ${(cur.bonuses||[]).map(b=>`<div class="sched-row" style="align-items:flex-start">

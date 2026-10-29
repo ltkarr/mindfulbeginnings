@@ -161,7 +161,7 @@ test('a custom job with a flat fee shows that total, and an hourly job does not 
   assert.doesNotMatch(group, /of class|travel/);
   assert.equal(api.sessionWhoCanTeach(sitter), 'Safe Sitter® instructors only');
   assert.match(api.openJobDigestLine(sitter, 0, 'Saturday, October 18, 2026'), /Safe Sitter® instructors only/);
-  assert.doesNotMatch(group, /\$325|\$260|\$50/);
+  assert.doesNotMatch(group, /\$325|\$260|\$50|\$487|\$75|est\./);
 
   const dana = { hourlyRate: 40 };
   assert.equal(api.openJobPayText(sitter, dana), 'Instructor pay: $260');
