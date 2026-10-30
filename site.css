@@ -52,7 +52,7 @@ a:hover{color:var(--navy-dark)}
 
 /* ---------- buttons ---------- */
 .mb-btn{
-  display:inline-block;font-weight:800;text-decoration:none;border-radius:14px;
+  display:inline-block;font-weight:800;text-decoration:none;border-radius:12px;
   box-sizing:border-box;max-width:100%;text-align:center;cursor:pointer;border:0;
   font-family:inherit;
 }
@@ -65,7 +65,7 @@ a:hover{color:var(--navy-dark)}
 .mb-btn-sm{font-size:17px;padding:20px 44px;border:0}
 /* Header Register button: navy with white text (Lindsay prefers navy and white over gold, 2026-10-26). */
 .mb-header .mb-btn-gold{background:var(--navy);color:var(--white)}
-.mb-header .mb-nav a.mb-btn-gold{padding:16px 34px;border-radius:10px;line-height:1.2}
+.mb-header .mb-nav a.mb-btn-gold{padding:16px 34px;border-radius:12px;line-height:1.2}
 .mb-header .mb-btn-gold:hover{background:var(--navy-dark);color:var(--white)}
 /* Primary buttons inside navy heroes and CTA bands are cream rectangles: a navy button vanishes on navy. */
 .mb-cta-band .mb-btn-gold{background:var(--cream);color:var(--navy)}
@@ -86,7 +86,7 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-line a:hover{color:#A9BCD9}
 .mb-footer-copy{margin:6px 0 0;font-size:14px;opacity:.7;padding-right:88px}
 .mb-footer-instructor{margin:12px 0 0}
-.mb-footer-instructor a{display:inline-block;background:#fff;color:var(--navy);font-size:13px;font-weight:700;padding:7px 18px;border-radius:10px;text-decoration:none}
+.mb-footer-instructor a{display:inline-block;background:#fff;color:var(--navy);font-size:13px;font-weight:700;padding:7px 18px;border-radius:12px;text-decoration:none}
 .mb-footer-instructor a:hover{background:#A9BCD9;color:var(--navy)}
 .mb-partners{background:var(--cream);padding:30px 6vw}
 .mb-partners-inner{max-width:1080px;margin:0 auto;text-align:center}
@@ -131,7 +131,7 @@ p:last-child{margin-bottom:0}
 .mb-grid{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
 .mb-grid-equal{align-items:stretch}
 .mb-card{
-  background:var(--white);border:0;border-radius:24px;box-shadow:0 10px 30px rgba(30,49,97,.10);
+  background:var(--white);border:0;border-radius:16px;box-shadow:0 10px 30px rgba(30,49,97,.10);
   overflow:hidden;display:flex;flex-direction:column;
 }
 .mb-card-band{background:var(--navy);padding:12px 16px}
@@ -144,7 +144,7 @@ p:last-child{margin-bottom:0}
 
 /* ---------- steps ---------- */
 .mb-steps{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
-.mb-step{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:10px;background:var(--white);border:1px solid rgba(30,49,97,.09);border-radius:20px;box-shadow:0 10px 30px rgba(30,49,97,.08);padding:24px}
+.mb-step{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:10px;background:var(--white);border:1px solid rgba(30,49,97,.09);border-radius:16px;box-shadow:0 10px 30px rgba(30,49,97,.08);padding:24px}
 .mb-step-num{font-size:36px;line-height:1;font-weight:800;color:var(--btn-gold)}
 .mb-section-navy .mb-step h3{color:var(--cream)}
 
@@ -205,7 +205,7 @@ p:last-child{margin-bottom:0}
 @keyframes mb-ticker{to{transform:translateX(-50%)}}
 @media (prefers-reduced-motion:reduce){.mb-ticker-track{animation:none}}
 .mb-photo{
-  border-radius:28px;transform:rotate(-2deg);
+  border-radius:16px;transform:rotate(-2deg);
   box-shadow:0 24px 48px rgba(15,29,63,.28);
   border:6px solid var(--cream);display:block;width:100%;height:auto;
 }
@@ -268,10 +268,10 @@ p:last-child{margin-bottom:0}
 
 .mb-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
 .mb-gallery figure{margin:0}
-.mb-gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;display:block}
+.mb-gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px;display:block}
 .mb-gallery figcaption{font-size:16px;color:var(--navy);margin-top:8px}
 .mb-gallery-tilt{gap:28px}
-.mb-gallery-tilt img{border-radius:20px;border:5px solid var(--white);box-shadow:0 14px 30px rgba(30,49,97,.16)}
+.mb-gallery-tilt img{border-radius:16px;border:5px solid var(--white);box-shadow:0 14px 30px rgba(30,49,97,.16)}
 .mb-gallery-tilt figure:nth-child(odd) img{transform:rotate(-2deg)}
 .mb-gallery-tilt figure:nth-child(even) img{transform:rotate(2deg)}
 .mb-gallery-tilt figcaption{font-family:'Caveat',cursive;font-size:20px;font-weight:700}
@@ -284,7 +284,7 @@ p:last-child{margin-bottom:0}
   .mb-header{position:relative;flex-wrap:wrap;gap:6px 12px}
   .mb-brand{min-width:0}
   .mb-nav-toggle{display:block;margin-left:0;flex:none}
-  .mb-reg-m{display:inline-block;margin-left:auto;flex:none;background:#1E3161;color:#FFFFFF;font-weight:800;font-size:15px;line-height:1;padding:11px 16px;border-radius:10px;text-decoration:none}
+  .mb-reg-m{display:inline-block;margin-left:auto;flex:none;background:#1E3161;color:#FFFFFF;font-weight:800;font-size:15px;line-height:1;padding:11px 16px;border-radius:12px;text-decoration:none}
   .mb-nav{display:none;position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;align-items:stretch;gap:0;padding:8px 6vw 28px;border-bottom:2px solid var(--gold);z-index:60;box-shadow:0 12px 24px rgba(30,49,97,.12)}
   .mb-nav.open{display:flex}
   .mb-nav a{padding:12px 4px;font-size:16px;border-bottom:1px solid rgba(30,49,97,.08)}

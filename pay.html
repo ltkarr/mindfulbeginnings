@@ -13,7 +13,7 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="apple-touch-icon" href="/email-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/site.css?v=26">
+<link rel="stylesheet" href="/site.css?v=27">
 <script src="/js/payments.js"></script>
 
 <!--
@@ -38,7 +38,7 @@
   --cream:#FBFAF7;--text:#1E3161;--muted:#5A6B8C;--border:#E0DACB;
   --success:#2d7a5e;--success-bg:#eaf5f0;--danger:#c0392b;
   --gold:#617CA3;
-  --r:12px;--r-sm:8px;
+  --r:16px;--r-sm:12px;
 }
 body{font-family:'Montserrat',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
 header{background:var(--navy);padding:18px 32px;display:flex;align-items:center;gap:14px}
@@ -102,7 +102,7 @@ label.fld{display:block;font-size:13px;color:var(--muted);font-weight:500;margin
 .modal-x{background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;line-height:1;padding:0 0 0 12px}
 .copy-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--cream);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;margin:9px 0}
 .copy-row .v{font-weight:600;color:var(--navy);word-break:break-all;font-size:14px}
-.copy-btn{flex-shrink:0;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:7px 13px;font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer}
+.copy-btn{flex-shrink:0;background:var(--navy);color:#fff;border:none;border-radius:12px;padding:7px 13px;font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer}
 .copy-btn.done{background:var(--success)}
 .steps-list{margin:10px 0 4px;padding-left:20px}
 .steps-list li{margin-bottom:9px;font-size:14px;color:#3a4661}
@@ -176,7 +176,7 @@ label.fld{display:block;font-size:13px;color:var(--muted);font-weight:500;margin
     <div id="paypal-button-container"></div>
     <div class="method-note" id="paypal-note">Secure checkout — pay by credit or debit card, no account needed. The amount charged is exactly what you entered above.</div>
     <p class="method-note" style="font-size:13px;text-align:center;margin-top:6px;color:var(--muted)">Issue with payment? Text us at <a href="sms:+17039875979" style="color:var(--navy);font-weight:700">703-987-5979</a></p>
-    <p id="paypal-unavailable-note" class="method-note" style="display:none;color:#7a5a00;background:#fff7e6;border:1px solid #C7A24A;border-radius:8px;padding:10px 12px;margin-top:8px">Card/PayPal checkout is unavailable right now. Please use Venmo or Zelle below.</p>
+    <p id="paypal-unavailable-note" class="method-note" style="display:none;color:#7a5a00;background:#fff7e6;border:1px solid #C7A24A;border-radius:12px;padding:10px 12px;margin-top:8px">Card/PayPal checkout is unavailable right now. Please use Venmo or Zelle below.</p>
 
     <button class="pay-btn venmo" id="btn-venmo" onclick="payVenmo()" style="margin-top:12px">
       <span class="vmark">V</span> Pay with Venmo

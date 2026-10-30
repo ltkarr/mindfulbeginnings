@@ -41,12 +41,12 @@ main{max-width:760px;margin:0 auto;padding:20px 6vw 40px}
 .day-row{display:grid;grid-template-columns:1.3fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}
 .day-row .field{margin:0}
 .remove-day,.add-day,.btn{font-family:inherit;cursor:pointer}
-.remove-day{border:2px solid transparent;background:transparent;color:#3E4E72;padding:10px 8px;font-size:14px;font-weight:700;min-height:44px;border-radius:999px}
+.remove-day{border:2px solid transparent;background:transparent;color:#3E4E72;padding:10px 8px;font-size:14px;font-weight:700;min-height:44px;border-radius:12px}
 .remove-day:hover{color:#1E3161}
 .remove-day:focus-visible,.add-day:focus-visible,.btn-p:focus-visible{outline:3px solid #EFC75A;outline-offset:3px}
-.add-day{background:#fff;border:2px dashed rgba(30,49,97,0.35);color:#1E3161;border-radius:999px;padding:10px 16px;font-weight:800;margin:4px 0 14px;min-height:44px}
+.add-day{background:#fff;border:2px dashed rgba(30,49,97,0.35);color:#1E3161;border-radius:12px;padding:10px 16px;font-weight:800;margin:4px 0 14px;min-height:44px}
 .add-day:hover{border-color:#1E3161;background:#FBF6E4}
-.btn-p{width:100%;padding:14px 22px;background:#1E3161;color:#F5F2EA;border:2px solid #1E3161;border-radius:999px;font-size:16px;font-weight:800;cursor:pointer;min-height:48px}
+.btn-p{width:100%;padding:14px 22px;background:#1E3161;color:#F5F2EA;border:2px solid #1E3161;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;min-height:48px}
 .btn-p:hover{background:#EFC75A;color:#1E3161}
 .btn-p:disabled{opacity:.65;cursor:not-allowed}
 .alert{background:#FDF2F0;border:1px solid #E7B4AE;color:#7A241F;border-radius:12px;padding:12px 14px;margin-bottom:14px}
