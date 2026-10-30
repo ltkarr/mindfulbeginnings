@@ -80,14 +80,14 @@ a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 .mb-footer-name{margin:0;font-weight:700;font-size:17px}
 .mb-footer-nav{display:flex;flex-wrap:wrap;gap:6px 16px}
 .mb-footer-nav a{color:var(--cream);font-size:16px;font-weight:600;text-decoration:none;opacity:.92}
-.mb-footer-nav a:hover{color:var(--btn-gold);opacity:1}
+.mb-footer-nav a:hover{color:#A9BCD9;opacity:1}
 .mb-footer-line{margin:0;font-size:17px;opacity:.92}
 .mb-footer-line a{color:var(--cream);font-weight:600;text-decoration:none}
-.mb-footer-line a:hover{color:var(--btn-gold)}
+.mb-footer-line a:hover{color:#A9BCD9}
 .mb-footer-copy{margin:6px 0 0;font-size:14px;opacity:.7;padding-right:88px}
 .mb-footer-instructor{margin:12px 0 0}
 .mb-footer-instructor a{display:inline-block;background:#fff;color:var(--navy);font-size:13px;font-weight:700;padding:7px 18px;border-radius:10px;text-decoration:none}
-.mb-footer-instructor a:hover{background:var(--btn-gold);color:var(--navy)}
+.mb-footer-instructor a:hover{background:#A9BCD9;color:var(--navy)}
 .mb-partners{background:var(--cream);padding:30px 6vw}
 .mb-partners-inner{max-width:1080px;margin:0 auto;text-align:center}
 .mb-partners-title{margin:0 0 10px;font-family:'Caveat',cursive;font-size:42px;line-height:1.1;font-weight:700;color:var(--gold)}
@@ -191,7 +191,7 @@ p:last-child{margin-bottom:0}
 /* ---------- vibe: Columbia Mom energy, Mindful Beginnings brand ---------- */
 .mb-hl{background:none;padding:0}
 .mb-h2-script{font-family:'Caveat',cursive;font-weight:700;color:var(--navy)}
-.mb-section-navy .mb-h2-script{color:var(--btn-gold)}
+.mb-section-navy .mb-h2-script{color:#A9BCD9}
 .mb-ticker{background:var(--btn-gold);color:var(--navy);overflow:hidden;white-space:nowrap;padding:13px 0;border-top:2px solid var(--navy);border-bottom:2px solid var(--navy)}
 .mb-reviews-ticker{background:var(--navy);color:#fff;overflow:hidden;white-space:nowrap;padding:14px 0;border-top:3px solid var(--btn-gold);border-bottom:3px solid var(--btn-gold)}
 .mb-reviews-ticker .mb-ticker-track{font-weight:400;font-size:15px}
