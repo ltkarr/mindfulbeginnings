@@ -68,8 +68,8 @@ a:hover{color:var(--navy-dark)}
 .mb-header .mb-nav a.mb-btn-gold{padding:16px 34px;border-radius:10px;line-height:1.2}
 .mb-header .mb-btn-gold:hover{background:var(--navy-dark);color:var(--white)}
 /* Primary buttons inside navy heroes and CTA bands are cream rectangles: a navy button vanishes on navy. */
-.mb-hero .mb-btn-gold,.mb-cta-band .mb-btn-gold{background:var(--cream);color:var(--navy)}
-.mb-hero .mb-btn-gold:hover,.mb-cta-band .mb-btn-gold:hover{background:#FFFFFF;color:var(--navy)}
+.mb-cta-band .mb-btn-gold{background:var(--cream);color:var(--navy)}
+.mb-cta-band .mb-btn-gold:hover{background:#FFFFFF;color:var(--navy)}
 /* Text links inside navy heroes are never underlined (Lindsay: too much underlining). */
 .mb-hero a:not(.mb-btn){text-decoration:none}
 a.mb-btn-sm:hover{border-color:var(--btn-gold)}
@@ -110,16 +110,19 @@ p{margin:0 0 10px}
 p:last-child{margin-bottom:0}
 
 /* ---------- hero ---------- */
-.mb-hero{background:var(--navy);color:var(--cream);padding:26px 6vw 28px}
+.mb-hero{background:var(--cream);color:var(--navy);padding:26px 6vw 28px}
 .mb-hero-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
-.mb-hero h1{color:var(--cream)}
+.mb-hero h1{color:var(--navy)}
 .mb-eyebrow{font-family:'Caveat',cursive;font-size:30px;font-weight:700;color:var(--btn-gold);line-height:1.1}
 /* Eyebrows inside navy heroes use pale blue: --btn-gold is navy now, so the base color vanishes on navy. */
-.mb-hero .mb-eyebrow{color:#A9BCD9}
+.mb-hero .mb-eyebrow{color:var(--navy)}
 .mb-script-title{font-family:'Caveat',cursive;font-weight:700;line-height:1.1;color:var(--navy);margin:0;font-size:30px}
 /* Script page titles inside navy heroes use pale blue: .mb-hero h1 (0,1,1) otherwise beats .mb-script-title (0,1,0) */
-.mb-hero h1.mb-script-title{color:#A9BCD9}
+.mb-hero h1.mb-script-title{color:var(--navy)}
 .mb-lede{margin:0;font-size:19px;font-weight:500;max-width:720px;line-height:1.6}
+.mb-hero .mb-lede{color:#43527A}
+.mb-hero .mb-btn{border-radius:12px}
+@media(max-width:860px){.mb-hero .mb-actions{flex-direction:column;align-items:stretch}.mb-hero .mb-btn{text-align:center;padding:14px 20px}}
 .mb-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:6px}
 .mb-phone{color:var(--cream);font-size:16px;font-weight:700;text-decoration:none;padding:12px 8px}
 .mb-phone:hover{color:var(--btn-gold)}
