@@ -1325,6 +1325,7 @@ function injectEventSchema(rows,helpers){
         eventAttendanceMode:virtual?'https://schema.org/OnlineEventAttendanceMode':'https://schema.org/OfflineEventAttendanceMode',
         startDate:range?(r.date+'T'+range.start+':00'+offset):String(r.date),
         organizer:{'@type':'Organization',name:'Mindful Beginnings',url:'https://mindfulbeginnings.org/'},
+        performer:{'@type':'Organization',name:'Mindful Beginnings',url:'https://mindfulbeginnings.org/'},
         image:['https://mindfulbeginnings.org/images/host/host-safe-sitter-graduates.jpg']};
       if(range)ev.endDate=r.date+'T'+range.end+':00'+offset;
       const audience=helpers.courseAudience(r.course);
@@ -1343,8 +1344,17 @@ function injectEventSchema(rows,helpers){
       const per=helpers.seatsPerRegistration?helpers.seatsPerRegistration(r.course):1;
       const soldOut=isSoldOutCode(r.code)||(left!=null&&left<per);
       if(unitPrice!=null&&!isNaN(Number(unitPrice))){
-        ev.offers={'@type':'Offer',url:'https://mindfulbeginnings.org/register',price:String(Number(unitPrice)),priceCurrency:'USD',
+        const offer={'@type':'Offer',url:'https://mindfulbeginnings.org/register',price:String(Number(unitPrice)),priceCurrency:'USD',
           availability:soldOut?'https://schema.org/SoldOut':'https://schema.org/InStock'};
+        const createdRaw=r.created_at;
+        const created=createdRaw!=null&&createdRaw!==''?new Date(isNaN(Number(createdRaw))?String(createdRaw):Number(createdRaw)):null;
+        if(created&&!isNaN(created.getTime())){
+          let vf=created;
+          const sd=new Date(ev.startDate);
+          if(!isNaN(sd.getTime())&&vf>sd)vf=sd;
+          offer.validFrom=vf.toISOString();
+        }
+        ev.offers=offer;
       }
       events.push(ev);
     });
