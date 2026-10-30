@@ -69,7 +69,8 @@ test('host and organization pages use the shared brand header without a duplicat
   assert.doesNotMatch(hostPage, /Safe Sitter® and family safety courses/);
   assert.doesNotMatch(orgPage, /Safe Sitter® and family safety courses/);
   assert.doesNotMatch(intakeCss, /border-radius:\s*50%/);
-  assert.match(hostPage, /we will confirm the date/);
+  assert.match(hostPage, /<h1>Host Interest Form<\/h1>/);
+  assert.match(hostPage, /Complete this form to get a custom quote for your group/);
   assert.match(orgPage, /<h1>Host a class for your organization<\/h1>/);
 });
 
@@ -86,7 +87,7 @@ test('host course choices on the page match the catalog, and organizations are s
   assert.match(register, /Need help finding a class\? <a href="mailto:lindsay@mindfulbeginnings\.org">Contact us<\/a>\./);
 });
 
-test('Social Ready is $45 per kid; virtual courses are organization-only, never on the home host menu', () => {
+test('Social Ready stays $45 in the model with a price-free label; virtual courses are organization-only, never on the home host menu', () => {
   ['social-ready', 'social-ready-virtual'].forEach(function (key) {
     const course = model.courseByKey(key);
     assert.equal(course.course, 'Social Ready');
@@ -95,7 +96,7 @@ test('Social Ready is $45 per kid; virtual courses are organization-only, never 
     assert.equal(course.org, true);
     assert.equal(course.abbr, 'SOC');
     const label = model.courseOptionLabel(course);
-    assert.match(label, /\$45/);
+    assert.doesNotMatch(label, /\$/);
     assert.match(orgPage, new RegExp('value="' + key + '"'));
     assert.match(orgPage, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
@@ -155,15 +156,15 @@ test('organization course choices match the catalog, including Girl Scout badge 
   assert.match(orgPage, /host\.html/);
 });
 
-test('After School Clubs is a $200 per person organization option with a club picker', () => {
+test('After School Clubs is a $200-in-the-model organization option with a club picker and no price on the form', () => {
   const asc = model.coursesFor('organization').find(function (c) { return c.key === 'after-school-clubs'; });
   assert.ok(asc, 'catalog has after-school-clubs for organizations');
   assert.equal(asc.price, 200);
   assert.equal(asc.course, 'After School Clubs');
   assert.ok(!model.coursesFor('host').some(function (c) { return c.key === 'after-school-clubs'; }), 'not on the home host form');
   assert.match(orgPage, /value="after-school-clubs"/);
-  assert.match(orgPage, /After School Clubs — 8 weeks standard, customizable · In person · \$200 per person/);
-  assert.match(orgPage, /\$200 per person/);
+  assert.match(orgPage, /After School Clubs — 8 weeks standard, customizable · In person/);
+  assert.doesNotMatch(orgPage, /\$200 per person/);
   assert.match(orgPage, /id="clubs-wrap"/);
   ['My First Babysitter\'s Club', 'Little Medics', 'Pet Sitter\'s Club', 'Snack Squad', 'Kid Boss Club',
    'Middle School, Here I Come', 'Big Sibling Club', 'My First Phone', 'Walk and Roll Ready', 'Calm and Ready'
