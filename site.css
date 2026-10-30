@@ -114,6 +114,8 @@ p:last-child{margin-bottom:0}
 .mb-hero-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .mb-hero h1{color:var(--cream)}
 .mb-eyebrow{font-family:'Caveat',cursive;font-size:30px;font-weight:700;color:var(--btn-gold);line-height:1.1}
+/* Eyebrows inside navy heroes use pale blue: --btn-gold is navy now, so the base color vanishes on navy. */
+.mb-hero .mb-eyebrow{color:#A9BCD9}
 .mb-script-title{font-family:'Caveat',cursive;font-weight:700;line-height:1.1;color:var(--navy);margin:0;font-size:30px}
 /* Script page titles inside navy heroes use pale blue: .mb-hero h1 (0,1,1) otherwise beats .mb-script-title (0,1,0) */
 .mb-hero h1.mb-script-title{color:#A9BCD9}
