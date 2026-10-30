@@ -67,6 +67,9 @@ a:hover{color:var(--navy-dark)}
 .mb-header .mb-btn-gold{background:var(--navy);color:var(--white)}
 .mb-header .mb-nav a.mb-btn-gold{padding:16px 34px;border-radius:10px;line-height:1.2}
 .mb-header .mb-btn-gold:hover{background:var(--navy-dark);color:var(--white)}
+/* Primary buttons inside navy heroes and CTA bands are cream rectangles: a navy button vanishes on navy. */
+.mb-hero .mb-btn-gold,.mb-cta-band .mb-btn-gold{background:var(--cream);color:var(--navy)}
+.mb-hero .mb-btn-gold:hover,.mb-cta-band .mb-btn-gold:hover{background:#FFFFFF;color:var(--navy)}
 a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 
 /* ---------- shared footer ---------- */
@@ -240,7 +243,8 @@ p:last-child{margin-bottom:0}
 }
 @media (max-width:560px){
   .mb-partners-logos{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .mb-header{padding:12px 5vw}
+  .mb-header{padding:10px 5vw 9px}
+  .mb-brand{flex:1 1 100%}
   .mb-wordmark{font-size:17px}
   .mb-hero{padding:24px 6vw 28px}
   .mb-section{padding:22px 6vw}
@@ -270,9 +274,8 @@ p:last-child{margin-bottom:0}
 .mb-nav-toggle{display:none;background:none;border:0;cursor:pointer;padding:10px;margin-left:auto}
 .mb-nav-toggle span{display:block;width:26px;height:3px;background:var(--navy);border-radius:2px;margin:5px 0;transition:transform .2s,opacity .2s}
 @media(max-width:860px){
-  .mb-header{position:relative;flex-wrap:nowrap;gap:12px}
+  .mb-header{position:relative;flex-wrap:wrap;gap:6px 12px}
   .mb-brand{min-width:0}
-  .mb-tagline{display:none}
   .mb-nav-toggle{display:block;margin-left:0;flex:none}
   .mb-reg-m{display:inline-block;margin-left:auto;flex:none;background:#1E3161;color:#FFFFFF;font-weight:800;font-size:15px;line-height:1;padding:11px 16px;border-radius:10px;text-decoration:none}
   .mb-nav{display:none;position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;align-items:stretch;gap:0;padding:8px 6vw 28px;border-bottom:2px solid var(--gold);z-index:60;box-shadow:0 12px 24px rgba(30,49,97,.12)}
