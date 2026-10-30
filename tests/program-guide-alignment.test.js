@@ -75,9 +75,11 @@ test('Babysitter Training, Baby Ready, workplace CPR, and Safe@Home keep the gui
 });
 
 test('the public catalog shows both Safe@Home prices and drops couple pricing', () => {
-  assert.match(catalog, /90-minute in person · \$65 per person · Virtual option available/);
-  assert.match(catalog, /Ages 11 and up · 3 hours 45 minutes · In person · Custom quote/);
-  assert.match(catalog, /\$185 per person/);
+  assert.match(catalog, /90-minute in person · Virtual option available/);
+  assert.match(catalog, /Ages 11 and up · 3 hours 45 minutes · In person/);
+  // 2026-10-30: the catalog carries no prices at all (Lindsay's direction);
+  // pricing lives in the Program Guide and quotes come from contacting her.
+  assert.doesNotMatch(catalog, /\$\d/);
   assert.doesNotMatch(catalog, /\$300 per couple/);
   assert.doesNotMatch(catalog, /\$495/);
   assert.match(catalog, /Baby Ready™ \+ CPR Certification/);
