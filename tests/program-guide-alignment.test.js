@@ -84,10 +84,13 @@ test('the public catalog shows both Safe@Home prices and drops couple pricing', 
   assert.match(catalog, /Babysitting Grandkids Workshop/);
   // 2026-10-26 less-is-more: the catalog now uses the short hybrid note.
   assert.match(catalog, /Also offered as online plus classroom/);
-  assert.match(clubs, /8-week series/);
+  // 2026-10-30: the clubs page deliberately omits series length, group size,
+  // and minimums (Lindsay's direction) so schools ask for what they want.
+  assert.doesNotMatch(clubs, /8-week series/);
   assert.doesNotMatch(clubs, /8-10 weeks/);
   assert.match(clubs, /Grades 4 to 5/);
-  assert.match(clubs, /8-16 kids/);
+  assert.doesNotMatch(clubs, /8-16 kids/);
+  assert.doesNotMatch(clubs, /minimum 6/);
 });
 
 test('admin and config have no merge conflict markers', () => {
