@@ -98,11 +98,11 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 #paypal-button-container{margin-top:20px;min-height:50px}
 .host-free{background:var(--success-bg);border:1px solid #b7dcc8;border-radius:12px;padding:14px 16px;font-size:14px;color:var(--success);display:flex;gap:10px;align-items:flex-start}
 .btn-p{width:100%;padding:14px 22px;background:var(--navy);color:#FBFAF7;border:2px solid var(--navy);border-radius:12px;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;min-height:48px}
-.btn-p:hover{background:var(--gold);color:var(--navy)}
+.btn-p:hover{background:var(--navy2);color:#FBFAF7}
 .btn-p:focus-visible,.btn-o:focus-visible,.public-more:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .btn-p:disabled{opacity:.6;cursor:not-allowed}
 .btn-o{background:#fff;border:2px solid var(--navy);border-radius:12px;padding:10px 20px;font-family:inherit;font-size:14px;font-weight:800;color:var(--navy);cursor:pointer;min-height:44px}
-.btn-o:hover{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.btn-o:hover{background:#DCE4EF;border-color:var(--navy);color:var(--navy)}
 .ok-card{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);padding:36px 28px;text-align:center}
 .ok-circle{width:64px;height:64px;background:var(--success-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px}
 .ok-card h2{font-family:'Montserrat',sans-serif;font-size:26px;font-weight:800;margin:0 0 10px}
@@ -111,7 +111,7 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 .crow{display:flex;justify-content:space-between;gap:12px;font-size:15px;padding:4px 0}
 .crow .cl{color:var(--muted);font-weight:600}.crow .cv{font-weight:700}
 .help{text-align:center;margin-top:16px;font-size:16px;color:var(--text);line-height:1.5}
-.help a{color:var(--navy);font-weight:800;}
+.help a{color:var(--navy);font-weight:800;white-space:nowrap}
 .help a:hover{color:var(--navy2)}
 .public-sessions{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);padding:22px 20px 16px;text-align:left}
 .public-sessions h2{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800;margin:0 0 4px;text-align:center;color:var(--navy)}
@@ -119,7 +119,7 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 .public-month{font-size:14px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--navy);margin:14px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--gold)}
 .public-month:first-child{margin-top:0}
 .public-card{position:relative;isolation:isolate;width:100%;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;background:#fff;border:2px solid rgba(30,49,97,0.12);border-radius:16px;padding:12px 14px;margin-bottom:10px;cursor:pointer;font-family:inherit;font-size:15px;color:var(--text)}
-.public-card:hover{border-color:var(--navy);background:#FBF6E4}
+.public-card:hover{border-color:var(--navy);background:#EEF2F7}
 .public-card-hit{position:absolute;inset:0;z-index:1;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:inherit;background:transparent;cursor:pointer;font:inherit;color:inherit}
 .public-card-hit:focus{outline:none}
 .public-card:has(.public-card-hit:focus-visible){border-color:var(--navy);outline:3px solid var(--gold);outline-offset:2px}
@@ -132,19 +132,19 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 .public-card .pprice{font-weight:800;color:var(--navy);font-size:15px;white-space:nowrap}
 .public-card .pseats{font-size:14px;color:var(--muted);margin-top:2px;white-space:nowrap;font-weight:600}
 .public-card .pseats.full,.public-card .pseats.few{color:#7A5C00;font-weight:800}
-.public-card a.public-waitlist,.public-card button.public-waitlist{display:inline-block;pointer-events:auto;position:relative;z-index:3;margin-top:8px;font-size:15px;font-weight:800;color:var(--navy);background:var(--gold);border:0;border-radius:12px;padding:9px 18px;line-height:1.3;white-space:nowrap;cursor:pointer;font:inherit}
-.public-card a.public-waitlist:hover{color:#5C4500}
+.public-card a.public-waitlist,.public-card button.public-waitlist{display:inline-block;pointer-events:auto;position:relative;z-index:3;margin-top:8px;font-family:inherit;font-size:15px;font-weight:800;color:var(--navy);background:#DCE4EF;border:0;border-radius:12px;padding:9px 18px;line-height:1.3;white-space:nowrap;cursor:pointer}
+.public-card a.public-waitlist:hover,.public-card button.public-waitlist:hover{background:#C9D6E8}
 .public-card a.public-waitlist:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .public-card .psoldout-banner{display:block;background:#C0392B;color:#fff;font-weight:800;font-size:15px;letter-spacing:0.1em;text-align:center;border-radius:12px;padding:6px 10px;margin-top:6px}
 .public-card.soldout-card{cursor:default}
 .public-card.soldout-card:hover{background:#fff}
-.public-card .pgo-waitlist{display:inline-block;pointer-events:auto;position:relative;z-index:3;margin-top:8px;font-size:15px;font-weight:800;color:var(--navy);background:var(--gold);border-radius:12px;padding:9px 18px;line-height:1.3;white-space:nowrap;cursor:pointer;font:inherit;border:0}
-.public-card .pgo-waitlist:hover{background:var(--navy);color:#fff}
+.public-card .pgo-waitlist{display:inline-block;pointer-events:auto;position:relative;z-index:3;margin-top:8px;font-family:inherit;font-size:15px;font-weight:800;color:var(--navy);background:#DCE4EF;border-radius:12px;padding:9px 18px;line-height:1.3;white-space:nowrap;cursor:pointer;border:0}
+.public-card .pgo-waitlist:hover{background:#C9D6E8;color:var(--navy)}
 .public-card .pgo-waitlist:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.public-card .pgo{display:inline-block;margin-top:8px;font-size:15px;font-weight:800;color:var(--navy);background:var(--gold);border-radius:12px;padding:9px 18px;line-height:1.3;white-space:nowrap}
+.public-card .pgo{display:inline-block;margin-top:8px;font-size:15px;font-weight:800;color:#fff;background:var(--navy);border-radius:12px;padding:9px 18px;line-height:1.3;white-space:nowrap}
 .public-empty{font-size:16px;color:var(--text);text-align:center;padding:8px 4px 12px;line-height:1.6}
 .public-more{width:100%;margin:4px 0 8px;padding:12px;background:#fff;border:2px dashed rgba(30,49,97,0.35);border-radius:12px;font-family:inherit;font-size:16px;font-weight:800;color:var(--navy);cursor:pointer;min-height:44px}
-.public-more:hover{border-color:var(--navy);background:#FBF6E4}
+.public-more:hover{border-color:var(--navy);background:#EEF2F7}
 .trust-box{background:#fff;border:1px solid rgba(30,49,97,0.08);border-left:5px solid var(--gold);border-radius:16px;padding:16px 18px;margin-bottom:22px;font-size:16px;color:var(--text);line-height:1.55}
 .trust-box .trust-title{font-size:14px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--navy);margin-bottom:8px}
 .trust-box p{margin:0 0 8px}.trust-box p:last-child{margin-bottom:0}
@@ -224,7 +224,8 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
     <div class="error-msg" id="code-error"></div>
     <button class="btn-p" id="code-btn" onclick="checkCode()">Continue →</button>
     <div class="help">Need help finding a class? <a href="mailto:lindsay@mindfulbeginnings.org">Contact us</a>.</div>
-    <div class="help" style="margin-top:10px">Hosting at home? <a href="/host.html">Request a private group</a>.<br>School, troop, or organization? <a href="/organization.html">Send site information</a>.</div>
+    <div class="help" style="margin-top:10px">Hosting at home? <a href="/host.html">Request a private group</a>.</div>
+    <div class="help" style="margin-top:10px">School, troop, or organization? <a href="/organization.html">Send site information</a>.</div>
   </div>
   <div class="public-sessions" id="public-sessions">
     <h2>Upcoming public sessions</h2>
