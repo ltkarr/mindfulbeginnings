@@ -70,6 +70,8 @@ a:hover{color:var(--navy-dark)}
 /* Primary buttons inside navy heroes and CTA bands are cream rectangles: a navy button vanishes on navy. */
 .mb-hero .mb-btn-gold,.mb-cta-band .mb-btn-gold{background:var(--cream);color:var(--navy)}
 .mb-hero .mb-btn-gold:hover,.mb-cta-band .mb-btn-gold:hover{background:#FFFFFF;color:var(--navy)}
+/* Text links inside navy heroes are never underlined (Lindsay: too much underlining). */
+.mb-hero a:not(.mb-btn){text-decoration:none}
 a.mb-btn-sm:hover{border-color:var(--btn-gold)}
 
 /* ---------- shared footer ---------- */
@@ -246,7 +248,7 @@ p:last-child{margin-bottom:0}
   .mb-header{padding:10px 5vw 9px}
   .mb-brand{flex:1 1 100%}
   .mb-wordmark{font-size:17px}
-  .mb-hero{padding:24px 6vw 28px}
+  .mb-hero{padding:16px 6vw 24px}
   .mb-section{padding:22px 6vw}
 }
 
