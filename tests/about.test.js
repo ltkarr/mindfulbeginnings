@@ -77,8 +77,8 @@ test('about page is static HTML in the public page style', () => {
   assert.match(page, /href="\/favicon\.ico(\?v=\d+)?"/);
   assert.match(page, /Montserrat/);
   assert.match(page, /#1E3161/);
-  assert.match(page, /#F5F2EA/);
-  assert.match(page, /#EFC75A/);
+  assert.match(page, /#FBFAF7/);
+  assert.match(page, /#A9BCD9/);
   assert.equal(page.includes('\u2014'), false);
   assert.equal(JSON.stringify(people).includes('\u2014'), false);
 });

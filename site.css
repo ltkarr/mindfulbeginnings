@@ -1,6 +1,6 @@
 /* Mindful Beginnings unified design system (unified-site branch).
-   Montserrat, navy #1E3161, brand gold #C7A24A, button gold #EFC75A,
-   cream #F5F2EA. Sentence-case headings, no forced uppercase. */
+   Montserrat, navy #1E3161, steel blue #617CA3 accents, navy buttons,
+   warm white #FBFAF7 (palette updated 2026-10-30; gold retired). Sentence-case headings, no forced uppercase. */
 
 /* Self-hosted Caveat (was flaky via Google Fonts on iOS) */
 @font-face{
@@ -14,9 +14,9 @@
 :root{
   --navy:#1E3161;
   --navy-dark:#0F1D3F;
-  --gold:#C7A24A;
-  --btn-gold:#EFC75A;
-  --cream:#F5F2EA;
+  --gold:#617CA3;
+  --btn-gold:#1E3161;
+  --cream:#FBFAF7;
   --white:#ffffff;
 }
 
@@ -56,10 +56,10 @@ a:hover{color:var(--navy-dark)}
   box-sizing:border-box;max-width:100%;text-align:center;cursor:pointer;border:0;
   font-family:inherit;
 }
-.mb-btn-gold{background:var(--btn-gold);color:var(--navy);font-size:17px;padding:12px 24px}
-.mb-btn-gold:hover{background:var(--white);color:var(--navy)}
-.mb-btn-navy{background:var(--navy);color:var(--cream);font-size:17px;padding:12px 24px}
-.mb-btn-navy:hover{background:var(--btn-gold);color:var(--navy)}
+.mb-btn-gold{background:var(--btn-gold);color:#FFFFFF;font-size:17px;padding:12px 24px}
+.mb-btn-gold:hover{background:var(--navy-dark);color:#FFFFFF}
+.mb-btn-navy{background:#DCE4EF;color:var(--navy);font-size:17px;padding:12px 24px}
+.mb-btn-navy:hover{background:#C9D6E8;color:var(--navy)}
 .mb-btn-outline{background:transparent;color:var(--cream);font-size:17px;padding:10px 22px;border:2px solid var(--cream)}
 .mb-btn-outline:hover{background:var(--cream);color:var(--navy)}
 .mb-btn-sm{font-size:17px;padding:20px 44px;border:0}
@@ -109,9 +109,9 @@ p:last-child{margin-bottom:0}
 .mb-hero-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .mb-hero h1{color:var(--cream)}
 .mb-eyebrow{font-family:'Caveat',cursive;font-size:30px;font-weight:700;color:var(--btn-gold);line-height:1.1}
-.mb-script-title{font-family:'Caveat',cursive;font-weight:700;line-height:1.1;color:var(--btn-gold);margin:0;font-size:30px}
-/* Script page titles inside navy heroes must stay gold: .mb-hero h1 (0,1,1) otherwise beats .mb-script-title (0,1,0) */
-.mb-hero h1.mb-script-title{color:var(--btn-gold)}
+.mb-script-title{font-family:'Caveat',cursive;font-weight:700;line-height:1.1;color:var(--navy);margin:0;font-size:30px}
+/* Script page titles inside navy heroes use pale blue: .mb-hero h1 (0,1,1) otherwise beats .mb-script-title (0,1,0) */
+.mb-hero h1.mb-script-title{color:#A9BCD9}
 .mb-lede{margin:0;font-size:19px;font-weight:500;max-width:720px;line-height:1.6}
 .mb-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:6px}
 .mb-phone{color:var(--cream);font-size:16px;font-weight:700;text-decoration:none;padding:12px 8px}
@@ -159,7 +159,7 @@ p:last-child{margin-bottom:0}
 .mb-form-success{background:#f5f3f1;border-radius:16px;padding:24px;text-align:center;max-width:640px}
 .mb-form-success p{margin:12px 0;font-size:16px}
 .mb-form-success a{color:#1E3161;font-weight:700}
-.mb-callout{background:#f5f3f1;border-left:4px solid #C7A24A;border-radius:0 12px 12px 0;padding:12px 16px;margin-bottom:16px}
+.mb-callout{background:#f5f3f1;border-left:4px solid #617CA3;border-radius:0 12px 12px 0;padding:12px 16px;margin-bottom:16px}
 .mb-callout ul{margin:8px 0 8px 20px}
 .mb-callout li{margin:4px 0}
 .mb-form-h2{font-size:20px;color:#1E3161;margin:20px 0 10px;font-weight:700}
@@ -177,7 +177,7 @@ p:last-child{margin-bottom:0}
 .mb-pills{display:flex;flex-wrap:wrap;gap:14px}
 .mb-pill{
   font-size:16px;font-weight:600;background:var(--white);color:var(--navy);
-  border:2px solid var(--navy);border-radius:999px;padding:12px 24px;
+  border:2px solid var(--navy);border-radius:12px;padding:12px 24px;
 }
 .mb-goldbar{width:72px;height:8px;background:var(--gold);border-radius:4px}
 
@@ -248,7 +248,7 @@ p:last-child{margin-bottom:0}
 
 .mb-social{position:absolute;right:0;bottom:0;display:inline-flex;gap:14px}
 .mb-social a{color:var(--cream)}
-.mb-social a:hover{color:var(--btn-gold)}
+.mb-social a:hover{color:#A9BCD9}
 .mb-social svg{width:30px;height:30px;display:block}
 
 .mb-cta-band{padding:44px 6vw}
@@ -274,7 +274,7 @@ p:last-child{margin-bottom:0}
   .mb-brand{min-width:0}
   .mb-tagline{display:none}
   .mb-nav-toggle{display:block;margin-left:0;flex:none}
-  .mb-reg-m{display:inline-block;margin-left:auto;flex:none;background:#EFC75A;color:#1E3161;font-weight:800;font-size:15px;line-height:1;padding:10px 18px;border-radius:999px;text-decoration:none}
+  .mb-reg-m{display:inline-block;margin-left:auto;flex:none;background:#1E3161;color:#FFFFFF;font-weight:800;font-size:15px;line-height:1;padding:11px 16px;border-radius:10px;text-decoration:none}
   .mb-nav{display:none;position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;align-items:stretch;gap:0;padding:8px 6vw 28px;border-bottom:2px solid var(--gold);z-index:60;box-shadow:0 12px 24px rgba(30,49,97,.12)}
   .mb-nav.open{display:flex}
   .mb-nav a{padding:12px 4px;font-size:16px;border-bottom:1px solid rgba(30,49,97,.08)}
