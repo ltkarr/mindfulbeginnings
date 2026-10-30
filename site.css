@@ -47,8 +47,8 @@ a:hover{color:var(--navy-dark)}
 .mb-wordmark{font-size:20px;font-weight:800;letter-spacing:0.02em}
 .mb-nav{display:flex;flex-wrap:wrap;gap:10px 30px;align-items:center}
 .mb-nav a{font-size:16px;font-weight:700;color:var(--navy);text-decoration:none;padding:6px 2px;letter-spacing:.01em}
-.mb-nav a:hover{text-decoration:underline;text-underline-offset:4px}
-.mb-nav a[aria-current="page"]{text-decoration:underline;text-underline-offset:4px}
+.mb-nav a:hover{color:#617CA3}
+.mb-nav a[aria-current="page"]{color:#617CA3}
 
 /* ---------- buttons ---------- */
 .mb-btn{
