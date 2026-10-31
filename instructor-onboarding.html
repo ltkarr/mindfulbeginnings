@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instructor Onboarding | Mindful Beginnings</title>
+<meta name="description" content="Required onboarding for Mindful Beginnings instructors: the instructor portal, the Instructor Guide essentials, and a short quiz.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/site.css?v=28">
+<style>
+.ob-wrap{max-width:860px;margin:0 auto;padding:0 6vw 48px;font-family:'Montserrat',sans-serif;color:#1E3161}
+.ob-hero{background:#DCE4EF;border-bottom:3px solid #617CA3;padding:36px 6vw 30px;font-family:'Montserrat',sans-serif;color:#1E3161}
+.ob-hero-in{max-width:860px;margin:0 auto}
+.ob-script{font-family:'Caveat',cursive;font-size:clamp(40px,5vw,52px);font-weight:600;line-height:1.05;color:#617CA3;margin:0 0 4px}
+.ob-hero h1{margin:0;font-size:clamp(30px,4vw,40px);line-height:1.15;font-weight:800}
+.ob-lede{margin:12px 0 0;font-size:17px;line-height:1.6;max-width:720px;color:#1E3161}
+.ob-steps{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0 6px}
+.ob-step{flex:1 1 200px;background:#fff;border:1px solid rgba(30,49,97,.1);border-radius:16px;padding:14px 16px}
+.ob-step b{display:block;font-size:15px;margin-bottom:4px}
+.ob-step span{font-size:14.5px;line-height:1.5;color:#43527A}
+.ob-lesson{background:#fff;border:1px solid rgba(30,49,97,.1);border-radius:16px;padding:22px 24px;margin:18px 0}
+.ob-lesson h2{margin:0 0 6px;font-size:22px;font-weight:800;line-height:1.25}
+.ob-lesson h2 .n{color:#617CA3}
+.ob-lesson h3{margin:18px 0 6px;font-size:16.5px;font-weight:800}
+.ob-lesson p{margin:0 0 10px;font-size:16px;line-height:1.6}
+.ob-lesson ul,.ob-lesson ol{margin:0 0 10px;padding-left:22px;font-size:16px;line-height:1.6}
+.ob-lesson li{margin-bottom:6px}
+.ob-lesson .key{background:#EEF2F7;border-radius:12px;padding:12px 16px;font-size:15.5px;line-height:1.55;margin:12px 0}
+.ob-sizes{width:100%;border-collapse:collapse;font-size:15px;margin:6px 0 4px}
+.ob-sizes td{padding:7px 8px;border-bottom:1px solid rgba(30,49,97,.1);vertical-align:top;line-height:1.45}
+.ob-sizes td:first-child{font-weight:700;white-space:nowrap;width:130px}
+.ob-quiz{background:#fff;border:2px solid #1E3161;border-radius:16px;padding:24px;margin:26px 0 18px}
+.ob-quiz h2{margin:0 0 6px;font-size:24px;font-weight:800}
+.ob-quiz .sub{font-size:16px;line-height:1.6;margin:0 0 16px}
+.ob-field{margin-bottom:16px}
+.ob-field label{display:block;font-weight:700;font-size:15px;margin-bottom:6px}
+.ob-field input{width:100%;padding:12px 14px;border:2px solid rgba(30,49,97,.25);border-radius:12px;font:inherit;font-size:16px;box-sizing:border-box}
+.ob-q{border-top:1px solid rgba(30,49,97,.12);padding:16px 0 8px}
+.ob-q legend,.ob-q .qt{font-weight:700;font-size:16.5px;line-height:1.45;margin-bottom:10px}
+.ob-q fieldset{border:0;margin:0;padding:0}
+.ob-opt{display:flex;gap:10px;align-items:flex-start;background:#FBFAF7;border:1px solid rgba(30,49,97,.14);border-radius:12px;padding:11px 14px;margin-bottom:8px;cursor:pointer;font-size:15.5px;line-height:1.5}
+.ob-opt input{margin-top:3px;flex:none}
+.ob-opt.correct{border-color:#2E7D32;background:#EAF5EC}
+.ob-opt.wrong{border-color:#C0392B;background:#FDECEC}
+.ob-q .miss{color:#C0392B;font-weight:700;font-size:14px;display:none;margin-top:4px}
+.ob-submit{width:100%;padding:16px;background:#1E3161;color:#fff;border:0;border-radius:12px;font:inherit;font-size:17px;font-weight:800;cursor:pointer;margin-top:10px}
+.ob-submit:hover{background:#0F1D3F}
+.ob-submit:disabled{opacity:.55;cursor:wait}
+.ob-result{display:none;border-radius:12px;padding:18px 20px;margin-top:18px;font-size:16px;line-height:1.6}
+.ob-result.pass{display:block;background:#EAF5EC;border:1px solid #2E7D32}
+.ob-result.fail{display:block;background:#FDECEC;border:1px solid #C0392B}
+.ob-result h3{margin:0 0 6px;font-size:20px}
+.ob-retake{margin-top:12px;background:#fff;border:2px solid #1E3161;color:#1E3161;border-radius:12px;padding:11px 20px;font:inherit;font-weight:800;cursor:pointer}
+.ob-error{display:none;background:#FDECEC;border:1px solid #C0392B;color:#7A1F14;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:15px}
+.ob-foot{background:#1E3161;color:#FBFAF7;padding:28px 6vw;font-family:'Montserrat',sans-serif}
+.ob-foot-in{max-width:860px;margin:0 auto;font-size:15.5px;line-height:1.6}
+.ob-foot a{color:#A9BCD9;font-weight:700}
+.hp{position:absolute;left:-9999px;top:-9999px;height:1px;width:1px;overflow:hidden}
+</style>
+</head>
+<body>
+<header class="mb-header">
+<a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo-navy.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark"><span class="mb-lockup">Mindful <span class="mb-lockup-script">Beginnings</span></span><span class="mb-tagline">Safety and Confidence for All Ages</span></span></a>
+<a class="mb-reg-m" href="/register.html">Register</a>
+<button class="mb-nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+<nav class="mb-nav" id="primary-nav" aria-label="Primary">
+<a href="/about">About</a>
+<a href="/classes-catalog">Classes</a>
+<a href="/host-a-class.html">Host a Class</a>
+<a href="/girl-scouts.html">Girl Scouts</a>
+<a href="/after-school-clubs.html" aria-current="page">After School Clubs</a>
+<a href="/cpr-certification">CPR Certification</a>
+<a href="/contact.html">Contact</a>
+<a class="mb-btn mb-btn-gold mb-btn-sm" href="/register.html">Register</a>
+</nav>
+</header>
+<section class="ob-hero">
+<div class="ob-hero-in">
+<p class="ob-script">welcome to the team</p>
+<h1>Instructor Onboarding</h1>
+<p class="ob-lede">Every Mindful Beginnings instructor completes this onboarding once. It walks you through the instructor portal, covers the essentials from the Instructor Guide, and ends with a short quiz. Plan on about 25 minutes. Your quiz result is saved to your instructor record when you pass.</p>
+</div>
+</section>
+<main class="ob-wrap">
+<div class="ob-steps">
+<div class="ob-step"><b>1. Learn the portal</b><span>How to log in, find open jobs, and accept a job.</span></div>
+<div class="ob-step"><b>2. Learn the essentials</b><span>The must-know rules from the Instructor Guide.</span></div>
+<div class="ob-step"><b>3. Pass the quiz</b><span>15 questions. You need 12 or more correct to pass, and you can retake it.</span></div>
+</div>
+
+<section class="ob-lesson" id="lesson-1">
+<h2><span class="n">Lesson 1.</span> Getting into the instructor portal</h2>
+<p>The portal is where everything happens: open jobs, your confirmed jobs, the full Instructor Guide, and your account documents.</p>
+<ol>
+<li>Go to <strong>instructorportal.mindfulbeginnings.org</strong>.</li>
+<li>Sign in with your <strong>PIN</strong>. Lindsay gives you your PIN when your paperwork is complete. Keep it private; it is how the portal knows the jobs on your screen are yours.</li>
+<li><strong>Forgot your PIN?</strong> Text Lindsay at <a href="sms:+17039875979">703-987-5979</a>.</li>
+<li>If the portal says your account is <strong>not active</strong>, your onboarding paperwork is not finished yet. Nothing is broken and nothing was deleted; contact Lindsay to finish it.</li>
+</ol>
+<h3>The five tabs</h3>
+<ul>
+<li><strong>Open jobs:</strong> classes you are eligible to teach that still need an instructor.</li>
+<li><strong>My jobs:</strong> the classes you have accepted, with everything you need for class day.</li>
+<li><strong>Instructor Guide:</strong> the complete guide, plus teaching materials and resources. The lessons below are the highlights; the guide is the reference.</li>
+<li><strong>My account:</strong> your profile, credentials, and document uploads.</li>
+<li><strong>Partnerships:</strong> only liaisons see this tab.</li>
+</ul>
+</section>
+
+<section class="ob-lesson" id="lesson-2">
+<h2><span class="n">Lesson 2.</span> Finding and accepting a job</h2>
+<ul>
+<li><strong>You only see jobs you are approved to teach.</strong> Your approved course list reflects the credentials and training on file. If you believe you are eligible for another course, contact Lindsay.</li>
+<li>Each open job card shows the course, the date and time, the location <strong>including the street address</strong>, and the group size, so you can judge distance and fit before you commit.</li>
+<li>Jobs flagged <strong>&ldquo;En espa&ntilde;ol&rdquo;</strong> must be taught completely in Spanish. They only appear for instructors marked as Spanish-speaking.</li>
+<li>When you are sure you can teach a class, tap <strong>&ldquo;Accept this job.&rdquo;</strong> Accepting is a commitment: the class comes off the board and the host counts on you.</li>
+<li><strong>After you accept</strong>, the host&rsquo;s cell number and WiFi unlock on your job card in My jobs. For virtual classes, the Zoom link is sent to you after you accept.</li>
+<li>Not sure about a job? Ask Lindsay <em>before</em> you accept it, not after.</li>
+</ul>
+<div class="key"><strong>The one rule of the board:</strong> if it is in your My jobs, it is yours. Put it on your calendar the moment you accept.</div>
+</section>
+
+<section class="ob-lesson" id="lesson-3">
+<h2><span class="n">Lesson 3.</span> Before every class</h2>
+<h3>Preparation</h3>
+<ul>
+<li><strong>Preview your materials several days ahead.</strong> Never open the course materials for the first time in front of students.</li>
+<li>Your <strong>roster is emailed one day before class</strong>. If it shows no students registered, registrations are probably handled by the organization and we cannot see them; we will send what the organization gives us or at least the headcount.</li>
+<li><strong>Arrive 15 minutes early.</strong> Set up the room and test the technology before students walk in.</li>
+<li>Fill out participant certificates <strong>at the end of the session</strong>, never before.</li>
+<li>Pace the lessons so every required module is fully covered before the scheduled end time.</li>
+</ul>
+<h3>Picking up materials</h3>
+<ul>
+<li>Materials are picked up from the <strong>lockbox</strong> before class and returned to the <strong>storage box</strong> after. The address and the code live in the Instructor Guide inside your portal, so they stay behind your PIN.</li>
+<li>Pick up <strong>no more than three days before</strong> your class, unless you arrange an earlier pickup with Lindsay.</li>
+<li><strong>Check the kit immediately.</strong> Cross-reference everything against your teaching checklist as soon as you pick up, and check <em>every compartment of every bag</em> before you report anything missing. If something really is missing, tell Lindsay before your class date, not the morning of.</li>
+<li>Your <strong>Safe Sitter&reg; Instructor Manual is yours to keep</strong> after onboarding. Bring it to every Safe Sitter&reg; class you teach.</li>
+</ul>
+</section>
+
+<section class="ob-lesson" id="lesson-4">
+<h2><span class="n">Lesson 4.</span> Teaching essentials</h2>
+<h3>Safe Sitter&reg; babysitting courses</h3>
+<ul>
+<li>Teach the <strong>Introduction module first</strong>. After that, teach the remaining modules in whatever order works best for your group.</li>
+<li>Teach the <strong>CPR module before Life and Business Skills</strong> whenever you can, while students still have the energy for hands-on practice.</li>
+<li>If you finish everything early and evaluations are done, show the <strong>Babysitter Boss</strong> videos.</li>
+<li>Build in breaks, and pair the lunch break with a lecture-heavy module such as Child Care Skills. The host provides a meal or students bring their own; <strong>instructors bring their own meal</strong>.</li>
+<li>Mindful Beginnings provides small bingo prizes (you can also give them to volunteers). If you run a raffle instead, we supply the tickets and the grand prize is your responsibility.</li>
+</ul>
+<h3>Safe@Home</h3>
+<ul>
+<li>Have students complete the <strong>Safe@Home student evaluation before the class ends</strong>. This applies to every Safe@Home session, in person and virtual.</li>
+</ul>
+<h3>Hands-on CPR and choking practice</h3>
+<ul>
+<li><strong>Manikins only.</strong> Students practice compressions, rescue breaths, back blows, and abdominal thrusts on the manikins. They never practice on each other, and you never demonstrate on a student.</li>
+<li>The child manikin is a <strong>torso, not a full body</strong>. It goes on the floor and students kneel beside it. Clear enough floor space for the whole group to kneel, and tell students in advance so they dress for it.</li>
+<li>Every student uses an <strong>individual face shield</strong>.</li>
+<li>Stay on your feet and <strong>circulate during practice</strong> so you can correct positioning and stop horseplay before it starts.</li>
+</ul>
+</section>
+
+<section class="ob-lesson" id="lesson-5">
+<h2><span class="n">Lesson 5.</span> Equipment and tech, quick fixes</h2>
+<ul>
+<li>Before class: install <strong>fresh lung bags</strong> in the manikins and check batteries. Screwdrivers are in the kit for battery covers.</li>
+<li><strong>No indicator lights?</strong> Remove and reinstall the batteries. That fixes most power issues.</li>
+<li><strong>Chest does not rise?</strong> The lung bag is probably seated wrong. Reseat it. If it still fails, skip rescue breaths and have students do compressions while saying aloud that they are delivering breaths.</li>
+<li>Safe Sitter&reg; presentations need an internet connection and your instructor account (through YUDU). Mindful Beginnings modules open by logging into your email on the company laptop.</li>
+<li><strong>Test everything before students arrive.</strong> If the WiFi fails, verify your credentials and restart the laptop. If casting to a TV does not work, use the USB-C to HDMI cable in the kit.</li>
+<li><strong>Total tech failure:</strong> teach the course cleanly without slides. Stay calm, use your instructor guide, and keep the class moving.</li>
+</ul>
+</section>
+
+<section class="ob-lesson" id="lesson-6">
+<h2><span class="n">Lesson 6.</span> Virtual classes on Zoom</h2>
+<ul>
+<li>You need an <strong>active Zoom account</strong>; a free personal account is fine.</li>
+<li>Use the <strong>meeting link Lindsay sends</strong> before the session.</li>
+<li>Join a few minutes early and <strong>claim host</strong> right away: Participants, then Claim Host, then the host key (it is in the Instructor Guide in your portal). Host controls let you manage the waiting room, mute, and share your screen.</li>
+<li>Open the <strong>Google Slides link from Lindsay</strong> and share your screen immediately.</li>
+<li>Test your audio and video first, keep your guide open or printed nearby, and keep your background clean, quiet, and professional.</li>
+</ul>
+</section>
+
+<section class="ob-lesson" id="lesson-7">
+<h2><span class="n">Lesson 7.</span> When plans change</h2>
+<h3>If you need to cancel a job</h3>
+<ul>
+<li><strong>More than one week out:</strong> cancel through the portal.</li>
+<li><strong>Fewer than 48 hours out:</strong> finding a replacement is <strong>your responsibility</strong>. Contact the instructor sub list right away.</li>
+<li><strong>Emergency:</strong> if you have worked the sub list and cannot find coverage, call Lindsay immediately at <a href="tel:+17039875979">703-987-5979</a>.</li>
+</ul>
+<h3>If the client or Mindful Beginnings cancels</h3>
+<ul>
+<li>Clients, schools, and partners reschedule and cancel, sometimes the day before or the morning of. Flexibility is a core expectation of this role.</li>
+<li>If a class is rescheduled, we make every effort to offer you the new date before the job is reposted. That is standard practice, not a guarantee.</li>
+<li><strong>Cancelled in advance: unpaid.</strong> There is no pay for preparation time, travel, or calendar time held for a class that does not take place.</li>
+<li><strong>Cancelled on the class day: paid in full</strong>, whether or not you had already arrived.</li>
+<li>Return the materials to the storage box within 48 hours either way.</li>
+</ul>
+</section>
+
+<section class="ob-lesson" id="lesson-8">
+<h2><span class="n">Lesson 8.</span> After class, pay, and expectations</h2>
+<h3>Returning materials</h3>
+<ul>
+<li>Return <strong>everything</strong> to the locked storage box <strong>within 48 hours</strong> of the end of the course (for a multi-week series, after your final class), neatly and in original condition, including extra supplies.</li>
+<li><strong>Exception:</strong> if you are teaching the same class again within the next week, keep the kit for that class instead of returning it in between.</li>
+<li>Make sure the storage box is <strong>locked</strong> before you leave, and <strong>text Lindsay at 703-987-5979</strong> once the materials are back, so she knows they have been returned.</li>
+</ul>
+<h3>Pay</h3>
+<ul>
+<li>Pay is issued when the course or series is complete, <strong>all materials are returned, and participant evaluations have been submitted</strong>.</li>
+<li>Rate increases are merit-based, based on courses taught and evaluation feedback, and are always communicated in writing.</li>
+</ul>
+<h3>Professional expectations</h3>
+<ul>
+<li>Wear your <strong>Mindful Beginnings ID badge</strong> at every in-person session.</li>
+<li>Refer a private, in-home course that is held with 6 or more participants and you earn a <strong>$50 bonus</strong>. Referring an organization earns you first priority to teach that course (no cash bonus).</li>
+<li>Questions about anything in this onboarding: Lindsay, <a href="tel:+17039875979">703-987-5979</a> or <a href="mailto:lindsay@mindfulbeginnings.org">lindsay@mindfulbeginnings.org</a>.</li>
+</ul>
+</section>
+
+<section class="ob-lesson" id="lesson-9">
+<h2><span class="n">Lesson 9.</span> Class sizes and clubs, at a glance</h2>
+<p>Any class can be split into shorter sessions when a host needs it (for example, the 5-hour babysitting class as two 2.5-hour sessions). Your job card always shows the group size for your session.</p>
+<table class="ob-sizes">
+<tr><td>6 to 8</td><td>Steady and Ready&trade;</td></tr>
+<tr><td>6 to 12</td><td>Red Cross certification courses, Campus Ready&trade;, Stay Ready&trade;</td></tr>
+<tr><td>6 to 16</td><td>Safe Sitter&reg; Essentials and Safe Sitter&reg; with CPR Module; Girl Scout badge workshops (typical, set per job)</td></tr>
+<tr><td>8 to 16</td><td>Care Ready&trade;, Safe Sitter&reg; Grandparents: Getting Started</td></tr>
+<tr><td>6 to 18</td><td>Ready. Period.&trade;</td></tr>
+<tr><td>6 to 20</td><td>Safe@Home, Social Ready&trade;, All Kids Welcome&trade;, Introduction to Safe Babysitting</td></tr>
+<tr><td>8 to 12</td><td>My First Babysitter&rsquo;s Club&trade;</td></tr>
+<tr><td>8 to 20</td><td>Babysitting Grandkids Workshop</td></tr>
+<tr><td>4 to 12</td><td>Baby Ready&trade; and Baby Ready&trade; + CPR Certification</td></tr>
+<tr><td>Up to 20</td><td>Season Ready&trade;</td></tr>
+</table>
+<h3>After School Clubs</h3>
+<ul>
+<li>Clubs meet <strong>one hour a week, right after dismissal</strong>, and are taught by certified teachers and registered nurses. We bring everything; the school provides the classroom, dismissal to you, and a pickup plan.</li>
+<li>My First Babysitter&rsquo;s Club is an <strong>8-week series only</strong> (8 to 12 kids). The other clubs run 8 or 10 weeks with 8 to 16 kids, and a club needs a <strong>minimum of 6 students</strong> to run.</li>
+<li>Every club is also offered in Spanish.</li>
+</ul>
+</section>
+
+<section class="ob-quiz" id="quiz">
+<h2>The quiz</h2>
+<p class="sub">15 questions from the lessons above. You need <strong>12 or more correct</strong> to pass. When you pass, your result is saved and Lindsay can see it in Admin. You can retake the quiz as many times as you need.</p>
+<div class="ob-error" id="quiz-error"></div>
+<form id="quiz-form" novalidate>
+<div class="ob-field"><label for="ob-name">Your full name</label><input id="ob-name" type="text" autocomplete="name" placeholder="First and last name"></div>
+<div class="ob-field"><label for="ob-email">Your email</label><input id="ob-email" type="email" autocomplete="email" placeholder="you@example.com"></div>
+<div class="hp" aria-hidden="true"><label>Leave this blank<input id="ob-website" type="text" tabindex="-1" autocomplete="off"></label></div>
+<div id="quiz-questions"></div>
+<button class="ob-submit" id="quiz-submit" type="submit">Submit my quiz</button>
+</form>
+<div class="ob-result" id="quiz-result" role="status"></div>
+</section>
+</main>
+<footer class="ob-foot"><div class="ob-foot-in">Mindful Beginnings instructor onboarding. Questions: text or call Lindsay at <a href="tel:+17039875979">703-987-5979</a> or email <a href="mailto:lindsay@mindfulbeginnings.org">lindsay@mindfulbeginnings.org</a>.</div></footer>
+<script src="/nav.js"></script>
+<script>
+(function(){
+var QUESTIONS=[
+{q:'Where do you find classes you can sign up to teach?',options:['The Open jobs tab','The My jobs tab','The Instructor Guide tab','The My account tab'],answer:0,lesson:1},
+{q:'You forgot your portal PIN. What do you do?',options:['Reset it in My account','Ask another instructor for theirs','Text Lindsay at 703-987-5979','Wait a day and try again'],answer:2,lesson:1},
+{q:'After you accept a job, what unlocks on your job card?',options:['Your pay rate','The host\u2019s cell number and WiFi','The class roster','The host\u2019s street address'],answer:1,lesson:2},
+{q:'How early can you pick up your class materials?',options:['Any time after you accept the job','Up to one week before class','The morning of class','Up to three days before class, unless you arrange otherwise with Lindsay'],answer:3,lesson:3},
+{q:'You open the kit and think something is missing. What is the first step?',options:['Text Lindsay right away','Check every compartment of every bag against your teaching checklist','Buy the item yourself and keep the receipt','Check again when you get to the class site'],answer:1,lesson:3},
+{q:'How early should you arrive at a class?',options:['Right at the start time','5 minutes early','15 minutes early, to set up and test the technology','30 minutes early'],answer:2,lesson:3},
+{q:'During CPR and choking practice, students practice:',options:['Gently, on a partner','On the instructor','On pillows and cushions','Only on the manikins, never on each other'],answer:3,lesson:4},
+{q:'The child manikin is a torso. How do students practice with it?',options:['It goes on the floor and students kneel beside it','It sits on a table','The instructor holds it','Students take turns holding it standing up'],answer:0,lesson:4},
+{q:'In a Safe Sitter\u00ae course, which order is right?',options:['Any order you like','CPR last, so it stays fresh','Introduction first, and the CPR module before Life and Business Skills when possible','The videos first, then the modules'],answer:2,lesson:4},
+{q:'Before a Safe@Home class ends, students must:',options:['Help pack up the manikins','Complete the Safe@Home student evaluation','Fill out their certificates','Write down their emergency contacts'],answer:1,lesson:4},
+{q:'You need to cancel a job less than 48 hours before class. Finding a replacement is:',options:['Lindsay\u2019s job','The host\u2019s job','Handled automatically by the portal','Your responsibility: contact the instructor sub list right away'],answer:3,lesson:7},
+{q:'A client cancels your class on the morning of the class. What happens with your pay?',options:['You are not paid','You are paid half','You are paid in full','You are paid only if you already arrived'],answer:2,lesson:7},
+{q:'You are teaching the same class again next week. What do you do with the materials?',options:['Return them within 48 hours anyway','Keep the kit for next week\u2019s class','Leave them at the class site','Give them to the host to hold'],answer:1,lesson:8},
+{q:'When is your pay issued?',options:['Every Friday','The day of the class','When the course is complete, materials are returned, and participant evaluations are submitted','Once a month'],answer:2,lesson:8},
+{q:'You join a virtual class on Zoom. What do you do first?',options:['Wait for Lindsay to start the meeting','Let all the students in, then set up','Record the session','Claim host, then open the slides and share your screen'],answer:3,lesson:6}
+];
+var PASS=12;
+var wrap=document.getElementById('quiz-questions');
+QUESTIONS.forEach(function(item,qi){
+  var div=document.createElement('div');div.className='ob-q';div.id='q'+qi;
+  var html='<fieldset><legend>'+(qi+1)+'. '+item.q+'</legend>';
+  item.options.forEach(function(opt,oi){
+    html+='<label class="ob-opt"><input type="radio" name="q'+qi+'" value="'+oi+'"><span>'+opt+'</span></label>';
+  });
+  html+='<p class="miss">Please answer this question.</p></fieldset>';
+  div.innerHTML=html;wrap.appendChild(div);
+});
+var form=document.getElementById('quiz-form'),err=document.getElementById('quiz-error'),
+    result=document.getElementById('quiz-result'),submitBtn=document.getElementById('quiz-submit');
+function showError(msg){err.textContent=msg;err.style.display='block';err.scrollIntoView({behavior:'smooth',block:'center'});}
+form.addEventListener('submit',function(ev){
+  ev.preventDefault();err.style.display='none';
+  var name=document.getElementById('ob-name').value.trim();
+  var email=document.getElementById('ob-email').value.trim();
+  if(name.length<2){showError('Please enter your full name at the top of the quiz.');return;}
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){showError('Please enter a valid email at the top of the quiz.');return;}
+  var answers={},score=0,firstMiss=null;
+  QUESTIONS.forEach(function(item,qi){
+    var sel=form.querySelector('input[name="q'+qi+'"]:checked');
+    var block=document.getElementById('q'+qi);
+    block.querySelector('.miss').style.display=sel?'none':'block';
+    if(!sel){if(!firstMiss)firstMiss=block;return;}
+    var v=Number(sel.value);answers['q'+(qi+1)]=v;
+    if(v===item.answer)score++;
+  });
+  if(firstMiss){showError('A few questions still need an answer.');firstMiss.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  QUESTIONS.forEach(function(item,qi){
+    var block=document.getElementById('q'+qi);
+    block.querySelectorAll('.ob-opt').forEach(function(lab,oi){
+      lab.classList.remove('correct','wrong');
+      var inp=lab.querySelector('input');
+      if(oi===item.answer)lab.classList.add('correct');
+      else if(inp.checked)lab.classList.add('wrong');
+    });
+    if(!block.querySelector('.review')){
+      var p=document.createElement('p');p.className='review';p.style.cssText='font-size:14px;margin:6px 0 2px;color:#43527A';
+      p.innerHTML='Review: <a href="#lesson-'+item.lesson+'">Lesson '+item.lesson+'</a>';
+      block.appendChild(p);
+    }
+  });
+  var passed=score>=PASS;
+  submitBtn.disabled=true;submitBtn.textContent='Saving your result\u2026';
+  fetch('/api/evaluations/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    form:'onboarding',instructor_name:name,instructor_email:email,score:score,total:QUESTIONS.length,passed:passed,
+    answers:answers,website:document.getElementById('ob-website').value
+  })}).then(function(r){return r.json().catch(function(){return{};});}).then(function(data){
+    submitBtn.disabled=false;submitBtn.textContent='Submit my quiz';
+    if(!data||!data.ok){
+      result.className='ob-result fail';
+      result.innerHTML='<h3>Your result could not be saved</h3><p>You scored '+score+' of '+QUESTIONS.length+', but the save did not go through. Please submit again, and if it keeps failing, text Lindsay a screenshot of this page.</p>';
+      result.scrollIntoView({behavior:'smooth',block:'center'});return;
+    }
+    if(passed){
+      result.className='ob-result pass';
+      result.innerHTML='<h3>You passed, '+score+' of '+QUESTIONS.length+'.</h3><p>Your onboarding is complete and your result is saved. Welcome to the team, '+name.split(' ')[0]+'. If you have not finished your portal paperwork yet, Lindsay will be in touch about the remaining steps.</p>';
+    }else{
+      result.className='ob-result fail';
+      result.innerHTML='<h3>You scored '+score+' of '+QUESTIONS.length+'. You need '+PASS+' to pass.</h3><p>Your attempt is saved. The correct answers are highlighted above, and each question links back to its lesson. Review those lessons, then retake the quiz.</p><button class="ob-retake" type="button" id="ob-retake">Retake the quiz</button>';
+      var rb=document.getElementById('ob-retake');
+      if(rb)rb.addEventListener('click',function(){
+        form.reset();result.className='ob-result';result.innerHTML='';
+        wrap.querySelectorAll('.ob-opt').forEach(function(l){l.classList.remove('correct','wrong');});
+        wrap.querySelectorAll('.review').forEach(function(n){n.remove();});
+        document.getElementById('quiz').scrollIntoView({behavior:'smooth'});
+      });
+    }
+    result.scrollIntoView({behavior:'smooth',block:'center'});
+  }).catch(function(){
+    submitBtn.disabled=false;submitBtn.textContent='Submit my quiz';
+    result.className='ob-result fail';
+    result.innerHTML='<h3>Your result could not be saved</h3><p>You scored '+score+' of '+QUESTIONS.length+', but the save did not go through. Please check your connection and submit again.</p>';
+    result.scrollIntoView({behavior:'smooth',block:'center'});
+  });
+});
+})();
+</script>
+</body>
+</html>

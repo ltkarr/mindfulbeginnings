@@ -517,6 +517,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
       <div class="nav-item" title="Invoices" onclick="showScreen('invoices',this)"><span class="nav-icon">🧾</span> <span class="nav-label">Invoices</span></div>
       <div class="nav-item" title="Evaluations" onclick="showScreen('evaluations',this)"><span class="nav-icon">★</span> <span class="nav-label">Evaluations</span></div>
+      <div class="nav-item" title="Onboarding" onclick="showScreen('onboarding',this)"><span class="nav-icon">🎓</span> <span class="nav-label">Onboarding</span></div>
       <div class="nav-item" title="Instructors" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> <span class="nav-label">Instructors</span></div>
       <div class="nav-item" id="nav-more" title="More" onclick="showScreen('more',this)"><span class="nav-icon">⋯</span> <span class="nav-label">More</span></div>
       <div id="nav-orgpartners" hidden></div>
@@ -684,6 +685,15 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="evaluations-table"></table></div></div>
       <div id="evaluations-by-instructor"></div>
+    </div>
+
+    <div class="screen" id="screen-onboarding">
+      <div class="page-header">
+        <div><div class="page-title">Instructor Onboarding</div><div class="page-sub">Quiz results from mindfulbeginnings.org/instructor-onboarding.html (12 of 15 to pass)</div></div>
+      </div>
+      <div id="onboarding-stats" class="stat-row" style="margin-bottom:12px"></div>
+      <div id="onboarding-passed" style="margin-bottom:12px"></div>
+      <div class="card" style="padding:0"><div class="tbl-wrap"><table id="onboarding-table"></table></div></div>
     </div>
 
     <div class="screen" id="screen-instructors">
@@ -5888,6 +5898,7 @@ function showScreen(name,el){
   if(name==='finances'){renderFinances();renderExpenses();}
   if(name==='invoices'&&typeof renderInvoices==='function')renderInvoices();
   if(name==='evaluations'&&typeof renderEvaluations==='function')renderEvaluations();
+  if(name==='onboarding'&&typeof renderOnboarding==='function')renderOnboarding();
   if(name==='codes')renderCodes();
   if(name==='instructors')renderInstructors();
   if(name==='partners')renderPartners();
@@ -16413,6 +16424,56 @@ async function loadEvaluations(){
     evalCache=data||[];
   }catch(e){console.warn('Evaluations load failed:',e);evalCache=[];}
   return evalCache;
+}
+// Reads public.onboarding_results (authenticated RLS policy; the migration
+// is migrations/20261031_onboarding_results.sql). The public page POSTs to
+// /api/evaluations/submit (form: 'onboarding'), which inserts with the
+// service role and recomputes the pass server-side at 80%.
+let onboardingCache=[];
+async function loadOnboarding(){
+  if(!sb)return[];
+  try{
+    const {data,error}=await sb.from('onboarding_results').select('*').order('created_at',{ascending:false});
+    if(error)throw error;
+    onboardingCache=data||[];
+  }catch(e){console.warn('Onboarding load failed:',e);onboardingCache=[];}
+  return onboardingCache;
+}
+async function deleteOnboardingResult(id){
+  if(!confirm('Delete this onboarding result?'))return;
+  try{
+    const {error}=await sb.from('onboarding_results').delete().eq('id',id);
+    if(error)throw error;
+  }catch(e){alert('Delete failed: '+(e.message||e));return;}
+  renderOnboarding();
+}
+async function renderOnboarding(){
+  const rows=await loadOnboarding();
+  const statsEl=document.getElementById('onboarding-stats');
+  const passedEl=document.getElementById('onboarding-passed');
+  const table=document.getElementById('onboarding-table');
+  if(!rows.length){
+    statsEl.innerHTML='';
+    passedEl.innerHTML='<div class="card" style="padding:16px">No onboarding results yet. Instructors submit from <b>mindfulbeginnings.org/instructor-onboarding.html</b>. If someone has submitted and nothing shows here, run <b>migrations/20261031_onboarding_results.sql</b> in the Supabase SQL editor.</div>';
+    table.innerHTML='';
+    return;
+  }
+  // Latest attempt per instructor (rows are newest first) decides status.
+  const latest={};
+  rows.forEach(r=>{const k=(r.instructor_email||'').toLowerCase();if(k&&!latest[k])latest[k]=r;});
+  const people=Object.values(latest);
+  const passedPeople=people.filter(r=>r.passed);
+  statsEl.innerHTML='<div class="instr-stats">'+
+    '<div class="instr-stat"><b>'+rows.length+'</b><span>attempts</span></div>'+
+    '<div class="instr-stat"><b>'+people.length+'</b><span>instructors attempted</span></div>'+
+    '<div class="instr-stat"><b>'+passedPeople.length+'</b><span>instructors passed</span></div></div>';
+  passedEl.innerHTML=passedPeople.length
+    ? '<div class="card" style="padding:14px 16px"><b>Completed onboarding:</b> '+passedPeople.map(r=>escapeHtml(r.instructor_name)).sort().join(', ')+'</div>'
+    : '';
+  const fmtD=s=>{try{return new Date(s).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}catch(e){return s||'';}};
+  table.innerHTML='<thead><tr><th>When</th><th>Instructor</th><th>Email</th><th>Score</th><th>Result</th><th></th></tr></thead><tbody>'+
+    rows.map(r=>'<tr><td>'+escapeHtml(fmtD(r.created_at))+'</td><td>'+escapeHtml(r.instructor_name||'')+'</td><td>'+escapeHtml(r.instructor_email||'')+'</td><td>'+Number(r.score||0)+' / '+Number(r.total||0)+'</td><td>'+(r.passed?'<span style="color:#2E7D32;font-weight:700">Passed</span>':'<span style="color:#C0392B;font-weight:700">Not yet</span>')+'</td><td><button class="btn sm" onclick="deleteOnboardingResult(\''+r.id+'\')">Delete</button></td></tr>').join('')+
+    '</tbody>';
 }
 function clearEvalFilters(){
   document.getElementById('ev-course').value='';

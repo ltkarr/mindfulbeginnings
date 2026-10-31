@@ -21,6 +21,12 @@
 // Auth: none. The anon key has no access to course_evaluations (RLS); this
 // route inserts with the service role. A honeypot field rejects bots.
 //
+// This function also accepts instructor onboarding quiz results
+// (POST with form: 'onboarding' from instructor-onboarding.html), which
+// insert into onboarding_results instead. The Vercel Hobby plan caps the
+// project at 12 Serverless Functions, so the two public form endpoints
+// share this one; the pass mark is recomputed server-side at 80%.
+//
 // Required Vercel environment variables:
 //   SUPABASE_SERVICE_ROLE_KEY — already set (PayPal capture / reminders use it).
 
@@ -61,6 +67,55 @@ function svcHeaders(cfg) {
   return h;
 }
 
+const ONBOARDING_PASS_FRACTION = 0.8; // 12 of 15 on the current quiz
+
+function cleanAnswers(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const out = {};
+  for (const k of Object.keys(v).slice(0, 30)) {
+    if (!/^q\d{1,2}$/.test(k)) continue;
+    const n = Number(v[k]);
+    if (Number.isInteger(n) && n >= 0 && n <= 9) out[k] = n;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+async function handleOnboarding(res, body) {
+  const name = cleanStr(body.instructor_name, 120);
+  const email = cleanStr(body.instructor_email, 160).toLowerCase();
+  if (name.length < 2) return sendJson(res, 400, { error: 'Please enter your full name.' });
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return sendJson(res, 400, { error: 'Please enter a valid email address.' });
+  }
+  const total = Number(body.total);
+  const score = Number(body.score);
+  if (!Number.isInteger(total) || total < 1 || total > 50 ||
+      !Number.isInteger(score) || score < 0 || score > total) {
+    return sendJson(res, 400, { error: 'That quiz result does not look right. Please retake the quiz.' });
+  }
+  const row = {
+    instructor_name: name,
+    instructor_email: email,
+    score: score,
+    total: total,
+    passed: score / total >= ONBOARDING_PASS_FRACTION,
+    answers: cleanAnswers(body.answers)
+  };
+  const cfg = supabaseConfig();
+  if (!cfg.configured) {
+    return sendJson(res, 503, { error: 'Your result could not be saved right now. Please try again later.' });
+  }
+  const r = await fetch(cfg.url + '/rest/v1/onboarding_results', {
+    method: 'POST',
+    headers: svcHeaders(cfg),
+    body: JSON.stringify(row)
+  });
+  if (!r.ok) {
+    return sendJson(res, 502, { error: 'Your result could not be saved right now. Please try again later.' });
+  }
+  return sendJson(res, 200, { ok: true, passed: row.passed });
+}
+
 module.exports = async function handler(req, res) {
   if (preflight(req, res)) return;
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method not allowed' });
@@ -69,6 +124,9 @@ module.exports = async function handler(req, res) {
 
     // Honeypot: bots fill it, humans never see it.
     if (body.website) return sendJson(res, 200, { ok: true });
+
+    // Instructor onboarding quiz results share this function (see header).
+    if (body.form === 'onboarding') return handleOnboarding(res, body);
 
     const course = cleanStr(body.course, 120);
     const instructor = cleanStr(body.instructor, 120);
