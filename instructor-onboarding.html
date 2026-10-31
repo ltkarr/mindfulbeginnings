@@ -316,15 +316,16 @@ form.addEventListener('submit',function(ev){
   if(firstMiss){showError('A few questions still need an answer.');firstMiss.scrollIntoView({behavior:'smooth',block:'center'});return;}
   QUESTIONS.forEach(function(item,qi){
     var block=document.getElementById('q'+qi);
-    block.querySelectorAll('.ob-opt').forEach(function(lab,oi){
+    var sel=block.querySelector('input:checked');
+    var missed=!sel||Number(sel.value)!==item.answer;
+    block.querySelectorAll('.ob-opt').forEach(function(lab){
       lab.classList.remove('correct','wrong');
       var inp=lab.querySelector('input');
-      if(oi===item.answer)lab.classList.add('correct');
-      else if(inp.checked)lab.classList.add('wrong');
+      if(inp.checked&&missed)lab.classList.add('wrong');
     });
-    if(!block.querySelector('.review')){
-      var p=document.createElement('p');p.className='review';p.style.cssText='font-size:14px;margin:6px 0 2px;color:#43527A';
-      p.innerHTML='Review: <a href="#lesson-'+item.lesson+'">Lesson '+item.lesson+'</a>';
+    if(missed&&!block.querySelector('.review')){
+      var p=document.createElement('p');p.className='review';p.style.cssText='font-size:14px;margin:6px 0 2px;color:#C0392B';
+      p.innerHTML='You missed this one. Work it out in <a href="#lesson-'+item.lesson+'">Lesson '+item.lesson+'</a>, then retake the quiz.';
       block.appendChild(p);
     }
   });
@@ -345,7 +346,7 @@ form.addEventListener('submit',function(ev){
       result.innerHTML='<h3>You passed, '+score+' of '+QUESTIONS.length+'.</h3><p>Your onboarding is complete and your result is saved. Welcome to the team, '+name.split(' ')[0]+'. If you have not finished your portal paperwork yet, Lindsay will be in touch about the remaining steps.</p>';
     }else{
       result.className='ob-result fail';
-      result.innerHTML='<h3>You scored '+score+' of '+QUESTIONS.length+'. You need '+PASS+' to pass.</h3><p>Your attempt is saved. The correct answers are highlighted above, and each question links back to its lesson. Review those lessons, then retake the quiz.</p><button class="ob-retake" type="button" id="ob-retake">Retake the quiz</button>';
+      result.innerHTML='<h3>You scored '+score+' of '+QUESTIONS.length+'. You need '+PASS+' to pass.</h3><p>Your attempt is saved. The questions you missed are marked above, each with a link to its lesson. The right answers are not shown on purpose: re-read those lessons, work out the answers, then retake the quiz.</p><button class="ob-retake" type="button" id="ob-retake">Retake the quiz</button>';
       var rb=document.getElementById('ob-retake');
       if(rb)rb.addEventListener('click',function(){
         form.reset();result.className='ob-result';result.innerHTML='';

@@ -63,6 +63,13 @@ test('migration creates onboarding_results with admin-only reads', () => {
   assert.match(migration, /to authenticated/);
 });
 
+test('quiz never reveals the correct answers after grading', () => {
+  assert.doesNotMatch(page, /oi===item\.answer\)lab\.classList\.add\('correct'\)/);
+  assert.doesNotMatch(page, /correct answers are highlighted/);
+  assert.match(page, /You missed this one\. Work it out in/);
+  assert.match(page, /right answers are not shown on purpose/);
+});
+
 test('admin has an onboarding screen wired to renderOnboarding', () => {
   assert.match(admin, /showScreen\('onboarding',this\)/);
   assert.match(admin, /id="screen-onboarding"/);
