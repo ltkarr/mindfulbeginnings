@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261023-host-address';
+window.MB_ADMIN_BUILD='20261101-dupe-dismiss';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -42,6 +42,7 @@ window.MB_ADMIN_BUILD='20261023-host-address';
 <script src="/js/class-requests-admin.js"></script>
 <script src="/js/invoice-payments.js"></script>
 <script src="/js/session-place.js"></script>
+<script src="/js/duplicate-sessions.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -2519,6 +2520,7 @@ async function loadData(){
   }
   // Merge milestone dismissals before the dashboard paints its alerts.
   await ensureMilestoneAcks(true);
+  await loadDupeDismissals();
 }
 
 // Shared write-checker. supabase-js does NOT throw when the database rejects a write —
@@ -7156,45 +7158,57 @@ function syncSessionSortBtn(scope){
   btn.textContent=asc?'Date ↑ Oldest first':'Date ↓ Newest first';
 }
 // ─── DUPLICATE SESSION CHECK ─────────────────────────────────────────────
-// Two ways the same class ended up on the calendar twice: a save that looked
-// like it failed and got repeated, and a session typed in fresh when one
-// already existed. Both are caught the same way — same course, same date,
-// same place. Time is deliberately NOT part of the match, because a morning
-// and an afternoon class of the same course at the same site is the one
-// legitimate case, and it is easier to eyeball the times in the list than to
-// guess the rule. Cancelled sessions never count.
-function dupeNorm(t){return String(t==null?'':t).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
-function sessionDupeKey(s){
-  if(!s||!s.date||s.isCancelled||s.isHold)return null;
-  const place=s.isVirtual?'~virtual~':dupeNorm(s.location);
-  return dupeNorm(s.course)+'|'+s.date+'|'+place;
-}
-// Every set of 2+ sessions sharing a key, newest class first.
+// Same course, same date, same place, and times that overlap (or a time that
+// cannot be read). A morning class and a later class at the same site are not
+// duplicates. Cancelled and hold sessions never count. "These are both real"
+// stores the pair of session ids in duplicate_dismissals so it stays dismissed
+// after a reload and on another device.
+let dupeDismissedPairs=new Set();
+let dupeDismissTableReady=false;
+function dupeApi(){return (typeof window!=='undefined'&&window.MBDuplicateSessions)||null;}
+function dupeNorm(t){const api=dupeApi();return api?api.dupeNorm(t):String(t==null?'':t).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function sessionDupeKey(s){const api=dupeApi();return api?api.sessionDupeKey(s):null;}
+function timesCouldBeSameClass(a,b){const api=dupeApi();return api?api.timesCouldBeSameClass(a,b):true;}
 function findDuplicateSessions(){
-  const groups={};
-  sessions.forEach(s=>{
-    const k=sessionDupeKey(s);
-    if(!k)return;
-    (groups[k]=groups[k]||[]).push(s);
-  });
-  return Object.keys(groups)
-    .filter(k=>groups[k].length>1)
-    .map(k=>({key:k,rows:groups[k].slice().sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)||String(a.time||'').localeCompare(String(b.time||'')))}))
-    .sort((a,b)=>b.rows[0].date.localeCompare(a.rows[0].date));
+  const api=dupeApi();
+  if(!api)return [];
+  return api.findDuplicateGroups(sessions, dupeDismissedPairs);
 }
-// Pairs she has already looked at and decided are fine stay hidden, per browser.
-function dupeIgnored(){
-  try{return JSON.parse(localStorage.getItem('mb_dupes_ignored')||'[]');}catch(e){return [];}
+async function loadDupeDismissals(){
+  dupeDismissedPairs=new Set();
+  if(!sb)return;
+  const res=await sb.from('duplicate_dismissals').select('pair_key');
+  if(!res||res.error){
+    dupeDismissTableReady=false;
+    console.warn('Duplicate dismissals table not loaded (run migrations/20261101_duplicate_dismissals.sql):',res&&res.error);
+    return;
+  }
+  dupeDismissTableReady=true;
+  (res.data||[]).forEach(function(row){if(row&&row.pair_key)dupeDismissedPairs.add(String(row.pair_key));});
 }
-function ignoreDupe(key){
-  try{
-    const list=dupeIgnored();
-    if(!list.includes(key)){list.push(key);localStorage.setItem('mb_dupes_ignored',JSON.stringify(list));}
-  }catch(e){}
+async function ignoreDupe(pairKeys){
+  const api=dupeApi();
+  const keys=(Array.isArray(pairKeys)?pairKeys:[pairKeys]).map(function(k){return String(k||'');}).filter(Boolean);
+  if(!keys.length)return;
+  if(!sb||!dupeDismissTableReady){
+    showToast('Duplicate dismiss did not save. The database table is not ready yet.');
+    return;
+  }
+  const rows=keys.map(function(k){
+    const parts=k.split('|');
+    return {pair_key:k,session_a:parts[0]||'',session_b:parts[1]||''};
+  }).filter(function(r){return r.session_a&&r.session_b;});
+  const ok=await dbWrite(sb.from('duplicate_dismissals').upsert(rows,{onConflict:'pair_key'}),'Duplicate dismiss');
+  if(!ok)return;
+  keys.forEach(function(k){dupeDismissedPairs.add(k);});
   renderDupeBanner();
 }
-function unignoreAllDupes(){
-  try{localStorage.removeItem('mb_dupes_ignored');}catch(e){}
+async function unignoreAllDupes(){
+  if(sb&&dupeDismissTableReady){
+    const ok=await dbWrite(sb.from('duplicate_dismissals').delete().neq('pair_key',''),'Show duplicate warnings');
+    if(!ok)return;
+  }
+  dupeDismissedPairs=new Set();
   renderDupeBanner();
 }
 function countsTowardSeats(r){
@@ -7212,13 +7226,30 @@ function openSessionForReview(id){
 }
 function renderDupeBanner(){
   const el=document.getElementById('dupe-banner');if(!el)return;
-  const ignored=dupeIgnored();
-  const all=findDuplicateSessions();
-  const groups=all.filter(g=>!ignored.includes(g.key));
+  if(el.dataset.dupeBound!=='1'){
+    el.dataset.dupeBound='1';
+    el.addEventListener('click',function(ev){
+      const ignore=ev.target.closest('[data-dupe-ignore]');
+      if(ignore){
+        ev.preventDefault();
+        let keys=[];
+        try{keys=JSON.parse(decodeURIComponent(ignore.getAttribute('data-dupe-ignore')||'%5B%5D'));}catch(e){keys=[];}
+        ignoreDupe(keys);
+        return;
+      }
+      if(ev.target.closest('[data-dupe-show]')){
+        ev.preventDefault();
+        unignoreAllDupes();
+      }
+    });
+  }
+  const api=dupeApi();
+  const all=api?api.findDuplicateGroups(sessions, []):[];
+  const groups=findDuplicateSessions();
   const hidden=all.length-groups.length;
-  const footNote=hidden?`<div style="margin-top:10px;font-size:14px;color:var(--muted)">${hidden} pair${hidden===1?'':'s'} marked as fine. <a href="#" onclick="unignoreAllDupes();return false;" style="color:var(--muted)">Show again</a></div>`:'';
+  const footNote=hidden?`<div style="margin-top:10px;font-size:14px;color:var(--muted)">${hidden} pair${hidden===1?'':'s'} marked as fine. <a href="#" data-dupe-show="1" style="color:var(--muted)">Show again</a></div>`:'';
   if(!groups.length){
-    el.innerHTML=`<div style="margin:0 0 12px;font-size:14px;color:var(--muted)">\u2713 No duplicate sessions${hidden?` <a href="#" onclick="unignoreAllDupes();return false;" style="color:var(--muted)">(${hidden} pair${hidden===1?'':'s'} marked as fine \u2014 show again)</a>`:''}</div>`;
+    el.innerHTML=`<div style="margin:0 0 12px;font-size:14px;color:var(--muted)">\u2713 No duplicate sessions${hidden?` <a href="#" data-dupe-show="1" style="color:var(--muted)">(${hidden} pair${hidden===1?'':'s'} marked as fine. Show again)</a>`:''}</div>`;
     return;
   }
   const card=groups.map(g=>{
@@ -7238,7 +7269,7 @@ function renderDupeBanner(){
     }).join('');
     return `<div style="padding:10px 0;border-top:1px solid #f0d9b0">
       <table style="width:100%;border-collapse:collapse;font-size:15px">${rows}</table>
-      <div style="text-align:right;margin-top:4px"><a href="#" onclick="ignoreDupe('${g.key.replace(/'/g,"\\'")}');return false;" style="font-size:14px;color:var(--muted)">These are both real \u2014 stop flagging</a></div>
+      <div style="text-align:right;margin-top:4px"><a href="#" data-dupe-ignore="${encodeURIComponent(JSON.stringify(g.pairKeys||[]))}" style="font-size:14px;color:var(--muted)">These are both real. Stop flagging</a></div>
     </div>`;
   }).join('');
   el.innerHTML=`<div class="card" style="margin-bottom:12px;background:#fff7e6;border:1px solid #f0d090">
@@ -9006,7 +9037,7 @@ let _savingSession=false;
 function confirmNotDuplicate(draft,excludeId){
   const key=sessionDupeKey(draft);
   if(!key)return true;
-  const hits=sessions.filter(x=>x.id!==excludeId&&sessionDupeKey(x)===key);
+  const hits=sessions.filter(x=>x.id!==excludeId&&sessionDupeKey(x)===key&&timesCouldBeSameClass(draft.time,x.time));
   if(!hits.length)return true;
   const lines=hits.map(x=>{
     const seats=seatsOnSession(x.id);
