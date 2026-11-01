@@ -136,8 +136,8 @@ const COURSES={
   'Middle School Ready — Virtual':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,instrFlatFee:75,maxStudents:20,virtual:true,audience:'Grades 5 to 7 · Virtual'},
   // Screen Ready (new Nov 1 2026): 60-minute evening parent workshop on
   // screen time and young children. Any instructor may teach it.
-  'Screen Ready':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:1,maxStudents:40,audience:'Parents'},
-  'Screen Ready — Virtual':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,instrFlatFee:75,maxStudents:40,virtual:true,audience:'Parents · Virtual'},
+  'Screen Ready':{price:25,price2027:25,priceNew:25,priceNew2027:25,matCost:0,hours:1,maxStudents:40,audience:'Parents'},
+  'Screen Ready — Virtual':{price:20,price2027:20,priceNew:20,priceNew2027:20,matCost:0,hours:1,instrFlatFee:75,maxStudents:40,virtual:true,audience:'Parents · Virtual'},
   // Lunchroom Lifesaver (new Oct 29 2026): 45-minute no-certification
   // choking response class for school staff and volunteers, 6 to 12.
   'Lunchroom Lifesaver':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:0.75,maxStudents:12,audience:'School staff and volunteers'},
