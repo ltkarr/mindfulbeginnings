@@ -1106,8 +1106,8 @@ function fmtSessDates(s,opts){
     .map(x=>{const d=new Date(x+'T12:00:00');return isNaN(d)?'':d.toLocaleDateString('en-US',o);})
     .filter(Boolean).join(' & ');
 }
-// Session lookup goes through get_session_by_code. That function does not
-// return a street address or a Zoom link. Those arrive only after a
+// Session lookup goes through get_session_by_code. That returns the venue
+// and street for this session only. The Zoom link still arrives after a
 // registration row exists, via get_session_logistics.
 async function fetchSessionByCode(code){
   if(!sb)return{data:null,error:{message:'Registration is not connected.'}};
@@ -1125,7 +1125,7 @@ function sessionFromCodeRow(r, extras){
   const extra=extras||{};
   return {
     id:r.id,code:r.code,course:r.course,date:r.date,time:r.time||'',
-    location:r.location||'',hostAddress:'',
+    location:r.location||'',hostAddress:r.host_address||'',
     city:r.city||'',state:r.state||'',zip:r.zip||'',
     contactName:'',hostPhone:'',
     hostTaken:r.host_taken||false,ownerTaught:r.owner_taught||false,
@@ -1348,9 +1348,10 @@ function injectEventSchema(rows,helpers){
       if(virtual){
         ev.location={'@type':'VirtualLocation',url:'https://mindfulbeginnings.org/register'};
       }else{
-        const place={'@type':'Place',address:{'@type':'PostalAddress',addressLocality:String(r.city||'').trim(),addressCountry:'US'}};
-        const venue=String(r.location||'').trim();
-        if(venue&&!/\d/.test(venue))place.name=venue;
+        const locality=String(r.city||'').trim();
+        const region=String(r.state||'').trim();
+        const place={'@type':'Place',address:{'@type':'PostalAddress',addressLocality:locality,addressCountry:'US'}};
+        if(region)place.address.addressRegion=region;
         ev.location=place;
       }
       const unitPrice=helpers.sessionPrice(r,priceFn);
@@ -1395,7 +1396,10 @@ async function loadPublicSessions(){
       const{data:cntRows}=await sb.rpc('get_all_registration_counts');
       (cntRows||[]).forEach(function(c){if(c&&c.session_id)publicSessionCounts[c.session_id]=Number(c.cnt)||0;});
     }catch(e){console.warn('Public session seat counts unavailable:',e);}
-    publicSessionRows=res.data||[];
+    const listHelpers=window.MBPublicSessions;
+    publicSessionRows=(res.data||[]).map(function(r){
+      return (listHelpers&&listHelpers.stripPublicListingAddress)?listHelpers.stripPublicListingAddress(r):r;
+    });
     // Website listing overrides (Lindsay, 2026-10-26):
     // - IB-261105 (Intro to Babysitting, Magothy River Middle School, Nov 5)
     //   is a school event. Misty sends it to her families directly, so it
@@ -1408,7 +1412,7 @@ async function loadPublicSessions(){
     var HIDDEN_PUBLIC_CODES=['IB-261105','AKWV-261122'];
     publicSessionRows=publicSessionRows.filter(function(r){return HIDDEN_PUBLIC_CODES.indexOf(String(r&&r.code||'').trim().toUpperCase())===-1;});
     if(!publicSessionRows.some(function(r){return String(r&&r.code||'').trim().toUpperCase()==='SS-1102';})){
-      publicSessionRows.push({id:'display-ss-1102',code:'SS-1102',course:'Safe Sitter\u00ae',date:'2026-11-02',time:'10 AM - 3 PM',city:'Bethesda',location:"The Writer's Center",is_virtual:false,price_override:null,max_students_override:16,created_at:1791226738253,external_registration_url:null,allow_waitlist:true,extra_dates:[]});
+      publicSessionRows.push({id:'display-ss-1102',code:'SS-1102',course:'Safe Sitter\u00ae',date:'2026-11-02',time:'10 AM - 3 PM',city:'Bethesda',state:'MD',location:'',is_virtual:false,price_override:null,max_students_override:16,created_at:1791226738253,external_registration_url:null,allow_waitlist:true,extra_dates:[]});
     }
     publicShowAll=false;
     renderPublicSessions();

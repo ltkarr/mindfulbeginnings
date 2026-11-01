@@ -213,16 +213,28 @@
     return city || 'Location TBD';
   }
 
-  // City/area for cards. Venue name (location) is OK when it is not a street
-  // address; host_address is never shown on the public list.
+  // Public cards are city and state only. Venue names, room numbers, and
+  // street addresses stay off the list, including when a location field is a
+  // host's home. Virtual sessions say Virtual.
   function sessionCardPlace(row) {
     if (!row) return '';
     if (flagOn(row, 'is_virtual') || flagOn(row, 'isVirtual')) return 'Virtual';
     var city = String(row.city || '').replace(/\s+/g, ' ').trim().replace(/,\s*$/, '');
-    var loc = String(row.location || '').replace(/\s+/g, ' ').trim();
-    if (loc && /\d/.test(loc)) loc = '';
-    if (loc && city && loc.toLowerCase() !== city.toLowerCase()) return loc + ' · ' + city;
-    return loc || city || 'Location TBD';
+    var state = String(row.state || '').replace(/\s+/g, ' ').trim();
+    if (/^virtual$/i.test(city)) return 'Virtual';
+    if (city && state) return city + ', ' + state;
+    return city || 'Location TBD';
+  }
+
+  // The anonymous list must not keep a venue, room, or street in memory for
+  // cards, JSON-LD, or anything else built from these rows.
+  function stripPublicListingAddress(row) {
+    if (!row || typeof row !== 'object') return row;
+    row.location = '';
+    row.host_address = '';
+    row.hostAddress = '';
+    row.zip = '';
+    return row;
   }
 
   function sessionPrice(row, getBasePrice) {
@@ -414,6 +426,7 @@
     filterPublicSessions: filterPublicSessions,
     sessionPlace: sessionPlace,
     sessionCardPlace: sessionCardPlace,
+    stripPublicListingAddress: stripPublicListingAddress,
     sessionPrice: sessionPrice,
     sessionCap: sessionCap,
     seatsPerRegistration: seatsPerRegistration,

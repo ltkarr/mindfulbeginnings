@@ -61,7 +61,7 @@ test('register.html does not read the sessions table directly', () => {
   assert.match(register, /sb\.rpc\('list_public_sessions'\)/);
   assert.match(register, /sb\.rpc\('get_session_by_code'/);
   assert.match(register, /sb\.rpc\('get_session_logistics'/);
-  assert.match(register, /hostAddress:''/);
+  assert.match(register, /hostAddress:r\.host_address\|\|''/);
   assert.match(register, /zoomLink:''/);
 });
 
