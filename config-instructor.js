@@ -66,6 +66,7 @@ const COURSES={
   "Adult First Aid/CPR/AED Certification (Hybrid)":{hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true},
   "Basic Life Support (BLS) Certification":{hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true},
   "Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)":{hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true},
+  "Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)":{hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true},
   "Basic Life Support (BLS) Certification (Hybrid)":{hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true},
   "Group CPR Certification for Workplaces":{hours:4,redCross:true,requiresLeadTeacher:true,adult:true,customSize:true}
 };

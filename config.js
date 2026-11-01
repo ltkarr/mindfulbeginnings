@@ -198,11 +198,12 @@ const COURSES={
   // created from Oct 14 2026 midnight ET charge $125. Price columns stay
   // $185 so a session with no creation time does not jump to $125. This
   // file does not rewrite a price stored on a session or registration.
-  // Online + Classroom is a separate offering: about 2 hours online, then
-  // a 2-hour skills session, $125. It is not its own course key.
-  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:3.75,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'},
-  // Hybrid: about 2 hours online, then a 2-hour in-person skills session. $125.
-  'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11 and up'},
+  // In person, 3 hours 45 minutes. Mindful Beginnings enrolls ages 13 and up
+  // (Red Cross does not set a national minimum age for this course).
+  'Adult & Pediatric First Aid/CPR/AED Certification':{price:185,price2027:185,priceNew:185,priceNew2027:185,matCost:0,hours:3.75,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 13 and up'},
+  // Online + Classroom: about 2 hours online, then a 2-hour skills session. $125.
+  // The older "(Hybrid)" name is an alias of this same object.
+  'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)':{price:125,price2027:125,priceNew:125,priceNew2027:125,matCost:0,hours:4,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 13 and up'},
   // Standalone American Red Cross Babysitter's Training. $185, 4.25 hours,
   // ages 11 to 15, cap 12. Separate from the 7-hour certification combo.
   // Every price column is $185. This name is not in LATER_PRICE_CHANGES.
@@ -246,7 +247,8 @@ const COURSES={
 const COURSE_NAME_ALIASES={
   'Grandparents: Getting Started':'Safe Sitter® Grandparents: Getting Started',
   'Stay Ready: Choking Rescue and CPR':'Stay Ready™: Choking Rescue, CPR, and Seizure Response',
-  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':'Season Ready™: Safety Skills for Student Athletes'
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':'Season Ready™: Safety Skills for Student Athletes',
+  'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)'
 };
 Object.keys(COURSE_NAME_ALIASES).forEach(function(oldName){
   const display=COURSE_NAME_ALIASES[oldName];
@@ -462,6 +464,7 @@ const MAX_STUDENTS={
   'Adult & Pediatric First Aid/CPR/AED Certification':12,
   'Adult First Aid/CPR/AED Certification':12,
   'Basic Life Support (BLS) Certification':12,
+  'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)':12,
   'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':12,
   'Adult First Aid/CPR/AED Certification (Hybrid)':12,
   'Basic Life Support (BLS) Certification (Hybrid)':12

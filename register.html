@@ -22,6 +22,7 @@
 <script src="/config.js"></script>
 <script src="/js/public-sessions.js"></script>
 <script src="/js/course-booking.js"></script>
+<script src="/js/arc-registration.js"></script>
 <script src="/js/registration-copy.js"></script>
 <script src="/js/payments.js"></script>
 <script src="/js/discount-codes.js"></script>
@@ -125,6 +126,12 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 .public-card:has(.public-card-hit:focus-visible){border-color:var(--navy);outline:3px solid var(--gold);outline-offset:2px}
 .public-card .pmain{position:relative;z-index:2;pointer-events:none}
 .public-card .pname{font-weight:800;font-size:15px;color:var(--navy);line-height:1.3}
+.parc,.public-card .parc{display:block;color:#ED1B2E;font-weight:700;font-size:13px;margin-top:2px;line-height:1.3}
+.arc-course-notice{background:#F7F4EF;border:1px solid rgba(30,49,97,0.12);border-left:4px solid #ED1B2E;border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.6;color:var(--text)}
+.arc-course-notice p{margin:0 0 10px}
+.arc-course-notice p:last-child{margin-bottom:0}
+.arc-course-notice ul{margin:0 0 10px 18px;padding:0}
+.arc-course-notice a{color:var(--navy)}
 .public-card .paudience{font-size:15px;color:var(--muted);margin-top:2px;font-weight:600}
 .public-card .pmeta{font-size:15px;color:var(--navy);margin-top:3px;font-weight:600}
 .public-card .pplace{font-size:15px;color:var(--navy);margin-top:1px;font-weight:600}
@@ -250,6 +257,7 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
       <div class="field"><label id="fname-label">First name *</label><input type="text" id="s-first" placeholder="First name"></div>
       <div class="field"><label id="lname-label">Last name *</label><input type="text" id="s-last" placeholder="Last name"></div>
       <div class="field full" id="grade-field"><label>Grade *</label><select id="s-grade"><option value="">Select grade...</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option></select></div>
+      <div class="field full" id="dob-field" style="display:none"><label for="s-dob">Participant date of birth *</label><input type="date" id="s-dob"><div id="dob-hint" style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45">Participants must be at least 13 years old on the session date.</div><div id="dob-error" style="display:none;font-size:13px;color:var(--danger);margin-top:6px;line-height:1.45"></div></div>
       <div class="field" id="partner-first-field" style="display:none"><label id="pfname-label">Partner's first name *</label><input type="text" id="p2-first" placeholder="First name"></div>
       <div class="field" id="partner-last-field" style="display:none"><label id="plname-label">Partner's last name *</label><input type="text" id="p2-last" placeholder="Last name"></div>
     </div>
@@ -310,12 +318,14 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
     </div>
   </div>
   <div class="fsec" id="waiver-section"><div class="fsec-title">Waiver and consent</div>
+    <div id="arc-course-notice" class="arc-course-notice" style="display:none"></div>
     <div id="waiver-cpr-notice" style="background:#fff7e6;border:1px solid #C7A24A;border-radius:var(--r-sm);padding:13px 16px;margin-bottom:14px;font-size:13px;color:#7a5000;line-height:1.6">
       <strong>📋 Please note:</strong> Your child will practice CPR and rescue skills on manikins during this course. <strong>This course does not provide CPR certification.</strong> Upon successful completion, your child will receive a Safe Sitter® certificate of completion.
     </div>
 
     <!-- Single scrollable agreement. Full clause text stays visible; nothing is hidden behind a checkbox. -->
     <div class="waiver-box" id="waiver-terms">
+      <div id="terms-arc" style="display:none"></div>
       <!-- Child / standard clauses -->
       <div id="terms-standard">
         <p><strong>Disruptive student policy.</strong> Mindful Beginnings reserves the right to decline or send home any student who is disruptive or poses a risk to themselves or others.</p>
@@ -798,7 +808,8 @@ if(typeof getSessionBasePrice==='undefined'){
   const PRICE_ALIASES={
     'Safe Sitter® Grandparents: Getting Started':'Grandparents: Getting Started',
     'Stay Ready™: Choking Rescue, CPR, and Seizure Response':'Stay Ready: Choking Rescue and CPR',
-    'Season Ready™: Safety Skills for Student Athletes':'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes'
+    'Season Ready™: Safety Skills for Student Athletes':'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes',
+    'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)'
   };
   const CUSTOM_QUOTE_FROM='2026-10-22T04:00:00Z';
   const CUSTOM_QUOTE={'Girl Scouts — First Aid Badge Workshop':true,'Girl Scout Badge Class':true,'Group CPR Certification for Workplaces':true};
@@ -808,6 +819,7 @@ if(typeof getSessionBasePrice==='undefined'){
   }
   window.getSessionBasePrice=function(course,dateStr,createdAt){
     const key=priceKey(course);
+    if(key==='Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)')return 125;
     if(key==='Group CPR Certification for Workplaces')return null;
     if(CUSTOM_QUOTE[key]&&createdAt!=null){
       const qt=typeof createdAt==='number'?createdAt:Date.parse(createdAt);
@@ -837,7 +849,7 @@ if(typeof getSessionBasePrice==='undefined'){
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':20,'Safe@Home — Virtual':20,'Safe@Home — Series':20,'Grandparents: Getting Started':16,'Safe Sitter® Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'Baby Ready + CPR Certification':12,'Babysitting Grandkids Workshop':20,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Stay Ready™: Choking Rescue, CPR, and Seizure Response':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'Middle School Ready':20,'Middle School Ready — Virtual':20,'Lunchroom Lifesaver':12,'Screen Ready':40,'Screen Ready — Virtual':40,'My First Babysitters Club':16,'My First Babysitters Club — Single Session':16,'Little Medics':16,'Pet Sitter\'s Club':16,'Snack Squad':16,'Kid Boss Club':16,'Middle School, Here I Come':16,'Big Sibling Club':16,'My First Phone':16,'Walk and Roll Ready':16,'Calm and Ready':16,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Season Ready™: Safety Skills for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':16,'Girl Scout Badge Class':16,'Babysitter\'s Training':12,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12,'Adult First Aid/CPR/AED Certification':12,'Basic Life Support (BLS) Certification':12};
+  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':20,'Safe@Home — Virtual':20,'Safe@Home — Series':20,'Grandparents: Getting Started':16,'Safe Sitter® Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'Baby Ready + CPR Certification':12,'Babysitting Grandkids Workshop':20,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Stay Ready™: Choking Rescue, CPR, and Seizure Response':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'Middle School Ready':20,'Middle School Ready — Virtual':20,'Lunchroom Lifesaver':12,'Screen Ready':40,'Screen Ready — Virtual':40,'My First Babysitters Club':16,'My First Babysitters Club — Single Session':16,'Little Medics':16,'Pet Sitter\'s Club':16,'Snack Squad':16,'Kid Boss Club':16,'Middle School, Here I Come':16,'Big Sibling Club':16,'My First Phone':16,'Walk and Roll Ready':16,'Calm and Ready':16,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Season Ready™: Safety Skills for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':16,'Girl Scout Badge Class':16,'Babysitter\'s Training':12,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12,'Adult First Aid/CPR/AED Certification':12,'Basic Life Support (BLS) Certification':12,'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)':12,'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':12};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -975,6 +987,7 @@ function registerAnotherChild(){
   resetDiscountApplication(false);
   ['s-first','s-last','p2-first','p2-last'].forEach(function(id){const el=document.getElementById(id);if(el)el.value='';});
   const g=document.getElementById('s-grade');if(g)g.selectedIndex=0;
+  const dobClear=document.getElementById('s-dob');if(dobClear)dobClear.value='';
   goToScreen(2);
   const f=document.getElementById('s-first');if(f)f.focus();
 }
@@ -1247,6 +1260,7 @@ function renderPublicSessions(){
     html+='<div class="public-card'+(soldOut?' soldout-card':'')+'" data-code="'+escapeHtml(r.code)+'"'+(externalUrl?' data-external="1"':'')+'>'+
       (soldOut?'':'<button type="button" class="public-card-hit" aria-label="'+escapeHtml(ariaLabel)+'"></button>')+
       '<div class="pmain" aria-hidden="true"><div class="pname">'+escapeHtml(publicCourseName(r.course)||'Course')+'</div>'+
+      arcCertificationLine(r.course)+
       (soldOut?'<div class="psoldout-banner">SOLD OUT</div>':'')+
       (audience?'<div class="paudience">'+escapeHtml(audience)+'</div>':'')+
       '<div class="pmeta">'+escapeHtml(when)+'</div>'+
@@ -1577,7 +1591,8 @@ function registrationGradeOptions(course){
   if(name==="Babysitter's Training")return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option>';
   if(name==="Red Cross Babysitter's Training")return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
   if(name==="Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED")return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option>';
-  if(name==='Adult & Pediatric First Aid/CPR/AED Certification')return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option><option>Adult</option>';
+  // Adult & Pediatric, including Online + Classroom and the older Hybrid name: teen through adult.
+  if(/adult\s*&\s*pediatric first aid\/cpr\/aed/i.test(name))return blank+'<option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option><option>Adult</option>';
   // Daisy through Ambassador. Lindsay still sets the time and group size per job.
   if(isGirlScoutBadgeCourse(name))return blank+'<option>Kindergarten</option><option>1st grade</option><option>2nd grade</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
   return blank+'<option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
@@ -1602,7 +1617,8 @@ function setBanner(id){
     ?`<span style="text-decoration:line-through;color:#9aa5b8;font-weight:400;font-size:14px;margin-right:6px">$${defaultTotal}</span>$${price}`
     :`$${price}`);
   const priceHTML=price==null?priceCore:(priceCore+' <span style="font-size:13px;font-weight:600;color:var(--muted)">per person</span>');
-  document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(publicCourseName(s.course))}</div><div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div></div><div class="sess-price">${priceHTML}</div>`;
+  const arcCertLine=arcCertificationLine(s.course);
+  document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(publicCourseName(s.course))}</div>${arcCertLine}<div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div></div><div class="sess-price">${priceHTML}</div>`;
   // Show prerequisite notice for All Kids Welcome and Stay Ready
   let prereqNotice=document.getElementById('akw-prereq-notice');
   if(s.course==='All Kids Welcome'||s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response'){
@@ -1797,6 +1813,7 @@ function setBanner(id){
   // Course blocks above are the in-person waivers. A virtual session replaces
   // them with the Zoom form (no manikin consent, no classroom emergency care).
   if(window.MBRegistrationCopy)window.MBRegistrationCopy.applyRegistrationMode(s);
+  applyArcForm(s);
 }
 
 // Sitter referral list opt-in (All Kids Welcome) — reveal the contact fields and
@@ -1818,6 +1835,95 @@ function toggleSitterList(){
   }
 }
 
+function arcCertificationLine(course){
+  const name=String(course||'');
+  const api=window.MBArcRegistration;
+  const table=(typeof COURSES!=='undefined')?COURSES:null;
+  let show=false;
+  if(api&&typeof api.showsCertificationLine==='function'){
+    show=!!api.showsCertificationLine(name, table);
+  }else{
+    const cfg=table&&table[name];
+    show=!!(cfg&&cfg.redCross)||/adult\s*&\s*pediatric first aid\/cpr\/aed|adult first aid\/cpr\/aed|basic life support|\(bls\)/i.test(name);
+  }
+  if(!show)return '';
+  return '<div class="parc">American Red Cross Certification</div>';
+}
+function applyArcForm(s){
+  const api=window.MBArcRegistration;
+  const course=s&&s.course;
+  const on=!!(api&&api.isArcWaiverCourse(course));
+  const peds=!!(api&&api.isArcAdultPediatricCourse(course));
+  const notice=document.getElementById('arc-course-notice');
+  const terms=document.getElementById('terms-arc');
+  const dobField=document.getElementById('dob-field');
+  const accomNotice=document.getElementById('accom-notice');
+  const notes=document.getElementById('p-notes');
+  const isVirtual=window.MBRegistrationCopy&&window.MBRegistrationCopy.sessionIsVirtual(s);
+  if(!on){
+    if(notice){notice.style.display='none';notice.innerHTML='';}
+    if(terms){terms.style.display='none';terms.innerHTML='';}
+    if(dobField)dobField.style.display='none';
+    if(accomNotice)accomNotice.style.display='';
+    if(notes)notes.placeholder='Please share anything that will help your child succeed in the course (optional)';
+    if(!isVirtual){
+      const perm=document.getElementById('permissions-section');
+      if(perm)perm.style.display='';
+    }
+    return;
+  }
+  const cap=(typeof getMaxSpots==='function')?getMaxSpots():null;
+  if(notice){
+    notice.style.display='';
+    notice.innerHTML=api.courseNoticeHtml(course,{maxStudents:cap});
+  }
+  if(terms){
+    terms.style.display='';
+    terms.innerHTML=api.liabilityHtml();
+  }
+  const perm=document.getElementById('permissions-section');
+  if(perm)perm.style.display='none';
+  const cprNotice=document.getElementById('waiver-cpr-notice');
+  if(cprNotice)cprNotice.style.display='none';
+  if(accomNotice)accomNotice.style.display='none';
+  ['terms-standard','terms-grandparent','terms-girl-scout','terms-campus-ready','terms-season-ready','terms-ready-period','terms-campus-ready-ack'].forEach(function(id){
+    const el=document.getElementById(id);
+    if(el)el.style.display='none';
+  });
+  const virtNotice=document.getElementById('virtual-class-notice');
+  if(virtNotice){virtNotice.style.display='none';virtNotice.innerHTML='';}
+  const virtTerms=document.getElementById('terms-virtual');
+  if(virtTerms){virtTerms.style.display='none';virtTerms.innerHTML='';}
+  if(dobField){
+    dobField.style.display=on?'':'none';
+    const dobInput=document.getElementById('s-dob');
+    if(dobInput)dobInput.required=!!on;
+  }
+  const sig=document.getElementById('signature-label');
+  if(sig)sig.textContent=api.SIGNATURE_LABEL;
+  const photo=document.getElementById('photo-consent-sub');
+  if(photo){
+    photo.textContent=peds
+      ?'I consent to the use of photos or recordings of the participant taken during the program for publicity purposes by Mindful Beginnings.'
+      :'I consent to the use of photos or recordings taken during the program for publicity purposes by Mindful Beginnings.';
+  }
+  if(peds){
+    const title=document.getElementById('student-section-title');
+    if(title)title.textContent='Participant information';
+    const fn=document.getElementById('fname-label');
+    if(fn)fn.textContent="Participant's first name *";
+    const ln=document.getElementById('lname-label');
+    if(ln)ln.textContent="Participant's last name *";
+    const gt=document.getElementById('guardian-title');
+    if(gt)gt.textContent='Parent or guardian contact (required if participant is under 18)';
+    const gn=document.getElementById('guardian-name-label');
+    if(gn)gn.textContent='Parent or guardian full name';
+    if(notes)notes.placeholder='Special needs, allergies, or anything that will help the participant (optional)';
+    const accomSec=document.getElementById('accommodations-section');
+    if(accomSec)accomSec.style.display='';
+  }
+}
+
 async function goToPayment(){
   const sf=document.getElementById('s-first').value.trim();
   const sl=document.getElementById('s-last').value.trim();
@@ -1827,11 +1933,33 @@ async function goToPayment(){
   const sig=document.getElementById('p-signature').value.trim();
   let ok=true;
   let firstBad=null; // first element with a problem, so we can scroll the parent straight to it
-  // Text fields
-  [['s-first',sf],['s-last',sl],['p-name',pn],['p-email',pe],['p-phone',pp],['p-signature',sig]].forEach(([id,v])=>{
+  const arcApi=window.MBArcRegistration;
+  const arcCourse=!!(currentSession&&arcApi&&arcApi.isArcWaiverCourse(currentSession.course));
+  const arcPeds=!!(currentSession&&arcApi&&arcApi.isArcAdultPediatricCourse(currentSession.course));
+  let arcAge=null;
+  if(arcCourse){
+    const dobEl=document.getElementById('s-dob');
+    const dobMsg=document.getElementById('dob-error');
+    const check=arcApi.ageCheck(dobEl?dobEl.value:'', currentSession.date);
+    if(!check.ok){
+      if(dobEl){dobEl.classList.add('err');if(!firstBad)firstBad=dobEl;}
+      if(dobMsg){dobMsg.style.display='block';dobMsg.textContent=check.message;}
+      ok=false;
+    }else{
+      if(dobEl)dobEl.classList.remove('err');
+      if(dobMsg){dobMsg.style.display='none';dobMsg.textContent='';}
+      arcAge=check.age;
+    }
+  }
+  const parentOptional=!!(arcPeds&&arcAge!=null&&arcAge>=18);
+  // Text fields. Parent or guardian name stays required under 18.
+  [['s-first',sf],['s-last',sl],['p-email',pe],['p-phone',pp],['p-signature',sig]].forEach(([id,v])=>{
     const el=document.getElementById(id);
     if(!v){el.classList.add('err');ok=false;if(!firstBad)firstBad=el;}else el.classList.remove('err');
   });
+  const parentEl=document.getElementById('p-name');
+  if(!parentOptional&&!pn){if(parentEl){parentEl.classList.add('err');if(!firstBad)firstBad=parentEl;}ok=false;}
+  else if(parentEl)parentEl.classList.remove('err');
   // Make sure the email and cell phone are actually reachable, not just filled in with junk.
   const emailEl=document.getElementById('p-email');
   if(pe&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pe)){emailEl.classList.add('err');ok=false;if(!firstBad)firstBad=emailEl;}
@@ -1857,14 +1985,16 @@ async function goToPayment(){
     if(p2f){if(!p2fv){p2f.classList.add('err');ok=false;if(!firstBad)firstBad=p2f;}else p2f.classList.remove('err');}
     if(p2l){if(!p2lv){p2l.classList.add('err');ok=false;if(!firstBad)firstBad=p2l;}else p2l.classList.remove('err');}
   }
-  // Permission radios — highlight the specific group that wasn't answered
+  // Permission radios. ARC courses do not ask these questions.
+  const permSec=document.getElementById('permissions-section');
+  const permsHidden=!permSec||permSec.style.display==='none';
   const cprPermItem=document.querySelector('#permissions-section .perm-item');
-  if(!isNoCPR&&!document.querySelector('input[name="cpr-perm"]:checked')){
+  if(!permsHidden&&!isNoCPR&&!document.querySelector('input[name="cpr-perm"]:checked')){
     if(cprPermItem){cprPermItem.classList.add('err');if(!firstBad)firstBad=cprPermItem;}
     ok=false;
   }else if(cprPermItem){cprPermItem.classList.remove('err');}
   const emergPermItem=document.querySelectorAll('#permissions-section .perm-item')[1];
-  if(!isVirtualForm&&!document.querySelector('input[name="emerg-perm"]:checked')){
+  if(!permsHidden&&!isVirtualForm&&!document.querySelector('input[name="emerg-perm"]:checked')){
     if(emergPermItem){emergPermItem.classList.add('err');if(!firstBad)firstBad=emergPermItem;}
     ok=false;
   }else if(emergPermItem){emergPermItem.classList.remove('err');}
@@ -2759,15 +2889,28 @@ function buildRegistration(method,txId){
   }else if(s.course==='All Kids Welcome'){
     sitterListNote='[Sitter referral list: declined] ';
   }
+  const arcApi=window.MBArcRegistration;
+  const arcOn=!!(arcApi&&arcApi.isArcWaiverCourse(s.course));
+  const dobEl=document.getElementById('s-dob');
+  const dobValue=dobEl&&dobEl.value?String(dobEl.value).trim():'';
+  let parentName=document.getElementById('p-name').value.trim();
+  if(!parentName&&arcApi&&arcApi.isArcAdultPediatricCourse(s.course)){
+    const ageResult=arcApi.ageCheck(dobValue, s.date);
+    if(ageResult.ok&&ageResult.age>=18){
+      parentName=(document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim()).trim();
+    }
+  }
+  const dobNote=(arcOn&&dobValue)?('[Date of birth: '+dobValue+'] '):'';
+  const skipPerms=arcOn||(window.MBRegistrationCopy&&window.MBRegistrationCopy.sessionIsVirtual(s));
   return {
     id:regId,
     session_id:s.id,
     student_name:document.getElementById('s-first').value.trim()+' '+document.getElementById('s-last').value.trim(),
-    parent_name:document.getElementById('p-name').value.trim(),
+    parent_name:parentName,
     contact:document.getElementById('p-email').value.trim()+(document.getElementById('p-phone').value.trim()?' / '+document.getElementById('p-phone').value.trim():''),
     grade:isAdultCourseName(s.course)?'':document.getElementById('s-grade').value,
-    cpr_permission:(window.MBRegistrationCopy&&window.MBRegistrationCopy.sessionIsVirtual(s))?'':(document.querySelector('input[name="cpr-perm"]:checked')?.value||''),
-    emergency_auth:(window.MBRegistrationCopy&&window.MBRegistrationCopy.sessionIsVirtual(s))?'':(document.querySelector('input[name="emerg-perm"]:checked')?.value||''),
+    cpr_permission:skipPerms?'':(document.querySelector('input[name="cpr-perm"]:checked')?.value||''),
+    emergency_auth:skipPerms?'':(document.querySelector('input[name="emerg-perm"]:checked')?.value||''),
     waiver_signed:true,
     signature:document.getElementById('p-signature').value.trim(),
     photo_consent:photoConsent,
@@ -2778,7 +2921,7 @@ function buildRegistration(method,txId){
     payment_ref:payRef,
     payment_detail:null,
     registration_token:method==='auction'?'AUCTION-2026':(method==='comp'?'REREG-2026':null),
-    notes:partnerNote+sitterListNote+(method==='free'?'[FREE registration — $0, no payment required] ':'')+(method==='auction'?'[AUCTION — IN-KIND DONATION: $'+getEffectivePrice()+'] ':'')+(promoApplied?'[Promo '+PROMO_CODE+' applied: −$'+PROMO_DISCOUNT+' off '+getEffectivePrice()+' → '+getPayablePrice()+'] ':'')+(method==='comp'?'[Re-registration — already paid via PayPal] ':(method==='paypal'?'[Paid via PayPal] ':(method==='already-paid'?'[Family marked ALREADY PAID — confirm against PayPal] ':(method==='venmo'?'[Family marked VENMO sent — confirm in Venmo app] ':(method==='zelle'?'[Family marked ZELLE sent — confirm in Zelle app] ':(method==='paypal-link'?'[Family marked PAYPAL checkout paid — confirm against PayPal receipt] ':(method==='pending'?'[Registered — awaiting payment] ':'')))))))+((s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response')?'[Prereq confirmed: child has completed Safe Sitter® and/or CPR & First Aid course] ':'')+document.getElementById('p-notes').value.trim(),
+    notes:dobNote+partnerNote+sitterListNote+(method==='free'?'[FREE registration — $0, no payment required] ':'')+(method==='auction'?'[AUCTION — IN-KIND DONATION: $'+getEffectivePrice()+'] ':'')+(promoApplied?'[Promo '+PROMO_CODE+' applied: −$'+PROMO_DISCOUNT+' off '+getEffectivePrice()+' → '+getPayablePrice()+'] ':'')+(method==='comp'?'[Re-registration — already paid via PayPal] ':(method==='paypal'?'[Paid via PayPal] ':(method==='already-paid'?'[Family marked ALREADY PAID — confirm against PayPal] ':(method==='venmo'?'[Family marked VENMO sent — confirm in Venmo app] ':(method==='zelle'?'[Family marked ZELLE sent — confirm in Zelle app] ':(method==='paypal-link'?'[Family marked PAYPAL checkout paid — confirm against PayPal receipt] ':(method==='pending'?'[Registered — awaiting payment] ':'')))))))+((s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response')?'[Prereq confirmed: child has completed Safe Sitter® and/or CPR & First Aid course] ':'')+document.getElementById('p-notes').value.trim(),
     created_at:Date.now()
   };
 }

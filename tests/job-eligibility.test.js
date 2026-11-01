@@ -78,6 +78,7 @@ const SESSIONS = [
   { name: 'rc adult', course: 'Adult First Aid/CPR/AED Certification', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'rc bls', course: 'Basic Life Support (BLS) Certification', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'rc adult hybrid', course: 'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
+  { name: 'rc adult online classroom', course: 'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'rc bls hybrid', course: 'Basic Life Support (BLS) Certification (Hybrid)', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'red cross course', course: 'Adult & Pediatric First Aid/CPR/AED Certification', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
   { name: 'plain course', course: 'All Kids Welcome', requires_rn: false, requires_safe_sitter: false, requires_spanish: false, is_custom_job: false },
@@ -150,7 +151,7 @@ test('spot checks: restricted jobs hidden from uncredentialed instructors', () =
   assert.strictEqual(elig.canTeachSession(byName('red cross course'), lead), true);
   assert.strictEqual(elig.canTeachSession(byName('babysitters training'), general), false, 'Babysitter Training is Lead Teacher-only');
   assert.strictEqual(elig.canTeachSession(byName('babysitters training'), lead), true);
-  ['rc adult', 'rc bls', 'rc adult hybrid', 'rc bls hybrid'].forEach(function (n) {
+  ['rc adult', 'rc bls', 'rc adult hybrid', 'rc adult online classroom', 'rc bls hybrid'].forEach(function (n) {
     assert.strictEqual(elig.canTeachSession(byName(n), general), false, n + ' is Lead Teacher-only');
     assert.strictEqual(elig.canTeachSession(byName(n), lead), true);
   });
