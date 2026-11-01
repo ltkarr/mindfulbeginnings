@@ -8,6 +8,7 @@ const {
   filterPublicSessions,
   sessionPlace,
   sessionCardPlace,
+  stripPublicListingAddress,
   sessionPrice,
   sessionPriceLabel,
   sessionCap,
@@ -295,12 +296,21 @@ test('waitlistMailto addresses Lindsay with course, code, and date', () => {
   assert.equal(waitlistMailto({ course: '', code: '', date: '' }), 'mailto:lindsay@mindfulbeginnings.org?subject=' + encodeURIComponent('Waitlist request: Class') + '&body=' + encodeURIComponent('I would like to join the waitlist for Class.'));
 });
 
-test('sessionCardPlace shows city or Virtual and never a street address', () => {
+test('sessionCardPlace shows city and state only, never a venue, room, or street', () => {
   assert.equal(sessionCardPlace(row({ is_virtual: true, city: 'Bethesda', location: '123 Oak Ave' })), 'Virtual');
+  assert.equal(sessionCardPlace(row({ city: 'Potomac', state: 'MD', location: 'Winston Churchill High School, Room 118', host_address: '11300 Gainsborough Road' })), 'Potomac, MD');
+  assert.equal(sessionCardPlace(row({ city: 'Vienna', state: 'VA', location: "Mary Parks' Home", host_address: '288 Windover Avenue NW', has_host: true })), 'Vienna, VA');
   assert.equal(sessionCardPlace(row({ city: 'Potomac', location: '123 Host Lane' })), 'Potomac');
-  assert.equal(sessionCardPlace(row({ city: 'Arlington', location: 'Stone Ridge School' })), 'Stone Ridge School · Arlington');
+  assert.equal(sessionCardPlace(row({ city: 'Arlington', state: 'VA', location: 'Stone Ridge School' })), 'Arlington, VA');
   assert.equal(sessionCardPlace(row({ city: '', location: '' })), 'Location TBD');
-  assert.doesNotMatch(sessionCardPlace(row({ city: 'Potomac', location: '4412 Host Lane', host_address: '4412 Host Lane' })), /4412/);
+  assert.doesNotMatch(sessionCardPlace(row({ city: 'Potomac', state: 'MD', location: '4412 Host Lane', host_address: '4412 Host Lane' })), /4412|Host Lane|Room/);
+  const listed = stripPublicListingAddress({ city: 'Potomac', state: 'MD', location: 'Winston Churchill High School, Room 118', host_address: '11300 Gainsborough Road', zip: '20854' });
+  assert.equal(listed.location, '');
+  assert.equal(listed.host_address, '');
+  assert.equal(listed.zip, '');
+  assert.equal(listed.city, 'Potomac');
+  assert.equal(listed.state, 'MD');
+  assert.equal(sessionCardPlace(listed), 'Potomac, MD');
 });
 
 test('sessionPriceLabel is parent-facing (Free / whole dollars / cents)', () => {
