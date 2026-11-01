@@ -207,8 +207,10 @@ test('register.html applies virtual copy after the in-person course switch and s
   assert.ok(applyAt > setBanner.indexOf('waiver-cpr-notice'));
   assert.match(setBanner, /srTerms\.style\.display=isSeasonReady/);
   assert.match(register, /sessionIsVirtual\(currentSession\)/);
-  assert.match(register, /if\(!isVirtualForm&&!document\.querySelector\('input\[name="emerg-perm"\]:checked'\)\)/);
-  assert.match(register, /sessionIsVirtual\(s\)\)\?'':\(document\.querySelector\('input\[name="cpr-perm"\]:checked'\)/);
+  assert.match(register, /if\(!permsHidden&&!isVirtualForm&&!document\.querySelector\('input\[name="emerg-perm"\]:checked'\)\)/);
+  assert.match(register, /sessionIsVirtual\(s\)\)/);
+  assert.match(register, /cpr_permission:skipPerms\?'':\(document\.querySelector\('input\[name="cpr-perm"\]:checked'\)/);
+  assert.match(register, /emergency_auth:skipPerms\?'':/);
   assert.match(register, /id="virtual-class-notice"/);
   assert.match(register, /id="terms-virtual"/);
   const sitter = setBanner.slice(setBanner.indexOf('sitter-list-wrap'));

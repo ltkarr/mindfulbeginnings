@@ -127,6 +127,24 @@
   function virtualRegistrationCopy(session) {
     if (!sessionIsVirtual(session)) return null;
     var course = String(session.course || '');
+    var arc = root.MBArcRegistration;
+    if (arc && arc.isArcWaiverCourse(course)) {
+      var waiverHtml = arc.liabilityHtml();
+      return {
+        virtual: true,
+        course: course,
+        adult: isAdultCourse(course),
+        introHtml: arc.courseNoticeHtml(course),
+        accommodationsHtml: 'Please share anything that will help the participant take part.',
+        photoConsent: arc.isArcAdultPediatricCourse(course)
+          ? 'I consent to the use of photos or recordings of the participant taken during the program for publicity purposes by Mindful Beginnings.'
+          : 'I consent to the use of photos or recordings taken during the program for publicity purposes by Mindful Beginnings.',
+        waiverHtml: waiverHtml,
+        waiverText: stripTags(waiverHtml),
+        hidePermissions: true,
+        hideHost: true
+      };
+    }
     var adult = isAdultCourse(course);
     var who = adult ? 'you' : ((course === CAMPUS || isSeason(course)) ? 'the participant' : 'your child');
     var waiverHtml = [
