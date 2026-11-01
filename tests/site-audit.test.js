@@ -143,6 +143,11 @@ test('admin expense categories include Curriculum Development', () => {
   assert.match(admin, /'Teacher Appreciation':'#d4a017'/);
   assert.ok(list.includes('Teacher Appreciation'));
   assert.ok(list.indexOf('Teacher Appreciation') < list.indexOf('Other'));
+  assert.match(admin, /<option>American Red Cross<\/option>/);
+  assert.match(admin, /'American Red Cross':'#ED1B2E'/);
+  assert.ok(list.includes('American Red Cross'));
+  assert.ok(list.indexOf('American Red Cross') < list.indexOf('Other'));
+  assert.ok(list.indexOf('Teacher Appreciation') < list.indexOf('American Red Cross'));
 });
 
 test('Rentals is an expense category, and edit keeps a category that is not in the list', () => {
