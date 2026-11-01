@@ -149,6 +149,16 @@
       ]
     },
     {
+      keys: ['Screen Ready', 'Screen Ready \u2014 Virtual'],
+      subject: 'Screen Ready',
+      greeting: 'Hello,',
+      taker: 'complete',
+      paragraphs: [
+        'Thank you for joining us for Screen Ready with Mindful Beginnings. We covered what the research says about screen time and young children\u2019s attention, impulsivity, and learning, what age-appropriate content looks like at each stage, and practical routines and boundaries that work in real households.',
+        'Start with the one-page plan you took home, and pick one small change for this week rather than overhauling everything at once. When you are ready for the next conversation, our Social Ready class covers phones and social media safety for students in grades 4 through 8, and the two sessions pair well together.'
+      ]
+    },
+    {
       keys: ['My First Babysitters Club', 'My First Babysitters Club — Single Session'],
       subject: 'Club\'s in session',
       greeting: 'Hi there,',
