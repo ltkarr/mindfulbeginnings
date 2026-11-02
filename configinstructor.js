@@ -54,7 +54,7 @@ const COURSES={
   "Girl Scouts — First Aid Badge Workshop":{hours:1,maxStudents:16},
   "Girl Scout Badge Class":{hours:1,maxStudents:16},
   "Babysitter's Training":{hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true},
-  "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED":{hours:7.5,maxStudents:12,redCross:true,requiresLeadTeacher:true},
+  "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED":{hours:7.3333,maxStudents:12,redCross:true,requiresLeadTeacher:true},
   "Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED (Online + Classroom)":{hours:5.75,maxStudents:12,redCross:true,requiresLeadTeacher:true},
   "Adult & Pediatric First Aid/CPR/AED Certification":{hours:4.25,maxStudents:12,redCross:true,requiresLeadTeacher:true},
   "Adult First Aid/CPR/AED Certification":{hours:3.25,maxStudents:12,redCross:true,requiresLeadTeacher:true},
