@@ -15,10 +15,10 @@ function indexOf(haystack, needle) {
   return i;
 }
 
-test('step 1 lists private/host code entry first, then public sessions, with no filter UI', () => {
+test('step 1 lists public sessions first, then the private/host code entry at the bottom, with no filter UI', () => {
   const sessions = indexOf(register, 'id="public-sessions"');
   const hostCode = indexOf(register, 'id="host-code-card"');
-  assert.ok(hostCode < sessions, 'private/host code entry should appear above public session cards');
+  assert.ok(sessions < hostCode, 'public sessions should appear above the private/host code entry (register page is for public classes first; code entry sits at the bottom)');
   assert.match(register, /id="code-input"/);
   assert.match(register, /id="code-btn"/);
   assert.match(register, /function checkCode/);
@@ -39,9 +39,9 @@ test('step 1 lists private/host code entry first, then public sessions, with no 
   assert.doesNotMatch(register, /Any area/);
   assert.doesNotMatch(register, /Any price/);
   assert.doesNotMatch(register, /host-code-details/);
-  assert.match(register, /are not listed below/);
-  assert.match(register, /enter it above/);
-  assert.doesNotMatch(register, /enter it below/);
+  assert.match(register, /don’t appear in the public list/);
+  assert.match(register, /enter it below/);
+  assert.doesNotMatch(register, /enter it above/);
 });
 
 test('public cards show price; private/host sessions are excluded from the list', () => {
