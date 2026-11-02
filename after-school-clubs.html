@@ -38,7 +38,10 @@
 .club-list{max-width:860px}
 .club-row{padding:16px 2px;border-bottom:1px solid rgba(30,49,97,.12);display:flex;gap:18px;align-items:flex-start}
 .club-icon{width:64px;height:64px;flex:none;object-fit:contain}
-.hero-photo{margin:0}
+.hero-photo{margin:0;max-width:400px;justify-self:end}
+@media(max-width:860px){.hero-photo{max-width:none;justify-self:stretch}}
+.mb-hero{padding-bottom:14px}
+.mb-hero + .mb-section.tight{padding-top:10px!important}
 .hero-photo img{width:100%;height:auto;display:block;border-radius:16px}
 .hero-photo figcaption{font-family:'Caveat',cursive;font-size:21px;font-weight:600;color:#617CA3;line-height:1.2;margin-top:8px}
 .club-row h3{font-size:21px;margin:0 0 4px}
