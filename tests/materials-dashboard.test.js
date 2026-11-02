@@ -305,9 +305,12 @@ test('a class buy-more note names the shortfall and does not block a durable-onl
   const home = planSandbox.matPlanForSession({
     course: 'Safe@Home', date: '2026-10-08', sessionId: 'home', extraDates: [], headcount: 8
   });
-  assert.equal(home.books.length, 1);
+  assert.equal(home.books.length, 2);
   assert.equal(home.books[0].name, 'Safe@Home handbooks');
   assert.equal(home.books[0].shortfall, 5);
+  assert.equal(home.books[1].kind, 'sahCertificate');
+  assert.equal(home.books[1].need, 8);
+  assert.equal(home.books[1].shortfall, 0);
   assert.equal(planSandbox.matBookBuySentence(home), 'Buy 5 more Safe@Home handbooks.');
 
   planSandbox.registrations.push(
@@ -479,8 +482,10 @@ test('Intro to Babysitting reserves its handbooks, and Safe Sitter-like titles m
     course: 'Safe@Home at Beth El', date: '2026-10-16', extraDates: [], headcount: 3
   });
   assert.equal(home.lines.map((l) => l.kind).join(','), 'av');
-  assert.equal(home.books.length, 1);
+  assert.equal(home.books.length, 2);
   assert.equal(home.books[0].name, 'Safe@Home handbooks');
+  assert.equal(home.books[1].kind, 'sahCertificate');
+  assert.equal(home.books[1].need, 3);
   assert.equal(home.lines.some((l) => l.kind === 'infant' || l.kind === 'child'), false);
 });
 
