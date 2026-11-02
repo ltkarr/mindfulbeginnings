@@ -14,7 +14,7 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Montserrat:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/site.css?v=28">
-<link rel="stylesheet" href="/css/intake.css?v=2">
+<link rel="stylesheet" href="/css/intake.css?v=3">
 <style>
 .hero{background:#DCE4EF;border-bottom:3px solid #617CA3;padding:36px 6vw 30px}
 .hero-script{font-family:'Caveat',cursive;font-size:clamp(48px,6vw,60px);font-weight:600;line-height:1.05;color:#617CA3;margin:0 0 4px}
@@ -163,8 +163,16 @@
     <div class="card">
       <h2>Where and when</h2>
       <div class="field">
-        <label for="location">Course location <span class="hint">School or building, full street address, and the room (cafeteria, media center, Room 114).</span></label>
-        <textarea id="location" name="location" rows="3" required placeholder="Bethesda Elementary, 123 Oak St, Room 114, Bethesda, MD 20814"></textarea>
+        <label for="location">Place name <span class="hint">Optional. School, building, or room, such as the cafeteria or Room 114.</span></label>
+        <textarea id="location" name="location" rows="2" placeholder="Bethesda Elementary, Room 114"></textarea>
+      </div>
+      <div id="address-fields">
+        <div class="field"><label for="address">Street address</label><input id="address" name="address" autocomplete="address-line1" required placeholder="123 Oak St"></div>
+        <div class="addr-grid">
+          <div class="field"><label for="city">City</label><input id="city" name="city" autocomplete="address-level2" required placeholder="Bethesda"></div>
+          <div class="field"><label for="state">State</label><input id="state" name="state" autocomplete="address-level1" required placeholder="MD" autocapitalize="characters" spellcheck="false"></div>
+          <div class="field"><label for="zip">Zip</label><input id="zip" name="zip" autocomplete="postal-code" inputmode="numeric" required maxlength="10" placeholder="20814"></div>
+        </div>
       </div>
       <div class="field">
         <span class="check-title">Course dates and times</span>

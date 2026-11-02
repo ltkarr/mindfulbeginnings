@@ -322,6 +322,76 @@
     return { date: date, time: time };
   }
 
+  // Full state names are accepted because browser autofill often writes
+  // "Virginia" into a state field. Two-letter codes pass through as-is.
+  var STATE_BY_NAME = {
+    alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA',
+    colorado: 'CO', connecticut: 'CT', delaware: 'DE', 'district of columbia': 'DC',
+    florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID', illinois: 'IL',
+    indiana: 'IN', iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA',
+    maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI', minnesota: 'MN',
+    mississippi: 'MS', missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV',
+    'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY',
+    'north carolina': 'NC', 'north dakota': 'ND', ohio: 'OH', oklahoma: 'OK',
+    oregon: 'OR', pennsylvania: 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+    'south dakota': 'SD', tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT',
+    virginia: 'VA', washington: 'WA', 'west virginia': 'WV', wisconsin: 'WI', wyoming: 'WY',
+    'washington dc': 'DC', 'washington d c': 'DC'
+  };
+
+  function canonicalState(raw) {
+    var t = clip(raw, 40);
+    if (!t) return '';
+    var compact = t.replace(/\./g, '').replace(/\s+/g, ' ').trim();
+    if (/^[A-Za-z]{2}$/.test(compact)) return compact.toUpperCase();
+    return STATE_BY_NAME[compact.toLowerCase()] || '';
+  }
+
+  function canonicalZip(raw) {
+    var t = clip(raw, 20).replace(/\s+/g, '');
+    var m = t.match(/^(\d{5})(?:-?(\d{4}))?$/);
+    if (!m) return '';
+    return m[2] ? (m[1] + '-' + m[2]) : m[1];
+  }
+
+  function structuredAddress(body) {
+    if (!body) return false;
+    return Object.prototype.hasOwnProperty.call(body, 'city')
+      || Object.prototype.hasOwnProperty.call(body, 'state')
+      || Object.prototype.hasOwnProperty.call(body, 'zip');
+  }
+
+  function placeFromParts(body, kind) {
+    var street = clip(body.address || body.street || body.streetAddress || '', 300);
+    var city = clip(body.city, 80);
+    var stateInput = clip(body.state, 40);
+    var zipInput = clip(body.zip, 20);
+    var state = canonicalState(stateInput);
+    var zip = canonicalZip(zipInput);
+    var venue = kind === 'organization' ? clip(body.location, 500) : '';
+    var line = [state, zip].filter(Boolean).join(' ');
+    var raw = [];
+    if (venue && venue.toLowerCase() !== street.toLowerCase()) raw.push(venue);
+    if (street) raw.push(street);
+    if (city) raw.push(city);
+    if (line) raw.push(line);
+    return {
+      location: venue || street,
+      hostAddress: street,
+      city: city,
+      state: state,
+      zip: zip,
+      stateInput: stateInput,
+      zipInput: zipInput,
+      isVirtual: false,
+      raw: raw.join(', ')
+    };
+  }
+
+  function addressComplete(place) {
+    return !!(place && place.hostAddress && place.city && place.state && place.zip);
+  }
+
   function parseUsAddress(raw) {
     var text = clip(raw, 1000).trim();
     if (!text) return { location: '', hostAddress: '', city: '', state: '', zip: '', isVirtual: false, raw: '' };
@@ -532,7 +602,11 @@
     body = body || {};
     var kind = body.kind === 'organization' ? 'organization' : (body.kind === 'host' ? 'host' : '');
     var course = courseByKey(body.courseKey);
-    var place = parseUsAddress(body.address || body.location || '');
+    // Separate city/state/zip fields win over the old single-line parser.
+    // A street-only line used to be stored with city, state, and zip blank.
+    var place = structuredAddress(body)
+      ? placeFromParts(body, kind)
+      : parseUsAddress(body.address || body.location || '');
     if (course && course.virtual) place.isVirtual = true;
     if (body.format === 'virtual') place.isVirtual = true;
     if (place.isVirtual) {
@@ -600,7 +674,11 @@
     if (!n.course) add('courseKey', 'Please choose a course.');
     if (n.kind === 'organization' && !n.organizationName) add('organizationName', 'Please add the organization name.');
     if (!n.isVirtual) {
-      if (!n.place.raw) add('address', 'Please add the address or choose virtual.');
+      var place = n.place || {};
+      if (!place.hostAddress) add('address', 'Please add the street address.');
+      if (!place.city) add('city', 'Please add the city.');
+      if (!place.state) add('state', place.stateInput ? 'Please add a two-letter state, such as MD.' : 'Please add the state.');
+      if (!place.zip) add('zip', place.zipInput ? 'Please add a 5-digit ZIP code.' : 'Please add the ZIP code.');
     }
     if (n.kind === 'organization' && !n.billing.mode) add('billing', 'Please choose how registration and payment should work.');
     if (n.kind === 'organization' && n.billing.mode === 'split' && !n.portionText) {
@@ -613,7 +691,7 @@
     if (!n || !n.course || n.course.placeholder || !n.course.course) return { ok: false, reason: 'course' };
     if (!n.days || !n.days.length || !n.days[0].date) return { ok: false, reason: 'date' };
     if (!n.days[0].time) return { ok: false, reason: 'time' };
-    if (!n.isVirtual && !(n.place && (n.place.raw || n.place.location))) return { ok: false, reason: 'location' };
+    if (!n.isVirtual && !addressComplete(n.place)) return { ok: false, reason: 'address' };
     if (!n.billing || !n.billing.resolved) return { ok: false, reason: 'billing' };
     return { ok: true };
   }

@@ -98,8 +98,11 @@
       spanishRequested: !!(form.spanishRequested && form.spanishRequested.checked),
       companyWebsite: form.companyWebsite ? form.companyWebsite.value : ''
     };
+    data.address = form.address ? String(form.address.value || '').trim() : '';
+    data.city = form.city ? String(form.city.value || '').trim() : '';
+    data.state = form.state ? String(form.state.value || '').trim() : '';
+    data.zip = form.zip ? String(form.zip.value || '').trim() : '';
     if (kind === 'host') {
-      data.address = form.address ? form.address.value : '';
       data.forOrganization = selected(form, 'who') === 'organization';
       data.checklistAnswer = selected(form, 'checklistAnswer');
       data.checklistQuestions = form.checklistQuestions ? form.checklistQuestions.value : '';
@@ -152,6 +155,48 @@
     wrap.hidden = !split.checked;
   }
 
+  function courseIsVirtual(form) {
+    var sel = form && form.courseKey;
+    if (!sel || sel.selectedIndex < 0) return false;
+    var opt = sel.options[sel.selectedIndex];
+    if (!opt) return false;
+    if (/-virtual$/.test(opt.value || '')) return true;
+    return /this class is virtual/i.test(opt.getAttribute('data-note') || '');
+  }
+
+  // In-person requests need a street, city, state, and ZIP. A single
+  // street-address box used to accept "5012 Tothill Drive" and leave the
+  // rest blank. Virtual courses do not have a street address.
+  function addressErrors(form) {
+    if (courseIsVirtual(form)) return [];
+    var errors = [];
+    function add(field, message) { errors.push({ field: field, message: message }); }
+    var street = form.address ? String(form.address.value || '').trim() : '';
+    var city = form.city ? String(form.city.value || '').trim() : '';
+    var state = form.state ? String(form.state.value || '').trim() : '';
+    var zip = form.zip ? String(form.zip.value || '').trim().replace(/\s+/g, '') : '';
+    if (!street) add('address', 'Please add the street address.');
+    if (!city) add('city', 'Please add the city.');
+    if (!state) add('state', 'Please add the state.');
+    else if (!/^[A-Za-z]{2}$/.test(state) && !/^[A-Za-z][A-Za-z .'-]{2,}$/.test(state)) {
+      add('state', 'Please add a two-letter state, such as MD.');
+    }
+    if (!zip) add('zip', 'Please add the ZIP code.');
+    else if (!/^\d{5}(?:-\d{4})?$/.test(zip)) add('zip', 'Please add a 5-digit ZIP code.');
+    return errors;
+  }
+
+  function updateAddressRequirement(form) {
+    var wrap = $('address-fields');
+    if (!wrap || !form) return;
+    var virtual = courseIsVirtual(form);
+    wrap.hidden = virtual;
+    wrap.querySelectorAll('input').forEach(function (input) {
+      if (virtual) input.removeAttribute('required');
+      else input.setAttribute('required', '');
+    });
+  }
+
   function updateQuestions() {
     var q = document.querySelector('[name="checklistAnswer"][value="questions"]');
     var wrap = $('questions-wrap');
@@ -172,6 +217,14 @@
     var dated = (data.days || []).some(function (d) { return d.date && d.start; });
     if (needsDate && !dated) {
       showError('Please add at least one date and a start time.');
+      return;
+    }
+    var missingAddress = addressErrors(form);
+    if (missingAddress.length) {
+      missingAddress.forEach(function (err) { fieldError(form, err.field); });
+      showError(missingAddress[0].message);
+      var first = form.querySelector('[name="' + missingAddress[0].field + '"]');
+      if (first && first.focus) first.focus();
       return;
     }
     var btn = $('submit-btn');
@@ -233,10 +286,16 @@
       updateSteer();
       updatePortion();
       updateQuestions();
+      updateAddressRequirement(form);
+    });
+    if (form.state) form.state.addEventListener('blur', function () {
+      var v = String(form.state.value || '').trim();
+      if (/^[A-Za-z]{2}$/.test(v)) form.state.value = v.toUpperCase();
     });
     updateCourseNote();
     updateSteer();
     updatePortion();
     updateQuestions();
+    updateAddressRequirement(form);
   });
 })();
