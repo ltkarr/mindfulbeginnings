@@ -21,6 +21,7 @@
 <!-- Shared course data / pricing / caps / promos. Must load before the inline script below. -->
 <script src="/config.js"></script>
 <script src="/js/public-sessions.js"></script>
+<script src="/js/county-disclaimer.js"></script>
 <script src="/js/course-booking.js"></script>
 <script src="/js/arc-registration.js"></script>
 <script src="/js/course-copy.js"></script>
@@ -74,6 +75,8 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 .sess-banner{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);border-left:5px solid var(--gold);padding:16px 18px;margin-bottom:24px;display:flex;gap:16px;align-items:flex-start}
 .sess-banner .cname{font-weight:800;font-size:16px;color:var(--navy)}
 .sess-banner .cmeta{font-size:15px;font-weight:600;color:var(--muted);margin-top:2px}
+.county-disclaimer{margin:8px 0 0;font-size:13px;font-weight:600;line-height:1.45;color:var(--navy)}
+.public-card .county-disclaimer{margin-top:6px}
 .sess-price{margin-left:auto;font-weight:800;color:var(--navy);font-size:17px;white-space:nowrap}
 .fsec{margin-bottom:28px}
 .fsec-title{font-size:14px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--navy);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--gold)}
@@ -436,6 +439,7 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
       <input type="text" id="p-signature" placeholder="Type your full legal name">
     </div>
   </div>
+  <p class="county-disclaimer" id="county-disclaimer-before-reserve" hidden>This activity is not sponsored, associated with, or endorsed by Montgomery County Government</p>
   <button class="btn-p" onclick="goToPayment()">Reserve my spot →</button>
   <div style="text-align:center;margin-top:12px"><button class="btn-o" onclick="goToScreen(1)">← Back</button></div>
 </div>
@@ -1147,6 +1151,7 @@ function sessionFromCodeRow(r, extras){
     priceOverride:r.price_override==null?null:Number(r.price_override),
     createdAt:r.created_at||null,
     isVirtual:r.is_virtual||false,zoomLink:'',
+    county_disclaimer:(r.county_disclaimer===true||r.county_disclaimer===false)?r.county_disclaimer:null,
     extraDates:extraDatesFromRow(r)
   };
 }
@@ -1314,6 +1319,7 @@ function renderPublicSessions(){
       (audience?'<div class="paudience">'+escapeHtml(audience)+'</div>':'')+
       '<div class="pmeta">'+escapeHtml(when)+'</div>'+
       (place?'<div class="pplace">'+escapeHtml(place)+'</div>':'')+
+      ((window.MBCountyDisclaimer&&MBCountyDisclaimer.shows(r))?MBCountyDisclaimer.html():'')+
       '</div>'+
       '<div class="pside">'+(priceLabel?'<div class="pprice" aria-hidden="true">'+escapeHtml(priceLabel)+'</div>':'')+
       seatsHtml+
@@ -1681,7 +1687,10 @@ function setBanner(id){
     :`$${price}`);
   const priceHTML=price==null?priceCore:(priceCore+' <span style="font-size:13px;font-weight:600;color:var(--muted)">per person</span>');
   const arcCertLine=arcCertificationLine(s.course);
-  document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(publicCourseName(s.course))}</div>${arcCertLine}<div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div></div><div class="sess-price">${priceHTML}</div>`;
+  const countyNote=(window.MBCountyDisclaimer&&MBCountyDisclaimer.shows(s))?MBCountyDisclaimer.html():'';
+  const countyBefore=document.getElementById('county-disclaimer-before-reserve');
+  if(countyBefore)countyBefore.hidden=!countyNote;
+  document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(publicCourseName(s.course))}</div>${arcCertLine}<div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div>${countyNote}</div><div class="sess-price">${priceHTML}</div>`;
   // Show prerequisite notice for All Kids Welcome and Stay Ready
   let prereqNotice=document.getElementById('akw-prereq-notice');
   if(s.course==='All Kids Welcome'||s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response'){
