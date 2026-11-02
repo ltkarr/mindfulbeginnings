@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261102-paid-with';
+window.MB_ADMIN_BUILD='20261102-parent-roster';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -17269,95 +17269,83 @@ function openInvoiceDoc(id){
   win.document.close();
 }
 
+// City and state only, same rule as the public class list. Street, ZIP,
+// host phone, and WiFi stay off this parent-facing sheet.
+function parentRosterPlace(s){
+  if(!s)return 'TBD';
+  if(s.isVirtual)return 'Virtual';
+  const city=String(s.city||'').replace(/\s+/g,' ').trim().replace(/,\s*$/,'');
+  const state=String(s.state||'').replace(/\s+/g,' ').trim();
+  if(/^virtual$/i.test(city))return 'Virtual';
+  if(city&&state)return city+', '+state;
+  if(city)return city;
+  return 'TBD';
+}
+// Session menu Roster. Rebuilt on every open as the list for families:
+// participant names only. No photo consent, waiver, notes, allergies,
+// contact, age, grade, parent, or payment. There is no column toggle, and
+// nothing here is remembered between opens. The instructor reminder roster
+// and the instructor portal roster are separate and keep their own columns.
 function openRoster(sessId){
   const s=sessions.find(x=>x.id===sessId);if(!s)return;
   const regs=registrations.filter(r=>r.sessionId===sessId&&r.payStatus!=='cancelled').sort((a,b)=>a.studentName.localeCompare(b.studentName));
   const d=fmtSessDate(s,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const dFile=fmtSessDate(s,{month:'long',day:'numeric',year:'numeric'});
   const rosterTitle='Roster - '+dFile;
-  const instr=sessionInstructorNames(s,'Instructor TBD');
+  const instr=escapeHtml(sessionInstructorNames(s,'Instructor TBD'));
   const adult=isAdultCourse(s.course);
   const whoLabel=adult?'Participant':'Student';
   const countPhrase=rosterCountPhrase(s.course, regs);
-  const emptyCols=adult?9:11;
   const rows=regs.length?regs.map((r,i)=>`
     <tr>
-      <td style="width:28px;color:#aaa;font-size:14px">${i+1}</td>
+      <td style="width:36px;color:#aaa;font-size:14px">${i+1}</td>
       <td style="font-weight:500">${rosterNameCell(r)}</td>
-      ${adult?'':`<td>${r.grade||'—'}</td><td>${escapeHtml(r.parentName)||'—'}</td>`}
-      <td style="font-size:15px">${escapeHtml(r.contact)||'—'}</td>
-      <td style="text-align:center">${r.cprPermission==='yes'?'✓':'✗'}</td>
-      <td style="text-align:center">${r.emergencyAuth==='yes'?'✓':'✗'}</td>
-      <td style="text-align:center">${r.waiverSigned?'✓':'✗'}</td>
-      <td style="text-align:center">${r.photoConsent==='yes'?'✓':r.photoConsent==='no'?'✗':'—'}</td>
-      <td>${(function(){const list=s?sessionListPrice(s):null;const label=rosterSettlementLabel(r,list);const cls=rosterSettlementTagClass(r,list);const bg=cls==='paid'?'#eaf5f0':cls==='host'?'#d6e9f5':cls==='in_kind'?'#f3e8fb':'#fff7e6';const fg=cls==='paid'?'#2d7a5e':cls==='host'?'#1a5c8a':cls==='in_kind'?'#6D1ED4':'#b86a00';return '<span style="display:inline-block;padding:2px 8px;border-radius:100px;font-size:14px;font-weight:500;background:'+bg+';color:'+fg+'">'+escapeHtml(label)+'</span>';})()}${paymentHowText(r)?`<div style="font-size:13px;font-weight:600;margin-top:4px;color:${paymentHowText(r)==='How paid unknown'?'#b86a00':'#1a2744'}">${escapeHtml(paymentHowText(r))}</div>`:''}</td>
-      <td style="font-size:14px;color:#888;max-width:120px">${escapeHtml(notesForPaymentStatus(r.payStatus,notesWithoutPartner(r.notes)))||''}</td>
     </tr>`).join('')
-    :'<tr><td colspan="'+emptyCols+'" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
+    :'<tr><td colspan="2" style="text-align:center;padding:20px;color:#aaa;font-style:italic">No '+(adult?'participants':'students')+' registered yet</td></tr>';
 
   const html=`
-    <div style="font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:24px">
+    <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;padding:24px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
         <div>
-          <div style="font-size:25px;font-weight:bold;color:#1a2744">${s.course}</div>
-          <div style="font-size:16px;color:#6b7a99;margin-top:3px">Class Roster</div>
+          <div style="font-size:25px;font-weight:bold;color:#1a2744">${escapeHtml(s.course)}</div>
+          <div style="font-size:16px;color:#6b7a99;margin-top:3px">Class roster</div>
+          <div style="font-size:15px;color:#1a2744;margin-top:4px">For families. Names only.</div>
         </div>
         <div style="text-align:right;font-size:15px;color:#6b7a99">
           <div>Mindful Beginnings</div>
           <div>mindfulbeginnings.org</div>
         </div>
       </div>
-      <div style="border-top:2px solid #1a2744;border-bottom:1px solid #dde4ee;padding:10px 0;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:16px">
-        <div><span style="color:#6b7a99">Date:</span> <strong>${d}</strong></div>
-        <div><span style="color:#6b7a99">Time:</span> <strong>${s.time||'TBD'}</strong></div>
-        <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(adminPlaceText(s)||s.location||'TBD')}</strong></div>
+      <div style="border-top:2px solid #1a2744;border-bottom:1px solid #dde4ee;padding:10px 0;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:16px">
+        <div><span style="color:#6b7a99">Date:</span> <strong>${escapeHtml(d)}</strong></div>
+        <div><span style="color:#6b7a99">Time:</span> <strong>${escapeHtml(s.time||'TBD')}</strong></div>
+        <div><span style="color:#6b7a99">Location:</span> <strong>${escapeHtml(parentRosterPlace(s))}</strong></div>
         <div><span style="color:#6b7a99">Instructor:</span> <strong>${instr}</strong></div>
-        <div><span style="color:#6b7a99">Session code:</span> <strong>${s.code}</strong></div>
         <div><span style="color:#6b7a99">${adult?'Total participants:':'Total students:'}</span> <strong>${adult?rosterPeople(regs, s.course):regs.length}</strong></div>
       </div>
-      <div style="background:#f0f6fc;border:1px solid #b8d8ee;border-radius:8px;padding:14px 18px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:16px">
-        <div style="font-size:14px;text-transform:uppercase;letter-spacing:.7px;color:#6b7a99;font-weight:600;grid-column:1/-1;margin-bottom:2px">Session Info</div>
-        ${s.hostAddress&&String(adminPlaceText(s)||'').toLowerCase().indexOf(String(s.hostAddress).trim().toLowerCase())===-1?`<div><span style="color:#6b7a99">Address:</span><br><strong>${s.hostAddress}${s.city?', '+s.city:''}${s.state?' '+s.state:''}${s.zip?' '+s.zip:''}</strong></div>`:''} 
-        ${s.contactName?`<div><span style="color:#6b7a99">Contact name:</span><br><strong>${s.contactName}</strong></div>`:''}
-        ${s.hostPhone?`<div><span style="color:#6b7a99">Contact phone / email:</span><br><strong>${s.hostPhone}</strong></div>`:''}
-        ${s.wifiInfo?`<div><span style="color:#6b7a99">WiFi info:</span><br><strong>${s.wifiInfo}</strong></div>`:''}
-        <div style="grid-column:1/-1;border-top:1px solid #b8d8ee;padding-top:10px;margin-top:4px">
-          <span style="color:#6b7a99">Questions? Contact Lindsay Karr:</span> <strong>703-987-5979</strong>
-        </div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;font-size:15px">
+      <table style="width:100%;border-collapse:collapse;font-size:16px">
         <thead>
           <tr style="background:#1a2744;color:white">
-            <th style="padding:8px 6px;text-align:left">#</th>
-            <th style="padding:8px 6px;text-align:left">${whoLabel} name</th>
-            ${adult?'':`<th style="padding:8px 6px;text-align:left">Grade</th>
-            <th style="padding:8px 6px;text-align:left">Parent / guardian</th>`}
-            <th style="padding:8px 6px;text-align:left">Contact</th>
-            <th style="padding:8px 6px;text-align:center">CPR</th>
-            <th style="padding:8px 6px;text-align:center">Emerg.</th>
-            <th style="padding:8px 6px;text-align:center">Waiver</th>
-            <th style="padding:8px 6px;text-align:center">Photo</th>
-            <th style="padding:8px 6px;text-align:left">Payment</th>
-            <th style="padding:8px 6px;text-align:left">Notes</th>
+            <th style="padding:8px 10px;text-align:left">#</th>
+            <th style="padding:8px 10px;text-align:left">${whoLabel} name</th>
           </tr>
         </thead>
         <tbody>
           ${rows}
         </tbody>
       </table>
-      <div style="margin-top:20px;padding-top:12px;border-top:1px solid #dde4ee;font-size:14px;color:#aaa;display:flex;justify-content:space-between">
-        <span>Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Mindful Beginnings Admin</span>
-        <span>CPR = CPR manikin permission · Emerg. = Emergency care authorization · Photo = Photo and recording consent (✗ means do not photograph)</span>
+      <div style="margin-top:20px;padding-top:12px;border-top:1px solid #dde4ee;font-size:14px;color:#aaa">
+        Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Mindful Beginnings
       </div>
     </div>`;
 
-  const win=window.open('','_blank','width=1140,height=760');
+  const win=window.open('','_blank','width=760,height=760');
   if(!win){showToast('⚠️ Your browser blocked the popup window. Please allow popups for this site and try again.');return;}
   win.document.write(`<!DOCTYPE html><html><head><title>${rosterTitle.replace(/[<>]/g,'')}</title>
     <style>
       body{margin:0;background:white}
       tr:nth-child(even) td{background:#f9fafb}
-      td{padding:8px 6px;border-bottom:0.5px solid #eee;vertical-align:middle}
+      td{padding:8px 10px;border-bottom:0.5px solid #eee;vertical-align:middle}
       @media print{
         body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
         .no-print{display:none}
@@ -17367,7 +17355,7 @@ function openRoster(sessId){
     <div class="no-print" style="background:#1a2744;padding:12px 24px;display:flex;align-items:center;gap:12px">
       <button onclick="window.print()" style="background:#4a8fc4;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:17px;cursor:pointer;font-weight:500">🖨️ Print roster</button>
       <button onclick="window.close()" style="background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:16px;cursor:pointer">Close</button>
-      <span style="color:rgba(255,255,255,.5);font-size:15px">${countPhrase} · ${s.course}</span>
+      <span style="color:rgba(255,255,255,.5);font-size:15px">${countPhrase} · Names only</span>
     </div>
     ${html}
   </body></html>`);
