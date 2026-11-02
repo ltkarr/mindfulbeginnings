@@ -419,7 +419,8 @@ test('ops emails are filled in ADMIN; other composers still open a Google Doc wi
   assert.doesNotMatch(dashBlock, /openHostReminder/);
   assert.doesNotMatch(dashBlock, /Host reminder/);
   assert.match(dashBlock, /openClassReminder/);
-  assert.match(dashBlock, /Family reminder — before class/);
+  assert.match(dashBlock, /preClassStudentReminderLabel\(s\)/);
+  assert.match(admin, /Family reminder — before class/);
   assert.match(admin, /Post-course email — after class/);
   assert.match(slice('function openHostReminder', 'function openInstructorReminder'), /Print the class roster below and attach it/);
   const infoFn = slice('function opsEmailInfo', 'function opsDraft');

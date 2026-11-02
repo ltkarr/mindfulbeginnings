@@ -6706,16 +6706,36 @@ function preClassMaterialsLabel(s){
   return (s&&s.isCustomJob)?'Put out materials for the instructor':'Put out handbooks &amp; supplies';
 }
 function preClassInstrReminderLabel(s){
+  if(s&&s.isVirtual)return 'Email instructor the Zoom link + roster';
   return (s&&s.isCustomJob)?'Send reminder to instructor':'Send reminder + roster to instructor';
 }
+function preClassStudentReminderLabel(s){
+  return (s&&s.isVirtual)?'Send Zoom link reminder to students':'Family reminder — before class';
+}
 function preClassShowsStudentCount(s){return !(s&&s.isCustomJob);}
+function preClassLiveStudentCount(s){
+  if(!s||typeof registrations==='undefined')return 0;
+  return (registrations||[]).filter(function(r){
+    if(!r||r.sessionId!==s.id)return false;
+    if(typeof isLiveReg==='function')return isLiveReg(r);
+    return r.payStatus!=='waitlist'&&r.payStatus!=='cancelled';
+  }).length;
+}
+// A Zoom class has no lock box. Families get a Zoom reminder only when someone
+// is actually registered. An in-person class keeps the family reminder even
+// before the first registration.
+function preClassNeedsStudentReminder(s){
+  if(!s)return false;
+  if(s.isVirtual)return preClassLiveStudentCount(s)>0;
+  return !s.isCustomJob;
+}
 function preClassTaskList(s){
   const jd=(typeof jobDataCache!=='undefined'&&s&&jobDataCache[s.id])||{};
   const hasInstr=!!(s&&!s.ownerTaught&&(jd.instructorId||s.instructorId));
-  const tasks=[{key:'materialsSent',done:!!jd.materialsSent}];
+  const tasks=[];
+  if(!(s&&s.isVirtual))tasks.push({key:'materialsSent',done:!!jd.materialsSent});
   if(hasInstr)tasks.push({key:'instrReminderSent',done:!!jd.instrReminderSent});
-  if(s&&s.isCustomJob)return tasks;
-  tasks.push({key:'classReminderSent',done:!!jd.classReminderSent});
+  if(preClassNeedsStudentReminder(s))tasks.push({key:'classReminderSent',done:!!jd.classReminderSent});
   return tasks;
 }
 function preClassChecklistDone(s){
@@ -7110,8 +7130,6 @@ function renderDashboard(){
         const d=fmtSessDate(s,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
         const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
         const jd=jobDataCache[s.id]||{};
-        const hasInstr=!s.ownerTaught&&((jd.instructorId)||s.instructorId);
-        const custom=!!s.isCustomJob;
         // Milestone badge + accent
         let badge='',accent='var(--border)';
         if(dayDiff===0){badge='<span style="background:#fdf0ee;color:#c0392b;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">Today</span>';accent='#c0392b';}
@@ -7124,11 +7142,16 @@ function renderDashboard(){
             <input type="checkbox" ${checked?'checked':''} onchange="${onchange}" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">${checked?'✓ ':''}${label}
           </label>${btn||''}</div>`;
         const sendBtn=(onclick,emoji,color,bg,border)=>`<button onclick="${onclick}" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid ${border};background:${bg};color:${color};cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;flex-shrink:0">${emoji} Send</button>`;
-        const items=[];
-        const matStamp=materialsCheckedStamp(jd);
-        items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,preClassMaterialsLabel(s)+(matStamp?` <span class="lockbox-dash-when">${escapeHtml(matStamp)}</span>`:''),''));
-        if(hasInstr)items.push(item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,preClassInstrReminderLabel(s),sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee')));
-        if(!custom)items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Family reminder — before class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
+        const items=preClassTaskList(s).map(function(t){
+          if(t.key==='materialsSent'){
+            const matStamp=materialsCheckedStamp(jd);
+            return item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,preClassMaterialsLabel(s)+(matStamp?` <span class="lockbox-dash-when">${escapeHtml(matStamp)}</span>`:''),'');
+          }
+          if(t.key==='instrReminderSent'){
+            return item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,preClassInstrReminderLabel(s),sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee'));
+          }
+          return item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,preClassStudentReminderLabel(s),sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8'));
+        });
         const instrLabel=checklistInstructorLabel(s);
         const hostLabel=checklistHostLabel(s);
         const countBit=preClassShowsStudentCount(s)?` · ${cnt} student${cnt!==1?'s':''}`:'';
@@ -7489,7 +7512,7 @@ function paintLockboxRow(sessId){
   }
 }
 function lockboxFieldHtml(s){
-  if(!s||!s.id)return '';
+  if(!s||!s.id||s.isVirtual)return '';
   const jd=(typeof jobDataCache!=='undefined'&&jobDataCache&&jobDataCache[s.id])||{};
   const stamp=materialsCheckedStamp(jd);
   const putOut=jd.materialsSent?materialsPutOutPhrase(jd.materialsOutAt):'';
@@ -12793,6 +12816,8 @@ function opsEmailInfo(s){
     specialNotes:api?api.specialNotes(specialChunks):'',
     wifi:s.wifiInfo||'',
     priceText:price,
+    virtual:!!s.isVirtual,
+    zoomLink:s.zoomLink||'',
     overviewUrl:(function(){var o=courseOverviewApi();return o&&o.urlFor?o.urlFor(s.course):'';})(),
     regLink:REG_PAGE+'?code='+(s.code||''),
     hasHostSpot:s.hasHost!==false,
@@ -12867,13 +12892,13 @@ function openClassReminder(sessId){
   const draft=opsDraft('classReminder', s);
   openDocEmail({
     type:'classReminder',
-    category:'Family class reminder — before class',
+    category:s.isVirtual?'Send Zoom link reminder to students':'Family class reminder — before class',
     sessionLine:s.course+' · '+d,
     subject:draft.subject,
     emails:emails,
     field:'bcc',
     body:draft.body,
-    note:'This is the before-class note for families (what to pack, and the meal). Everyone is BCC so families cannot see each other. Edit the meal line if it still shows a placeholder, then copy the message and the BCC list. Addresses are separated with semicolons.'
+    note:s.isVirtual?'This is the Zoom link for registered students. Everyone is BCC so families cannot see each other. Copy the message and the BCC list. Addresses are separated with semicolons.':'This is the before-class note for families (what to pack, and the meal). Everyone is BCC so families cannot see each other. Edit the meal line if it still shows a placeholder, then copy the message and the BCC list. Addresses are separated with semicolons.'
   });
 }
 
@@ -18015,12 +18040,12 @@ function openInstructorReminder(sessId,specificInstrId){
   const where=s.isVirtual?'Virtual (Zoom)':(s.location?(s.location+(s.city?', '+s.city:'')):'TBD');
   openDocEmail({
     type:'instructorReminder',
-    category:'Send reminder + roster to instructor',
+    category:s.isVirtual?'Email instructor the Zoom link + roster':'Send reminder + roster to instructor',
     sessionLine:s.course+' · '+when+' · '+(instr.name||''),
     field:'to',
     emails:instr.email?[instr.email]:[],
     subject:'Reminder: your upcoming '+s.course+' course'+(when&&when!=='To be confirmed'?' on '+when:''),
-    note:'Paste the instructor reminder from the Google Doc. Print the roster and attach it before you send. Session facts for this class are below.',
+    note:s.isVirtual?'Email the instructor the Zoom link and the roster. Session facts for this class are below. Nothing is sent from this screen.':'Paste the instructor reminder from the Google Doc. Print the roster and attach it before you send. Session facts for this class are below.',
     extraHtml:emailFactsHtml('Session facts', detailLines.join('\n'))+classRosterSection(s, regs, {when:when, where:where, who:instr.name, privateCols:true}),
     copyExtra:detailLines.join('\n'),
     copyExtraLabel:'Copy details',
