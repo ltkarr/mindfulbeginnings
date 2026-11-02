@@ -83,10 +83,12 @@ test('recurring clubs and classes with 3 or more dates are series', () => {
   );
 });
 
-test('Sessions scope dropdown defaults to All and still offers Multi-week series', () => {
-  assert.match(admin, /<option value="all" selected>All sessions<\/option>/);
-  assert.doesNotMatch(admin, /<option value="upcoming" selected>/);
+test('Sessions scope dropdown defaults to Upcoming and still offers All and Multi-week series', () => {
+  assert.match(admin, /<option value="upcoming" selected>Upcoming sessions<\/option>/);
+  assert.match(admin, /<option value="all">All sessions<\/option>/);
+  assert.doesNotMatch(admin, /<option value="all" selected>/);
+  assert.doesNotMatch(admin, /<option value="upcoming">Upcoming sessions<\/option>/);
   assert.match(admin, /<option value="series">Multi-week series<\/option>/);
   assert.match(admin, /if\(scope==='series'\)return series;/);
-  assert.match(admin, /getElementById\('report-filter'\)\?\.value\|\|'all'/);
+  assert.match(admin, /getElementById\('report-filter'\)\?\.value\|\|'upcoming'/);
 });
