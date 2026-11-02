@@ -6692,11 +6692,12 @@ function ackMilestone(instrId,milestone){
   }
   renderDashboard();
 }
-// Tasks that make up one class's pre-class checklist. Host and instructor
-// lines are omitted when that class has neither. A custom job (a booth, a
-// walk, a fair) has no class roster and no host family: the owner still checks
-// off putting materials out for the instructor, and the instructor still gets
-// a reminder. Host and family reminders stay off that card.
+// Tasks that make up one class's pre-class checklist. The instructor line is
+// omitted when that class has no assigned instructor. A custom job (a booth, a
+// walk, a fair) has no class roster: the owner still checks off putting
+// materials out for the instructor, and the instructor still gets a reminder.
+// The family reminder stays off that card. The one-week host reminder is not
+// a checklist item, so an unsent host reminder does not keep a class here.
 function preClassMaterialsLabel(s){
   return (s&&s.isCustomJob)?'Put out materials for the instructor':'Put out handbooks &amp; supplies';
 }
@@ -6707,11 +6708,9 @@ function preClassShowsStudentCount(s){return !(s&&s.isCustomJob);}
 function preClassTaskList(s){
   const jd=(typeof jobDataCache!=='undefined'&&s&&jobDataCache[s.id])||{};
   const hasInstr=!!(s&&!s.ownerTaught&&(jd.instructorId||s.instructorId));
-  const hasHost=!!(s&&s.hasHost!==false);
   const tasks=[{key:'materialsSent',done:!!jd.materialsSent}];
   if(hasInstr)tasks.push({key:'instrReminderSent',done:!!jd.instrReminderSent});
   if(s&&s.isCustomJob)return tasks;
-  if(hasHost)tasks.push({key:'hostReminderSent',done:!!jd.hostReminderSent});
   tasks.push({key:'classReminderSent',done:!!jd.classReminderSent});
   return tasks;
 }
@@ -7108,7 +7107,6 @@ function renderDashboard(){
         const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
         const jd=jobDataCache[s.id]||{};
         const hasInstr=!s.ownerTaught&&((jd.instructorId)||s.instructorId);
-        const hasHost=s.hasHost!==false;
         const custom=!!s.isCustomJob;
         // Milestone badge + accent
         let badge='',accent='var(--border)';
@@ -7126,7 +7124,6 @@ function renderDashboard(){
         const matStamp=materialsCheckedStamp(jd);
         items.push(item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,preClassMaterialsLabel(s)+(matStamp?` <span class="lockbox-dash-when">${escapeHtml(matStamp)}</span>`:''),''));
         if(hasInstr)items.push(item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,preClassInstrReminderLabel(s),sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee')));
-        if(!custom&&hasHost)items.push(item(!!jd.hostReminderSent,`toggleReminderFlag('${s.id}','hostReminderSent',this.checked)`,'Host reminder — 1 week before',sendBtn(`openHostReminder('${s.id}')`,'📬','#b86a00','#fff7e6','#f0d090')));
         if(!custom)items.push(item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,'Family reminder — before class',sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8')));
         const instrLabel=checklistInstructorLabel(s);
         const hostLabel=checklistHostLabel(s);
@@ -7511,7 +7508,7 @@ function revealTeachLimit(rowId,btnId,foldId){
   if(fold)fold.open=true;
 }
 function isSessionFamilyAction(label){
-  return /Roster|Email class|Add student|Host reminder|Email for families|Registrations|Host letter|Copy registration|Copy text/.test(String(label||''));
+  return /Roster|Email class|Add student|Email for families|Registrations|Copy registration|Copy text/.test(String(label||''));
 }
 
 // ─── PER-ROW ACTIONS MENU ────────────────────────────────────
@@ -7590,9 +7587,7 @@ function openSessionMenu(ev,sessId){
   if(!s.isCustomJob&&!s.isCancelled&&!s.orgHandlesRegistration){
     items.push({label:'Copy registration link',act:`copySessionLink('${sessId}')`});
     items.push({label:'Copy text message',act:`copySessionTextById('${sessId}')`});
-    if(s.hasHost!==false)items.push({label:'Host letter',act:`openHostLetter('${sessId}')`});
   }
-  if(!isPast&&s.hasHost!==false)items.push({label:'Host reminder — 1 week before',act:`openHostReminder('${sessId}')`});
   // Email an assigned instructor their session info + roster. Available for upcoming
   // sessions (this is the main way to send the instructor the course details ahead of
   // time) as well as past ones.
@@ -10469,7 +10464,6 @@ function renderCodes(){
         <div class="btn-row" style="margin-top:10px">
           <button class="btn sm" onclick="copyLink('${link}')">Copy link</button>
           <button class="btn sm" data-sid="${escapeHtml(s.id)}" onclick="copySessionText(this)">Copy text message</button>
-          <button class="btn sm primary" onclick="openHostLetter('${s.id}')">✉️ Host letter — initial confirm</button>
           ${String(s.billToOrg||'').trim()?`<button class="btn sm" onclick="openFamilyForward('${s.id}')">✉️ Email for families (host forwards)</button>`:''}
         </div>
       </div>
