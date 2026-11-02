@@ -39,6 +39,7 @@ vm.runInContext(
   [
     'sessionInstructorList',
     'sessionInstructorNames',
+    'sessionIsOrganization',
     'sessionHostDisplayName',
     'checklistInstructorLabel',
     'checklistHostLabel',
@@ -165,19 +166,20 @@ test('checklist cards name the instructor and the host, or say when either is mi
   assert.match(block, /checklistInstructorLabel\(s\)/);
   assert.match(block, /checklistHostLabel\(s\)/);
   assert.match(block, /roleLine\('Instructor',instrLabel,'No instructor'\)/);
-  assert.match(block, /roleLine\('Host',hostLabel,'No host'\)/);
+  assert.match(block, /roleLine\(sessionIsOrganization\(s\)\?'Organization':'Host',hostLabel,sessionIsOrganization\(s\)\?'No organization':'No host'\)/);
   assert.match(block, /escapeHtml\(value\)/);
   assert.match(block, /preClassMaterialsLabel\(s\)/);
   assert.match(block, /preClassInstrReminderLabel\(s\)/);
   assert.match(block, /preClassShowsStudentCount\(s\)/);
   assert.match(block, /toggleMaterialsFromDash\('\$\{s\.id\}',this\.checked\)/);
-  assert.match(block, /if\(!custom&&hasHost\)/);
+  assert.doesNotMatch(block, /if\(!custom&&hasHost\)/);
+  assert.doesNotMatch(block, /hostReminderSent/);
+  assert.doesNotMatch(block, /Host reminder/);
+  assert.doesNotMatch(block, /openHostReminder/);
   assert.match(block, /if\(!custom\)items\.push\(item\(!!jd\.classReminderSent/);
   assert.match(admin, /return \(s&&s\.isCustomJob\)\?'Send reminder to instructor':'Send reminder \+ roster to instructor';/);
-  assert.match(block, /Host reminder — 1 week before/);
   assert.match(block, /Family reminder — before class/);
   assert.match(block, /openInstructorReminder\('\$\{s\.id\}'\)/);
-  assert.match(block, /openHostReminder\('\$\{s\.id\}'\)/);
   assert.match(block, /openClassReminder\('\$\{s\.id\}'\)/);
   assert.match(block, /fmtSessDate\(s,/);
 });
@@ -206,7 +208,7 @@ test('custom jobs keep a materials checkbox and an instructor reminder only', ()
 
   const klass = sess('ss', '2026-10-16', { isCustomJob: false, hasHost: true, instructorId: 'i1' });
   sandbox.jobDataCache.ss = {};
-  assert.deepEqual(keys(klass), ['materialsSent', 'instrReminderSent', 'hostReminderSent', 'classReminderSent']);
+  assert.deepEqual(keys(klass), ['materialsSent', 'instrReminderSent', 'classReminderSent']);
   assert.equal(sandbox.preClassMaterialsLabel(klass), 'Put out handbooks &amp; supplies');
   assert.equal(sandbox.preClassInstrReminderLabel(klass), 'Send reminder + roster to instructor');
   assert.equal(sandbox.preClassShowsStudentCount(klass), true);
@@ -241,4 +243,20 @@ test('custom jobs keep a materials checkbox and an instructor reminder only', ()
   assert.deepEqual(keys(ownerBooth), ['materialsSent']);
   sandbox.jobDataCache.booth = { materialsSent: true };
   assert.equal(sandbox.preClassChecklistDone(ownerBooth), true);
+});
+
+test('an unsent host reminder does not keep a class on the checklist', () => {
+  const today = new Date(2026, 8, 26);
+  const ready = sess('ready', '2026-09-28', { hasHost: true, instructorId: 'i1' });
+  sandbox.jobDataCache = {
+    ready: { materialsSent: true, instrReminderSent: true, hostReminderSent: false, classReminderSent: true }
+  };
+  assert.deepEqual([...sandbox.preClassTaskList(ready)].map((t) => t.key), ['materialsSent', 'instrReminderSent', 'classReminderSent']);
+  assert.equal(sandbox.preClassChecklistDone(ready), true);
+  assert.deepEqual(sandbox.dashChecklistSessions([ready], today), []);
+
+  const noHost = sess('no-host', '2026-09-29', { hasHost: false, instructorId: 'i1' });
+  sandbox.jobDataCache['no-host'] = { materialsSent: true, instrReminderSent: true, hostReminderSent: false, classReminderSent: false };
+  assert.equal(sandbox.preClassChecklistDone(noHost), false);
+  assert.deepEqual(sandbox.dashChecklistSessions([ready, noHost], today).map((s) => s.id), ['no-host']);
 });
