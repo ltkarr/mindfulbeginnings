@@ -483,7 +483,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -1145,15 +1145,33 @@ function notesHTML(s){
 // teaching checklist. No Safe@Home student evaluation form is linked from
 // this portal or the resource center, so the step names the task only.
 const SAFE_AT_HOME_EVAL_STEP='Have students complete the Safe@Home student evaluation';
+const SAFE_AT_HOME_HANDBOOK='Safe@Home student handbooks (1 per student)';
+const SAFE_AT_HOME_CERT='Safe@Home completion certificates (1 per student)';
 function sessionIsSafeAtHome(s){
   if(!s)return false;
   const code=String(s.code||'').trim().toUpperCase();
   if(/^SAH(V|S)?-/.test(code))return true;
   return /safe\s*@\s*home|safe\s+at\s+home|safeathome/i.test(String(s.course||''));
 }
+// Same rule as the packing list: the larger of students registered and participants expected.
+function safeAtHomeStudentCount(s){
+  const registered=typeof filledSeats==='function'?Math.max(0,Number(filledSeats(s))||0):0;
+  let expected=0;
+  if(s&&s.participantsExpected!=null&&s.participantsExpected!==''){
+    const n=Number(s.participantsExpected);
+    if(isFinite(n)&&n>0)expected=Math.floor(n);
+  }
+  return Math.max(registered, expected);
+}
 function safeAtHomeClassChecklistHTML(s){
   if(!sessionIsSafeAtHome(s))return '';
+  const n=safeAtHomeStudentCount(s);
+  function line(label){
+    return `<div style="font-size:14px;line-height:1.6">☐ ${escapeHtml(label)} <span style="color:var(--muted)">· ${n}</span></div>`;
+  }
   return `<div class="jc-section"><div class="jc-section-t">Class checklist</div>
+    ${line(SAFE_AT_HOME_HANDBOOK)}
+    ${line(SAFE_AT_HOME_CERT)}
     <div style="font-size:14px;line-height:1.6">☐ ${escapeHtml(SAFE_AT_HOME_EVAL_STEP)}</div></div>`;
 }
 // "Good to know": the admin's instructor-facing job details, plus what the course needs.
@@ -3578,6 +3596,8 @@ const FAQ_SECTIONS=[
 ]},
 {title:'4. Teaching Safe@Home',blocks:[
   {sub:'Student evaluation',items:[
+    ['Student handbooks.','Pack Safe@Home student handbooks (1 per student). The class card shows how many: the larger of students registered and participants expected.'],
+    ['Completion certificates.','Pack Safe@Home completion certificates (1 per student). This is its own item, not part of the handbook count. The class card shows the same number.'],
     ['Before the class ends.','Have students complete the Safe@Home student evaluation. This covers the 90-minute class, the virtual class, the series, and any session coded SAH- or SAHV-.']
   ]}
 ]},

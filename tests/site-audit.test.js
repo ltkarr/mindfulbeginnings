@@ -261,7 +261,8 @@ test('create-session form reserves materials and the dashboard lists materials c
   assert.match(admin, /MAT_BOOKS_SINCE/);
   assert.match(admin, /Durable kit only/);
   assert.match(admin, /Safe Sitter handbooks/);
-  assert.match(admin, /Safe@Home handbooks/);
+  assert.match(admin, /Safe@Home student handbooks \(1 per student\)/);
+  assert.match(admin, /Safe@Home completion certificates \(1 per student\)/);
   assert.match(admin, /Grandparents handbooks/);
   assert.match(admin, /Safe Sitter notebooks/);
   assert.match(admin, /Order more /);

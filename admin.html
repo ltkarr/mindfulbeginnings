@@ -11594,7 +11594,8 @@ function packingBusyDays(rows){
 }
 const PACK_BRING_ORDER=[
   ['ssHandbook','Safe Sitter handbook','Safe Sitter handbooks'],
-  ['sahHandbook','Safe@Home handbook','Safe@Home handbooks'],
+  ['sahHandbook','Safe@Home student handbooks (1 per student)','Safe@Home student handbooks (1 per student)'],
+  ['sahCertificate','Safe@Home completion certificates (1 per student)','Safe@Home completion certificates (1 per student)'],
   ['gpHandbook','Grandparents handbook','Grandparents handbooks'],
   ['itbHandbook','Intro to Babysitting handbook','Intro to Babysitting handbooks'],
   ['ssNotebook','Safe Sitter notebook','Safe Sitter notebooks'],
@@ -14423,8 +14424,8 @@ function matKitDueDate(s){
 const MAT_BOOKS={
   'Safe Sitter®':['ssHandbook','ssNotebook'],
   'Safe Sitter® Babysitting Essentials':['ssHandbook','ssNotebook'],
-  'Safe@Home':['sahHandbook'],
-  'Safe@Home — Series':['sahHandbook'],
+  'Safe@Home':['sahHandbook','sahCertificate'],
+  'Safe@Home — Series':['sahHandbook','sahCertificate'],
   'Grandparents: Getting Started':['gpHandbook'],
   // Intro to Babysitting handbooks — equipment id 11111111-1111-4111-8111-111111111105
   'Intro to Babysitting':['itbHandbook']
@@ -14432,13 +14433,15 @@ const MAT_BOOKS={
 const MAT_BOOK_RX={
   ssHandbook:/safe sitter handbook/i,
   sahHandbook:/safe@home handbook/i,
+  sahCertificate:/safe@home completion certificate/i,
   gpHandbook:/grandparents?\s+handbooks?/i,
   ssNotebook:/safe sitter notebook/i,
   itbHandbook:/intro to babysitting handbook/i
 };
 const MAT_BOOK_LABEL={
   ssHandbook:'Safe Sitter handbooks',
-  sahHandbook:'Safe@Home handbooks',
+  sahHandbook:'Safe@Home student handbooks (1 per student)',
+  sahCertificate:'Safe@Home completion certificates (1 per student)',
   gpHandbook:'Grandparents handbooks',
   ssNotebook:'Safe Sitter notebooks',
   itbHandbook:'Intro to Babysitting handbooks'
@@ -14869,8 +14872,10 @@ function matPlanForSession(draft){
       const kind=pair[0],q=pair[1];
       const eq=matBookEq(kind);
       const name=eq?eq.name:(MAT_BOOK_LABEL[kind]||kind);
-      const free=eq?matConsumableFree(eq,draft.sessionId||null):0;
-      const shortfall=q>free?q-free:0;
+      // A printed piece with no shelf row, such as a completion certificate,
+      // is still packed by the headcount. It is not a stock shortage.
+      const free=eq?matConsumableFree(eq,draft.sessionId||null):q;
+      const shortfall=eq&&q>free?q-free:0;
       bookLines.push({kind:kind,eqId:eq?eq.id:null,name:name,owned:eq?eq.qty:0,need:q,requested:q,free:free,shortfall:shortfall,consumable:true});
       if(shortfall>0)bookBuy.push({name:name,shortfall:shortfall,owned:eq?eq.qty:0,free:free});
     });
@@ -14923,6 +14928,7 @@ function dashMatBookPhrase(books, ifFull){
     if(!n)return;
     let word='handbooks';
     if(k==='ssNotebook')word='notebooks';
+    if(k==='sahCertificate')word='completion certificates';
     if(n===1)word=word.slice(0,-1);
     parts.push(n+' '+word);
   });
