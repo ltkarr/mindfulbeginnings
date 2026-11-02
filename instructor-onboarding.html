@@ -87,7 +87,7 @@
 <div class="ob-steps">
 <div class="ob-step"><b>1. Learn the portal</b><span>How to log in, find open jobs, and accept a job.</span></div>
 <div class="ob-step"><b>2. Learn the essentials</b><span>The must-know rules from the Instructor Guide.</span></div>
-<div class="ob-step"><b>3. Pass the quiz</b><span>15 questions. You need 12 or more correct to pass, and you can retake it.</span></div>
+<div class="ob-step"><b>3. Pass the quiz</b><span>16 questions. You need 13 or more correct to pass, and you can retake it.</span></div>
 </div>
 
 <section class="ob-lesson" id="lesson-1">
@@ -251,7 +251,7 @@
 
 <section class="ob-quiz" id="quiz">
 <h2>The quiz</h2>
-<p class="sub">15 questions from the lessons above. You need <strong>12 or more correct</strong> to pass. When you pass, your result is saved and Lindsay can see it in Admin. You can retake the quiz as many times as you need.</p>
+<p class="sub">16 questions from the lessons above. You need <strong>13 or more correct</strong> to pass. When you pass, your result is saved and Lindsay can see it in Admin. You can retake the quiz as many times as you need.</p>
 <div class="ob-error" id="quiz-error"></div>
 <form id="quiz-form" novalidate>
 <div class="ob-field"><label for="ob-name">Your full name</label><input id="ob-name" type="text" autocomplete="name" placeholder="First and last name"></div>
@@ -272,7 +272,8 @@ var QUESTIONS=[
 {q:'You forgot your portal PIN. What do you do?',options:['Reset it in My account','Ask another instructor for theirs','Text Lindsay at 703-987-5979','Wait a day and try again'],answer:2,lesson:1},
 {q:'After you accept a job, what unlocks on your job card?',options:['Your pay rate','The host\u2019s cell number and WiFi','The class roster','The host\u2019s street address'],answer:1,lesson:2},
 {q:'How early can you pick up your class materials?',options:['Any time after you accept the job','Up to one week before class','The morning of class','Up to three days before class, unless you arrange otherwise with Lindsay'],answer:3,lesson:3},
-{q:'You open the kit and think something is missing. What is the first step?',options:['Text Lindsay right away','Check every compartment of every bag against your teaching checklist','Buy the item yourself and keep the receipt','Check again when you get to the class site'],answer:1,lesson:3},
+{q:'When should you check your kit and review your class materials?',options:['The morning of the class','As soon as you pick up the kit, and always before the day of the class','When you arrive at the class location','Only if the kit feels light'],answer:1,lesson:3},
+{q:'Before you report anything missing from your kit, what do you do first?',options:['Text Lindsay that the item is missing','Check every compartment of every bag against your teaching checklist','Buy the item yourself and keep the receipt','Wait and check again when you get to the class site'],answer:1,lesson:3},
 {q:'How early should you arrive at a class?',options:['Right at the start time','5 minutes early','15 minutes early, to set up and test the technology','30 minutes early'],answer:2,lesson:3},
 {q:'During CPR and choking practice, students practice:',options:['Gently, on a partner','On the instructor','On pillows and cushions','Only on the manikins, never on each other'],answer:3,lesson:4},
 {q:'The child manikin is a torso. How do students practice with it?',options:['It goes on the floor and students kneel beside it','It sits on a table','The instructor holds it','Students take turns holding it standing up'],answer:0,lesson:4},
@@ -284,7 +285,7 @@ var QUESTIONS=[
 {q:'When is your pay issued?',options:['Every Friday','The day of the class','When the course is complete, materials are returned, and participant evaluations are submitted','Once a month'],answer:2,lesson:8},
 {q:'You join a virtual class on Zoom. What do you do first?',options:['Wait for Lindsay to start the meeting','Let all the students in, then set up','Record the session','Claim host, then open the slides and share your screen'],answer:3,lesson:6}
 ];
-var PASS=12;
+var PASS=13;
 var wrap=document.getElementById('quiz-questions');
 QUESTIONS.forEach(function(item,qi){
   var div=document.createElement('div');div.className='ob-q';div.id='q'+qi;
