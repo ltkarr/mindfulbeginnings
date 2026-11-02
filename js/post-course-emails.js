@@ -209,6 +209,16 @@
       ]
     },
     {
+      keys: ['Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED (Online + Classroom)'],
+      subject: 'Certified and fully trained',
+      greeting: 'Hi there,',
+      taker: 'have your child complete',
+      paragraphs: [
+        'Congratulations to your child on completing Red Cross Babysitter\'s Training plus Pediatric First Aid/CPR/AED. They finished the online learning at their own pace and a hands-on skills session with us, and they now hold American Red Cross certification, valid for two years.',
+        'This combination is the gold standard for young sitters. Encourage them to keep practicing their skills and to always trust their instincts on the job.'
+      ]
+    },
+    {
       keys: ['Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED'],
       subject: 'Certified and fully trained',
       greeting: 'Hi there,',
