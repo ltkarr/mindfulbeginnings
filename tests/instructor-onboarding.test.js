@@ -38,10 +38,10 @@ test('secrets stay behind the portal PIN and are never printed on the public pag
   assert.doesNotMatch(page, /843 6676 4411/);
 });
 
-test('quiz has 16 questions, passes at 13, and posts to the shared submit endpoint', () => {
+test('quiz has 19 questions, passes at 16, and posts to the shared submit endpoint', () => {
   const questions = page.match(/lesson:\d+\}/g) || [];
-  assert.equal(questions.length, 16);
-  assert.match(page, /var PASS=13/);
+  assert.equal(questions.length, 19);
+  assert.match(page, /var PASS=16/);
   assert.match(page, /\/api\/evaluations\/submit/);
   assert.match(page, /form:'onboarding'/);
   assert.match(page, /ob-website/); // honeypot field

@@ -87,7 +87,7 @@
 <div class="ob-steps">
 <div class="ob-step"><b>1. Learn the portal</b><span>How to log in, find open jobs, and accept a job.</span></div>
 <div class="ob-step"><b>2. Learn the essentials</b><span>The must-know rules from the Instructor Guide.</span></div>
-<div class="ob-step"><b>3. Pass the quiz</b><span>16 questions. You need 13 or more correct to pass, and you can retake it.</span></div>
+<div class="ob-step"><b>3. Pass the quiz</b><span>19 questions. You need 16 or more correct to pass, and you can retake it.</span></div>
 </div>
 
 <section class="ob-lesson" id="lesson-1">
@@ -136,7 +136,7 @@
 <ul>
 <li>Materials are picked up from the <strong>lockbox</strong> before class and returned to the <strong>storage box</strong> after. The address and the code live in the Instructor Guide inside your portal, so they stay behind your PIN.</li>
 <li>Pick up <strong>no more than three days before</strong> your class, unless you arrange an earlier pickup with Lindsay.</li>
-<li><strong>Check the kit immediately.</strong> Cross-reference everything against your teaching checklist as soon as you pick up, and check <em>every compartment of every bag</em> before you report anything missing. If something really is missing, tell Lindsay before your class date, not the morning of.</li>
+<li><strong>Check the kit the moment you get it, and always at least one day before your class.</strong> Cross-reference everything against your teaching checklist, and check <em>every compartment of every bag</em> before you report anything missing. If something really is missing after you have looked everywhere, <strong>text Lindsay right away</strong>. Never wait until the day of the class.</li>
 <li>Your <strong>Safe Sitter&reg; Instructor Manual is yours to keep</strong> after onboarding. Bring it to every Safe Sitter&reg; class you teach.</li>
 </ul>
 </section>
@@ -216,7 +216,8 @@
 <h3>Pay</h3>
 <ul>
 <li>Pay is issued when the course or series is complete, <strong>all materials are returned, and participant evaluations have been submitted</strong>.</li>
-<li>Rate increases are merit-based, based on courses taught and evaluation feedback, and are always communicated in writing.</li>
+<li><strong>Never ask for a pay increase.</strong> Raises and promotions are Mindful Beginnings' decision alone. Rate increases are merit-based, based on courses taught and evaluation feedback, and are always communicated in writing.</li>
+<li><strong>Every job shows its pay before you accept it</strong>, and some jobs carry a custom flat rate. If you do not like a job's pay, do not accept the job.</li>
 </ul>
 <h3>Professional expectations</h3>
 <ul>
@@ -251,7 +252,7 @@
 
 <section class="ob-quiz" id="quiz">
 <h2>The quiz</h2>
-<p class="sub">16 questions from the lessons above. You need <strong>13 or more correct</strong> to pass. When you pass, your result is saved and Lindsay can see it in Admin. You can retake the quiz as many times as you need.</p>
+<p class="sub">19 questions from the lessons above. You need <strong>16 or more correct</strong> to pass. When you pass, your result is saved and Lindsay can see it in Admin. You can retake the quiz as many times as you need.</p>
 <div class="ob-error" id="quiz-error"></div>
 <form id="quiz-form" novalidate>
 <div class="ob-field"><label for="ob-name">Your full name</label><input id="ob-name" type="text" autocomplete="name" placeholder="First and last name"></div>
@@ -272,8 +273,9 @@ var QUESTIONS=[
 {q:'You forgot your portal PIN. What do you do?',options:['Reset it in My account','Ask another instructor for theirs','Text Lindsay at 703-987-5979','Wait a day and try again'],answer:2,lesson:1},
 {q:'After you accept a job, what unlocks on your job card?',options:['Your pay rate','The host\u2019s cell number and WiFi','The class roster','The host\u2019s street address'],answer:1,lesson:2},
 {q:'How early can you pick up your class materials?',options:['Any time after you accept the job','Up to one week before class','The morning of class','Up to three days before class, unless you arrange otherwise with Lindsay'],answer:3,lesson:3},
-{q:'When should you check your kit and review your class materials?',options:['The morning of the class','As soon as you pick up the kit, and always before the day of the class','When you arrive at the class location','Only if the kit feels light'],answer:1,lesson:3},
+{q:'When must you check your kit and review your class materials?',options:['The morning of the class','As soon as you get the kit, and at least one day before the class','When you arrive at the class location','Only if the kit feels light'],answer:1,lesson:3},
 {q:'Before you report anything missing from your kit, what do you do first?',options:['Text Lindsay that the item is missing','Check every compartment of every bag against your teaching checklist','Buy the item yourself and keep the receipt','Wait and check again when you get to the class site'],answer:1,lesson:3},
+{q:'You have checked every compartment of every bag and an item really is missing. What do you do?',options:['Text Lindsay right away, before the day of the class','Wait until the morning of the class to mention it','Buy the item yourself and keep the receipt','Teach without it and say nothing'],answer:0,lesson:3},
 {q:'How early should you arrive at a class?',options:['Right at the start time','5 minutes early','15 minutes early, to set up and test the technology','30 minutes early'],answer:2,lesson:3},
 {q:'During CPR and choking practice, students practice:',options:['Gently, on a partner','On the instructor','On pillows and cushions','Only on the manikins, never on each other'],answer:3,lesson:4},
 {q:'The child manikin is a torso. How do students practice with it?',options:['It goes on the floor and students kneel beside it','It sits on a table','The instructor holds it','Students take turns holding it standing up'],answer:0,lesson:4},
@@ -283,9 +285,11 @@ var QUESTIONS=[
 {q:'A client cancels your class on the morning of the class. What happens with your pay?',options:['You are not paid','You are paid half','You are paid in full','You are paid only if you already arrived'],answer:2,lesson:7},
 {q:'You are teaching the same class again next week. What do you do with the materials?',options:['Return them within 48 hours anyway','Keep the kit for next week\u2019s class','Leave them at the class site','Give them to the host to hold'],answer:1,lesson:8},
 {q:'When is your pay issued?',options:['Every Friday','The day of the class','When the course is complete, materials are returned, and participant evaluations are submitted','Once a month'],answer:2,lesson:8},
+{q:'You would like a raise. What do you do?',options:['Ask Lindsay for an increase','Nothing: raises and promotions are Mindful Beginnings' decision, never something instructors ask for','Ask other instructors to request one with you','Turn down jobs until your rate goes up'],answer:1,lesson:8},
+{q:'A job is posted with a custom flat pay rate that you do not like. What do you do?',options:['Accept it and ask Lindsay to raise the rate afterward','Do not accept the job','Accept it and bring up the rate at the class','Ask the host to make up the difference'],answer:1,lesson:8},
 {q:'You join a virtual class on Zoom. What do you do first?',options:['Wait for Lindsay to start the meeting','Let all the students in, then set up','Record the session','Claim host, then open the slides and share your screen'],answer:3,lesson:6}
 ];
-var PASS=13;
+var PASS=16;
 var wrap=document.getElementById('quiz-questions');
 QUESTIONS.forEach(function(item,qi){
   var div=document.createElement('div');div.className='ob-q';div.id='q'+qi;
