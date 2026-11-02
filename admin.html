@@ -43,6 +43,7 @@ window.MB_ADMIN_BUILD='20261102-parent-roster';
 <script src="/js/class-requests-admin.js"></script>
 <script src="/js/invoice-payments.js"></script>
 <script src="/js/session-place.js"></script>
+<script src="/js/county-disclaimer.js"></script>
 <script src="/js/duplicate-sessions.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -944,7 +945,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),troopLevel:r.troop_level||null,extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),troopLevel:r.troop_level||null,countyDisclaimer:r.county_disclaimer===true?true:(r.county_disclaimer===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -1134,6 +1135,9 @@ function sessionToDB(s){
     const level=String(s.troopLevel||'').trim().toLowerCase();
     o.troop_level=level&&typeof troopLevelLabel==='function'&&troopLevelLabel(level)?level:null;
   }
+  if((typeof COUNTY_DISCLAIMER_COL==='undefined'||COUNTY_DISCLAIMER_COL)&&s.countyDisclaimer!==undefined){
+    o.county_disclaimer=s.countyDisclaimer===true?true:(s.countyDisclaimer===false?false:null);
+  }
   return o;
 }
 // Which optional column PostgREST rejected, if any. A missing column fails the
@@ -1161,6 +1165,7 @@ function sessionUpsertRejectColumn(msg){
   if((typeof TEACHING_HOURS_COL==='undefined'||TEACHING_HOURS_COL)&&/teaching_hours/i.test(msg))return 'teaching_hours';
   if((typeof PARTICIPANTS_EXPECTED_COL==='undefined'||PARTICIPANTS_EXPECTED_COL)&&/participants_expected/i.test(msg))return 'participants_expected';
   if((typeof TROOP_LEVEL_COL==='undefined'||TROOP_LEVEL_COL)&&/troop_level/i.test(msg))return 'troop_level';
+  if((typeof COUNTY_DISCLAIMER_COL==='undefined'||COUNTY_DISCLAIMER_COL)&&/county_disclaimer/i.test(msg))return 'county_disclaimer';
   return '';
 }
 function applySessionUpsertReject(which,flags){
@@ -1183,10 +1188,11 @@ function applySessionUpsertReject(which,flags){
   else if(which==='teaching_hours'){TEACHING_HOURS_COL=false;flags.missingTeachingHours=true;}
   else if(which==='participants_expected'){PARTICIPANTS_EXPECTED_COL=false;flags.missingParticipantsExpected=true;}
   else if(which==='troop_level'){TROOP_LEVEL_COL=false;flags.missingTroopLevel=true;}
+  else if(which==='county_disclaimer'){COUNTY_DISCLAIMER_COL=false;flags.missingCountyDisclaimer=true;}
   return !!which;
 }
 function blankSessionUpsertFlags(){
-  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false,missingParticipantsExpected:false,missingTroopLevel:false};
+  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false,missingParticipantsExpected:false,missingTroopLevel:false,missingCountyDisclaimer:false};
 }
 // Every session write goes through here: course sessions, custom jobs, holds,
 // publish, cancel. One unknown column used to abort custom-job and hold saves
@@ -1229,6 +1235,7 @@ function sessionOptionalColToast(f){
   if(f.missingPaidTravel||f.missingTeachingHours)return '⚠️ Saved, but WITHOUT class length / paid travel hours — run migrations/20261020_paid_travel_hours.sql in the Supabase SQL editor, then re-save this session.';
   if(f.missingParticipantsExpected)return PARTICIPANTS_EXPECTED_SQL_TOAST;
   if(f.missingTroopLevel)return TROOP_LEVEL_SQL_TOAST;
+  if(f.missingCountyDisclaimer)return '⚠️ Saved, but WITHOUT the Montgomery County disclaimer setting — run migrations/20261102_county_disclaimer.sql in the Supabase SQL editor, then re-save this session.';
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
   return '';
@@ -2287,6 +2294,24 @@ function orgRegistrationFieldHtml(s, codeInputId){
       </label>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Check this when the organization signs people up itself, such as a congregation or school. The public registration limit is 0: the class stays off every public listing and feed, a session code is not created or accepted, and families cannot register here. Class capacity and the organization invoice stay as you set them.</div>
     </div>`;
+}
+function countyDisclaimerFieldHtml(s){
+  const v=s&&s.countyDisclaimer===true?'show':(s&&s.countyDisclaimer===false?'hide':'auto');
+  return `<div class="fg full"><label>Montgomery County disclaimer</label>
+    <select id="m-county-disclaimer">
+      <option value="auto" ${v==='auto'?'selected':''}>Automatic — schools and Edgemoor</option>
+      <option value="show" ${v==='show'?'selected':''}>Always show</option>
+      <option value="hide" ${v==='hide'?'selected':''}>Hide for this session</option>
+    </select>
+    <div style="font-size:14px;color:var(--muted);margin-top:4px">Registration shows “This activity is not sponsored, associated with, or endorsed by Montgomery County Government” when the site name or address contains School, Elementary, Middle, High, MCPS, or Edgemoor. Always show or Hide overrides that.</div>
+  </div>`;
+}
+function readCountyDisclaimer(){
+  const el=document.getElementById('m-county-disclaimer');
+  if(!el)return undefined;
+  if(el.value==='show')return true;
+  if(el.value==='hide')return false;
+  return null;
 }
 function toggleOrgRegistration(on, codeInputId){
   const wrap=document.getElementById(codeInputId+'-wrap');
@@ -8192,6 +8217,7 @@ function openAddSession(){
       <div style="font-size:14px;color:var(--muted);margin-top:6px">Instructors see these on the job board so they know exactly which weeks are off before accepting.</div>
     </div>
     <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" placeholder="e.g. The Smith Family or Bethesda Community Center" oninput="syncBillToRequirement()"></div>
+    ${countyDisclaimerFieldHtml(null)}
     <div class="fg full"><label>Street Address</label><input type="text" id="m-haddr" placeholder="e.g. 123 Maple St"></div>
     <div class="fg"><label>City</label><input type="text" id="m-city" placeholder="e.g. Bethesda"></div>
     <div class="fg"><label>State</label><input type="text" id="m-state" placeholder="e.g. MD" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
@@ -8347,6 +8373,7 @@ function openAddCustomJob(){
       <div id="closures-list"></div>
     </div>
     <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" placeholder="e.g. Bethesda Community Center" oninput="syncBillToRequirement()"></div>
+    ${countyDisclaimerFieldHtml(null)}
     <div class="fg full"><label>Street Address</label><input type="text" id="cj-addr" placeholder="e.g. 123 Maple St"></div>
     <div class="fg"><label>City</label><input type="text" id="cj-city" placeholder="e.g. Bethesda"></div>
     <div class="fg"><label>State</label><input type="text" id="cj-state" placeholder="MD" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
@@ -8528,6 +8555,8 @@ async function saveCustomJob(){
   const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,orgHandlesRegistration,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg,feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
   if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
   if(troopLevel!==undefined)s.troopLevel=troopLevel;
+  const countyDisclaimer=readCountyDisclaimer();
+  if(countyDisclaimer!==undefined)s.countyDisclaimer=countyDisclaimer;
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
@@ -8562,6 +8591,7 @@ ${lockboxFieldHtml(s)}
     <div class="fg"><label>Date <span id="cj-date-req">${s.isHold?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'* <span style="font-weight:400;color:var(--muted)">(first meeting if recurring)</span>'}</span></label><input type="date" id="cj-date" value="${s.date||''}"></div>
     <div class="fg"><label>Time</label><input type="text" id="cj-time" value="${s.time||''}" placeholder="e.g. 4:00 – 5:00 PM"></div>
     <div class="fg full"><label>Location / Site Name</label><input type="text" id="cj-loc" value="${s.location||''}" oninput="syncBillToRequirement()"></div>
+    ${countyDisclaimerFieldHtml(s)}
     <div class="fg full"><label>Street Address</label><input type="text" id="cj-addr" value="${s.hostAddress||''}"></div>
     <div class="fg"><label>City</label><input type="text" id="cj-city" value="${s.city||''}"></div>
     <div class="fg"><label>State</label><input type="text" id="cj-state" value="${s.state||''}" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
@@ -8744,6 +8774,8 @@ async function saveEditCustomJob(id){
   Object.assign(s,{code,orgHandlesRegistration,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg,feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
   if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
   if(troopLevel!==undefined)s.troopLevel=troopLevel;
+  const countyDisclaimer=readCountyDisclaimer();
+  if(countyDisclaimer!==undefined)s.countyDisclaimer=countyDisclaimer;
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
   {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;feeReceivedMissing=!!_r.missingFeeReceived;orgRegMissing=!!_r.missingOrgReg;}
@@ -8920,6 +8952,7 @@ ${lockboxFieldHtml(s)}
     <div class="fg"><label>Date <span id="m-date-req">${s.isHold?'<span style="font-weight:400;color:var(--muted)">(optional for holds)</span>':'*'}</span></label><input type="date" id="m-date" value="${s.date}"></div>
     <div class="fg"><label>Time</label><input type="text" id="m-time" value="${s.time||''}"></div>
     <div class="fg full"><label>Host or Site Name</label><input type="text" id="m-loc" value="${s.location||''}" oninput="syncBillToRequirement()"></div>
+    ${countyDisclaimerFieldHtml(s)}
     <div class="fg full">
       <label>Session format</label>
       <select id="m-virtual" onchange="toggleVirtualFields(this.value)">
@@ -9194,6 +9227,8 @@ async function saveSession(editId){
   const matChoice=sessionMaterialsFromForm(editId);
   if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
   if(troopLevel!==undefined)s.troopLevel=troopLevel;
+  const countyDisclaimer=readCountyDisclaimer();
+  if(countyDisclaimer!==undefined)s.countyDisclaimer=countyDisclaimer;
   closeModal();renderSessions();renderDashboard();renderCodes();
   // Save session first, then job data (so foreign key is satisfied).
   // Supabase returns errors on the result object (it does not throw for RLS / constraint failures),
