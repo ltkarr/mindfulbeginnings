@@ -23,6 +23,7 @@
 <script src="/js/public-sessions.js"></script>
 <script src="/js/course-booking.js"></script>
 <script src="/js/arc-registration.js"></script>
+<script src="/js/course-copy.js"></script>
 <script src="/js/registration-copy.js"></script>
 <script src="/js/payments.js"></script>
 <script src="/js/discount-codes.js"></script>
@@ -308,7 +309,7 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
     <label class="host-chk"><input type="checkbox" id="is-host"><div><div class="chk-title">I am the host for this session</div><div class="chk-sub">Home hosts get one free spot.</div></div></label>
   </div>
   <div class="fsec" id="accommodations-section"><div class="fsec-title">Accommodations / notes</div>
-    <div class="notice-box" id="accom-notice">A great deal of information is presented in a short period of time during the Safe Sitter® course. We want every child to succeed, and we will work with you to make alternate plans if your child has difficulty keeping up. Please let us know if there is anything we should know to help your child succeed. If your child needs accommodations, please let the Instructor or Site Coordinator know as soon as possible. <strong>Please note:</strong> Safe Sitter® does not provide CPR certification, release the names of graduates, or act as a referral source of babysitters.</div>
+    <div class="notice-box" id="accom-notice">A great deal of information is presented in a short period of time during this course. We want every participant to succeed, and we will work with you to make alternate plans if your child has difficulty keeping up. Please let us know if there is anything we should know to help your child succeed. If your child needs accommodations, please let the Instructor or Site Coordinator know as soon as possible.</div>
     <div class="field" style="margin-top:12px"><label>Special needs, allergies, or accommodations</label><textarea id="p-notes" rows="3" placeholder="Please share anything that will help your child succeed in the course (optional)"></textarea></div>
   </div>
   <div class="fsec" id="permissions-section"><div class="fsec-title">Permissions</div>
@@ -341,16 +342,16 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
       <!-- Child / standard clauses -->
       <div id="terms-standard">
         <p><strong>Disruptive student policy.</strong> Mindful Beginnings reserves the right to decline or send home any student who is disruptive or poses a risk to themselves or others.</p>
-        <p><strong>Risk acknowledgment and release of liability.</strong> I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Safe Sitter, Inc. and Mindful Beginnings and their staff from any and all claims arising from my child's participation.</p>
+        <p id="terms-release"><strong>Risk acknowledgment and release of liability.</strong> <span id="terms-release-body">I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Safe Sitter, Inc. and Mindful Beginnings and their staff from any and all claims arising from my child's participation.</span></p>
         <div id="terms-cpr">
           <p><strong>Skills practice.</strong> Students will practice CPR and rescue skills on manikins.</p>
-          <p><strong>Certification.</strong> This course provides a Safe Sitter® certificate of completion. Formal CPR certification is not included.</p>
+          <p id="terms-cert"><strong>Certification.</strong> <span id="terms-cert-body">This course provides a Safe Sitter® certificate of completion. Formal CPR certification is not included.</span></p>
         </div>
         <p><strong>My child can safely participate.</strong> I certify that to the best of my knowledge my child is able to safely participate in the program.</p>
         <p id="terms-stay-ready" style="display:none"><strong>Prerequisite confirmation.</strong> My child has taken the Safe Sitter® Babysitting Course and/or a CPR and First Aid course previously.</p>
       </div>
       <div id="terms-girl-scout" style="display:none">
-        <p><strong>What this workshop is.</strong> This is a Girl Scout badge workshop taught by a registered nurse from Mindful Beginnings. It is not a Safe Sitter® babysitting class, and completing it does not award a Safe Sitter® certificate.</p>
+        <p><strong>What this workshop is.</strong> This is a Girl Scout badge workshop taught by a registered nurse from Mindful Beginnings.</p>
         <p><strong>Educational only.</strong> Any first aid or safety skill that is shown is practice for the badge. Completing the workshop does not certify the participant in CPR or first aid.</p>
         <p><strong>Risk acknowledgment and release of liability.</strong> I acknowledge that there may be a risk of injury involved in workshop activities. I agree to release, hold harmless, and indemnify Mindful Beginnings and their staff from any and all claims arising from my child's participation.</p>
         <p><strong>My child can safely participate.</strong> I certify that to the best of my knowledge my child is able to safely participate in the workshop.</p>
@@ -358,7 +359,7 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
       <!-- Grandparent / adult clauses -->
       <div id="terms-grandparent" style="display:none">
         <p><strong>Attendance and punctuality.</strong> I understand the importance of attending all sessions and arriving on time.</p>
-        <p><strong>Risk acknowledgment and release of liability.</strong> I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Safe Sitter, Inc. and Mindful Beginnings and their staff from any and all claims arising from my participation in this program.</p>
+        <p id="terms-release-adult"><strong>Risk acknowledgment and release of liability.</strong> <span id="terms-release-adult-body">I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Safe Sitter, Inc. and Mindful Beginnings and their staff from any and all claims arising from my participation in this program.</span></p>
         <p><strong>I can safely participate.</strong> I confirm that I am able to safely participate in the program.</p>
       </div>
       <!-- Campus Ready clauses (RN-taught, educational only, no certification, strong release) -->
@@ -1728,21 +1729,29 @@ function setBanner(id){
   const isPeriod=s.course==='Ready. Period.';
   const isOwnRelease=isCampusReady||isSeasonReady||isPeriod;
   const isGirlScout=isGirlScoutBadgeCourse(s.course);
+  const courseCopy=window.MBCourseCopy;
   // Stay Ready: Choking Rescue and CPR DOES use manikins — intentionally excluded from isNoCPR
   const noHost=s.hasHost===false;
 
-  // Accommodations section
+  // Accommodations section. Safe Sitter keeps its note. Red Cross courses get
+  // Red Cross copy. Every other course gets generic copy with no brand and no
+  // certification claim.
   const accomSec=document.getElementById('accommodations-section');
   if(accomSec)accomSec.style.display=isAdult?'none':'';
-  // Accommodations notice — the default Safe Sitter wording does not apply to Campus Ready,
-  // so show a short, course-appropriate note there instead.
   const accomNotice=document.getElementById('accom-notice');
-  if(accomNotice){
-    accomNotice.innerHTML=isOwnRelease
-      ?'We want every participant to succeed. If the participant needs any accommodations, please let the instructor know as soon as possible, and note anything that will help below.'
-      :isGirlScout
-      ?'This is a Girl Scout badge workshop taught by a registered nurse. It is not a Safe Sitter® class. If your child needs any accommodations, please let the instructor know as soon as possible, and note anything that will help below.'
-      :'A great deal of information is presented in a short period of time during the Safe Sitter\u00ae course. We want every child to succeed, and we will work with you to make alternate plans if your child has difficulty keeping up. Please let us know if there is anything we should know to help your child succeed. If your child needs accommodations, please let the Instructor or Site Coordinator know as soon as possible. <strong>Please note:</strong> Safe Sitter\u00ae does not provide CPR certification, release the names of graduates, or act as a referral source of babysitters.';
+  if(accomNotice&&courseCopy)accomNotice.innerHTML=courseCopy.accommodationsHtml(s.course);
+  const releaseBody=document.getElementById('terms-release-body');
+  const adultReleaseBody=document.getElementById('terms-release-adult-body');
+  const certP=document.getElementById('terms-cert');
+  const certBody=document.getElementById('terms-cert-body');
+  if(courseCopy){
+    if(releaseBody)releaseBody.textContent=courseCopy.releaseText(s.course,false);
+    if(adultReleaseBody)adultReleaseBody.textContent=courseCopy.releaseText(s.course,true);
+    if(certP&&certBody){
+      const cert=courseCopy.certificationText(s.course);
+      if(cert){certP.style.display='';certBody.textContent=cert;}
+      else certP.style.display='none';
+    }
   }
 
   // Grade field — hidden entirely for the adult courses (no participant grade).
@@ -1795,8 +1804,8 @@ function setBanner(id){
         :isStayReady
         ?'<strong>📋 Please note:</strong> This session includes hands-on practice of choking rescue and CPR on manikins. <strong>This session does not provide CPR certification.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
         :isGirlScout
-        ?'<strong>📋 Please note:</strong> This Girl Scout badge workshop is taught by a registered nurse. <strong>It is not a Safe Sitter® class and does not award a Safe Sitter® certificate or CPR certification.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
-        :'<strong>📋 Please note:</strong> Your child will practice CPR and rescue skills on manikins during this course. <strong>This course does not provide CPR certification.</strong> Upon successful completion, your child will receive a Safe Sitter® certificate of completion.';
+        ?'<strong>📋 Please note:</strong> This Girl Scout badge workshop is taught by a registered nurse. <strong>It does not certify the participant in CPR or first aid.</strong> Upon completion, your child will receive a certificate of participation from Mindful Beginnings.'
+        :(courseCopy?courseCopy.cprNoticeHtml(s.course):'');
     }
   }
 
@@ -1816,7 +1825,7 @@ function setBanner(id){
         ?'This session includes hands-on practice of choking rescue and CPR on manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?'
         :isGirlScout
         ?'This Girl Scout badge workshop may include hands-on safety practice. Do you give permission for your child to take part?'
-        :'Safe Sitter® includes practice of rescue skills on CPR manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?');
+        :(courseCopy?courseCopy.manikinPermissionText(s.course):'This course includes practice of rescue skills on CPR manikins. Manikins require strict standards for controlling infection. Do you give permission for your child to practice on the manikins?'));
     permSec.querySelectorAll('.radio-lbl')[0].childNodes[1].textContent=' Yes, I give permission';
     permSec.querySelectorAll('.radio-lbl')[1].childNodes[1].textContent=' No, I do not give permission';
     permSec.querySelectorAll('.perm-desc')[1].textContent=(isGP||isCareReady||isBabyReady||isBabyReadyCpr)
@@ -1946,7 +1955,10 @@ function applyArcForm(s){
   if(perm)perm.style.display='none';
   const cprNotice=document.getElementById('waiver-cpr-notice');
   if(cprNotice)cprNotice.style.display='none';
-  if(accomNotice)accomNotice.style.display='none';
+  if(accomNotice){
+    accomNotice.style.display='';
+    if(!isVirtual&&window.MBCourseCopy)accomNotice.innerHTML=window.MBCourseCopy.accommodationsHtml(course);
+  }
   ['terms-standard','terms-grandparent','terms-girl-scout','terms-campus-ready','terms-season-ready','terms-ready-period','terms-campus-ready-ack'].forEach(function(id){
     const el=document.getElementById(id);
     if(el)el.style.display='none';

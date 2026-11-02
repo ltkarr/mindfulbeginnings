@@ -249,7 +249,7 @@
       ]
     },
     {
-      keys: ['Red Cross Babysitter\'s Training'],
+      keys: ['Red Cross Babysitter\'s Training', 'Babysitter\'s Training'],
       subject: 'Red Cross trained sitter',
       greeting: 'Hi there,',
       taker: 'have your child complete',

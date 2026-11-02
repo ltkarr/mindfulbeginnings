@@ -92,6 +92,15 @@
     return 'Price: ' + label.replace(/\.$/, '') + '. Estimated total for ' + people + ': ' + formatDollars(amount * n) + ', final invoice based on attendance';
   }
 
+  function courseCopy() {
+    if (typeof MBCourseCopy !== 'undefined' && MBCourseCopy) return MBCourseCopy;
+    if (root && root.MBCourseCopy) return root.MBCourseCopy;
+    if (typeof require === 'function') {
+      try { return require('./course-copy.js'); } catch (e) { return null; }
+    }
+    return null;
+  }
+
   function val(info, key, fallback) {
     var v = info && info[key];
     v = v == null ? '' : String(v).trim();
@@ -179,9 +188,16 @@
       lines.push('\u2022 Instructor: Your instructor for the day will be ' + (instructor || 'To be confirmed') + '. You can learn more about our full team here: https://mindfulbeginnings.org/our-team');
       lines.push('\u2022 Course Overview: https://docs.google.com/document/d/1YYHVQHr0p_wCUp8BPlyCJc73p5bvkx_PEMewWwDOQRs/edit?usp=sharing');
       lines.push('');
-      lines.push('CERTIFICATION');
-      lines.push('Upon successful completion of the course, each participant will receive an official Safe Sitter\u00ae Certificate of Completion.');
-      lines.push('');
+      var certLine = '';
+      var copyApi = courseCopy();
+      if (copyApi && typeof copyApi.reminderCertificationLine === 'function') {
+        certLine = copyApi.reminderCertificationLine(course);
+      }
+      if (certLine) {
+        lines.push('CERTIFICATION');
+        lines.push(certLine);
+        lines.push('');
+      }
       lines.push('Please let us know if you have any questions in the meantime. We can\u2019t wait for a great day of learning!');
       lines.push('');
       lines.push('Warmly,');

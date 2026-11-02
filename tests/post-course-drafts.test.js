@@ -102,6 +102,13 @@ test('postCourseDraftFor embeds review and evaluation links', () => {
   assert.ok(!EM_DASH.test(d.bodyHtml), 'no em dashes in draft html');
 });
 
+test('Babysitter\'s Training thank-you is Red Cross, not Safe Sitter', () => {
+  const d = drafts.postCourseDraftFor("Babysitter's Training");
+  assert.match(d.body, /Red Cross Babysitter's Training/);
+  assert.doesNotMatch(d.body, /Safe Sitter/);
+  assert.doesNotMatch(d.subject + d.body, /\u2014/);
+});
+
 test('postCourseDraftFor falls back to a generic draft for unknown courses', () => {
   const d = drafts.postCourseDraftFor('Some Course That Does Not Exist 123');
   assert.ok(d && d.subject, 'generic fallback has a subject');
