@@ -132,10 +132,14 @@
   }
 
   var STATUS_LABELS = {
-    pending: 'Pending',
+    pending: 'Received',
     received: 'Received',
-    session_created: 'Session created',
-    email_sent: 'Email sent'
+    replied: 'Replied',
+    confirmed: 'Confirmed',
+    session_built: 'Session built',
+    session_created: 'Session built',
+    draft_ready: 'Replied',
+    email_sent: 'Confirmed'
   };
 
   function applyChecklistUpdate(current, patch) {
@@ -641,13 +645,13 @@
       checklistAnswer: clip(body.checklistAnswer, 80),
       checklistQuestions: clip(body.checklistQuestions, 2000),
       food: clip(body.food, 40),
-      specialInstructions: clip(body.specialInstructions, 4000),
-      badge: clip(body.badge, 300),
+      specialInstructions: clip(body.specialInstructions, 10000),
+      badge: clip(body.badge, 10000),
       instructorRequest: clip(body.instructorRequest, 200),
       parking: clip(body.parking, 2000),
       arrival: clip(body.arrival, 4000),
-      participantInfo: clip(body.participantInfo, 4000),
-      customRequest: clip(body.customRequest, 4000),
+      participantInfo: clip(body.participantInfo, 10000),
+      customRequest: clip(body.customRequest, 10000),
       portionText: clip(body.portionText, 200),
       av: Array.isArray(body.av) ? body.av.map(function (x) { return clip(x, 80); }).filter(Boolean).slice(0, 8) : [],
       clubs: Array.isArray(body.clubs) ? body.clubs.map(function (x) { return clip(x, 80); }).filter(Boolean).slice(0, 12) : [],
@@ -766,7 +770,7 @@
     if (n.specialInstructions) lines.push('Special instructions: ' + n.specialInstructions);
     if (n.customRequest) lines.push('Custom request: ' + n.customRequest);
     if (n.clubs && n.clubs.length) lines.push('Clubs: ' + n.clubs.join(', '));
-    return lines.join('\n').slice(0, 4000);
+    return lines.join('\n').slice(0, 20000);
   }
 
   function billingSentence(n) {
@@ -786,7 +790,7 @@
     if (n.referral) lines.push('Referral: ' + n.referral);
     lines.push(billingSentence(n));
     if (n.datesText) lines.push('Dates as written: ' + n.datesText);
-    return lines.join('\n').slice(0, 4000);
+    return lines.join('\n').slice(0, 20000);
   }
 
   function buildSessionRow(n, existingCodes, ids) {

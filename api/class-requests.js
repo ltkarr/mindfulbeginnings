@@ -68,7 +68,6 @@ module.exports = async function handler(req, res) {
     const result = await submitClassRequest(body, {
       insertRequest: store.insertRequest,
       updateRequest: store.updateRequest,
-      createOutlookDraft: createOutlookDraft,
       notifyLindsay: notifyLindsay,
       confirmRequester: confirmRequester
     });

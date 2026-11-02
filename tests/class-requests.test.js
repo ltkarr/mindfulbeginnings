@@ -10,7 +10,7 @@ const adminUi = require('../js/class-requests-admin');
 const { submitClassRequest } = require('../lib/class-request-submit');
 const { approveClassRequest } = require('../lib/class-request-approve');
 const { createOutlookDraft } = require('../lib/outlook-draft');
-const { notifyLindsay, LINDSAY } = require('../lib/class-request-notify');
+const { notifyLindsay, messageText, LINDSAY } = require('../lib/class-request-notify');
 
 const root = path.join(__dirname, '..');
 const hostPage = fs.readFileSync(path.join(root, 'host.html'), 'utf8');
@@ -454,11 +454,12 @@ test('checklist stays pending until a session is approved, then advances only wh
   assert.equal(reopened.status, 'session_created');
 });
 
-test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
+test('ADMIN shows one status, a linked session code, and copy, and drops the old draft buttons', () => {
   assert.match(admin, /id="screen-requests"/);
   assert.match(admin, /id="nav-requests"/);
   assert.match(admin, /class_requests/);
   assert.match(admin, /migrations\/class_requests\.sql/);
+  const longBadge = 'Brownie message. ' + 'x'.repeat(2500);
   const html = adminUi.renderList([{
     id: 'req-1',
     kind: 'host',
@@ -471,17 +472,23 @@ test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
     draft_body: 'Hi Jane',
     draft_to: 'jane@example.com',
     checklist: model.checklistAfterSubmit(true).checklist,
-    payload: hostBody(),
+    payload: hostBody({ badge: longBadge }),
     created_at: '2026-10-05T12:00:00Z'
-  }], 'open', [{ id: 'sess-1', instructorId: null }]);
-  assert.match(html, /Session created in ADMIN/);
-  assert.doesNotMatch(html, /Confirmation email drafted/);
-  assert.match(html, /Email sent/);
-  assert.doesNotMatch(html, /Instructor claimed/);
-  assert.doesNotMatch(html, /Archived/);
-  assert.match(html, /Open confirmation draft/);
-  assert.match(html, /SS-261102/);
-  assert.doesNotMatch(html, /Approve and create session/);
+  }], 'all', [{ id: 'sess-1', code: 'SS-261102', instructorId: null }]);
+  assert.doesNotMatch(html, /Create session in Admin/);
+  assert.doesNotMatch(html, /Open confirmation draft/);
+  assert.doesNotMatch(html, /Open Outlook draft/);
+  assert.doesNotMatch(html, /Session created in ADMIN/);
+  assert.doesNotMatch(html, /Email sent/);
+  assert.match(html, /Session built/);
+  assert.match(html, /Copy request/);
+  assert.match(html, /Full submission/);
+  assert.match(html, /value="received"/);
+  assert.match(html, /value="replied"/);
+  assert.match(html, /value="confirmed"/);
+  assert.match(html, /value="session_built" selected/);
+  assert.match(html, />SS-261102<\/a>/);
+  assert.equal(html.includes(longBadge), true);
   const pendingHtml = adminUi.renderList([{
     id: 'req-pending',
     kind: 'organization',
@@ -491,33 +498,82 @@ test('ADMIN lists the checklist and keeps the email-sent step manual', () => {
     session_id: null,
     session_code: null,
     checklist: model.checklistAfterSubmit(false).checklist,
-    payload: orgBody(),
+    payload: orgBody({ badge: longBadge, customRequest: 'A long custom note.' }),
     created_at: '2026-10-05T12:00:00Z'
   }], 'open', []);
-  assert.match(pendingHtml, /Create session in Admin/);
   assert.match(pendingHtml, /Delete request/);
-  assert.doesNotMatch(pendingHtml, />Done</);
-  assert.match(pendingHtml, /Pending/);
+  assert.match(pendingHtml, /Copy request/);
+  assert.match(pendingHtml, />Received</);
+  assert.match(pendingHtml, /value="received" selected/);
+  assert.equal(pendingHtml.includes(longBadge), true);
+  assert.match(pendingHtml, /A long custom note/);
+  assert.doesNotMatch(pendingHtml, /Create session in Admin/);
   assert.doesNotMatch(pendingHtml, /\u2014/);
-  assert.equal(adminUi.openCount([{ checklist: {} }, { checklist: { email_sent: true } }, { checklist: { email_sent: true, session_created: true } }]), 1);
+  const copied = adminUi.requestPlainText({
+    id: 'req-pending',
+    kind: 'organization',
+    status: 'pending',
+    submitter_name: 'Alex Brown',
+    course: 'Safe Sitter®',
+    payload: orgBody({ badge: longBadge })
+  });
+  assert.match(copied, /Girl Scout badge: /);
+  assert.equal(copied.includes(longBadge), true);
+  assert.match(copied, /Alex Brown/);
+  assert.equal(adminUi.canonicalStatus({ status: 'pending' }), 'received');
+  assert.equal(adminUi.canonicalStatus({ status: 'session_created' }), 'session_built');
+  assert.equal(adminUi.openCount([{ status: 'pending' }, { status: 'replied' }, { status: 'session_built' }]), 2);
   assert.match(admin, /<option value="open" selected>Open<\/option>/);
   assert.doesNotMatch(admin, /<option value="done">Done<\/option>/);
   assert.doesNotMatch(admin, /Just received/);
   assert.doesNotMatch(admin, /value="archived"/);
-  const fresh = { checklist: { done: false, session_created: false } };
-  const attention = { checklist: { session_created: true } };
-  const emailed = { checklist: { email_sent: true } };
+  const fresh = { status: 'received' };
+  const replied = { status: 'replied' };
+  const built = { status: 'session_built' };
   assert.equal(adminUi.matchesFilter(fresh, 'open'), true);
-  assert.equal(adminUi.matchesFilter(attention, 'open'), true);
-  assert.equal(adminUi.matchesFilter(emailed, 'open'), false);
-  assert.equal(adminUi.matchesFilter(emailed, 'all'), true);
+  assert.equal(adminUi.matchesFilter(replied, 'open'), true);
+  assert.equal(adminUi.matchesFilter(built, 'open'), false);
+  assert.equal(adminUi.matchesFilter(built, 'all'), true);
   assert.equal(adminUi.matchesFilter(fresh, 'all'), true);
   assert.match(migration, /enable row level security/i);
   assert.match(migration, /revoke all on table public\.class_requests from public, anon/i);
   assert.doesNotMatch(outlookSrc, /sendMail/);
 });
 
-test('submitting creates no session, stores a pending request, keeps the confirmation a draft, and notifies only Lindsay', async () => {
+test('a long Girl Scout badge stays in the draft, the session notes, and is not cut at 300 characters', () => {
+  const badge = ('Troop note. ' + 'Please read this. '.repeat(80)).trim();
+  assert.ok(badge.length > 300);
+  assert.ok(badge.length < 10000);
+  const n = model.normalizeSubmission(orgBody({
+    courseKey: 'gs-first-aid',
+    badge: badge,
+    customRequest: 'C'.repeat(5000),
+    participantInfo: 'P'.repeat(5000),
+    specialInstructions: 'S'.repeat(5000)
+  }));
+  assert.equal(n.badge, badge);
+  assert.equal(n.customRequest.length, 5000);
+  assert.equal(n.participantInfo.length, 5000);
+  assert.equal(n.specialInstructions.length, 5000);
+  const draft = model.buildDraft(n, null);
+  assert.equal(draft.body.includes(badge), true);
+  const capped = model.normalizeSubmission(orgBody({ badge: 'B'.repeat(12000) }));
+  assert.equal(capped.badge.length, 10000);
+  const plan = model.buildSessionRow(model.normalizeSubmission(hostBody({
+    address: '123 Maple St',
+    city: 'Bethesda',
+    state: 'MD',
+    zip: '20814',
+    badge: badge,
+    specialInstructions: 'S'.repeat(5000)
+  })), []);
+  assert.equal(plan.created, true);
+  assert.equal(plan.row.notes.includes(badge), true);
+  assert.ok(plan.row.notes.length > 4000);
+  assert.ok(plan.row.notes.length <= 20000);
+});
+
+test('submitting creates no session, stores a received request, skips the Outlook draft, and notifies only Lindsay', async () => {
   const saved = [];
   const notices = [];
   const drafts = [];
@@ -535,16 +591,12 @@ test('submitting creates no session, stores a pending request, keeps the confirm
   assert.equal(result.body.outlookDraftCreated, false);
   assert.equal(result.body.draftStored, true);
   assert.equal(saved.length, 1);
-  assert.equal(saved[0].status, 'pending');
+  assert.equal(saved[0].status, 'received');
   assert.equal(saved[0].session_id, null);
   assert.equal(saved[0].session_code, null);
   assert.equal(saved[0].checklist.session_created, false);
   assert.equal(saved[0].checklist.email_sent, false);
-  assert.equal(drafts[0].to, 'alex@example.org');
-  assert.match(drafts[0].body, /Warmly/);
-  assert.doesNotMatch(drafts[0].body, /SS-261102/);
-  assert.match(drafts[0].body, /I will send the private registration link when the class is confirmed/);
-  assert.doesNotMatch(drafts[0].body, /\u2014/);
+  assert.equal(drafts.length, 0);
   assert.equal(notices.length, 1);
   assert.match(notices[0].draft_body, /not sent|Warmly|private registration link/i);
   assert.equal(notices[0].session_code, null);
@@ -705,12 +757,14 @@ test('Graph draft creation posts a message and does not send it', async () => {
 
 test('the new-request notice goes to Lindsay and never to the family', async () => {
   const sent = [];
+  const badge = ('Bring the first-aid kit and the permission slips. '.repeat(40)).trim();
   const result = await notifyLindsay({
     kind: 'host',
     submitter_name: 'Jane Host',
     submitter_email: 'jane@example.com',
-    course: 'Safe Sitter®',
-    session_code: 'SS-261102'
+    course: 'Girl Scouts — First Aid Badge Workshop',
+    session_code: null,
+    payload: { badge: badge, specialInstructions: 'Park behind the school.' }
   }, {
     env: {
       graphTenant: 'tenant',
@@ -734,6 +788,9 @@ test('the new-request notice goes to Lindsay and never to the family', async () 
   const payload = JSON.parse(mail.body);
   assert.deepEqual(payload.message.toRecipients, [{ emailAddress: { address: LINDSAY } }]);
   assert.match(payload.message.body.content, /not sent to the family/i);
+  assert.equal(payload.message.body.content.includes(badge), true);
+  assert.match(payload.message.body.content, /Park behind the school/);
+  assert.equal(messageText({ payload: { badge: 'B'.repeat(12000) } }).length <= 20000, true);
   assert.doesNotMatch(JSON.stringify(payload.message.toRecipients), /jane@example.com/);
 
   const quiet = await notifyLindsay({}, { env: {}, fetch: async function () { throw new Error('should not send'); } });
@@ -819,8 +876,13 @@ test('approving requires an admin and does not create a session when unauthentic
   const submitSrc = fs.readFileSync(path.join(root, 'lib/class-request-submit.js'), 'utf8');
   const approveSrc = fs.readFileSync(path.join(root, 'lib/class-request-approve.js'), 'utf8');
   const apiSrc = fs.readFileSync(path.join(root, 'api/class-requests.js'), 'utf8');
-  assert.match(adminSrc, /Create session in Admin/);
-  assert.match(adminSrc, /action: 'approve'/);
+  assert.doesNotMatch(adminSrc, /Create session in Admin/);
+  assert.match(adminSrc, /Copy request/);
+  assert.match(adminSrc, /setClassRequestStatus/);
+  assert.match(adminSrc, /Full submission/);
+  assert.match(fs.readFileSync(path.join(root, 'migrations/20261102_class_request_status.sql'), 'utf8'), /pending/);
+  assert.match(fs.readFileSync(path.join(root, 'lib/class-request-submit.js'), 'utf8'), /not_requested/);
+  assert.doesNotMatch(fs.readFileSync(path.join(root, 'lib/class-request-submit.js'), 'utf8'), /createOutlookDraft\(/);
   assert.match(apiSrc, /body\.action === 'approve'/);
   assert.match(adminSrc, /Delete request/);
   assert.match(adminSrc, /action: 'delete'/);
