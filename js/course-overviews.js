@@ -2,7 +2,12 @@
    Keyed by the course name in config.js / admin.html COURSES.
    A session title that starts with a known course still matches, so a
    troop-specific custom title can use the same overview.
-   Nothing here sends email. ADMIN asks for the text when it builds a draft. */
+   Nothing here sends email. ADMIN asks for the text when it builds a draft.
+   urlFor() maps a course to its public overview page (the hidden
+   course-overviews pages built from the Drive overview docs), so the
+   family reminder, the host letter, and the host-forward draft can each
+   carry the course's own overview link. Courses with no overview page
+   return '' and the drafts simply leave the line out. */
 (function (root) {
   'use strict';
 
@@ -69,10 +74,63 @@
     return lines.join('\n');
   }
 
+  var OVERVIEW_BASE = 'https://mindfulbeginnings.org/course-overviews/';
+  var OVERVIEW_URLS = {
+    'Safe Sitter® Grandparents': 'grandparents-getting-started',
+    'Safe Sitter® Babysitting': 'safe-sitter-babysitting',
+    'Safe Sitter®': 'safe-sitter-babysitting',
+    'Intro to Babysitting': 'intro-to-safe-babysitting',
+    'Introduction to Safe Babysitting': 'intro-to-safe-babysitting',
+    'Safe@Home': 'safe-at-home',
+    'Social Ready': 'social-ready',
+    'Stay Ready': 'stay-ready',
+    'Steady and Ready': 'steady-and-ready',
+    'All Kids Welcome': 'all-kids-welcome',
+    'Season Ready': 'season-ready',
+    'Ready. Period.': 'ready-period',
+    'Baby Ready': 'baby-ready',
+    'Care Ready': 'care-ready',
+    'My First Babysitters Club': 'my-first-babysitters-club',
+    'Little Medics': 'little-medics',
+    'Girl Scouts — First Aid Badge Workshop': 'first-aid-badge-workshop'
+  };
+
+  function normName(s) {
+    return String(s || '').toLowerCase()
+      .replace(/[®™'’]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  var URL_KEYS = Object.keys(OVERVIEW_URLS).sort(function (a, b) {
+    return normName(b).length - normName(a).length;
+  });
+
+  function urlFor(course) {
+    var name = normName(course);
+    if (!name) return '';
+    // The club overview describes the multi-week series. The single-session
+    // workshop version has no overview page.
+    if (name.indexOf('my first babysitters club') === 0
+        && /single session|workshop/.test(name)) return '';
+    if (name.indexOf('first aid badge') !== -1) {
+      return OVERVIEW_BASE + 'first-aid-badge-workshop';
+    }
+    for (var i = 0; i < URL_KEYS.length; i++) {
+      var key = normName(URL_KEYS[i]);
+      if (name === key || name.indexOf(key) === 0) {
+        return OVERVIEW_BASE + OVERVIEW_URLS[URL_KEYS[i]];
+      }
+    }
+    return '';
+  }
+
   var api = {
     OVERVIEWS: OVERVIEWS,
+    OVERVIEW_URLS: OVERVIEW_URLS,
     overviewFor: overviewFor,
-    textFor: textFor
+    textFor: textFor,
+    urlFor: urlFor
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

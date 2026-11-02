@@ -12789,6 +12789,7 @@ function opsEmailInfo(s){
     specialNotes:api?api.specialNotes(specialChunks):'',
     wifi:s.wifiInfo||'',
     priceText:price,
+    overviewUrl:(function(){var o=courseOverviewApi();return o&&o.urlFor?o.urlFor(s.course):'';})(),
     regLink:REG_PAGE+'?code='+(s.code||''),
     hasHostSpot:s.hasHost!==false,
     expectedCount:(s.billToOrg&&s.billedHeadcount)?s.billedHeadcount:''

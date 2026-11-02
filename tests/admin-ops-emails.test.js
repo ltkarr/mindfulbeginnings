@@ -215,3 +215,53 @@ test('ADMIN copy window is the send path and does not put a body in a mail link'
   assert.doesNotMatch(admin, /three small things/);
   assert.doesNotMatch(admin, /gmail\.com\/mail\/\?view=cm&fs=1&bcc=[^'"]*&body=/);
 });
+
+test('overview page urls map courses to their overview pages', () => {
+  const base = 'https://mindfulbeginnings.org/course-overviews/';
+  assert.equal(overviews.urlFor('Safe Sitter®'), base + 'safe-sitter-babysitting');
+  assert.equal(overviews.urlFor('Safe Sitter® Babysitting Essentials'), base + 'safe-sitter-babysitting');
+  assert.equal(overviews.urlFor('Safe Sitter® Grandparents: Getting Started'), base + 'grandparents-getting-started');
+  assert.equal(overviews.urlFor('Intro to Babysitting'), base + 'intro-to-safe-babysitting');
+  assert.equal(overviews.urlFor('Safe@Home — Virtual'), base + 'safe-at-home');
+  assert.equal(overviews.urlFor('Stay Ready™: Choking Rescue, CPR, and Seizure Response'), base + 'stay-ready');
+  assert.equal(overviews.urlFor('Baby Ready + CPR Certification'), base + 'baby-ready');
+  assert.equal(overviews.urlFor("My First Babysitter's Club, 8-week series"), base + 'my-first-babysitters-club');
+  assert.equal(overviews.urlFor('My First Babysitters Club — Single Session'), '');
+  assert.equal(overviews.urlFor('Girl Scouts — First Aid Badge Workshop'), base + 'first-aid-badge-workshop');
+  assert.equal(overviews.urlFor('Girl Scout Badge Class'), '');
+  assert.equal(overviews.urlFor('Campus Ready: Safety Skills for College Life'), '');
+  assert.equal(overviews.urlFor('Screen Ready'), '');
+  assert.equal(overviews.urlFor('Adult & Pediatric First Aid/CPR/AED Certification'), '');
+  assert.equal(overviews.urlFor(''), '');
+});
+
+test('family reminder carries the course overview page, not the old doc link', () => {
+  const withPage = emails.draft('classReminder', sample({
+    course: 'Safe@Home',
+    overviewUrl: overviews.urlFor('Safe@Home')
+  }));
+  assert.match(withPage.body, /Course Overview: https:\/\/mindfulbeginnings\.org\/course-overviews\/safe-at-home/);
+  assert.doesNotMatch(withPage.body, /docs\.google\.com/);
+
+  const noPage = emails.draft('classReminder', sample({
+    course: 'Campus Ready: Safety Skills for College Life',
+    overviewUrl: overviews.urlFor('Campus Ready: Safety Skills for College Life')
+  }));
+  assert.doesNotMatch(noPage.body, /Course Overview/);
+});
+
+test('host letter and family forward include the overview link', () => {
+  const url = overviews.urlFor('Care Ready');
+  const letter = emails.draft('hostLetter', sample({ course: 'Care Ready', overviewUrl: url }));
+  assert.match(letter.body, /Course overview: https:\/\/mindfulbeginnings\.org\/course-overviews\/care-ready/);
+
+  const forward = emails.draft('familyForward', sample({
+    course: 'Care Ready',
+    overviewUrl: url,
+    overviewText: '',
+    familyPayLine: 'Price: $185 per registration.',
+    orgCoverLine: 'What the organization covers: the flat fee.'
+  }));
+  assert.match(forward.body, /Course overview: https:\/\/mindfulbeginnings\.org\/course-overviews\/care-ready/);
+  assert.doesNotMatch(forward.body, /not on file/);
+});

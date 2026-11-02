@@ -107,6 +107,18 @@
     return v || fallback;
   }
 
+  // The course's public overview page, when one exists. Admin passes it in
+  // on the info object; fall back to the shared course-overviews module.
+  function overviewUrl(info) {
+    var u = val(info, 'overviewUrl', '');
+    if (u) return u;
+    var api = root.MBCourseOverviews;
+    if (api && typeof api.urlFor === 'function') {
+      return api.urlFor(val(info, 'course', ''));
+    }
+    return '';
+  }
+
   function draft(kind, info) {
     info = info || {};
     var course = val(info, 'course', 'Safe Sitter\u00ae');
@@ -186,7 +198,8 @@
       lines.push('');
       lines.push('CLASS DETAILS');
       lines.push('\u2022 Instructor: Your instructor for the day will be ' + (instructor || 'To be confirmed') + '. You can learn more about our full team here: https://mindfulbeginnings.org/our-team');
-      lines.push('\u2022 Course Overview: https://docs.google.com/document/d/1YYHVQHr0p_wCUp8BPlyCJc73p5bvkx_PEMewWwDOQRs/edit?usp=sharing');
+      var reminderOverviewUrl = overviewUrl(info);
+      if (reminderOverviewUrl) lines.push('\u2022 Course Overview: ' + reminderOverviewUrl);
       lines.push('');
       var certLine = '';
       var copyApi = courseCopy();
@@ -248,9 +261,17 @@
       if (code) lines.push('Session code: ' + code);
       lines.push('');
       lines.push(orgCover);
+      var forwardOverviewUrl = overviewUrl(info);
       if (overview) {
         lines.push('');
         lines.push(overview);
+        if (forwardOverviewUrl) {
+          lines.push('');
+          lines.push('Read the full course overview: ' + forwardOverviewUrl);
+        }
+      } else if (forwardOverviewUrl) {
+        lines.push('');
+        lines.push('Course overview: ' + forwardOverviewUrl);
       } else {
         lines.push('');
         lines.push('[Course overview is not on file for this course yet.]');
@@ -284,6 +305,8 @@
       lines.push(participantPriceLine(cost, info.expectedCount));
       lines.push('Registration link: ' + regLink);
       lines.push('Session code: ' + code);
+      var hostOverviewUrl = overviewUrl(info);
+      if (hostOverviewUrl) lines.push('Course overview: ' + hostOverviewUrl);
       lines.push('Instructor: ' + instrLine);
       if (mealRaw) lines.push(mealRaw);
       if (info.hasHostSpot !== false) {
