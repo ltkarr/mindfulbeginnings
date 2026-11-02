@@ -85,7 +85,7 @@ test('Babysitter\'s Training post-course email is the Red Cross draft', () => {
   assert.match(d.body, /Red Cross/);
   assert.doesNotMatch(d.body, /Safe Sitter/);
   const combo = drafts.postCourseDraftFor("Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED");
-  assert.match(combo.body, /seven hours/);
+  assert.match(combo.body, /seven and a half hours/);
   assert.match(combo.body, /American Red Cross certification/);
   assert.doesNotMatch(combo.body, /Safe Sitter/);
 });

@@ -214,7 +214,7 @@
       greeting: 'Hi there,',
       taker: 'have your child complete',
       paragraphs: [
-        'Congratulations to your child on completing Red Cross Babysitter\'s Training plus Pediatric First Aid/CPR/AED. They finished the online learning at their own pace and a hands-on skills session with us, and they now hold American Red Cross certification, valid for two years.',
+        'Congratulations to your child on completing Red Cross Babysitter\'s Training plus Pediatric First Aid/CPR/AED. They completed the First Aid/CPR/AED learning online at their own pace, then finished with a hands-on skills session with us, and they now hold American Red Cross certification, valid for two years.',
         'This combination is the gold standard for young sitters. Encourage them to keep practicing their skills and to always trust their instincts on the job.'
       ]
     },
@@ -224,7 +224,7 @@
       greeting: 'Hi there,',
       taker: 'have your child complete',
       paragraphs: [
-        'Congratulations to your child on completing Red Cross Babysitter\'s Training plus Pediatric First Aid/CPR/AED. That\'s seven hours of serious training, and they now hold American Red Cross certification, valid for two years.',
+        'Congratulations to your child on completing Red Cross Babysitter\'s Training plus Pediatric First Aid/CPR/AED. That\'s seven and a half hours of serious training, and they now hold American Red Cross certification, valid for two years.',
         'This combination is the gold standard for young sitters. Encourage them to keep practicing their skills and to always trust their instincts on the job.'
       ]
     },

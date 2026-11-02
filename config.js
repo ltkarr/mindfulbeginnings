@@ -192,12 +192,12 @@ const COURSES={
   // Lead Teachers only. Their pay is $75/hour, applied in the pay math.
   // $295 is the new-session price (LATER_PRICE_CHANGES, from Oct 9 2026).
   // The catalog columns match it because no session of this course exists yet.
-  'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:7,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11-14'},
+  'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:7.5,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11-14'},
   // Blended version of the combo above (added Nov 2 2026, Lindsay's call):
   // online at your own pace, then a 5.5-hour in-person skills session. Same
   // $295 price, ages 11-14, cap 12. Lead Teachers only. hours is the
   // in-person teaching length, which is what instructor pay uses.
-  'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED (Online + Classroom)':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:5.5,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11-14'},
+  'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED (Online + Classroom)':{price:295,price2027:295,priceNew:295,priceNew2027:295,matCost:0,hours:5.75,maxStudents:12,redCross:true,requiresLeadTeacher:true,audience:'Ages 11-14'},
   // In-person length is 4.25 hours (Program Guide). Lead Teachers only
   // (redCross + requiresLeadTeacher). The Oct 9 list is $185. Sessions
   // created from Oct 14 2026 midnight ET charge $125. Price columns stay
