@@ -1,4 +1,4 @@
-/* ADMIN class-request inbox. Renders the checklist. Does not send email. */
+/* ADMIN class-request inbox. One status, a linked session code, and the full text. Does not send email. */
 (function (root) {
   'use strict';
 
@@ -10,46 +10,44 @@
     });
   }
 
-  function checks(row) {
-    var c = (row && row.checklist) || {};
-    return {
-      received: c.received !== false,
-      session_created: !!c.session_created,
-      email_sent: !!c.email_sent
-    };
+  var REQUEST_STATUSES = [
+    { value: 'received', label: 'Received' },
+    { value: 'replied', label: 'Replied' },
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'session_built', label: 'Session built' }
+  ];
+
+  function canonicalStatus(row) {
+    var s = String((row && row.status) || '').trim();
+    if (s === 'replied' || s === 'draft_ready') return 'replied';
+    if (s === 'confirmed' || s === 'email_sent') return 'confirmed';
+    if (s === 'session_built' || s === 'session_created' || s === 'instructor_open' || s === 'instructor_claimed' || s === 'done') return 'session_built';
+    return 'received';
+  }
+
+  function statusLabel(value) {
+    var hit = REQUEST_STATUSES.filter(function (item) { return item.value === value; })[0];
+    if (hit) return hit.label;
+    if (model && model.STATUS_LABELS && model.STATUS_LABELS[value]) return model.STATUS_LABELS[value];
+    return 'Received';
   }
 
   function statusOf(row) {
-    if (model) return model.statusFromChecklist(checks(row));
-    return row && row.status || 'received';
+    return canonicalStatus(row);
   }
 
   function openCount(rows) {
-    return (rows || []).filter(function (row) {
-      var c = checks(row);
-      return !c.email_sent;
-    }).length;
+    return (rows || []).filter(function (row) { return canonicalStatus(row) !== 'session_built'; }).length;
   }
 
   function receivedCount(rows) {
-    return (rows || []).filter(function (row) {
-      var c = checks(row);
-      return !c.session_created;
-    }).length;
+    return (rows || []).filter(function (row) { return canonicalStatus(row) === 'received'; }).length;
   }
 
-  var CHECK_UI = [
-    { key: 'received', label: 'Received', locked: true },
-    { key: 'session_created', label: 'Session created in ADMIN' },
-    { key: 'email_sent', label: 'Email sent' }
-  ];
-
   function matchesFilter(row, filter) {
-    var c = checks(row);
-    var status = statusOf(row);
-    if (filter === 'received' || filter === 'pending') return status === 'pending' || status === 'received';
     if (filter === 'all') return true;
-    return !c.email_sent;
+    if (filter === 'received' || filter === 'pending') return canonicalStatus(row) === 'received';
+    return canonicalStatus(row) !== 'session_built';
   }
 
   function whenText(row) {
@@ -83,7 +81,7 @@
     add('Expected participants', n.expectedCount);
     add('Billing', model.billingSentence(n));
     add('Portion they wrote', n.portionText);
-    add('Girl Scout badge', n.badge);
+    add('Girl Scout badge', (payload && payload.badge) || n.badge);
     add('Instructor request', n.instructorRequest);
     if (n.spanishRequested) add('Language', 'Requested in Spanish. A Spanish-speaking instructor is required.');
     add('Hosting checklist', n.checklistAnswer);
@@ -92,9 +90,9 @@
     add('AV', n.av);
     add('Parking', n.parking);
     add('Arrival', n.arrival);
-    add('For participants', n.participantInfo);
-    add('Special instructions', n.specialInstructions);
-    add('Custom request', n.customRequest);
+    add('For participants', (payload && payload.participantInfo) || n.participantInfo);
+    add('Special instructions', (payload && payload.specialInstructions) || n.specialInstructions);
+    add('Custom request', (payload && payload.customRequest) || n.customRequest);
     add('Referral', n.referral);
     if (row.payload && row.payload.spam_flag) add('Review flag', 'Hidden spam-check field was filled (bot, or a real browser autofill). Saved so a real lead is never discarded.');
     if (row.session_error) add('Session was not saved', row.session_error);
@@ -114,25 +112,90 @@
     return '<div style="font-size:14px;color:var(--muted);margin-top:6px">Instructor on the session: <strong>' + esc(name || 'assigned') + '</strong></div>';
   }
 
-  function cardHtml(row, session) {
-    var c = checks(row);
-    var status = statusOf(row);
-    var label = (model && model.STATUS_LABELS[status]) || status;
-    var kind = row.kind === 'organization' ? 'Organization' : 'Private host';
-    var boxes = CHECK_UI.map(function (item) {
-      var on = !!c[item.key];
-      var disabled = item.locked ? ' disabled' : '';
-      return '<label style="display:flex;gap:8px;align-items:flex-start;font-size:15px;margin:4px 0">' +
-        '<input type="checkbox" ' + (on ? 'checked' : '') + disabled +
-        ' onchange="toggleClassRequestCheck(\'' + esc(row.id) + '\',\'' + item.key + '\',this.checked)">' +
-        '<span>' + esc(item.label) + '</span></label>';
+  function linkedSession(row, session, sessionList) {
+    if (session) return session;
+    var code = String((row && row.session_code) || '').trim();
+    if (!code) return null;
+    return (sessionList || []).find(function (s) { return s && s.code === code; }) || null;
+  }
+
+  function sessionCodeHtml(row, session) {
+    var code = String(row.session_code || '').trim();
+    var field = '<label style="display:block;font-size:15px;margin-top:10px">Linked session code ' +
+      '<input type="text" value="' + esc(code) + '" placeholder="Optional" ' +
+      'onchange="saveClassRequestCode(\'' + esc(row.id) + '\', this.value)" ' +
+      'style="margin-left:8px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font:inherit"></label>';
+    if (!code) return field;
+    var link;
+    if (session && session.id) {
+      link = '<a href="#" onclick="openRequestSession(\'' + esc(row.id) + '\');return false;">' + esc(code) + '</a>';
+    } else {
+      link = '<a href="https://register.mindfulbeginnings.org/register.html?code=' + encodeURIComponent(code) + '" target="_blank" rel="noopener">' + esc(code) + '</a>';
+    }
+    return field + '<div style="font-size:15px;margin-top:4px">Session: ' + link + '</div>';
+  }
+
+  function statusSelectHtml(row) {
+    var current = canonicalStatus(row);
+    var options = REQUEST_STATUSES.map(function (item) {
+      return '<option value="' + item.value + '"' + (item.value === current ? ' selected' : '') + '>' + esc(item.label) + '</option>';
     }).join('');
-    var sessionBtn = row.session_id
-      ? '<button class="btn sm" type="button" onclick="openRequestSession(\'' + esc(row.id) + '\')">Open ' + esc(row.session_code || 'session') + '</button>'
-      : '<button class="btn sm" type="button" onclick="approveClassRequest(\'' + esc(row.id) + '\')">Create session in Admin</button>';
-    var outlook = row.outlook_web_link
-      ? '<a class="btn sm" href="' + esc(row.outlook_web_link) + '" target="_blank" rel="noopener">Open Outlook draft</a>'
-      : '';
+    return '<label style="display:block;font-size:15px;margin-top:12px">Status ' +
+      '<select onchange="setClassRequestStatus(\'' + esc(row.id) + '\', this.value)" ' +
+      'style="margin-left:8px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font:inherit">' +
+      options + '</select></label>';
+  }
+
+  function textValue(value) {
+    if (value == null || value === '') return '';
+    if (Array.isArray(value)) return value.join(', ');
+    return String(value);
+  }
+
+  function requestPlainText(row) {
+    var payload = (row && row.payload) || {};
+    var n = model ? model.normalizeSubmission(payload) : null;
+    var lines = [];
+    function add(label, value) {
+      var text = textValue(value);
+      if (!text) return;
+      lines.push(label + ': ' + text);
+    }
+    add('Name', row.submitter_name || (n && n.name));
+    add('Type', row.kind === 'organization' ? 'Organization' : 'Private host');
+    add('Email', (n && n.email) || payload.email);
+    add('Phone', (n && n.phone) || payload.phone);
+    add('Organization', row.organization_name || (n && n.organizationName) || payload.organizationName);
+    add('Course', row.course || (n && n.course && (n.course.course || n.course.label)) || payload.courseKey);
+    add('When', whenText(row));
+    add('Place', n && n.place && (n.place.raw || n.place.location));
+    add('Expected participants', (n && n.expectedCount) || payload.expectedCount);
+    add('Billing', n && model ? model.billingSentence(n) : '');
+    add('Portion they wrote', (n && n.portionText) || payload.portionText);
+    add('Girl Scout badge', payload.badge || (n && n.badge));
+    add('Instructor request', (n && n.instructorRequest) || payload.instructorRequest);
+    if (n && n.spanishRequested) add('Language', 'Requested in Spanish. A Spanish-speaking instructor is required.');
+    add('Hosting checklist', (n && n.checklistAnswer) || payload.checklistAnswer);
+    add('Checklist questions', payload.checklistQuestions || (n && n.checklistQuestions));
+    add('Food', (n && n.food) || payload.food);
+    add('AV', (n && n.av) || payload.av);
+    add('Parking', payload.parking || (n && n.parking));
+    add('Arrival', payload.arrival || (n && n.arrival));
+    add('For participants', payload.participantInfo || (n && n.participantInfo));
+    add('Special instructions', payload.specialInstructions || (n && n.specialInstructions));
+    add('Custom request', payload.customRequest || (n && n.customRequest));
+    add('Referral', (n && n.referral) || payload.referral);
+    add('Dates as written', payload.datesText || (n && n.datesText));
+    add('Clubs', (n && n.clubs) || payload.clubs);
+    add('Linked session code', row.session_code);
+    add('Status', statusLabel(canonicalStatus(row)));
+    return lines.join('\n');
+  }
+
+  function cardHtml(row, session) {
+    var status = canonicalStatus(row);
+    var label = statusLabel(status);
+    var kind = row.kind === 'organization' ? 'Organization' : 'Private host';
     var created = row.created_at ? new Date(row.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
     return '<div class="card" style="padding:16px 18px;margin-bottom:12px">' +
       '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
@@ -141,12 +204,11 @@
         '<div style="font-size:15px;margin-top:4px">' + esc(whenText(row)) + '</div></div>' +
         '<div style="text-align:right"><span style="background:#e9eff8;color:#27467A;border-radius:100px;padding:3px 10px;font-size:13px;font-weight:700">' + esc(label) + '</span>' +
         '<div style="font-size:13px;color:var(--muted);margin-top:6px">' + esc(created) + '</div></div></div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 18px;margin-top:12px">' + boxes + '</div>' +
+      statusSelectHtml(row) +
+      sessionCodeHtml(row, session) +
       instructorLine(row, session) +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
-        sessionBtn +
-        '<button class="btn sm" type="button" onclick="openClassRequestDraft(\'' + esc(row.id) + '\')">Open confirmation draft</button>' +
-        outlook +
+        '<button class="btn sm" type="button" onclick="copyClassRequest(\'' + esc(row.id) + '\')">Copy request</button>' +
         '<button class="btn sm" type="button" style="color:#b91c1c;border-color:#e5b4b4" onclick="deleteClassRequest(\'' + esc(row.id) + '\')">Delete request</button>' +
       '</div>' +
       '<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--navy);font-weight:600">Full submission</summary><div style="margin-top:8px;font-size:15px;line-height:1.45">' + detailRows(row) + '</div></details>' +
@@ -158,7 +220,7 @@
     if (!shown.length) return '<div class="card" style="padding:18px;color:var(--muted)">No requests in this view.</div>';
     return shown.map(function (row) {
       var session = (sessionList || []).find(function (s) { return s.id === row.session_id; }) || null;
-      return cardHtml(row, session);
+      return cardHtml(row, linkedSession(row, session, sessionList));
     }).join('');
   }
 
@@ -169,19 +231,20 @@
     var fresh = receivedCount(rows);
     return '<div class="card" style="padding:14px 16px;margin-bottom:16px;border-color:#f0d090;background:#fff7e6">' +
       '<div style="font-weight:700">' + n + ' class request' + (n === 1 ? '' : 's') + ' need attention</div>' +
-      '<div style="font-size:15px;color:#7a5000">' + (fresh ? fresh + ' still waiting on a session. ' : '') +
-      'Confirmation emails stay drafts until you send them. <a href="#" onclick="showScreen(\'requests\', document.getElementById(\'nav-requests\'));return false;">Open class requests</a></div></div>';
+      '<div style="font-size:15px;color:#7a5000">' + (fresh ? fresh + ' just received. ' : '') +
+      '<a href="#" onclick="showScreen(\'requests\', document.getElementById(\'nav-requests\'));return false;">Open class requests</a></div></div>';
   }
 
   var api = {
-    checks: checks,
     statusOf: statusOf,
+    canonicalStatus: canonicalStatus,
     openCount: openCount,
     receivedCount: receivedCount,
     matchesFilter: matchesFilter,
     renderList: renderList,
     bannerHtml: bannerHtml,
-    whenText: whenText
+    whenText: whenText,
+    requestPlainText: requestPlainText
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -215,24 +278,63 @@
     if (root.renderClassRequestNav) root.renderClassRequestNav();
   };
 
-  root.toggleClassRequestCheck = async function (id, key, on) {
-    if (!model || key === 'received') return;
+  root.setClassRequestStatus = async function (id, status) {
+    var allowed = { received: true, replied: true, confirmed: true, session_built: true };
+    if (!allowed[status]) return;
     var row = (classRequests || []).find(function (r) { return r.id === id; });
     if (!row || typeof sb === 'undefined') return;
-    var next = model.applyChecklistUpdate(row.checklist, (function () { var p = {}; p[key] = !!on; return p; })());
     var ok = await dbWrite(sb.from('class_requests').update({
-      checklist: next.checklist,
-      status: next.status,
+      status: status,
       updated_at: new Date().toISOString()
-    }).eq('id', id), 'Class request checklist');
+    }).eq('id', id), 'Class request status');
     if (!ok) {
       root.renderClassRequests();
       return;
     }
-    row.checklist = next.checklist;
-    row.status = next.status;
+    row.status = status;
     root.renderClassRequests();
     root.renderClassRequestBanner();
+  };
+
+  root.saveClassRequestCode = async function (id, code) {
+    var row = (classRequests || []).find(function (r) { return r.id === id; });
+    if (!row || typeof sb === 'undefined') return;
+    var next = String(code || '').trim();
+    var patch = { session_code: next || null, updated_at: new Date().toISOString() };
+    if (next && typeof sessions !== 'undefined') {
+      var match = sessions.find(function (s) { return s && s.code === next; });
+      if (match) patch.session_id = match.id;
+    }
+    if (!next) patch.session_id = null;
+    var ok = await dbWrite(sb.from('class_requests').update(patch).eq('id', id), 'Class request session code');
+    if (!ok) {
+      root.renderClassRequests();
+      return;
+    }
+    row.session_code = patch.session_code;
+    if (Object.prototype.hasOwnProperty.call(patch, 'session_id')) row.session_id = patch.session_id;
+    root.renderClassRequests();
+  };
+
+  root.copyClassRequest = async function (id) {
+    var row = (classRequests || []).find(function (r) { return r.id === id; });
+    if (!row) return;
+    var text = requestPlainText(row);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        var area = document.createElement('textarea');
+        area.value = text;
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        document.body.removeChild(area);
+      }
+      if (typeof showToast === 'function') showToast('Request copied.');
+    } catch (err) {
+      if (typeof showToast === 'function') showToast('Could not copy the request.');
+    }
   };
 
   root.openClassRequestDraft = function (id) {
