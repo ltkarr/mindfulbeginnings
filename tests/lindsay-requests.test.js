@@ -144,7 +144,11 @@ test('GSFA-270303 keeps its code and is not Safe Sitter', () => {
   assert.match(instructor, /requiresSafeSitter=false/);
   assert.match(register, /id="terms-girl-scout"/);
   assert.match(register, /isGirlScoutBadgeCourse\(s\.course\)/);
-  assert.match(register, /It is not a Safe Sitter/);
+  const gs = register.slice(register.indexOf('id="terms-girl-scout"'), register.indexOf('id="terms-grandparent"'));
+  assert.match(gs, /Girl Scout badge workshop/);
+  assert.match(gs, /does not certify the participant in CPR or first aid/);
+  assert.doesNotMatch(gs, /Safe Sitter/);
+  assert.doesNotMatch(register, /It is not a Safe Sitter/);
 });
 
 function rnGate(src) {

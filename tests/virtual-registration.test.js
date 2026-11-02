@@ -111,6 +111,18 @@ test('Season Ready on Zoom stays general education, not medical advice, with no 
   assert.doesNotMatch(result.waiverText, /chest-compression/i);
 });
 
+test('virtual waivers name Safe Sitter, Inc. only for Safe Sitter courses', () => {
+  ['Safe@Home — Virtual', 'All Kids Welcome', 'Social Ready', 'Middle School Ready — Virtual', 'Screen Ready — Virtual', 'Babysitting Grandkids Workshop — Virtual', 'Stay Ready: Choking Rescue and CPR', 'Campus Ready: Safety Skills for College Life'].forEach(function (course) {
+    const result = copy.virtualRegistrationCopy({ course: course, isVirtual: true });
+    assert.doesNotMatch(result.waiverText, /Safe Sitter, Inc/, course);
+    assert.doesNotMatch(result.accommodationsHtml, /Safe Sitter/i, course);
+  });
+  const intro = copy.virtualRegistrationCopy({ course: 'Intro to Babysitting', isVirtual: true });
+  assert.match(intro.waiverText, /Safe Sitter, Inc/);
+  const grandparents = copy.virtualRegistrationCopy({ course: 'Safe Sitter® Grandparents: Getting Started', isVirtual: true });
+  assert.match(grandparents.waiverText, /Safe Sitter, Inc/);
+});
+
 test('in-person sessions do not get the virtual waiver', () => {
   IN_PERSON.forEach(function (row) {
     assert.equal(copy.sessionIsVirtual(row), false, row.code);

@@ -116,7 +116,15 @@ test('register.html wires the ARC form and leaves the Safe Sitter waiver in plac
   assert.match(register, /American Red Cross Certification/);
   assert.match(register, /#ED1B2E/);
   assert.match(register, /applyArcForm/);
-  assert.match(register, /Safe Sitter® does not provide CPR certification/);
+  assert.match(register, /accommodationsHtml\(s\.course\)/);
+  assert.match(register, /\/js\/course-copy\.js/);
+  const courseCopy = require('../js/course-copy');
+  assert.match(courseCopy.accommodationsHtml('Safe Sitter®'), /Safe Sitter® does not provide CPR certification/);
+  assert.match(courseCopy.accommodationsHtml("Babysitter's Training"), /American Red Cross digital certificate/);
+  assert.doesNotMatch(courseCopy.accommodationsHtml("Babysitter's Training"), /Safe Sitter/);
+  assert.match(courseCopy.accommodationsHtml('Adult & Pediatric First Aid/CPR/AED Certification'), /American Red Cross/);
+  assert.doesNotMatch(courseCopy.accommodationsHtml('Adult & Pediatric First Aid/CPR/AED Certification'), /Safe Sitter|does not provide CPR/);
   assert.match(register, /Parent \/ guardian full name \(electronic signature\)/);
+  assert.match(register, /This course provides a Safe Sitter® certificate of completion/);
   assert.doesNotMatch(register, /does not provide CPR certification[\s\S]{0,80}Online \+ Classroom/);
 });

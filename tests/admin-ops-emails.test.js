@@ -89,6 +89,16 @@ test('family reminder is the before-class pack and meal note', () => {
   assert.match(missing.body, /What to Bring: Please send your child with a water bottle and a snack\./);
   assert.match(missing.body, /Edit before sending: “Your host is providing a meal for participants\.” OR “Please pack a lunch; the host will provide snacks and drinks\.”/);
   assert.match(missing.body, /Your instructor for the day will be Priya Shah\./);
+  assert.match(missing.body, /official Safe Sitter® Certificate of Completion/);
+
+  const redCross = emails.draft('classReminder', sample({ course: "Babysitter's Training" }));
+  assert.match(redCross.body, /American Red Cross digital certificate/);
+  assert.doesNotMatch(redCross.body, /Safe Sitter/);
+
+  const home = emails.draft('classReminder', sample({ course: 'Safe@Home' }));
+  assert.doesNotMatch(home.body, /CERTIFICATION/);
+  assert.doesNotMatch(home.body, /Safe Sitter/);
+  assert.doesNotMatch(home.body, /certificate/i);
 
   const meal = emails.draft('classReminder', sample({ mealText: 'Host is providing pizza for lunch.' }));
   assert.match(meal.body, /Meal: Your host is providing a meal for participants\./);

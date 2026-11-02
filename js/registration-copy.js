@@ -80,6 +80,14 @@
     return 'I consent to the use of photos or recordings of my child from this live Zoom class for publicity purposes by Mindful Beginnings.';
   }
 
+  function courseCopyApi() {
+    if (root.MBCourseCopy) return root.MBCourseCopy;
+    if (typeof require === 'function') {
+      try { return require('./course-copy.js'); } catch (e) { return null; }
+    }
+    return null;
+  }
+
   function releaseParagraph(course, adult) {
     if (course === PERIOD) {
       return para('Release and indemnification.', 'In exchange for participation, I, the undersigned parent or legal guardian, release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this workshop, except to the extent caused by gross negligence or willful misconduct.');
@@ -90,10 +98,13 @@
     if (course === CAMPUS) {
       return para('Release and indemnification.', 'In exchange for participation, I, the undersigned (the participant if eighteen years of age or older, or the parent or legal guardian if the participant is under eighteen), release, waive, hold harmless, and indemnify Mindful Beginnings LLC and its owner, instructors, employees, contractors, and agents from any and all claims, demands, liabilities, costs, and causes of action arising out of or related to participation in this class or to any later use of or reliance on anything learned in it, except to the extent caused by gross negligence or willful misconduct.');
     }
-    if (adult) {
-      return para('Risk acknowledgment and release of liability.', 'I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Safe Sitter, Inc. and Mindful Beginnings and their staff from any and all claims arising from my participation in this program.');
-    }
-    return para('Risk acknowledgment and release of liability.', 'I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Safe Sitter, Inc. and Mindful Beginnings and their staff from any and all claims arising from my child\'s participation.');
+    var copy = courseCopyApi();
+    var body = copy
+      ? copy.releaseText(course, adult)
+      : (adult
+        ? 'I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Mindful Beginnings and their staff from any and all claims arising from my participation in this program.'
+        : 'I acknowledge that there may be a risk of injury involved in course activities. I agree to release, hold harmless, and indemnify Mindful Beginnings and their staff from any and all claims arising from my child\'s participation.');
+    return para('Risk acknowledgment and release of liability.', body);
   }
 
   function courseParagraphs(course) {
