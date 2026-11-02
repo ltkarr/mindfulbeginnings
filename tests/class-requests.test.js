@@ -346,6 +346,91 @@ test('a home form filled out for an organization is refused and pointed at the o
   assert.equal(errors[0].redirect, '/organization.html');
 });
 
+test('a street-only host address is rejected, and street, city, state, and ZIP are required', () => {
+  const streetOnly = model.normalizeSubmission(hostBody({ address: '5012 Tothill Drive' }));
+  assert.equal(streetOnly.place.hostAddress, '5012 Tothill Drive');
+  assert.equal(streetOnly.place.city, '');
+  assert.equal(streetOnly.place.state, '');
+  assert.equal(streetOnly.place.zip, '');
+  const errors = model.validate(streetOnly);
+  assert.deepEqual(errors.map(function (e) { return e.field; }), ['city', 'state', 'zip']);
+  assert.match(errors[0].message, /city/i);
+  assert.equal(model.canCreateSession(streetOnly).ok, false);
+  assert.equal(model.canCreateSession(streetOnly).reason, 'address');
+  assert.equal(model.buildSessionRow(streetOnly, []).created, false);
+
+  const named = model.normalizeSubmission(hostBody({
+    address: '5012 Tothill Drive',
+    city: 'McLean',
+    state: 'Virginia',
+    zip: '22101'
+  }));
+  assert.equal(model.validate(named).length, 0);
+  const plan = model.buildSessionRow(named, []);
+  assert.equal(plan.created, true);
+  assert.equal(plan.row.host_address, '5012 Tothill Drive');
+  assert.equal(plan.row.city, 'McLean');
+  assert.equal(plan.row.state, 'VA');
+  assert.equal(plan.row.zip, '22101');
+  assert.equal(plan.row.has_host, true);
+  assert.equal(plan.row.location, 'McLean');
+
+  const badZip = model.validate(model.normalizeSubmission(hostBody({
+    address: '5012 Tothill Drive',
+    city: 'McLean',
+    state: 'VA',
+    zip: '2210'
+  })));
+  assert.equal(badZip[0].field, 'zip');
+  assert.match(badZip[0].message, /5-digit/);
+
+  const orgStreet = model.normalizeSubmission(orgBody({
+    location: 'Room 114',
+    address: '8215 Old Georgetown Rd',
+    city: 'Bethesda',
+    state: 'md',
+    zip: '20814-1234'
+  }));
+  assert.equal(model.validate(orgStreet).length, 0);
+  const orgPlan = model.buildSessionRow(orgStreet, []);
+  assert.equal(orgPlan.row.host_address, '8215 Old Georgetown Rd');
+  assert.equal(orgPlan.row.location, 'Room 114');
+  assert.equal(orgPlan.row.city, 'Bethesda');
+  assert.equal(orgPlan.row.state, 'MD');
+  assert.equal(orgPlan.row.zip, '20814-1234');
+
+  const virtual = model.normalizeSubmission(orgBody({
+    courseKey: 'social-ready-virtual',
+    location: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: ''
+  }));
+  assert.equal(virtual.isVirtual, true);
+  assert.equal(model.validate(virtual).length, 0);
+  assert.equal(model.buildSessionRow(virtual, []).row.location, 'Virtual');
+  assert.equal(model.buildSessionRow(virtual, []).row.host_address, null);
+
+  ['address', 'city', 'state', 'zip'].forEach(function (name) {
+    assert.match(hostPage, new RegExp('name="' + name + '"[^>]*required|required[^>]*name="' + name + '"'));
+    assert.match(orgPage, new RegExp('name="' + name + '"[^>]*required|required[^>]*name="' + name + '"'));
+  });
+  assert.match(hostPage, /autocomplete="address-line1"/);
+  assert.doesNotMatch(hostPage, /autocomplete="street-address"/);
+  assert.match(orgPage, /id="address-fields"/);
+  const formScript = fs.readFileSync(path.join(root, 'js/class-request-form.js'), 'utf8');
+  assert.match(formScript, /Please add the street address/);
+  assert.match(formScript, /Please add the city/);
+  assert.match(formScript, /Please add the ZIP code/);
+  assert.match(formScript, /data\.city/);
+  assert.match(formScript, /data\.state/);
+  assert.match(formScript, /data\.zip/);
+  assert.doesNotMatch(formScript.slice(formScript.indexOf('function addressErrors'), formScript.indexOf('function updateQuestions')), /\u2014/);
+  assert.doesNotMatch(hostPage.slice(hostPage.indexOf('id="address-fields"'), hostPage.indexOf('id="expectedCount"')), /\u2014/);
+  assert.doesNotMatch(orgPage.slice(orgPage.indexOf('id="location"'), orgPage.indexOf('id="day-list"')), /\u2014/);
+});
+
 test('checklist stays pending until a session is approved, then advances only when Lindsay marks a step', () => {
   const fresh = model.checklistAfterSubmit(true);
   assert.equal(fresh.checklist.received, true);
@@ -671,6 +756,33 @@ test('the public API rejects a bad email without touching the database', async (
   await handler(req, res);
   assert.equal(res.statusCode, 400);
   assert.match(JSON.parse(res.body).error, /email/i);
+});
+
+test('the public API rejects a host request that has a street and no city, state, or ZIP', async () => {
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  delete require.cache[require.resolve('../api/class-requests')];
+  const handler = require('../api/class-requests');
+  const res = { statusCode: 0, headers: {}, body: '', setHeader: function (k, v) { this.headers[k] = v; }, end: function (b) { this.body = b || ''; } };
+  const req = {
+    method: 'POST',
+    headers: {},
+    on: function (ev, cb) {
+      if (ev === 'data') cb(Buffer.from(JSON.stringify(hostBody({
+        name: 'Rachel Werner',
+        phone: '9174978065',
+        address: '5012 Tothill Drive',
+        city: '',
+        state: '',
+        zip: ''
+      }))));
+      if (ev === 'end') cb();
+    }
+  };
+  await handler(req, res);
+  assert.equal(res.statusCode, 400);
+  const body = JSON.parse(res.body);
+  assert.match(body.error, /city/i);
+  assert.equal(body.field, 'city');
 });
 
 test('a Spanish request on either public form flags the auto-created session', () => {
