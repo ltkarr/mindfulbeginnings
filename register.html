@@ -117,6 +117,10 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 .public-sessions{background:#fff;border-radius:16px;border:1px solid rgba(30,49,97,0.08);padding:22px 20px 16px;text-align:left}
 .public-sessions h2{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800;margin:0 0 4px;text-align:center;color:var(--navy)}
 .public-sessions-lead{color:var(--text);font-size:16px;text-align:center;margin:0 0 14px;line-height:1.5}
+.filter-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 0 16px}
+.fchip{font-family:inherit;font-size:15px;font-weight:700;color:var(--navy);background:#DCE4EF;border:0;border-radius:12px;padding:9px 16px;cursor:pointer;min-height:40px}
+.fchip:hover{background:#C9D6E8}
+.fchip.active{background:var(--navy);color:#fff}
 .public-month{font-size:14px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--navy);margin:14px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--gold)}
 .public-month:first-child{margin-top:0}
 .public-card{position:relative;isolation:isolate;width:100%;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;background:#fff;border:2px solid rgba(30,49,97,0.12);border-radius:16px;padding:12px 14px;margin-bottom:10px;cursor:pointer;font-family:inherit;font-size:15px;color:var(--text)}
@@ -226,6 +230,14 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
   <div class="public-sessions" id="public-sessions">
     <h2>Upcoming public sessions</h2>
     <p class="public-sessions-lead">Tap a class to register — no code needed for these public sessions.</p>
+    <div class="filter-chips" id="session-filters" role="group" aria-label="Filter classes">
+      <button type="button" class="fchip active" data-chip="all">All classes</button>
+      <button type="button" class="fchip" data-chip="inperson">In person</button>
+      <button type="button" class="fchip" data-chip="virtual">Virtual</button>
+      <button type="button" class="fchip" data-chip="hybrid">Hybrid</button>
+      <button type="button" class="fchip" data-chip="babysitting">Babysitting</button>
+      <button type="button" class="fchip" data-chip="redcross">Red Cross certification</button>
+    </div>
     <div id="public-sessions-list"><div class="public-empty">Loading upcoming sessions…</div></div>
     <button type="button" class="public-more" id="public-show-more" style="display:none">Show more sessions</button>
   </div>
@@ -1170,6 +1182,7 @@ function rememberSessionCode(code){
 let publicSessionRows=[];
 let publicSessionCounts={};
 let publicShowAll=false;
+let activeChip='all';
 function fmtPublicDate(dateStr){
   if(!dateStr)return'';
   const d=new Date(dateStr+'T12:00:00');
@@ -1201,12 +1214,39 @@ function isSoldOutCode(code){
   return SOLD_OUT_CODES.indexOf(String(code||'').trim().toUpperCase())!==-1;
 }
 // Sold-out cards route families to the native waitlist flow via selectPublicSession.
+function isVirtualRow(row){
+  if(!row)return false;
+  const v=(row.is_virtual!=null)?row.is_virtual:row.isVirtual;
+  return v===true||v==='true'||v===1||v==='1';
+}
+// Same test the session cards use to print the Red Cross certification line,
+// so the Red Cross chip shows exactly the sessions whose cards carry it.
+function isArcCertCourse(course){
+  const name=String(course||'');
+  const api=window.MBArcRegistration;
+  const table=(typeof COURSES!=='undefined')?COURSES:null;
+  if(api&&typeof api.showsCertificationLine==='function')return !!api.showsCertificationLine(name, table);
+  const cfg=table&&table[name];
+  return !!(cfg&&cfg.redCross)||/adult\s*&\s*pediatric first aid\/cpr\/aed|adult first aid\/cpr\/aed|basic life support|\(bls\)/i.test(name);
+}
+function sessionMatchesChip(row, chip){
+  if(!chip||chip==='all')return true;
+  const virtual=isVirtualRow(row);
+  if(chip==='virtual')return virtual;
+  if(chip==='inperson')return !virtual;
+  if(chip==='hybrid')return !virtual&&isArcCertCourse(row&&row.course);
+  if(chip==='redcross')return isArcCertCourse(row&&row.course);
+  if(chip==='babysitting')return /babysit|safe sitter/i.test(String(row&&row.course||''));
+  return true;
+}
+const CHIP_EMPTY_LABEL={inperson:'in-person',virtual:'virtual',hybrid:'hybrid',babysitting:'babysitting',redcross:'Red Cross certification'};
 function renderPublicSessions(){
   const box=document.getElementById('public-sessions-list');
   const moreBtn=document.getElementById('public-show-more');
+  const chipsEl=document.getElementById('session-filters');
   if(!box)return;
   const helpers=window.MBPublicSessions;
-  if(!helpers){box.innerHTML='<div class="public-empty">Upcoming sessions could not be loaded. If you have a private or host code, enter it below.</div>';return;}
+  if(!helpers){if(chipsEl)chipsEl.style.display='none';box.innerHTML='<div class="public-empty">Upcoming sessions could not be loaded. If you have a private or host code, enter it below.</div>';return;}
   const all=helpers.filterPublicSessions(publicSessionRows);
   if(!all.length){
     injectEventSchema([],helpers);
@@ -1214,8 +1254,16 @@ function renderPublicSessions(){
     if(moreBtn)moreBtn.style.display='none';
     return;
   }
+  if(chipsEl)chipsEl.style.display=all.length?'flex':'none';
+  const chipped=all.filter(function(r){return sessionMatchesChip(r,activeChip);});
+  if(!chipped.length){
+    injectEventSchema([],helpers);
+    box.innerHTML='<div class="public-empty">No '+(CHIP_EMPTY_LABEL[activeChip]||'')+' sessions are listed right now. Try a different filter, or <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">contact us</a>.</div>';
+    if(moreBtn)moreBtn.style.display='none';
+    return;
+  }
   const priceFn=typeof getSessionBasePrice==='function'?getSessionBasePrice:null;
-  const filtered=helpers.applyBrowseFilters(all,{windowDays:helpers.DEFAULT_WINDOW_DAYS},{getBasePrice:priceFn});
+  const filtered=helpers.applyBrowseFilters(chipped,{windowDays:helpers.DEFAULT_WINDOW_DAYS},{getBasePrice:priceFn});
   injectEventSchema(filtered,helpers);
   const sliced=helpers.sliceForDisplay(filtered,publicShowAll);
   const caps=typeof MAX_STUDENTS!=='undefined'?MAX_STUDENTS:{};
@@ -1446,6 +1494,15 @@ window.onload=function(){
   }
   const moreBtn=document.getElementById('public-show-more');
   if(moreBtn)moreBtn.addEventListener('click',function(){publicShowAll=true;renderPublicSessions();});
+  const filtersEl=document.getElementById('session-filters');
+  if(filtersEl)filtersEl.addEventListener('click',function(e){
+    const btn=e.target&&e.target.closest?e.target.closest('[data-chip]'):null;
+    if(!btn)return;
+    activeChip=btn.getAttribute('data-chip')||'all';
+    publicShowAll=false;
+    filtersEl.querySelectorAll('.fchip').forEach(function(b){b.classList.toggle('active',b===btn);});
+    renderPublicSessions();
+  });
   const p=new URLSearchParams(window.location.search);
   // Payment-reminder link: if a paycode is present, skip the whole registration flow and
   // take the family straight to the payment screen for their existing (pending) spot.
