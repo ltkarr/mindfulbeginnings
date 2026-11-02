@@ -153,8 +153,8 @@ test('session menu Roster opens as names only, every time', () => {
   assert.equal(written.length, 2);
   assert.equal(written[0], written[1]);
   const html = written[0];
-  assert.match(html, /For families\. Names only\./);
-  assert.match(html, /Names only/);
+  assert.doesNotMatch(html, /For families\. Names only\./);
+  assert.doesNotMatch(html, /Names only/);
   assert.match(html, /Emma Smith/);
   assert.match(html, /Noah Patel/);
   assert.match(html, /Safe Sitter/);
@@ -195,7 +195,8 @@ test('adult parent roster lists both names and hides the partner note', () => {
   const html = written[0];
   assert.match(html, /Alex Rivera/);
   assert.match(html, /Jordan Lee/);
-  assert.match(html, /For families\. Names only\./);
+  assert.doesNotMatch(html, /For families\. Names only\./);
+  assert.doesNotMatch(html, /Names only/);
   assert.match(html, />Participant name</);
   assert.match(html, /1 participant registered/);
   assert.doesNotMatch(html, /tree nut/i);
@@ -209,7 +210,9 @@ test('adult parent roster lists both names and hides the partner note', () => {
 test('session menu Roster source does not print private columns or remember a view', () => {
   const fn = extractFunction(admin, 'openRoster');
   assert.match(fn, /rosterNameCell\(r\)/);
-  assert.match(fn, /For families\. Names only\./);
+  assert.match(fn, /Class roster/);
+  assert.doesNotMatch(fn, /For families\. Names only\./);
+  assert.doesNotMatch(fn, /Names only/);
   assert.doesNotMatch(fn, /r\.photoConsent|r\.grade|r\.parentName|r\.contact|r\.notes|r\.age|r\.dob/);
   assert.doesNotMatch(fn, /r\.cprPermission|r\.waiverSigned|r\.emergencyAuth|hostPhone|wifiInfo|hostAddress/);
   assert.doesNotMatch(fn, /paymentHowText|notesForPaymentStatus|rosterSettlementLabel|localStorage|sessionStorage/);

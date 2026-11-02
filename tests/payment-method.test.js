@@ -125,7 +125,9 @@ test('admin settlement helpers match the library, and the roster does not treat 
   const statusHtml = admin.slice(admin.indexOf('function regRosterStatusHtml'), admin.indexOf('// SETTLEMENT_HELPERS_END'));
   assert.match(statusHtml, /rosterSettlementLabel\(r, list\)/);
   const familyRoster = admin.slice(admin.indexOf('function openRoster('), admin.indexOf('function printYearReport('));
-  assert.match(familyRoster, /For families\. Names only\./);
+  assert.match(familyRoster, /Class roster/);
+  assert.doesNotMatch(familyRoster, /For families\. Names only\./);
+  assert.doesNotMatch(familyRoster, /Names only/);
   assert.doesNotMatch(familyRoster, /rosterSettlementLabel/);
   assert.doesNotMatch(familyRoster, /Unpaid|payStatus==='host'/);
 });
