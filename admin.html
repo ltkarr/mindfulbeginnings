@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261102-upcoming-default';
+window.MB_ADMIN_BUILD='20261102-paid-with';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -631,7 +631,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <button class="tgl" onclick="setFinView('session',this)">By session</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <select id="report-month" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none"></select>
+          <select id="report-month" onchange="renderFinances()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none"></select>
           <select id="report-year" onchange="renderFinances()" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;color:var(--text);background:white;outline:none"></select>
           <button class="btn" id="print-report-btn" onclick="printReport()">Print monthly report</button>
         </div>
@@ -640,6 +640,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div id="profit-session-tools"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="fin-table"></table></div></div>
       <div id="fin-fee-section"></div>
+      <div id="fin-paid-with"></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:16px">
         <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Insurance, software, equipment, and handbook or supply orders. These reduce net profit, and they are not also taken off each class. Add an expense with the button at the top of this page.</div></div>
@@ -656,6 +657,16 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <option value="">All expenses</option>
           <option value="linked">Linked</option>
           <option value="unlinked">Not linked</option>
+        </select>
+        <select id="ef-pay" onchange="renderExpenses()">
+          <option value="">All payment methods</option>
+          <option value="amex">Amex</option>
+          <option value="visa">Visa</option>
+          <option value="paypal">PayPal</option>
+          <option value="check">Check</option>
+          <option value="zelle">Zelle</option>
+          <option value="venmo">Venmo</option>
+          <option value="none">Not recorded</option>
         </select>
         <input type="text" id="ef-year" placeholder="Filter by year e.g. 2026" oninput="renderExpenses()" style="width:180px">
       </div>
@@ -10209,6 +10220,7 @@ function renderFinances(){
   const moSel=document.getElementById('report-month');
   if(moSel){const curMo=(moSel.value!==''&&moSel.value!=null)?moSel.value:new Date().getMonth();moSel.innerHTML=Array.from({length:12},(_,m)=>`<option value="${m}" ${m==curMo?'selected':''}>${new Date(2000,m,1).toLocaleDateString('en-US',{month:'long'})}</option>`).join('');}
   renderLegacyCostBanner();
+  renderPaidWith();
   if(finView==='session'){
     renderProfitBySession();
     const feeHostEarly=document.getElementById('fin-fee-section');
@@ -13438,6 +13450,151 @@ function expensePayOptions(selected){
   const cur=normalizeExpensePay(selected);
   return '<option value="">Not recorded</option>'+EXP_PAY_METHODS.map(([k,label])=>`<option value="${k}"${k===cur?' selected':''}>${label}</option>`).join('');
 }
+// One key for an expense row or an older session cost. Blank means not recorded.
+// Legacy lines use mixed casing ("VISA", "PayPal"). Both normalizers accept that.
+function paidWithKey(v){
+  const normalized=(typeof normalizeExpensePay==='function')?normalizeExpensePay(v):'';
+  if(normalized)return normalized;
+  return (typeof legacyPayToExpense==='function')?legacyPayToExpense(v):'';
+}
+function emptyPaidWith(){
+  const buckets={'':0};
+  EXP_PAY_METHODS.forEach(([k])=>{buckets[k]=0;});
+  return buckets;
+}
+function addPaidWith(buckets, method, amount){
+  const amt=Number(amount)||0;
+  if(!amt)return;
+  const key=paidWithKey(method);
+  const slot=Object.prototype.hasOwnProperty.call(buckets, key)?key:'';
+  buckets[slot]=round2((buckets[slot]||0)+amt);
+}
+function paidWithDateInPeriod(ymd, year, month){
+  const d=new Date(String(ymd||'').slice(0,10)+'T12:00:00');
+  if(isNaN(d.getTime()))return false;
+  if(d.getFullYear()!==year)return false;
+  if(month!=null&&d.getMonth()!==month)return false;
+  return true;
+}
+// Same lines calcFin still counts. A moved or duplicate line is already an
+// expense, so it stays out. Handbook lines stay out. A cancelled session
+// keeps only a line that has a date paid.
+function legacyLineInPaidWith(s, line){
+  if(!line||isPerStudentMaterialLine(line)||isLegacyCostResolved(line))return false;
+  if(s&&s.isCancelled&&!legacyLineHasDatePaid(line))return false;
+  return true;
+}
+function legacyPaidWithYmd(s, line){
+  const paid=String(line&&line.datePaid||'').trim().slice(0,10);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(paid))return paid;
+  const sess=String(s&&s.date||'').trim().slice(0,10);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(sess))return sess;
+  return '';
+}
+function legacyLineInPaidWithPeriod(s, line, year, month, now){
+  if(!legacyLineInPaidWith(s, line))return false;
+  const ymd=legacyPaidWithYmd(s, line);
+  if(ymd)return paidWithDateInPeriod(ymd, year, month);
+  if(typeof financeRevenueSlot!=='function')return false;
+  const slot=financeRevenueSlot(s, now instanceof Date?now:new Date());
+  if(!slot||slot.year!==year)return false;
+  if(month!=null&&slot.month!==month)return false;
+  return true;
+}
+// Card, PayPal, check, Zelle, and Venmo totals for one month (0-11) or a
+// whole year when month is null. Expenses include session-linked and overhead
+// rows, on the expense date. Older session costs are added only while they
+// are still unresolved.
+function paidWithTotals(year, month, now){
+  const y=parseInt(year,10);
+  const m=(month==null||month==='')?null:parseInt(month,10);
+  const monthIndex=(m==null||isNaN(m))?null:m;
+  const buckets=emptyPaidWith();
+  const n=now instanceof Date?now:new Date();
+  const posts=(typeof expenseOccurrences==='function')
+    ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
+    :(expenses||[]);
+  posts.forEach(function(e){
+    if(!e||!paidWithDateInPeriod(e.date, y, monthIndex))return;
+    addPaidWith(buckets, e.paymentMethod!=null?e.paymentMethod:e.payment_method, e.amount);
+  });
+  (sessions||[]).forEach(function(s){
+    ((s&&s.additionalCosts)||[]).forEach(function(line){
+      if(!legacyLineInPaidWithPeriod(s, line, y, monthIndex, n))return;
+      const method=line.paymentMethod!=null?line.paymentMethod:line.payment_method;
+      addPaidWith(buckets, method, line.amount);
+    });
+  });
+  return buckets;
+}
+function paidWithEntries(buckets){
+  const rows=EXP_PAY_METHODS.map(([k,label])=>({key:k,label:label,amount:Number(buckets&&buckets[k])||0}));
+  rows.push({key:'',label:'Not recorded',amount:Number(buckets&&buckets[''])||0});
+  return rows;
+}
+function paidWithTotal(buckets){
+  let sum=Number(buckets&&buckets[''])||0;
+  EXP_PAY_METHODS.forEach(([k])=>{sum=round2(sum+(Number(buckets&&buckets[k])||0));});
+  return round2(sum);
+}
+function paidWithNote(){
+  return 'Session-linked expenses and other expenses, by the expense date. Older costs still typed on a session are included by the date paid, or by the session date when no date paid is saved. A line already moved to Finances, or marked as already in Finances, is counted once. Handbook lines are not included. On a cancelled session, only an older cost with a date paid is included.';
+}
+function paidWithPeriodLabel(year, month){
+  const y=parseInt(year,10);
+  if(month==null||month==='')return String(isNaN(y)?'':y);
+  const m=parseInt(month,10);
+  if(isNaN(m))return String(isNaN(y)?'':y);
+  return new Date(y, m, 1, 12, 0, 0).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+}
+function expenseMatchesPayFilter(e, payF){
+  const want=payF==null?'':String(payF);
+  if(!want)return true;
+  const key=paidWithKey(e&&(e.paymentMethod!=null?e.paymentMethod:e.payment_method));
+  if(want==='none')return !key;
+  return key===want;
+}
+function expensePayFilterOptions(selected){
+  const cur=selected==null?'':String(selected);
+  const method=cur==='none'?'':cur;
+  let methods=expensePayOptions(method);
+  methods=methods.replace(/<option value=""[^>]*>Not recorded<\/option>/,'');
+  const all='<option value=""'+(cur===''?' selected':'')+'>All payment methods</option>';
+  const none='<option value="none"'+(cur==='none'?' selected':'')+'>Not recorded</option>';
+  return all+methods+none;
+}
+function paidWithReportHtml(buckets, fmtN){
+  const rows=paidWithEntries(buckets).filter(r=>r.amount);
+  if(!rows.length)return '';
+  const money=typeof fmtN==='function'?fmtN:fmt;
+  const body=rows.map(r=>`<tr><td>${escapeHtml(r.label)}</td><td style="text-align:right;color:#c0392b">${money(r.amount)}</td></tr>`).join('');
+  return `<h2>Paid with</h2>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:10px">${escapeHtml(paidWithNote())}</p>
+    <table>
+      <thead><tr><th>Paid with</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody>${body}</tbody>
+      <tfoot><tr class="total-row"><td>TOTAL</td><td style="text-align:right;color:#c0392b">${money(paidWithTotal(buckets))}</td></tr></tfoot>
+    </table>`;
+}
+function renderPaidWith(){
+  const host=document.getElementById('fin-paid-with');
+  if(!host)return;
+  const yrSel=document.getElementById('report-year');
+  const moSel=document.getElementById('report-month');
+  const year=yrSel&&yrSel.value?parseInt(yrSel.value,10):new Date().getFullYear();
+  const monthly=finView==='monthly';
+  const month=monthly&&moSel&&moSel.value!==''?parseInt(moSel.value,10):null;
+  const buckets=paidWithTotals(year, month);
+  const rows=paidWithEntries(buckets);
+  const label=paidWithPeriodLabel(year, month);
+  const body=rows.map(r=>`<tr><td>${escapeHtml(r.label)}</td><td style="text-align:right;color:var(--danger);font-weight:500">${fmt(r.amount)}</td></tr>`).join('');
+  host.innerHTML=`<div class="card" style="margin-top:16px">
+    <div class="card-title">Paid with</div>
+    <div style="font-size:15px;color:var(--muted);line-height:1.55;margin:-4px 0 12px">${escapeHtml(label)}. ${escapeHtml(paidWithNote())}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Paid with</th><th style="text-align:right">Amount</th></tr></thead><tbody>${body}</tbody>
+      <tfoot><tr style="font-weight:650"><td>Total</td><td style="text-align:right;color:var(--danger)">${fmt(paidWithTotal(buckets))}</td></tr></tfoot></table></div>
+  </div>`;
+}
 function expenseFromDB(x){
   return {id:x.id,description:x.description,amount:Number(x.amount),date:x.date,category:x.category||'Other',paymentMethod:normalizeExpensePay(x.payment_method),sessionId:x.session_id||null,createdAt:x.created_at||Date.now(),recurrence:normalizeExpenseRecurrence(x.recurrence),recurUntil:x.recur_until?String(x.recur_until).slice(0,10):'',recurActive:x.recur_active!==false};
 }
@@ -13917,12 +14074,21 @@ function expenseCategoryTotals(list){
   });
   return buckets;
 }
+function syncExpensePayFilter(){
+  const sel=document.getElementById('ef-pay');
+  if(!sel)return;
+  const keep=sel.value||'';
+  sel.innerHTML=expensePayFilterOptions(keep);
+}
 function renderExpenses(){
   syncExpenseCategoryFilter();
+  syncExpensePayFilter();
   const catF=document.getElementById('ef-cat').value;
   const yearF=(document.getElementById('ef-year').value||'').trim();
   const linkSel=document.getElementById('ef-link');
   const linkF=linkSel?(linkSel.value||''):'';
+  const paySel=document.getElementById('ef-pay');
+  const payF=paySel?(paySel.value||''):'';
   if(linkSel){
     const keep=linkSel.value;
     const sessionOpts=expenseSessionChoices().map(s=>`<option value="${escapeHtml(s.id)}"${keep===s.id?' selected':''}>${escapeHtml(sessionChoiceLabel(s))}</option>`).join('');
@@ -13934,6 +14100,7 @@ function renderExpenses(){
     if(linkF==='linked'&&!e.sessionId)return false;
     if(linkF==='unlinked'&&e.sessionId)return false;
     if(linkF&&linkF!=='linked'&&linkF!=='unlinked'&&e.sessionId!==linkF)return false;
+    if(!expenseMatchesPayFilter(e, payF))return false;
     return true;
   });
   const total=list.reduce((s,e)=>s+e.amount,0);
@@ -13957,7 +14124,7 @@ function renderExpenses(){
         <td style="white-space:nowrap">${d}</td>
         <td style="font-weight:500">${escapeHtml(e.description)}${recurNote?`<div style="font-size:13px;font-weight:500;color:#1a5c8a">${escapeHtml(recurNote)}</div>`:''}</td>
         <td><span class="tag pending">${escapeHtml(e.category)}</span></td>
-        <td style="white-space:nowrap;color:${pay?'var(--text)':'var(--muted)'}">${pay?escapeHtml(pay):'—'}</td>
+        <td style="white-space:nowrap;color:${pay?'var(--text)':'var(--muted)'}">${pay?escapeHtml(pay):'Not recorded'}</td>
         <td style="white-space:nowrap">${sessCell}</td>
         <td style="color:var(--danger);font-weight:500">${fmt(e.amount)}</td>
         <td><div class="btn-row"><button class="btn sm" onclick="openEditExpense('${e.id}')">Edit</button>${stopBtn}<button class="btn sm danger" onclick="deleteExpense('${e.id}')">Delete</button></div></td></tr>`;
@@ -17433,6 +17600,8 @@ function printYearReport(){
       <tbody>${courseRows||'<tr><td colspan="5" style="color:#aaa;text-align:center;padding:16px">No course data for this year</td></tr>'}</tbody>
     </table>
 
+    ${paidWithReportHtml(paidWithTotals(year, null), fmtN)}
+
     ${Object.keys(catBuckets).length?`
     <h2>Finances expenses by category</h2>
     <p style="font-size:15px;color:#6b7a99;margin-bottom:10px">Every expense entered on Finances, session-linked and other. Each amount is in this list once. Other expenses are the ones with no session.</p>
@@ -17725,6 +17894,8 @@ function printMonthReport(){
         <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${estPrefix(fmtS(tot.profit), !!tot.instrEstimated)}</td></tr>
       </tbody>
     </table>
+
+    ${paidWithReportHtml(paidWithTotals(year, mi), fmtN)}
 
     ${Object.keys(monthCatBuckets).length?`
     <h2>Expenses by category</h2>
