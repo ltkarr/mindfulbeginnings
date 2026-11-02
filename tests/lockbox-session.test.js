@@ -104,6 +104,7 @@ test('the session editor, the custom job editor, and About share the lock box la
   assert.match(htmlFn, /Same check-off as the dashboard/);
   assert.match(admin, /function toggleMaterialsLockbox\(sessId,checked\)\{\s*toggleMaterialsFromDash\(sessId,checked\);/);
   assert.match(admin, /return \(s&&s\.isCustomJob\)\?'Put out materials for the instructor':'Put out handbooks &amp; supplies';/);
+  assert.match(htmlFn, /s\.isVirtual\)return '';/);
 });
 
 test('edit session groups the same fields into Basics, Instructor and pay, Host and families, and More options', () => {

@@ -104,6 +104,16 @@ test('family reminder is the before-class pack and meal note', () => {
   assert.match(meal.body, /Meal: Your host is providing a meal for participants\./);
   const pack = emails.draft('classReminder', sample({ mealText: 'Please pack a lunch. Snacks and drinks only.' }));
   assert.match(pack.body, /Meal: Please pack a lunch; the host will provide snacks and drinks\./);
+
+  const zoom = emails.draft('classReminder', sample({
+    course: 'Safe@Home — Virtual',
+    virtual: true,
+    zoomLink: 'https://zoom.us/j/84366764411',
+    address: 'Virtual (Zoom) — https://zoom.us/j/84366764411'
+  }));
+  assert.match(zoom.body, /Zoom link: https:\/\/zoom\.us\/j\/84366764411/);
+  assert.doesNotMatch(zoom.body, /What to Bring/);
+  assert.doesNotMatch(zoom.body, /Location:/);
 });
 
 test('host letter is the initial confirm and drops the free spot when there is no host seat', () => {

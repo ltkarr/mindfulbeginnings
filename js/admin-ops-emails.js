@@ -192,9 +192,13 @@
       lines.push('');
       lines.push('CLASS LOGISTICS');
       lines.push('\u2022 Date and Time: ' + dateLong + ', ' + time);
-      lines.push('\u2022 Location: ' + address);
-      lines.push('\u2022 What to Bring: Please send your child with a water bottle and a snack.');
-      lines.push('\u2022 Meal: ' + familyMealLine(mealRaw));
+      if (info.virtual) {
+        lines.push('\u2022 Zoom link: ' + (info.zoomLink || 'We will send the Zoom link before class.'));
+      } else {
+        lines.push('\u2022 Location: ' + address);
+        lines.push('\u2022 What to Bring: Please send your child with a water bottle and a snack.');
+        lines.push('\u2022 Meal: ' + familyMealLine(mealRaw));
+      }
       lines.push('');
       lines.push('CLASS DETAILS');
       lines.push('\u2022 Instructor: Your instructor for the day will be ' + (instructor || 'To be confirmed') + '. You can learn more about our full team here: https://mindfulbeginnings.org/our-team');
