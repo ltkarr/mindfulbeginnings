@@ -38,9 +38,9 @@ test('secrets stay behind the portal PIN and are never printed on the public pag
   assert.doesNotMatch(page, /843 6676 4411/);
 });
 
-test('quiz has 19 questions, passes at 16, and posts to the shared submit endpoint', () => {
+test('quiz has 20 questions, passes at 16, and posts to the shared submit endpoint', () => {
   const questions = page.match(/lesson:\d+\}/g) || [];
-  assert.equal(questions.length, 19);
+  assert.equal(questions.length, 20);
   assert.match(page, /var PASS=16/);
   assert.match(page, /\/api\/evaluations\/submit/);
   assert.match(page, /form:'onboarding'/);
