@@ -1,7 +1,6 @@
 /* Per-course post-course emails for families.
    Keyed by admin session course name. Each draft: subject, greeting,
-   paragraphs, and who completes the evaluation ("have your child complete"
-   for kid courses, "complete" for adult courses).
+   paragraphs, and who completes the evaluation ("complete" for every course).
    Nothing here sends email. ADMIN builds the draft and Lindsay copies it
    into her own email. Links are embedded in words in the HTML version. */
 (function (root) {
@@ -21,7 +20,7 @@
       keys: ['Safe Sitter®'],
       subject: 'Thank you for a great Safe Sitter class',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for trusting Mindful Beginnings with your child\'s Safe Sitter training. Your child practiced the real skills sitters need, from handling emergencies to caring for younger children and making safe choices when no adult is in the room.',
         'Please keep practicing the Safety Signal at home, your family\'s code phrase that means "come pick me up now, no questions asked." And remember that finishing Safe Sitter is a wonderful foundation, but it doesn\'t automatically mean your child is ready to babysit alone. Trust your judgment on timing.',
@@ -32,7 +31,7 @@
       keys: ['Safe Sitter® Babysitting Essentials'],
       subject: 'Your sitter means business',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for choosing Mindful Beginnings for Babysitting Essentials. Your child moved beyond basic safety into the business of babysitting: communicating with parents, setting clear expectations, and leading with confidence from the moment they walk in the door.',
         'They\'re ready to take on sitting jobs and handle whatever the afternoon brings, from fussy toddlers to last-minute changes in the plan. And it\'s great news for you too: a trained sitter in the family makes date nights a lot easier.'
@@ -42,7 +41,7 @@
       keys: ['Intro to Babysitting'],
       subject: 'First steps toward babysitting',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for bringing your child to Introduction to Safe Babysitting by Safe Sitter®. They got a first taste of a sitter\'s world: basic child care, safety awareness, and how to stay calm and think clearly when something unexpected happens.',
         'This class plants the seed. When your child turns 11, Safe Sitter is the natural next step, with deeper training in emergencies, rescue skills, and real sitting scenarios. We loved having your child in class and hope they left excited about what\'s ahead.'
@@ -52,10 +51,10 @@
       keys: ['Safe@Home', 'Safe@Home — Virtual', 'Safe@Home — Series'],
       subject: 'Your child is Safe@Home ready',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for choosing Mindful Beginnings for Safe@Home. Your child practiced exactly what to do when home alone: answering the door and phone safely, responding to emergencies, and making smart decisions without an adult in the room.',
-        'A great next step is making a family plan together. Talk through who they call, where they go, and what your Safety Signal is, so everyone knows the plan before it\'s ever needed. Many families revisit the key scenarios a week later, once the details are still fresh and the nerves have settled.'
+        'A great next step is making a family plan together. Talk through who they call, where they go, and what your Safety Signal is, so everyone knows the plan before it\'s ever needed. Many families revisit the key scenarios a week later once the details are still fresh and the nerves have settled.'
       ]
     },
     {
@@ -92,7 +91,7 @@
       keys: ['All Kids Welcome'],
       subject: 'Thank you for joining All Kids Welcome',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for choosing All Kids Welcome. Your child learned that every kid deserves to feel included and safe, and practiced real skills for welcoming children of all abilities and needs.',
         'The takeaway is simple: kindness plus know-how. Keep the conversation going at home about including others and speaking up for friends who need it. Thank you for raising a child who makes room for everyone.'
@@ -112,7 +111,7 @@
       keys: ['Campus Ready: Safety Skills for College Life'],
       subject: 'Your teen is Campus Ready',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for choosing Campus Ready for your college-bound teen. They covered the safety skills that matter most in independent life: staying aware on campus, making smart decisions, and knowing what to do in an emergency far from home.',
         'Have one more conversation before move-in day about your family\'s expectations and their personal safety plan. It matters more than you think. They\'re heading into an exciting chapter, and now they\'re heading in prepared.'
@@ -122,7 +121,7 @@
       keys: ['Steady and Ready'],
       subject: 'Steady and Ready',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for choosing Steady and Ready. Your child built essential emergency readiness skills in a low-pressure, supportive environment designed for how they learn best.',
         'These skills stick best with gentle repetition. Keep practicing the safety steps together at home, at their pace, and celebrate how far they have come. Thank you for trusting us with your child.'
@@ -132,7 +131,7 @@
       keys: ['Middle School Ready', 'Middle School Ready — Virtual'],
       subject: 'Middle School Ready',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for choosing Middle School Ready. Your child practiced how to navigate a new building and a new set of adults: asking for help and being heard, speaking up calmly when something feels unfair, and finding the trusted adults they can go to.',
         'The first weeks of middle school are the hardest. Ask them to walk you through their plan for a tough moment: who they would go to, and what they would say. Knowing they have words ready makes the real moment so much easier.'
@@ -162,7 +161,7 @@
       keys: ['My First Babysitters Club', 'My First Babysitters Club — Single Session'],
       subject: 'Club\'s in session',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for joining My First Babysitters Club. Your child started building real babysitting skills early through fun, hands-on activities: safety basics, child care know-how, and the confidence to step up and help.',
         'As they grow, Introduction to Safe Babysitting and then Safe Sitter at age 11 keep the journey going. Ask them to show you what they practiced. Kids retain so much more when they get to teach it.'
@@ -172,7 +171,7 @@
       keys: ['Ready. Period.'],
       subject: 'She\'s Ready. Period.',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for trusting us with Ready. Period. Your child learned about periods in a comfortable, straightforward setting: what to expect, how to manage supplies, and that there\'s nothing to be embarrassed about.',
         'Keep the door open at home. Kids handle this transition best when they know they can ask anything. Consider tucking a small period kit into their backpack, so they\'re ready wherever they are.'
@@ -182,7 +181,7 @@
       keys: ['Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', 'Season Ready™: Safety Skills for Student Athletes'],
       subject: 'Have a safe, strong season',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for choosing Season Ready. Your athlete covered what keeps them in the game: fueling their body well, preventing common injuries, and staying safe on and off the field.',
         'Remind them that rest and good fuel are part of training, not extras. Wishing them a healthy season. Thanks for investing in the part of sports that never shows up on the scoreboard.'
@@ -192,7 +191,7 @@
       keys: ['Social Ready'],
       subject: 'Socially ready',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for choosing Social Ready. Your child practiced staying safe online: phone safety, digital boundaries, handling group chats, and recognizing red flags before they head online.',
         'The online world moves fast. Keep the conversation going at home about what they are seeing and who they are talking to. Kids who can spot the red flags early are the safest ones in the chat.'
@@ -212,7 +211,7 @@
       keys: ['Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED (Online + Classroom)'],
       subject: 'Certified and fully trained',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Congratulations to your child on completing Red Cross Babysitter\'s Training plus Pediatric First Aid/CPR/AED. They completed the First Aid/CPR/AED learning online at their own pace, then finished with a hands-on skills session with us, and they now hold American Red Cross certification, valid for two years.',
         'This combination is the gold standard for young sitters. Encourage them to keep practicing their skills and to always trust their instincts on the job.'
@@ -222,7 +221,7 @@
       keys: ['Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED'],
       subject: 'Certified and fully trained',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Congratulations to your child on completing Red Cross Babysitter\'s Training plus Pediatric First Aid/CPR/AED. That\'s seven hours and twenty minutes of serious training, and they now hold American Red Cross certification, valid for two years.',
         'This combination is the gold standard for young sitters. Encourage them to keep practicing their skills and to always trust their instincts on the job.'
@@ -262,7 +261,7 @@
       keys: ['Red Cross Babysitter\'s Training', 'Babysitter\'s Training'],
       subject: 'Red Cross trained sitter',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Congratulations to your child on completing Red Cross Babysitter\'s Training. They learned the Red Cross approach to caring for children: strong leadership, smart safety decisions, and how to run a sitting job like a pro.',
         'When they\'re ready to add emergency credentials, Pediatric First Aid/CPR/AED pairs perfectly with this training. Sitters with Red Cross training stand out to families, and your child earned that edge today.'
