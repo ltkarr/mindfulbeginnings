@@ -11620,6 +11620,7 @@ function packingBringCounts(s, registered){
     if(typeof matPlanForSession==='function'){
       const plan=matPlanForSession({
         course:s&&s.course,
+        code:s&&s.code,
         isVirtual:!!(s&&s.isVirtual),
         date:(s&&s.date)||'',
         extraDates:(s&&s.extraDates)||[],
@@ -14221,7 +14222,18 @@ const MAT_NEEDS={
   // Season Ready practices hands-only CPR and AED use, so it needs an adult
   // manikin and the AV kit. Ready. Period. brings its own craft supplies and
   // pulls nothing off the equipment shelf.
-  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{adult:1,av:1}
+  'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':{adult:1,av:1},
+  // Care Ready practices a choking infant and an unresponsive child.
+  // Baby Ready practices infant choking rescue and CPR. The certification
+  // add-on above also takes a child manikin.
+  'Care Ready':{infant:1,child:1,av:1},
+  'Baby Ready':{infant:1,av:1},
+  // American Red Cross Adult & Pediatric First Aid/CPR/AED (in person, hybrid,
+  // and online + classroom). Session codes for the hybrid and online versions
+  // start with RCAH-.
+  'Adult & Pediatric First Aid/CPR/AED Certification':{infant:1,child:1,adult:1,av:1},
+  'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':{infant:1,child:1,adult:1,av:1},
+  'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)':{infant:1,child:1,adult:1,av:1}
 };
 const MAT_LARGE_CLASS=8;
 const MAT_KIND_RX={infant:/infant/i,child:/child/i,adult:/adult/i,av:/\bav\b|laptop|projector/i};
@@ -14285,6 +14297,11 @@ function matAliasCourse(course){
   if(n.indexOf('campus ready')>=0)return 'Campus Ready: Safety Skills for College Life';
   if(n.indexOf('season ready')>=0)return 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes';
   if(n.indexOf('all kids welcome')>=0)return 'All Kids Welcome';
+  if(n.indexOf('care ready')>=0)return 'Care Ready';
+  if(n.indexOf('baby ready')>=0&&n.indexOf('cpr')>=0)return 'Baby Ready + CPR Certification';
+  if(n.indexOf('baby ready')>=0)return 'Baby Ready';
+  // Adult-only first aid stays off this kit. Both age words, plus CPR or first aid.
+  if(/\badult\b/.test(n)&&/\bpediatric\b/.test(n)&&/\b(cpr|aed|first aid)\b/.test(n))return 'Adult & Pediatric First Aid/CPR/AED Certification';
   // "SafeSitter @Norwood" and "Safe Sitter at Beth El" are the course.
   // A title that only says "Safe Sitter instructors" is about who teaches it.
   if(/\bsafesitter\b/.test(n))return 'Safe Sitter®';
@@ -14299,7 +14316,8 @@ function matCourseNeeds(course){
   return undefined;
 }
 // Infant, child, and adult kit lines are manikins. AV-only courses are not.
-// Care Ready and Baby Ready practice on manikins but are not in the kit table.
+// Care Ready and Baby Ready are in the kit table. The name check stays so a
+// title that does not resolve still counts as manikin practice.
 function needsIncludeManikin(needs){
   if(!needs)return false;
   return !!(Number(needs.infant)>0||Number(needs.child)>0||Number(needs.adult)>0);
@@ -14309,11 +14327,16 @@ function courseUsesManikins(course){
   const n=matNormTitle(course);
   return n==='care ready'||n==='baby ready';
 }
+// Hybrid and online + classroom Adult & Pediatric classes use the RCAH- code.
+function matIsRcahCode(code){
+  return /^RCAH-/i.test(String(code||'').trim());
+}
 function sessionUsesManikins(s){
   if(!s||s.isVirtual)return false;
   if(s.id&&typeof matCheckouts!=='undefined'&&typeof coNoEquipment==='function'){
     if((matCheckouts||[]).some(function(c){return c&&c.sessionId===s.id&&!c.returnedDate&&coNoEquipment(c);}))return false;
   }
+  if(matIsRcahCode(s.code))return true;
   return courseUsesManikins(s.course);
 }
 // Registered students only. Capacity is not a roster, so an empty class of 16
@@ -14350,7 +14373,8 @@ function matBookEq(kind){const rx=MAT_BOOK_RX[kind];return rx?(equipment||[]).fi
 // (virtual session, own-materials course, or a course not in the table above).
 function sessionMatNeeds(s,rosterCount){
   if(!s||s.isVirtual)return null;
-  const n=matCourseNeeds(s.course);
+  let n=matCourseNeeds(s.course);
+  if(n===undefined&&matIsRcahCode(s.code))n=MAT_NEEDS['Adult & Pediatric First Aid/CPR/AED Certification'];
   if(!n||!Object.keys(n).length)return null;
   const count=(rosterCount!=null&&rosterCount!=='')?Math.max(0,Number(rosterCount)||0):matRegisteredHeadcount(s);
   return matNeedsForHeadcount(n,count);
@@ -14608,13 +14632,14 @@ function matReorderLines(){
 // purchase is durable equipment that is short. bookBuy is the one handbook/notebook note.
 function matPlanForSession(draft){
   draft=draft||{};
-  const s={id:draft.sessionId||null,course:draft.course,isVirtual:!!draft.isVirtual,date:draft.date||'',extraDates:draft.extraDates||[],instructorId:draft.instructorId||null,secondInstructorId:draft.secondInstructorId||null,ownerTaught:!!draft.ownerTaught};
+  const s={id:draft.sessionId||null,course:draft.course,code:draft.code||'',isVirtual:!!draft.isVirtual,date:draft.date||'',extraDates:draft.extraDates||[],instructorId:draft.instructorId||null,secondInstructorId:draft.secondInstructorId||null,ownerTaught:!!draft.ownerTaught};
   if(draft.sessionId&&typeof sessions!=='undefined'){
     const live=(sessions||[]).find(function(x){return x&&x.id===draft.sessionId;});
     if(live){
       s.instructorId=live.instructorId||null;
       s.secondInstructorId=live.secondInstructorId||null;
       s.ownerTaught=!!live.ownerTaught;
+      if(!s.code)s.code=live.code||'';
     }
   }
   const roster=matKitRoster(draft,s);
@@ -14885,7 +14910,7 @@ function sessionMatMissing(s,extraItems,excludeId,extraPerson){
 // still needs to be reserved. The checkout record itself is unchanged.
 function matSessBadge(s){
   if(s.isHold||s.isCancelled||!s.date)return'';
-  const co=matCheckouts.find(c=>c.sessionId===s.id);
+  const co=matCheckouts.find(c=>c.sessionId===s.id&&!c.returnedDate);
   if(co)return'';
   if(equipment.length&&sessionEndDate(s)>=matToday()&&sessionMatNeeds(s))
     return'<span class="sess-pill" style="background:#fdeeda;color:#9a6b1e" title="This course usually needs equipment — nothing reserved yet">Kit needed</span>';
