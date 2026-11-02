@@ -52,10 +52,10 @@
       keys: ['Safe@Home', 'Safe@Home — Virtual', 'Safe@Home — Series'],
       subject: 'Your child is Safe@Home ready',
       greeting: 'Hi there,',
-      taker: 'have your child complete',
+      taker: 'complete',
       paragraphs: [
         'Thank you for choosing Mindful Beginnings for Safe@Home. Your child practiced exactly what to do when home alone: answering the door and phone safely, responding to emergencies, and making smart decisions without an adult in the room.',
-        'A great next step is making a family plan together. Talk through who they call, where they go, and what your Safety Signal is, so everyone knows the plan before it\'s ever needed. Many families revisit the key scenarios a week later, once the details are still fresh and the nerves have settled.'
+        'A great next step is making a family plan together. Talk through who they call, where they go, and what your Safety Signal is, so everyone knows the plan before it\'s ever needed. Many families revisit the key scenarios a week later once the details are still fresh and the nerves have settled.'
       ]
     },
     {

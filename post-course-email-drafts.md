@@ -64,9 +64,9 @@ Hi there,
 
 Thank you for choosing Mindful Beginnings for Safe@Home. Your child practiced exactly what to do when home alone: answering the door and phone safely, responding to emergencies, and making smart decisions without an adult in the room.
 
-A great next step is making a family plan together. Talk through who they call, where they go, and what your Safety Signal is, so everyone knows the plan before it's ever needed. Many families revisit the key scenarios a week later, once the details are still fresh and the nerves have settled.
+A great next step is making a family plan together. Talk through who they call, where they go, and what your Safety Signal is, so everyone knows the plan before it's ever needed. Many families revisit the key scenarios a week later once the details are still fresh and the nerves have settled.
 
-Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please have your child complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
+Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
 Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
 
