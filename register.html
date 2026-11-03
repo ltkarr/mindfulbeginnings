@@ -138,6 +138,8 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 .public-card:has(.public-card-hit:focus-visible){border-color:var(--navy);outline:3px solid var(--gold);outline-offset:2px}
 .public-card .pmain{position:relative;z-index:2;pointer-events:none}
 .public-card .pname{font-weight:800;font-size:15px;color:var(--navy);line-height:1.3}
+.lang-badge{display:inline-block;margin-top:6px;background:#1E3161;color:#fff;font-weight:800;font-size:13px;letter-spacing:.01em;border-radius:100px;padding:5px 12px;line-height:1.3}
+.cname .lang-badge{margin-top:6px}
 .parc,.public-card .parc{display:block;color:#ED1B2E;font-weight:700;font-size:13px;margin-top:2px;line-height:1.3}
 .arc-course-notice{background:#F7F4EF;border:1px solid rgba(30,49,97,0.12);border-left:4px solid #ED1B2E;border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.6;color:var(--text)}
 .arc-course-notice p{margin:0 0 10px}
@@ -1318,7 +1320,8 @@ function renderPublicSessions(){
     const scarce=!soldOut&&!full&&!!seats&&seats===helpers.FEW_SEATS_LABEL;
     const goLabel=externalUrl?helpers.externalRegistrationLabel(externalUrl):'Register →';
     const shownCourse=publicCourseName(r.course)||'Course';
-    const ariaLabel=soldOut?('Sold out: '+[shownCourse,when,place].filter(Boolean).join(', ')+'. Join waitlist'):(externalUrl?goLabel:'Register')+': '+[shownCourse,when,place,(!full&&seats)?seats:''].filter(Boolean).join(', ');
+    const inSpanish=sessionListedInSpanish(r);
+    const ariaLabel=soldOut?('Sold out: '+[shownCourse,inSpanish?'In Spanish':'' ,when,place].filter(Boolean).join(', ')+'. Join waitlist'):(externalUrl?goLabel:'Register')+': '+[shownCourse,inSpanish?'In Spanish':'',when,place,(!full&&seats)?seats:''].filter(Boolean).join(', ');
     let seatsHtml='';
     if(!soldOut&&seats){
       if(full){
@@ -1332,6 +1335,7 @@ function renderPublicSessions(){
     html+='<div class="public-card'+(soldOut?' soldout-card':'')+'" data-code="'+escapeHtml(r.code)+'"'+(externalUrl?' data-external="1"':'')+'>'+
       (soldOut?'':'<button type="button" class="public-card-hit" aria-label="'+escapeHtml(ariaLabel)+'"></button>')+
       '<div class="pmain" aria-hidden="true"><div class="pname">'+escapeHtml(publicCourseName(r.course)||'Course')+'</div>'+
+      (inSpanish?spanishSessionBadge():'')+
       arcCertificationLine(r.course)+
       (soldOut?'<div class="psoldout-banner">SOLD OUT</div>':'')+
       (audience?'<div class="paudience">'+escapeHtml(audience)+'</div>':'')+
@@ -1685,6 +1689,14 @@ function registrationGradeOptions(course){
   if(isGirlScoutBadgeCourse(name))return blank+'<option>Kindergarten</option><option>1st grade</option><option>2nd grade</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
   return blank+'<option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
 }
+function sessionListedInSpanish(row){
+  if(!row)return false;
+  if(row.requires_spanish===true||row.requiresSpanish===true)return true;
+  return String(row.code||'').toUpperCase()==='SRF-270413';
+}
+function spanishSessionBadge(){
+  return '<div class="lang-badge">In Spanish / En español</div>';
+}
 function sessionUsesSpanish(s){
   if(!s||!window.MBSrfGrant||!MBSrfGrant.isCourse(s.course))return false;
   if(s.requiresSpanish)return true;
@@ -1721,7 +1733,7 @@ function setBanner(id){
   const countyNote=(window.MBCountyDisclaimer&&MBCountyDisclaimer.shows(s))?MBCountyDisclaimer.html():'';
   const countyBefore=document.getElementById('county-disclaimer-before-reserve');
   if(countyBefore)countyBefore.hidden=!countyNote;
-  document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(publicCourseName(s.course))}</div>${arcCertLine}<div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div>${countyNote}</div><div class="sess-price">${priceHTML}</div>`;
+  document.getElementById(id).innerHTML=`<div><div class="cname">${escapeHtml(publicCourseName(s.course))}${sessionUsesSpanish(s)?spanishSessionBadge():''}</div>${arcCertLine}<div class="cmeta">${d}${s.time?' · '+escapeHtml(s.time):''} · ${locationLine}${metaAddr}</div>${countyNote}</div><div class="sess-price">${priceHTML}</div>`;
   // Show prerequisite notice for All Kids Welcome and Stay Ready
   let prereqNotice=document.getElementById('akw-prereq-notice');
   if(s.course==='All Kids Welcome'||s.course==='Stay Ready: Choking Rescue and CPR'||s.course==='Stay Ready™: Choking Rescue, CPR, and Seizure Response'){

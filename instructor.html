@@ -2037,7 +2037,13 @@ function credentialPill(s){
   if(sessionRequiresRN(s))bits.push('<span class="pill pill-rn">🩺 RN instructors only</span>');
   else if(sessionRequiresSafeSitter(s))bits.push('<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>');
   if(sessionRequiresSpanish(s))bits.push('<span class="pill pill-rn">🗣️ Spanish speakers only</span>');
+  if(sessionListedInSpanish(s))bits.push('<span class="pill pill-rn">In Spanish / En español</span>');
   return bits.join(' ');
+}
+function sessionListedInSpanish(s){
+  if(!s)return false;
+  if(s.requiresSpanish)return true;
+  return String(s.code||'').toUpperCase()==='SRF-270413';
 }
 // True when a job another instructor already holds should be left off this
 // person's Open jobs board. Taken jobs never appear here — every listing on
