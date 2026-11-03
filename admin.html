@@ -643,9 +643,10 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="fin-table"></table></div></div>
       <div id="fin-fee-section"></div>
       <div id="fin-paid-with"></div>
+      <div id="fin-inventory"></div>
 
       <div class="page-header" style="margin-top:28px;margin-bottom:16px">
-        <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Insurance, software, equipment, and handbook or supply orders. These reduce net profit, and they are not also taken off each class. Add an expense with the button at the top of this page.</div></div>
+        <div><div class="page-title" style="font-size:23px">Overhead expenses</div><div class="page-sub">Insurance, software, equipment, and other costs with no session. Handbook or supply orders stay on this list as cash spent. Once you enter a quantity they move into inventory, and they are not also taken off each class as the full charge. A class is charged only for the units it uses. Add an expense with the button at the top of this page.</div></div>
       </div>
       <div class="metrics" id="exp-metrics"></div>
       <div class="filter-row">
@@ -1898,6 +1899,7 @@ const INSTR_RATE=50,INSTR_TRAVEL=50;
 const INSTR_EXTRA_HOURS=0.5;
 
 let sessions=[],registrations=[],instructors=[],jobDataCache={},expenses=[],invoices=[],finView='monthly',sessionSortAsc=true;
+let inventoryItems=[],inventoryPurchases=[],courseMaterialUses=[],inventoryTablesReady=false;
 let equipment=[],matCheckouts=[],equipmentTablesReady=true;
 // Community Partnerships Liaisons and their monthly commission payouts.
 // partnersTableReady goes false when the setup SQL has not been run yet, and the
@@ -2513,6 +2515,16 @@ async function loadData(){
     discountCodesTableReady=!dc.error;
     if(dc.error)console.warn('Discount codes table not loaded (run migrations/20261023_single_use_discount_codes.sql):',dc.error);
     discountCodes=(dc.data||[]).map(discountCodeFromDB);
+    const [invItems,invLots,invUses]=await Promise.all([
+      fetchAll('inventory_items',q=>q.order('sort',{ascending:true}).order('name',{ascending:true})),
+      fetchAll('inventory_purchases',q=>q.order('purchased_on',{ascending:false})),
+      fetchAll('course_inventory_use',q=>q.order('course_name',{ascending:true}))
+    ]);
+    inventoryTablesReady=!invItems.error&&!invLots.error&&!invUses.error;
+    if(!inventoryTablesReady)console.warn('Inventory tables not loaded (run migrations/20261103_inventory_costs.sql):',(invItems.error||invLots.error||invUses.error));
+    inventoryItems=(invItems.data||[]).map(inventoryItemFromDB);
+    inventoryPurchases=(invLots.data||[]).map(inventoryPurchaseFromDB);
+    courseMaterialUses=(invUses.data||[]).map(courseMaterialUseFromDB);
     // Supabase returns errors on the result object instead of throwing. If any table
     // failed to load, say so loudly — otherwise the dashboard quietly shows wrong numbers.
     // The two equipment tables are newer — if they haven't been created yet the rest of
@@ -3015,6 +3027,8 @@ function linkedExpenses(sessionId){
   // It is not also piled onto one session for every future charge.
   return expenseLedger().filter(e=>{
     if(!e||e.sessionId!==sessionId)return false;
+    // A bulk order counted as inventory is not also a direct cost of this session.
+    if(typeof expenseIsInventoryPurchase==='function'&&expenseIsInventoryPurchase(e))return false;
     const freq=String(e.recurrence||'').toLowerCase();
     return freq!=='weekly'&&freq!=='monthly'&&freq!=='yearly';
   });
@@ -3169,7 +3183,9 @@ function calcFin(s){
     const linkedCosts=linkedExpenseTotal(s.id);
     const legacyCosts=sessionExtraCosts(s.additionalCosts);
     const extra=linkedCosts+legacyCosts;
-    return{revenue:orgFee,grossRevenue:orgFee,procFee:0,matCost:0,instrFee:pay,extraCosts:extra,linkedCosts,legacyCosts,refPayout:0,referralBonus:0,totalCost:pay+extra,profit:orgFee-pay-extra,paidCount:0,totalCount:0,orgRevenue:orgFee,orgHeadcount:0,orgRate:null,familyGross:0,instrEstimated:false};
+    const inventory=(typeof inventoryCostForSession==='function')?inventoryCostForSession(s):{cost:0,units:0,unpriced:false};
+    const inventoryCost=Number(inventory.cost)||0;
+    return{revenue:orgFee,grossRevenue:orgFee,procFee:0,matCost:0,instrFee:pay,extraCosts:extra,linkedCosts,legacyCosts,inventoryCost,inventoryUnits:inventory.units||0,inventoryUnpriced:!!inventory.unpriced,refPayout:0,referralBonus:0,totalCost:pay+extra+inventoryCost,profit:orgFee-pay-extra-inventoryCost,paidCount:0,totalCount:0,orgRevenue:orgFee,orgHeadcount:0,orgRate:null,familyGross:0,instrEstimated:false};
   }
   const regs=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r));
   const paying=regs.filter(r=>r.payStatus==='paid');
@@ -3228,13 +3244,17 @@ function calcFin(s){
   const linkedCosts=linkedExpenseTotal(s.id);
   const legacyCosts=sessionExtraCosts(s.additionalCosts);
   const extraCosts=linkedCosts+legacyCosts;
+  // Handbooks and certifications come from inventory (units x average cost).
+  // The bulk card charge is not in extraCosts.
+  const inventory=(typeof inventoryCostForSession==='function')?inventoryCostForSession(s):{cost:0,units:0,unpriced:false};
+  const inventoryCost=Number(inventory.cost)||0;
   // The $25 family referral payout is retired. Naming a referrer is information only.
   // It tells you who sent the family, and costs the session nothing. refPayout stays
   // in the return as 0 so every screen that reads it keeps working.
   const refPayout=0;
   const referralBonus=(jobDataCache[s.id]||{}).referralBonus||0;
-  const totalCost=matCost+instrFee+extraCosts+referralBonus;
-  return{revenue,grossRevenue,procFee,matCost,instrFee,extraCosts,linkedCosts,legacyCosts,refPayout,referralBonus,totalCost,profit:revenue-totalCost,paidCount:paying.length,totalCount:regs.length,orgRevenue,orgHeadcount,orgRate,familyGross,instrEstimated};
+  const totalCost=matCost+instrFee+extraCosts+referralBonus+inventoryCost;
+  return{revenue,grossRevenue,procFee,matCost,instrFee,extraCosts,linkedCosts,legacyCosts,inventoryCost,inventoryUnits:inventory.units||0,inventoryUnpriced:!!inventory.unpriced,refPayout,referralBonus,totalCost,profit:revenue-totalCost,paidCount:paying.length,totalCount:regs.length,orgRevenue,orgHeadcount,orgRate,familyGross,instrEstimated};
 }
 // What one session contributes to company totals. A cancelled session drops its
 // revenue, processing fees, estimated instructor pay, and unpaid older costs.
@@ -3246,13 +3266,14 @@ function financeSessionFigures(s){
   if(s&&s.isCancelled){
     const instr=paidOutInstructorFee(s);
     const legacy=financeLegacyCosts(s);
-    return {rev:0,fee:0,instr:instr,legacy:legacy,students:0,sess:0,instrEstimated:false};
+    return {rev:0,fee:0,instr:instr,legacy:legacy,inventory:0,students:0,sess:0,instrEstimated:false};
   }
   return {
     rev:f.revenue,
     fee:f.procFee||0,
     instr:(f.instrFee||0)+(f.referralBonus||0),
     legacy:f.legacyCosts||0,
+    inventory:f.inventoryCost||0,
     students:f.paidCount,
     sess:1,
     instrEstimated:!!f.instrEstimated
@@ -3411,7 +3432,7 @@ function dashboardRevenueTotals(now){
     yRev+=p.rev;
     yCollected+=cash.collected;
     yExpected+=cash.expected;
-    if(slot.month===m){mRev+=p.rev;mCost+=p.instr+p.legacy;if(p.instrEstimated)mEst=true;}
+    if(slot.month===m){mRev+=p.rev;mCost+=p.instr+p.legacy+(p.inventory||0);if(p.instrEstimated)mEst=true;}
   });
   return {mRev:mRev,mCost:mCost,yRev:yRev,yCollected:yCollected,yExpected:yExpected,mEst:mEst};
 }
@@ -3432,16 +3453,19 @@ function dashboardChartRevenue(now){
     const k=slot.year+'-'+(slot.month+1).toString().padStart(2,'0');
     if(!buckets[k])return;
     const p=financeSessionFigures(s);
-    buckets[k].rev+=p.rev;buckets[k].cost+=p.instr+p.legacy;
+    buckets[k].rev+=p.rev;buckets[k].cost+=p.instr+p.legacy+(p.inventory||0);
     if(p.instrEstimated)buckets[k].instrEstimated=true;
   });
   // Session-linked expenses land in the month of the expense date. Unlinked
   // overhead stays on the Finances yearly view, same as before.
+  // Inventory purchases are not in this cost. The units used are already in
+  // the session figure above.
   const chartExpenses=(typeof expenseOccurrences==='function')
     ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
     :expenseLedger();
   chartExpenses.forEach(e=>{
     if(!e||!e.sessionId)return;
+    if(typeof expenseIsInventoryPurchase==='function'&&expenseIsInventoryPurchase(e))return;
     const d=new Date((e.date||'')+'T12:00:00');
     if(isNaN(d.getTime()))return;
     const k=d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
@@ -3465,18 +3489,18 @@ function financeRevenueBuckets(now, view){
     if(!slot)return;
     if(view==='monthly'&&slot.month==null)return;
     const p=financeSessionFigures(s);
-    if(s&&s.isCancelled&&!p.rev&&!p.fee&&!p.instr&&!p.legacy)return;
+    if(s&&s.isCancelled&&!p.rev&&!p.fee&&!p.instr&&!p.legacy&&!(p.inventory))return;
     const k=view==='monthly'?slot.year+'-'+(slot.month+1).toString().padStart(2,'0'):String(slot.year);
-    if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,extra:0,linked:0,legacy:0,cost:0,profit:0,sess:0,students:0};
+    if(!buckets[k])buckets[k]={rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,extra:0,linked:0,legacy:0,inventory:0,cost:0,profit:0,sess:0,students:0};
     buckets[k].rev+=p.rev;buckets[k].fee+=p.fee;buckets[k].instr+=p.instr;
     if(p.instrEstimated)buckets[k].instrEstimated=true;
-    buckets[k].legacy+=p.legacy;buckets[k].cost+=p.instr+p.legacy;
+    buckets[k].legacy+=p.legacy;buckets[k].inventory=(buckets[k].inventory||0)+(p.inventory||0);buckets[k].cost+=p.instr+p.legacy+(p.inventory||0);
     if(p.sess){buckets[k].sess++;buckets[k].students+=p.students;}
   });
   return buckets;
 }
 function emptyRevBucket(){
-  return {rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,extra:0,linked:0,legacy:0,cost:0,profit:0,sess:0,students:0};
+  return {rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,extra:0,linked:0,legacy:0,inventory:0,cost:0,profit:0,sess:0,students:0};
 }
 // Finances expenses, added once. Monthly view takes session-linked expenses
 // only, in the month of the expense date. Yearly view also takes every other
@@ -3488,6 +3512,8 @@ function applyFinanceExpenses(buckets, view){
   financeExpenses.forEach(e=>{
     const d=new Date((e.date||'')+'T12:00:00');
     if(isNaN(d.getTime()))return;
+    // Stock purchases are cash, not overhead and not a session expense.
+    if(typeof expenseIsInventoryPurchase==='function'&&expenseIsInventoryPurchase(e))return;
     const linked=!!(e&&e.sessionId);
     if(view==='monthly'&&!linked)return;
     const k=view==='monthly'?d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0'):String(d.getFullYear());
@@ -3505,11 +3531,11 @@ function annualSessionBuckets(year, now){
     const slot=financeRevenueSlot(s, n);
     if(!slot||slot.year!==year)return;
     const p=financeSessionFigures(s);
-    if(s&&s.isCancelled&&!p.rev&&!p.fee&&!p.instr&&!p.legacy)return;
+    if(s&&s.isCancelled&&!p.rev&&!p.fee&&!p.instr&&!p.legacy&&!(p.inventory))return;
     const b=slot.month==null?undated:months[slot.month];
     b.rev+=p.rev;b.fee+=p.fee;b.instr+=p.instr;
     if(p.instrEstimated)b.instrEstimated=true;
-    b.legacy+=p.legacy;b.ship+=p.legacy;b.cost+=p.instr+p.legacy;
+    b.legacy+=p.legacy;b.ship+=p.legacy;b.inventory=(b.inventory||0)+(p.inventory||0);b.cost+=p.instr+p.legacy+(p.inventory||0);
     if(p.sess){b.sess++;b.students+=p.students;}
   });
   months.forEach(b=>{b.profit=b.rev-b.cost;});
@@ -3523,12 +3549,12 @@ function courseRevenueForYear(year, now){
     const slot=financeRevenueSlot(s, n);
     if(!slot||slot.year!==year)return;
     const p=financeSessionFigures(s);
-    if(s&&s.isCancelled&&!p.rev&&!p.instr&&!p.legacy)return;
+    if(s&&s.isCancelled&&!p.rev&&!p.instr&&!p.legacy&&!(p.inventory))return;
     if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,fee:0,sess:0,students:0,profit:0};
     courseBuckets[s.course].rev+=p.rev;courseBuckets[s.course].fee+=p.fee;
     if(p.sess){courseBuckets[s.course].sess++;courseBuckets[s.course].students+=p.students;}
     if(p.instrEstimated)courseBuckets[s.course].instrEstimated=true;
-    courseBuckets[s.course].profit+=p.rev-(p.instr+p.legacy);
+    courseBuckets[s.course].profit+=p.rev-(p.instr+p.legacy+(p.inventory||0));
   });
   return courseBuckets;
 }
@@ -7471,7 +7497,8 @@ function renderSessions(){
     const cap=splitBillCaption(s,f);
     const title=cap?` title="${escapeHtml(cap)}"`:'';
     const costNote=f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:'';
-    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${feeReceivedControl(s,f.orgRevenue)}${extra}${costNote}${netLine(f.profit, !!f.instrEstimated)}`;
+    const invNote=(f.inventoryCost||f.inventoryUnpriced)?`<span class="pay-note" style="color:#c0392b" title="Handbooks and certifications this class uses, at the average cost per unit. The bulk card charge is not included here.">+ ${fmt(f.inventoryCost||0)} inventory${f.inventoryUnpriced?' (needs quantity)':''}</span>`:'';
+    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${feeReceivedControl(s,f.orgRevenue)}${extra}${costNote}${invNote}${netLine(f.profit, !!f.instrEstimated)}`;
   };
   const locCell=s=>adminPlaceHtml(s);
   t.innerHTML=`<colgroup><col class="c-date"><col class="c-course"><col class="c-loc"><col class="c-instr"><col class="c-seats"><col class="c-pay"><col class="c-wrap"><col class="c-mgr"></colgroup><thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Wrap-up</th><th class="mgr-cell" style="background:white"></th></tr></thead><tbody>`+
@@ -7556,7 +7583,7 @@ function renderSessions(){
           <td><div class="cell-stack">${where}</div></td>
           <td><div class="cell-stack">${instrStatus}</div></td>
           <td><div class="cell-stack"><span class="sess-sub">—</span></div></td>
-          <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.orgRevenue?`<span class="pay-note">Org fee ${fmt(f.orgRevenue)}</span>${feeReceivedControl(s,f.orgRevenue)}`:''}${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${netLine(f.profit, !!f.instrEstimated)}</div></td>
+          <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.orgRevenue?`<span class="pay-note">Org fee ${fmt(f.orgRevenue)}</span>${feeReceivedControl(s,f.orgRevenue)}`:''}${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${(f.inventoryCost||f.inventoryUnpriced)?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.inventoryCost||0)} inventory${f.inventoryUnpriced?' (needs quantity)':''}</span>`:''}${netLine(f.profit, !!f.instrEstimated)}</div></td>
           <td>${isPast?`<div class="cell-stack"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${instrPaidNow?'var(--success)':'#dde4ee'};margin-right:2px"></span></span><span class="pay-note" style="color:${instrPaidNow?'var(--success)':'var(--muted)'}">${instrPaidNow?'Paid':'Unpaid'}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
           ${mgr('#fdf8f0')}</tr>`;
       }
@@ -7999,7 +8026,7 @@ function sessionCostsFieldHtml(){
       <button type="button" class="btn sm" onclick="openAddExpense(_costSessionId)">Add expense</button>
     </div>
     <div id="extra-costs-list"></div>
-    <div style="font-size:14px;color:var(--muted);margin-top:6px">Each expense is entered once on Finances. Session profit subtracts the ones linked here, plus any older cost that has not been reviewed yet.</div>
+    <div style="font-size:14px;color:var(--muted);margin-top:6px">Each expense is entered once on Finances. Session profit subtracts the ones linked here, plus any older cost that has not been reviewed yet. A bulk order marked as inventory is not subtracted here. The class is charged for the units it uses.</div>
   </div>`;
 }
 function sessionProfitSummaryHtml(s){
@@ -8033,9 +8060,12 @@ function sessionProfitSummaryHtml(s){
   }).join(''):'';
   const legacyBlock=legacy.length?`<div style="margin-top:10px"><div style="font-size:13px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)">Older costs entered on this session</div>${legacyRows}</div>`:'';
   const est=!!f.instrEstimated;
-  return `<div style="font-size:15px;margin-bottom:8px"><strong${est?` title="${INSTR_EST_TITLE}"`:''}>Session profit ${estPrefix(fmtSigned(f.profit), est)}</strong> <span style="color:var(--muted)">= revenue ${fmt(f.revenue)} minus instructor pay ${estPrefix(fmt(f.instrFee||0), est)}${f.referralBonus?` minus referral bonus ${fmt(f.referralBonus)}`:''} minus linked expenses ${fmt(f.linkedCosts||0)} minus older costs ${fmt(f.legacyCosts||0)}</span></div>
+  const invBits=(typeof inventoryCostForSession==='function')?inventoryCostForSession(s):{cost:f.inventoryCost||0,lines:[],unpriced:!!f.inventoryUnpriced};
+  const invRows=(invBits.lines||[]).length?(invBits.lines||[]).map(line=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:0.5px solid var(--border)"><span style="font-size:14px">${escapeHtml(line.name||'Item')} · ${fmtQty(line.qty)} × ${line.unit?fmtUnit(line.unit):'$0.00'}${line.unpriced?' (needs quantity)':''}</span><span style="font-size:14px">${fmt(line.cost||0)}</span></div>`).join(''):'';
+  const invBlock=invRows?`<div style="margin-top:10px"><div style="font-size:13px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)">Inventory used</div>${invRows}</div>`:'';
+  return `<div style="font-size:15px;margin-bottom:8px"><strong${est?` title="${INSTR_EST_TITLE}"`:''}>Session profit ${estPrefix(fmtSigned(f.profit), est)}</strong> <span style="color:var(--muted)">= revenue ${fmt(f.revenue)} minus instructor pay ${estPrefix(fmt(f.instrFee||0), est)}${f.referralBonus?` minus referral bonus ${fmt(f.referralBonus)}`:''} minus linked expenses ${fmt(f.linkedCosts||0)} minus inventory ${fmt(f.inventoryCost||0)}${f.inventoryUnpriced?' (no unit cost yet)':''} minus older costs ${fmt(f.legacyCosts||0)}</span></div>
     <div style="font-size:13px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Linked expenses</div>
-    ${linkedRows}${legacyBlock}`;
+    ${linkedRows}${legacyBlock}${invBlock}`;
 }
 function renderEditCosts(){
   const el=document.getElementById('extra-costs-list');if(!el)return;
@@ -10301,21 +10331,22 @@ function profitBySessionRows(year){
     const instr=cancelled?paidOutInstructorFee(s):((f.instrFee||0)+(f.referralBonus||0));
     const linked=linkedExpenseTotal(s.id);
     const legacy=cancelled?financeLegacyCosts(s):(f.legacyCosts||0);
-    const profit=rev-instr-linked-legacy;
+    const inventory=cancelled?0:(f.inventoryCost||0);
+    const profit=rev-instr-linked-legacy-inventory;
     const margin=rev?profit/rev:null;
     const estimated=!cancelled&&!!f.instrEstimated;
-    return {s,rev,instr,linked,legacy,profit,margin,cancelled,estimated};
+    return {s,rev,instr,linked,legacy,inventory,profit,margin,cancelled,estimated,unpriced:!cancelled&&!!f.inventoryUnpriced,inventoryUnits:cancelled?0:(f.inventoryUnits||0)};
   });
 }
 function renderProfitBySession(){
   const yrSel=document.getElementById('report-year');
   const year=yrSel?parseInt(yrSel.value,10):new Date().getFullYear();
   const sub=document.getElementById('fin-page-sub');
-  if(sub)sub.textContent='Profit by session for '+year+'. Revenue minus instructor pay, linked expenses, and older session costs. Cancelled sessions stay hidden until you show them. A cancelled row counts paid instructor pay, linked expenses, and older costs that have a date paid.';
+  if(sub)sub.textContent='Profit by session for '+year+'. Revenue minus instructor pay, rental and other expenses linked to the session, inventory the class uses, and older session costs. A bulk handbook or certification charge is not in the linked column and not in overhead. Cancelled sessions stay hidden until you show them. A cancelled row counts paid instructor pay, linked expenses, and older costs that have a date paid. It does not consume inventory.';
   const tools=document.getElementById('profit-session-tools');
   if(tools)tools.innerHTML=`<label style="display:inline-flex;align-items:center;gap:8px;margin:0 0 10px;font-size:15px;cursor:pointer"><input type="checkbox" ${profitShowCancelled?'checked':''} onchange="toggleProfitCancelled(this.checked)"> Show cancelled sessions</label>`;
   const rows=profitBySessionRows(year).sort((a,b)=>profitBySessionDir*(a.profit-b.profit)||String(a.s.date||'').localeCompare(String(b.s.date||'')));
-  const tot=rows.reduce((a,r)=>({rev:a.rev+r.rev,instr:a.instr+r.instr,linked:a.linked+r.linked,legacy:a.legacy+r.legacy,profit:a.profit+r.profit,estimated:a.estimated||r.estimated}),{rev:0,instr:0,linked:0,legacy:0,profit:0,estimated:false});
+  const tot=rows.reduce((a,r)=>({rev:a.rev+r.rev,instr:a.instr+r.instr,linked:a.linked+r.linked,legacy:a.legacy+r.legacy,inventory:a.inventory+r.inventory,profit:a.profit+r.profit,estimated:a.estimated||r.estimated,unpriced:a.unpriced||r.unpriced}),{rev:0,instr:0,linked:0,legacy:0,inventory:0,profit:0,estimated:false,unpriced:false});
   const marginText=m=>m==null?'n/a':(Math.round(m*1000)/10).toFixed(1)+'%';
   const arrow=profitBySessionDir<0?'↓':'↑';
   const t=document.getElementById('fin-table');
@@ -10329,15 +10360,26 @@ function renderProfitBySession(){
       <td>${course}</td>
       <td>${fmt(r.rev)}</td>
       <td style="color:var(--danger)"${r.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(r.instr), r.estimated)}${((typeof paidHoursBreakdown==='function')&&paidHoursBreakdown(s))?`<div style="font-size:13px;color:var(--muted);font-weight:400">${escapeHtml(paidHoursBreakdown(s))}</div>`:''}</td>
-      <td style="color:var(--danger)">${fmt(r.linked)}</td>
+      <td style="color:var(--danger)" title="Rental and other expenses linked to this session. Inventory purchases are not included.">${fmt(r.linked)}</td>
+      <td style="color:var(--danger)" title="${r.unpriced?'This course uses stock that has no quantity yet, so the cost is $0.':'Handbooks and certifications used, at the average cost per unit.'}">${fmt(r.inventory)}${r.unpriced?' <span style="color:var(--warn);font-weight:500">needs quantity</span>':''}</td>
       <td style="color:var(--danger)">${fmt(r.legacy)}</td>
       <td style="font-weight:600;color:${r.profit>=0?'var(--success)':'var(--danger)'}"${r.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmtSigned(r.profit), r.estimated)}</td>
       <td>${marginText(r.margin)}</td>
     </tr>`;
-  }).join(''):'<tr class="empty-row"><td colspan="9">No sessions in this year.</td></tr>';
+  }).join(''):'<tr class="empty-row"><td colspan="10">No sessions in this year.</td></tr>';
   const totMargin=tot.rev?tot.profit/tot.rev:null;
-  t.innerHTML=`<thead><tr><th>Code</th><th>Date</th><th>Course</th><th>Revenue</th><th>Instructor pay</th><th>Linked expenses</th><th>Older costs</th><th><button type="button" class="btn sm" onclick="toggleProfitSort()">Profit ${arrow}</button></th><th>Margin</th></tr></thead><tbody>${body}</tbody>
-    <tfoot><tr style="font-weight:650"><td colspan="3">Total</td><td>${fmt(tot.rev)}</td><td style="color:var(--danger)"${tot.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(tot.instr), tot.estimated)}</td><td style="color:var(--danger)">${fmt(tot.linked)}</td><td style="color:var(--danger)">${fmt(tot.legacy)}</td><td style="color:${tot.profit>=0?'var(--success)':'var(--danger)'}"${tot.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmtSigned(tot.profit), tot.estimated)}</td><td>${marginText(totMargin)}</td></tr></tfoot>`;
+  t.innerHTML=`<thead><tr><th>Code</th><th>Date</th><th>Course</th><th>Revenue</th><th>Instructor pay</th><th>Rental and other</th><th>Inventory used</th><th>Older costs</th><th><button type="button" class="btn sm" onclick="toggleProfitSort()">Net profit ${arrow}</button></th><th>Margin</th></tr></thead><tbody>${body}</tbody>
+    <tfoot><tr style="font-weight:650"><td colspan="3">Total</td><td>${fmt(tot.rev)}</td><td style="color:var(--danger)"${tot.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(tot.instr), tot.estimated)}</td><td style="color:var(--danger)">${fmt(tot.linked)}</td><td style="color:var(--danger)">${fmt(tot.inventory)}</td><td style="color:var(--danger)">${fmt(tot.legacy)}</td><td style="color:${tot.profit>=0?'var(--success)':'var(--danger)'}"${tot.estimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmtSigned(tot.profit), tot.estimated)}</td><td>${marginText(totMargin)}</td></tr></tfoot>`;
+  const noteHost=t.parentElement;
+  const oldNote=noteHost&&noteHost.querySelector('.inv-unpriced-note');
+  if(oldNote)oldNote.remove();
+  if(tot.unpriced&&noteHost){
+    const note=document.createElement('div');
+    note.className='inv-unpriced-note';
+    note.style.cssText='font-size:14px;color:var(--warn);margin:8px 12px 12px';
+    note.textContent='Some classes use an item with no purchase quantity yet, so that cost is $0 until you enter how many were bought.';
+    noteHost.appendChild(note);
+  }
 }
 function renderFinances(){
   invalidateCommissionCache();
@@ -10359,6 +10401,7 @@ function renderFinances(){
     renderProfitBySession();
     const feeHostEarly=document.getElementById('fin-fee-section');
     if(feeHostEarly)feeHostEarly.innerHTML='';
+    if(typeof renderInventory==='function')renderInventory();
     renderInvoices();
     return;
   }
@@ -10388,8 +10431,8 @@ function renderFinances(){
   if(tools)tools.innerHTML='';
   const sub=document.getElementById('fin-page-sub');
   if(sub)sub.textContent=yearly
-    ?'Gross payments, with PayPal, Venmo, and card fees as their own cost. Profit subtracts those fees once. Each expense is counted once. Cancelled sessions leave out unpaid estimates.'
-    :'Class profit is revenue minus instructor pay, class expenses, and liaison commission. Company overhead is on the yearly view.';
+    ?'Gross payments, with PayPal, Venmo, and card fees as their own cost. Profit subtracts those fees once. Each expense is counted once. Inventory purchases are cash spent, not overhead. Classes take the cost of the units they use. Cancelled sessions leave out unpaid estimates.'
+    :'Class profit is revenue minus instructor pay, class expenses, inventory used, and liaison commission. Company overhead is on the yearly view. A bulk handbook order is not overhead and not a session expense.';
   const feeTitle=yearly
     ?'PayPal, Venmo, and card processing fees. A cost, included once in Total expenses. Revenue on this view is gross payments before these fees.'
     :'PayPal processing fees skimmed off online payments, already deducted from net revenue, not part of expenses';
@@ -10399,8 +10442,9 @@ function renderFinances(){
   const optCols=[
     {show:sumKey('fee')!==0,head:`<th title="${feeTitle}">Processing fees</th>`,cell:b=>`<td style="color:${yearly?'var(--danger)':'var(--muted)'}" title="${feeCell}">${fmt(b.fee||0)}</td>`},
     {show:sumKey('instr')!==0,head:'<th>Instructor fees</th>',cell:b=>`<td style="color:var(--danger)"${b.instrEstimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(b.instr||0), !!b.instrEstimated)}</td>`},
-    {show:sumKey('linked')!==0,head:'<th title="Finances expenses linked to a session, placed on the expense date. Counted once.">Session-linked expenses</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.linked||0)}</td>`},
-    {show:yearly&&sumKey('overhead')!==0,head:'<th title="Finances expenses that are not linked to a session.">Other expenses</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`},
+    {show:sumKey('linked')!==0,head:'<th title="Finances expenses linked to a session, placed on the expense date. Counted once. Inventory purchases are not included.">Session-linked expenses</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.linked||0)}</td>`},
+    {show:sumKey('inventory')!==0,head:'<th title="Handbooks and certifications used by classes in this period, at the average cost per unit. The bulk card charge is not here and not in other expenses.">Inventory used</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.inventory||0)}</td>`},
+    {show:yearly&&sumKey('overhead')!==0,head:'<th title="Finances expenses that are not linked to a session and are not inventory.">Other expenses</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.overhead||0)}</td>`},
     {show:sumKey('legacy')!==0,head:'<th title="Costs still typed on a session. Lines already moved to Finances are not included. On a cancelled session, only a line with a date paid is included.">Costs entered on the session</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.legacy||0)}</td>`},
     {show:sumKey('comm')!==0,head:'<th title="Liaison commission, booked in the month it was earned, once the money is received and the class is taught. Do not also log these payouts as expenses or you will count them twice.">Liaison commission</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.comm||0)}</td>`}
   ].filter(c=>c.show);
@@ -10436,6 +10480,7 @@ function renderFinances(){
       </div>`;
     }
   }
+  if(typeof renderInventory==='function')renderInventory();
   renderInvoices();
 }
 
@@ -13675,7 +13720,7 @@ function paidWithTotal(buckets){
   return round2(sum);
 }
 function paidWithNote(){
-  return 'Session-linked expenses and other expenses, by the expense date. Older costs still typed on a session are included by the date paid, or by the session date when no date paid is saved. A line already moved to Finances, or marked as already in Finances, is counted once. Handbook lines are not included. On a cancelled session, only an older cost with a date paid is included.';
+  return 'Session-linked expenses and other expenses, by the expense date, including inventory purchases. This is cash spent. Older costs still typed on a session are included by the date paid, or by the session date when no date paid is saved. A line already moved to Finances, or marked as already in Finances, is counted once. Handbook lines typed on a session are not included. On a cancelled session, only an older cost with a date paid is included.';
 }
 function paidWithPeriodLabel(year, month){
   const y=parseInt(year,10);
@@ -14241,11 +14286,12 @@ function renderExpenses(){
     return true;
   });
   const total=list.reduce((s,e)=>s+e.amount,0);
+  const invCash=list.filter(e=>typeof expenseIsInventoryPurchase==='function'&&expenseIsInventoryPurchase(e)).reduce((s,e)=>s+e.amount,0);
   const thisYear=new Date().getFullYear().toString();
   const ytd=expensePosts().filter(e=>String(e.date||'').startsWith(thisYear)).reduce((s,e)=>s+e.amount,0);
   document.getElementById('exp-metrics').innerHTML=`
-    <div class="metric"><div class="m-label">Showing total</div><div class="m-val red">${fmt(total)}</div><div class="m-sub">${list.length} expense${list.length!==1?'s':''}</div></div>
-    <div class="metric"><div class="m-label">Year to date (${thisYear})</div><div class="m-val red">${fmt(ytd)}</div><div class="m-sub">All categories</div></div>
+    <div class="metric"><div class="m-label">Showing total (cash spent)</div><div class="m-val red">${fmt(total)}</div><div class="m-sub">${list.length} expense${list.length!==1?'s':''}${invCash?` · ${fmt(invCash)} is inventory, not overhead`:''}</div></div>
+    <div class="metric"><div class="m-label">Year to date (${thisYear})</div><div class="m-val red">${fmt(ytd)}</div><div class="m-sub">All card charges, including inventory</div></div>
   `;
   const t=document.getElementById('expenses-table');
   t.innerHTML='<thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Paid with</th><th>Session</th><th>Amount</th><th></th></tr></thead><tbody>'+
@@ -14256,15 +14302,18 @@ function renderExpenses(){
       const sessCell=sess?`<button type="button" class="btn sm" onclick="openLinkedSession('${sess.id}')">${escapeHtml(expenseSessionShort(sess))}</button>`:'<span style="color:var(--muted)">Not linked</span>';
       const recur=expenseRecurLabel(e.recurrence);
       const recurNote=!recur?'':(e.recurActive===false?'Stopped'+(e.recurUntil?' '+new Date(e.recurUntil+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''):(recur+(e.recurUntil?' through '+new Date(e.recurUntil+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'')));
+      const lot=(typeof inventoryPurchaseForExpense==='function')?inventoryPurchaseForExpense(e.id):null;
+      const stockNote=lot?`<div style="font-size:13px;font-weight:500;color:#1d6b45">Inventory: ${fmtQty(lot.quantity)} ${escapeHtml((inventoryItems.find(i=>i.id===lot.itemId)||{}).name||'units')}. Not overhead.</div>`:'';
       const stopBtn=recur&&e.recurActive!==false?`<button class="btn sm" onclick="stopExpenseRecurrence('${e.id}')">Stop repeating</button>`:'';
+      const stockBtn=!inventoryTablesReady?'':(lot?`<button class="btn sm" onclick="openEditExpense('${e.id}')">Edit stock</button>`:`<button class="btn sm" onclick="openStockExpense('${e.id}')">Count as stock</button>`);
       return`<tr>
         <td style="white-space:nowrap">${d}</td>
-        <td style="font-weight:500">${escapeHtml(e.description)}${recurNote?`<div style="font-size:13px;font-weight:500;color:#1a5c8a">${escapeHtml(recurNote)}</div>`:''}</td>
+        <td style="font-weight:500">${escapeHtml(e.description)}${recurNote?`<div style="font-size:13px;font-weight:500;color:#1a5c8a">${escapeHtml(recurNote)}</div>`:''}${stockNote}</td>
         <td><span class="tag pending">${escapeHtml(e.category)}</span></td>
         <td style="white-space:nowrap;color:${pay?'var(--text)':'var(--muted)'}">${pay?escapeHtml(pay):'Not recorded'}</td>
         <td style="white-space:nowrap">${sessCell}</td>
         <td style="color:var(--danger);font-weight:500">${fmt(e.amount)}</td>
-        <td><div class="btn-row"><button class="btn sm" onclick="openEditExpense('${e.id}')">Edit</button>${stopBtn}<button class="btn sm danger" onclick="deleteExpense('${e.id}')">Delete</button></div></td></tr>`;
+        <td><div class="btn-row"><button class="btn sm" onclick="openEditExpense('${e.id}')">Edit</button>${stockBtn}${stopBtn}<button class="btn sm danger" onclick="deleteExpense('${e.id}')">Delete</button></div></td></tr>`;
     }).join(''):'<tr class="empty-row"><td colspan="7">No expenses yet.</td></tr>')+'</tbody>';
 }
 
@@ -14283,6 +14332,7 @@ function expenseFormHtml(e, presetSessionId){
     <div class="fg" id="m-euntil-wrap"${e&&e.recurrence?'':' hidden'}><label>Repeat until <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="date" id="m-euntil" value="${e&&e.recurrence&&e.recurUntil?e.recurUntil:''}"${e&&e.recurrence?'':' disabled'}></div>
     <div class="fg full" style="font-size:14px;color:var(--muted);line-height:1.5">Leave Repeats on One time for a single charge. Weekly, monthly, or yearly counts that amount in each period until you stop it or the end date passes. You do not enter it again.</div>
     <div class="fg full sess-field">${expenseSessionPickerHtml(sessionId, preset?expenseSessionPickerLabel(preset):'')}</div>
+    ${inventoryExpenseFieldsHtml(e)}
     <div class="fg full" style="background:#eef3f8;border:1px solid #cfdeed;border-radius:var(--r-sm);padding:10px 12px;font-size:14px;color:#1a5c8a;line-height:1.5">Instructor pay is tracked on each session. Do not add it here.</div>
     <div class="fg full" style="background:var(--warn-bg);border:1px solid #f0d8a8;border-radius:var(--r-sm);padding:10px 12px;font-size:14px;color:var(--warn);line-height:1.5">Community partner commission does not belong here. It is already carried on the Finances tab as its own expense line, pulled from each partner&rsquo;s statement. Entering a payout here as well would count it twice.</div>
   </div>`;
@@ -14297,6 +14347,11 @@ function syncExpenseRepeatUntil(){
   if(wrap)wrap.hidden=one;
   input.disabled=one;
   if(one)input.value='';
+}
+let _stockExpensePrompt=false;
+function openStockExpense(id){
+  _stockExpensePrompt=true;
+  openEditExpense(id);
 }
 function openAddExpense(sessionId){
   showModal(`<div class="modal-head"><h3>Add expense</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -14313,16 +14368,29 @@ function finishExpenseEdit(){
   if(typeof renderSessions==='function')renderSessions();
 }
 
-async function saveExpense(){
+function saveExpense(){
   const desc=document.getElementById('m-edesc').value.trim();
   const amt=parseFloat(document.getElementById('m-eamt').value);
   const date=document.getElementById('m-edate').value;
   if(!desc||!amt||!date){alert('Please fill in description, amount, and date.');return;}
+  const intent=(typeof readInventoryExpenseIntent==='function')?readInventoryExpenseIntent():{skip:true};
+  if(intent.error){alert(intent.error);return;}
   const recur=normalizeExpenseRecurrence((document.getElementById('m-erecur')||{}).value);
   const e={id:sid(),description:desc,amount:amt,date,category:document.getElementById('m-ecat').value,paymentMethod:readExpensePay(),sessionId:readExpenseSession(),createdAt:Date.now(),recurrence:recur,recurUntil:recur?((document.getElementById('m-euntil')||{}).value||''):'',recurActive:true};
   expenses.unshift(e);
   finishExpenseEdit();
-  writeExpenseRow('insert',e,'New expense');
+  Promise.resolve(writeExpenseRow('insert',e,'New expense')).then(function(saved){
+    if(!saved){
+      expenses=expenses.filter(function(x){return x.id!==e.id;});
+      renderExpenses();renderDashboard();renderFinances();
+      return;
+    }
+    if(typeof applyInventoryExpenseIntent==='function'){
+      return Promise.resolve(applyInventoryExpenseIntent(e, intent)).then(function(){
+        renderExpenses();renderDashboard();renderFinances();
+      });
+    }
+  });
 }
 
 function openEditExpense(id){
@@ -14333,19 +14401,28 @@ function openEditExpense(id){
   syncExpenseRepeatUntil();
 }
 
-async function updateExpense(id){
+function updateExpense(id){
   const e=expenses.find(x=>x.id===id);if(!e)return;
   const desc=document.getElementById('m-edesc').value.trim();
   const amt=parseFloat(document.getElementById('m-eamt').value);
   const date=document.getElementById('m-edate').value;
   if(!desc||!amt||!date){alert('Please fill in description, amount, and date.');return;}
+  const intent=(typeof readInventoryExpenseIntent==='function')?readInventoryExpenseIntent():{skip:true};
+  if(intent.error){alert(intent.error);return;}
   e.description=desc;e.amount=amt;e.date=date;e.category=document.getElementById('m-ecat').value;e.paymentMethod=readExpensePay();e.sessionId=readExpenseSession();
   e.recurrence=normalizeExpenseRecurrence((document.getElementById('m-erecur')||{}).value);
   e.recurUntil=e.recurrence?((document.getElementById('m-euntil')||{}).value||''):'';
   if(e.recurrence)e.recurActive=e.recurActive!==false;
   else e.recurActive=true;
   finishExpenseEdit();
-  writeExpenseRow('update',e,'Expense edit');
+  Promise.resolve(writeExpenseRow('update',e,'Expense edit')).then(function(saved){
+    if(!saved)return;
+    if(typeof applyInventoryExpenseIntent==='function'){
+      return Promise.resolve(applyInventoryExpenseIntent(e, intent)).then(function(){
+        renderExpenses();renderDashboard();renderFinances();
+      });
+    }
+  });
 }
 
 // Insert or update one expense. payment_method and session_id are optional.
@@ -14409,9 +14486,463 @@ async function stopExpenseRecurrence(id){
 
 async function deleteExpense(id){
   if(!confirm('Delete this expense?'))return;
+  const lot=(typeof inventoryPurchaseForExpense==='function')?inventoryPurchaseForExpense(id):null;
   expenses=expenses.filter(e=>e.id!==id);
+  if(lot)inventoryPurchases=inventoryPurchases.filter(p=>p.id!==lot.id);
   renderExpenses();renderDashboard();renderFinances();
-  dbWrite(sb.from('expenses').delete().eq('id',id),'Expense delete');
+  const ok=await dbWrite(sb.from('expenses').delete().eq('id',id),'Expense delete');
+  if(ok&&lot)await dbWrite(sb.from('inventory_purchases').delete().eq('id',lot.id),'Inventory delete');
+}
+
+// ─── INVENTORY COST (handbooks and certifications) ───────────
+// A bulk card charge stays on expenses, so cash spent does not change.
+// Once a quantity is entered, that charge leaves overhead and leaves session
+// direct costs. Each class is charged students x units x average cost.
+function inventoryItemFromDB(r){
+  return {id:r.id,name:r.name||'',unitLabel:r.unit_label||'unit',active:r.active!==false,sort:Number(r.sort)||0};
+}
+function inventoryPurchaseFromDB(r){
+  return {id:r.id,itemId:r.item_id,expenseId:r.expense_id||null,quantity:Number(r.quantity)||0,amount:Number(r.amount)||0,purchasedOn:r.purchased_on?String(r.purchased_on).slice(0,10):'',notes:r.notes||''};
+}
+function courseMaterialUseFromDB(r){
+  return {id:r.id,courseName:r.course_name||'',itemId:r.item_id,qtyPerStudent:Number(r.qty_per_student)||0};
+}
+function inventoryItemById(id){
+  return (inventoryItems||[]).find(i=>i&&i.id===id)||null;
+}
+function expenseIsInventoryPurchase(e){
+  if(!e||e.id==null)return false;
+  const id=String(e.id);
+  return (inventoryPurchases||[]).some(p=>p&&p.expenseId&&String(p.expenseId)===id);
+}
+function inventoryPurchaseForExpense(id){
+  if(!id)return null;
+  const key=String(id);
+  return (inventoryPurchases||[]).find(p=>p&&p.expenseId&&String(p.expenseId)===key)||null;
+}
+function inventoryUnitCost(itemId){
+  let qty=0,cash=0;
+  (inventoryPurchases||[]).forEach(p=>{
+    if(!p||p.itemId!==itemId)return;
+    const q=Number(p.quantity)||0;
+    if(!(q>0))return;
+    qty+=q;
+    cash+=Number(p.amount)||0;
+  });
+  return qty>0?cash/qty:0;
+}
+function inventoryRegCounts(r){
+  const st=String(r&&r.payStatus||'').toLowerCase();
+  return st!=='waitlist'&&st!=='cancelled'&&st!=='canceled'&&st!=='refunded';
+}
+// Paid and enrolled students. Waitlist, cancelled, and refunded seats are out.
+// A comped host seat is enrolled. When the organization handles registration,
+// the roster count is used when it is higher than the family rows. The two
+// counts are not added together.
+function inventoryStudentCount(s){
+  if(!s||s.isCancelled)return 0;
+  let per=1;
+  if(typeof seatsCharged==='function'){
+    const n=Number(seatsCharged(s.course));
+    if(isFinite(n)&&n>=1)per=Math.floor(n);
+  }
+  const rows=(typeof registrations!=='undefined'?registrations:[]).filter(r=>r&&r.sessionId===s.id&&inventoryRegCounts(r));
+  const fromRegs=rows.length*per;
+  let fromOrg=0;
+  if(s.orgHandlesRegistration===true&&String(s.billToOrg||'').trim()&&s.billedHeadcount!=null&&s.billedHeadcount!==''){
+    const n=Number(s.billedHeadcount);
+    if(isFinite(n)&&n>0)fromOrg=Math.floor(n);
+  }
+  return Math.max(fromRegs, fromOrg);
+}
+function courseMaterialUsesFor(course){
+  const keys=(typeof coursePriceNames==='function')?coursePriceNames(course):[String(course||'')];
+  return (courseMaterialUses||[]).filter(u=>u&&keys.indexOf(u.courseName)>=0);
+}
+function inventoryCostForSession(s){
+  const empty={cost:0,units:0,unpriced:false,lines:[],students:0};
+  if(!s||s.isCancelled)return empty;
+  const uses=courseMaterialUsesFor(s.course);
+  if(!uses.length)return empty;
+  const students=inventoryStudentCount(s);
+  let cost=0,units=0,unpriced=false;
+  const lines=[];
+  uses.forEach(u=>{
+    const per=Number(u.qtyPerStudent)||0;
+    const qty=students*per;
+    const unit=inventoryUnitCost(u.itemId);
+    const item=inventoryItemById(u.itemId);
+    units+=qty;
+    const missing=qty>0&&!(unit>0);
+    if(missing)unpriced=true;
+    const lineCost=(typeof round2==='function')?round2(qty*unit):Math.round((qty*unit)*100)/100;
+    cost+=lineCost;
+    lines.push({itemId:u.itemId,name:item?item.name:'Item',qty:qty,unit:unit,cost:lineCost,unpriced:missing,per:per});
+  });
+  const total=(typeof round2==='function')?round2(cost):Math.round(cost*100)/100;
+  return {cost:total,units:units,unpriced:unpriced,lines:lines,students:students};
+}
+function inventoryItemRollup(itemId, today){
+  const t=today||((typeof fmtYMD==='function')?fmtYMD(new Date()):'');
+  let purchased=0,cash=0;
+  (inventoryPurchases||[]).forEach(p=>{
+    if(!p||p.itemId!==itemId)return;
+    const q=Number(p.quantity)||0;
+    if(!(q>0))return;
+    purchased+=q;
+    cash+=Number(p.amount)||0;
+  });
+  const unit=purchased>0?cash/purchased:0;
+  let used=0,scheduled=0;
+  (typeof sessions!=='undefined'?sessions:[]).forEach(s=>{
+    if(!s||s.isCancelled)return;
+    const uses=courseMaterialUsesFor(s.course).filter(u=>u.itemId===itemId);
+    if(!uses.length)return;
+    const students=inventoryStudentCount(s);
+    let qty=0;
+    uses.forEach(u=>{qty+=students*(Number(u.qtyPerStudent)||0);});
+    const d=s.date?String(s.date).slice(0,10):'';
+    if(d&&t&&d<=t)used+=qty;
+    else scheduled+=qty;
+  });
+  const onHand=purchased-used;
+  return {purchased:purchased,cash:cash,unit:unit,used:used,scheduled:scheduled,onHand:onHand,valueOnHand:onHand*unit};
+}
+function fmtQty(n){
+  const v=Number(n)||0;
+  const neg=v<0;
+  const a=Math.abs(v);
+  const rounded=Math.round(a*100)/100;
+  const text=Number.isInteger(rounded)?rounded.toLocaleString('en-US'):rounded.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+  return (neg?'-':'')+text;
+}
+function fmtUnit(n){
+  const v=Number(n)||0;
+  if(!isFinite(v))return fmt(0);
+  const cents=Math.round(v*100)/100;
+  if(Math.abs(v-cents)<0.0000001)return fmt(v);
+  return '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
+}
+function expenseNeedsInventoryQuantity(e){
+  if(!e||expenseIsInventoryPurchase(e))return false;
+  const desc=String(e.description||'').trim();
+  const date=String(e.date||'').slice(0,10);
+  if(/handbook/i.test(desc))return true;
+  if(/books/i.test(desc)&&/safe\s*sitter|safe@home|red cross/i.test(desc))return true;
+  if(date==='2026-11-03'&&/^supplies$/i.test(desc)&&String(e.category||'')==='Supplies')return true;
+  return false;
+}
+function inventoryItemOptions(selected, includeNew){
+  const cur=selected||'';
+  const rows=(inventoryItems||[]).filter(i=>i&&(i.active||i.id===cur)).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const opts='<option value="">Choose an item</option>'+rows.map(i=>`<option value="${escapeHtml(i.id)}"${i.id===cur?' selected':''}>${escapeHtml(i.name)}</option>`).join('');
+  return includeNew?opts+'<option value="__new__">New item</option>':opts;
+}
+function inventoryCourseChoices(){
+  const skip={};
+  Object.keys(typeof COURSE_NAME_ALIASES!=='undefined'?COURSE_NAME_ALIASES:{}).forEach(oldName=>{
+    const display=COURSE_NAME_ALIASES[oldName];
+    if(COURSES[display])skip[oldName]=true;
+  });
+  return Object.keys(COURSES||{}).filter(n=>!skip[n]).sort((a,b)=>a.localeCompare(b));
+}
+function inventoryExpenseFieldsHtml(e){
+  const prompt=_stockExpensePrompt;
+  _stockExpensePrompt=false;
+  if(!inventoryTablesReady){
+    return '<div class="fg full" style="font-size:14px;color:var(--muted);line-height:1.5">To count this charge as stock, run migrations/20261103_inventory_costs.sql in Supabase, then refresh.</div>';
+  }
+  const lot=e?inventoryPurchaseForExpense(e.id):null;
+  const on=!!lot||!!prompt;
+  return `<div class="fg full" style="background:#f4f8f4;border:1px solid #cfe0cf;border-radius:var(--r-sm);padding:10px 12px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-bottom:6px"><input type="checkbox" id="m-iinv" ${on?'checked':''} onchange="syncInventoryStockFields()" style="width:auto;margin:0"> Count this charge as inventory</label>
+    <div style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:8px">The card charge stays in cash spent. It leaves overhead, and it is not also a cost of one session. Enter how many units you bought. The quantity is not guessed.</div>
+    <div id="m-istock-fields"${on?'':' hidden'}>
+      <div class="form-grid">
+        <div class="fg"><label>Item</label><select id="m-iitem" onchange="syncInventoryNewItem()">${inventoryItemOptions(lot?lot.itemId:'', true)}</select></div>
+        <div class="fg"><label>Quantity bought</label><input type="number" id="m-iqty" min="0.01" step="1" value="${lot?lot.quantity:''}" placeholder="How many"></div>
+        <div class="fg full" id="m-inew-wrap" hidden><label>New item name</label><input type="text" id="m-inew" placeholder="e.g. Safe Sitter handbook"></div>
+      </div>
+    </div>
+  </div>`;
+}
+function syncInventoryStockFields(){
+  const box=document.getElementById('m-iinv');
+  const wrap=document.getElementById('m-istock-fields');
+  if(!box||!wrap)return;
+  wrap.hidden=!box.checked;
+}
+function syncInventoryNewItem(){
+  const sel=document.getElementById('m-iitem');
+  const wrap=document.getElementById('m-inew-wrap');
+  if(!sel||!wrap)return;
+  wrap.hidden=sel.value!=='__new__';
+}
+function readInventoryExpenseIntent(){
+  const box=document.getElementById('m-iinv');
+  if(!box)return {skip:true};
+  if(!box.checked)return {remove:true};
+  const qty=Number((document.getElementById('m-iqty')||{}).value);
+  if(!(qty>0))return {error:'Enter how many units this charge bought. The quantity is not guessed.'};
+  const itemId=(document.getElementById('m-iitem')||{}).value||'';
+  const newName=itemId==='__new__'?String((document.getElementById('m-inew')||{}).value||'').trim():'';
+  if(itemId==='__new__'&&!newName)return {error:'Name the item this stock is for.'};
+  if(!itemId)return {error:'Choose the item this stock is for.'};
+  return {qty:qty,itemId:itemId,newName:newName};
+}
+async function createInventoryItem(name, unitLabel){
+  const clean=String(name||'').trim();
+  if(!clean)return null;
+  const existing=(inventoryItems||[]).find(i=>String(i.name||'').toLowerCase()===clean.toLowerCase());
+  if(existing)return existing.id;
+  const id=sid();
+  const row={id:id,name:clean,unit_label:unitLabel||'unit',active:true,sort:(inventoryItems||[]).length+1};
+  const ok=await dbWrite(sb.from('inventory_items').insert(row),'Add inventory item');
+  if(!ok)return null;
+  inventoryItems.push({id:id,name:clean,unitLabel:row.unit_label,active:true,sort:row.sort});
+  return id;
+}
+async function applyInventoryExpenseIntent(e, intent){
+  if(!e||!intent||intent.skip)return true;
+  const existing=inventoryPurchaseForExpense(e.id);
+  if(intent.remove){
+    if(!existing)return true;
+    const ok=await dbWrite(sb.from('inventory_purchases').delete().eq('id',existing.id),'Remove inventory');
+    if(ok)inventoryPurchases=inventoryPurchases.filter(p=>p.id!==existing.id);
+    return ok;
+  }
+  let itemId=intent.itemId;
+  if(itemId==='__new__'){
+    itemId=await createInventoryItem(intent.newName);
+    if(!itemId)return false;
+  }
+  const purchasedOn=String(e.date||'').slice(0,10);
+  const row={item_id:itemId,expense_id:e.id,quantity:intent.qty,amount:Number(e.amount)||0,purchased_on:purchasedOn,notes:null};
+  if(existing){
+    const ok=await dbWrite(sb.from('inventory_purchases').update(row).eq('id',existing.id),'Update inventory');
+    if(!ok)return false;
+    existing.itemId=itemId;existing.quantity=intent.qty;existing.amount=Number(e.amount)||0;existing.purchasedOn=purchasedOn;
+    return true;
+  }
+  const id=sid();
+  const ok=await dbWrite(sb.from('inventory_purchases').insert(Object.assign({id:id},row)),'Add inventory');
+  if(!ok)return false;
+  inventoryPurchases.unshift({id:id,itemId:itemId,expenseId:e.id,quantity:intent.qty,amount:Number(e.amount)||0,purchasedOn:purchasedOn,notes:''});
+  return true;
+}
+function renderInventory(){
+  const host=document.getElementById('fin-inventory');
+  if(!host)return;
+  if(!inventoryTablesReady){
+    host.innerHTML='<div class="card" style="margin-top:16px"><div class="card-title">Inventory</div><div class="alert info">Inventory is not in the database yet. Run <strong>migrations/20261103_inventory_costs.sql</strong> in Supabase, then refresh.</div></div>';
+    return;
+  }
+  const items=(inventoryItems||[]).slice().sort((a,b)=>(a.sort-b.sort)||String(a.name).localeCompare(String(b.name)));
+  const itemRows=items.map(item=>{
+    const roll=inventoryItemRollup(item.id);
+    const hand=roll.onHand;
+    const handStyle=hand<0?'color:var(--danger);font-weight:650':'font-weight:650';
+    return `<tr>
+      <td style="font-weight:500">${escapeHtml(item.name)}${item.active?'':' <span class="tag pending">Inactive</span>'}</td>
+      <td>${roll.purchased?fmtUnit(roll.unit):'<span style="color:var(--muted)">No quantity yet</span>'}</td>
+      <td>${fmtQty(roll.purchased)}</td>
+      <td>${fmtQty(roll.used)}</td>
+      <td>${fmtQty(roll.scheduled)}</td>
+      <td style="${handStyle}">${fmtQty(hand)}</td>
+      <td>${fmtSigned(roll.valueOnHand)}</td>
+      <td><button class="btn sm" type="button" onclick="openInventoryPurchase(null,'${item.id}')">Add purchase</button></td>
+    </tr>`;
+  }).join('');
+  const needs=(expenses||[]).filter(expenseNeedsInventoryQuantity);
+  const needRows=needs.map(e=>{
+    const d=e.date?new Date(e.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    return `<tr>
+      <td style="white-space:nowrap">${escapeHtml(d)}</td>
+      <td>${escapeHtml(e.description||'')}</td>
+      <td>${fmt(e.amount)}</td>
+      <td><button class="btn sm primary" type="button" onclick="openStockExpense('${e.id}')">Enter quantity</button></td>
+    </tr>`;
+  }).join('');
+  const useRows=(courseMaterialUses||[]).slice().sort((a,b)=>String(a.courseName).localeCompare(String(b.courseName))||String((inventoryItemById(a.itemId)||{}).name||'').localeCompare(String((inventoryItemById(b.itemId)||{}).name||''))).map(u=>{
+    const item=inventoryItemById(u.itemId);
+    return `<tr>
+      <td>${escapeHtml(u.courseName)}</td>
+      <td>${escapeHtml(item?item.name:'Missing item')}</td>
+      <td>${fmtQty(u.qtyPerStudent)}</td>
+      <td><button class="btn sm danger" type="button" onclick="deleteCourseMaterialUse('${u.id}')">Remove</button></td>
+    </tr>`;
+  }).join('');
+  const lotRows=(inventoryPurchases||[]).slice().sort((a,b)=>String(b.purchasedOn).localeCompare(String(a.purchasedOn))).map(p=>{
+    const item=inventoryItemById(p.itemId);
+    const exp=p.expenseId?(expenses||[]).find(e=>e.id===p.expenseId):null;
+    const unit=p.quantity?p.amount/p.quantity:0;
+    const link=exp?escapeHtml(exp.description||'Expense'):'<span style="color:var(--muted)">No card charge</span>';
+    return `<tr>
+      <td style="white-space:nowrap">${escapeHtml(p.purchasedOn||'')}</td>
+      <td>${escapeHtml(item?item.name:'Item')}</td>
+      <td>${fmtQty(p.quantity)}</td>
+      <td>${fmt(p.amount)}</td>
+      <td>${fmtUnit(unit)}</td>
+      <td>${link}</td>
+      <td><button class="btn sm danger" type="button" onclick="deleteInventoryPurchase('${p.id}')">Remove</button></td>
+    </tr>`;
+  }).join('');
+  host.innerHTML=`<div class="card" style="margin-top:16px">
+    <div class="card-title">Inventory and true session profit</div>
+    <div style="font-size:15px;color:var(--muted);line-height:1.55;margin:-4px 0 12px">
+      Cash spent is every card charge, including a bulk handbook or certification order. That order sits in inventory until classes use it.
+      Overhead is what is left: costs with no session that are not inventory.
+      A session's net profit is revenue, minus instructor pay, minus rental and other expenses linked to that session, minus the units that class uses.
+      The bulk charge is not in overhead and not inside the session a second time.
+      Unit cost is total spent on that item divided by total units bought. On hand is units bought minus units used by classes that have already met. Scheduled is upcoming and undated classes, at the students enrolled now.
+    </div>
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn sm primary" type="button" onclick="openInventoryItem()">Add item</button>
+      <button class="btn sm" type="button" onclick="openInventoryPurchase()">Add purchase</button>
+      <button class="btn sm" type="button" onclick="openCourseMaterialUse()">Edit course use</button>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Item</th><th>Avg cost</th><th>Bought</th><th>Used</th><th>Scheduled</th><th>On hand</th><th>Value on hand</th><th></th></tr></thead>
+      <tbody>${itemRows||'<tr class="empty-row"><td colspan="8">No inventory items yet.</td></tr>'}</tbody>
+    </table></div>
+    ${needs.length?`<div style="margin-top:16px"><div style="font-weight:650;margin-bottom:6px">Bulk orders that still need a quantity</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:8px">These look like handbook or supply orders. They stay in overhead until you enter how many units the charge bought. Nothing here is guessed.</div>
+      <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th></th></tr></thead><tbody>${needRows}</tbody></table></div></div>`:''}
+    <div style="margin-top:16px"><div style="font-weight:650;margin-bottom:6px">What each course uses per student</div>
+      <div class="tbl-wrap"><table><thead><tr><th>Course</th><th>Item</th><th>Per student</th><th></th></tr></thead><tbody>${useRows||'<tr class="empty-row"><td colspan="4">No course mapping yet.</td></tr>'}</tbody></table></div>
+    </div>
+    <div style="margin-top:16px"><div style="font-weight:650;margin-bottom:6px">Purchases</div>
+      <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Amount</th><th>Unit</th><th>Card charge</th><th></th></tr></thead><tbody>${lotRows||'<tr class="empty-row"><td colspan="7">No purchases yet. Mark a bulk expense as stock, or add a purchase.</td></tr>'}</tbody></table></div>
+    </div>
+  </div>`;
+}
+function openInventoryItem(){
+  showModal(`<div class="modal-head"><h3>Add inventory item</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="fg full"><label>Name *</label><input type="text" id="m-item-name" placeholder="e.g. Safe Sitter handbook"></div>
+      <div class="fg"><label>Unit label</label><input type="text" id="m-item-unit" value="unit" placeholder="handbook"></div>
+    </div></div>
+    <div class="modal-foot"><button class="btn" type="button" onclick="closeModal()">Cancel</button><button class="btn primary" type="button" onclick="saveInventoryItem()">Save item</button></div>`);
+}
+async function saveInventoryItem(){
+  const name=(document.getElementById('m-item-name').value||'').trim();
+  const unit=(document.getElementById('m-item-unit').value||'').trim()||'unit';
+  if(!name){alert('Name the item.');return;}
+  const id=await createInventoryItem(name, unit);
+  if(!id)return;
+  const item=inventoryItemById(id);
+  if(item&&item.unitLabel==='unit'&&unit!=='unit'){
+    item.unitLabel=unit;
+    await dbWrite(sb.from('inventory_items').update({unit_label:unit}).eq('id',id),'Item unit');
+  }
+  closeModal();
+  if(typeof renderFinances==='function')renderFinances();
+  showToast('Item saved.');
+}
+function openInventoryPurchase(expenseId, itemId){
+  const exp=expenseId?(expenses||[]).find(e=>e.id===expenseId):null;
+  const openExpenses=(expenses||[]).filter(e=>e&&!expenseIsInventoryPurchase(e));
+  const expOpts='<option value="">No card charge</option>'+openExpenses.map(e=>{
+    const d=e.date?new Date(e.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    return `<option value="${escapeHtml(e.id)}"${exp&&exp.id===e.id?' selected':''}>${escapeHtml(d+' · '+(e.description||'')+' · '+fmt(e.amount))}</option>`;
+  }).join('');
+  showModal(`<div class="modal-head"><h3>Add inventory purchase</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="fg full"><label>Card charge</label><select id="m-lot-exp" onchange="syncInventoryPurchaseExpense()">${expOpts}</select>
+        <div style="font-size:14px;color:var(--muted);margin-top:4px;line-height:1.5">Pick the expense so the amount stays the real card charge. Leave this blank only for stock that was not a Finances expense.</div></div>
+      <div class="fg"><label>Item *</label><select id="m-lot-item">${inventoryItemOptions(itemId||'', false)}</select></div>
+      <div class="fg"><label>Quantity *</label><input type="number" id="m-lot-qty" min="0.01" step="1" placeholder="How many"></div>
+      <div class="fg"><label>Amount *</label><input type="number" id="m-lot-amt" min="0" step="0.01" value="${exp?exp.amount:''}"></div>
+      <div class="fg"><label>Date *</label><input type="date" id="m-lot-date" value="${exp&&exp.date?String(exp.date).slice(0,10):fmtYMD(new Date())}"></div>
+    </div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.5;margin-top:8px">If you link a card charge, this purchase is removed from overhead and from session expenses. Cash spent still includes the charge.</div>
+    </div>
+    <div class="modal-foot"><button class="btn" type="button" onclick="closeModal()">Cancel</button><button class="btn primary" type="button" onclick="saveInventoryPurchase()">Save purchase</button></div>`);
+}
+function syncInventoryPurchaseExpense(){
+  const sel=document.getElementById('m-lot-exp');
+  const exp=sel&&sel.value?(expenses||[]).find(e=>e.id===sel.value):null;
+  const amt=document.getElementById('m-lot-amt');
+  const date=document.getElementById('m-lot-date');
+  if(!exp){
+    if(amt)amt.readOnly=false;
+    if(date)date.readOnly=false;
+    return;
+  }
+  if(amt){amt.value=exp.amount;amt.readOnly=true;}
+  if(date&&exp.date){date.value=String(exp.date).slice(0,10);date.readOnly=true;}
+}
+async function saveInventoryPurchase(){
+  const itemId=(document.getElementById('m-lot-item')||{}).value||'';
+  const qty=Number((document.getElementById('m-lot-qty')||{}).value);
+  const expenseId=(document.getElementById('m-lot-exp')||{}).value||'';
+  const exp=expenseId?(expenses||[]).find(e=>e.id===expenseId):null;
+  const amount=exp?Number(exp.amount)||0:Number((document.getElementById('m-lot-amt')||{}).value);
+  const date=exp&&exp.date?String(exp.date).slice(0,10):((document.getElementById('m-lot-date')||{}).value||'');
+  if(!itemId){alert('Choose the item.');return;}
+  if(!(qty>0)){alert('Enter how many units this purchase bought. The quantity is not guessed.');return;}
+  if(!(amount>=0)||!date){alert('Amount and date are required.');return;}
+  if(exp&&expenseIsInventoryPurchase(exp)){alert('That charge is already counted as stock.');return;}
+  const id=sid();
+  const row={id:id,item_id:itemId,expense_id:exp?exp.id:null,quantity:qty,amount:amount,purchased_on:date,notes:null};
+  const ok=await dbWrite(sb.from('inventory_purchases').insert(row),'Add inventory purchase');
+  if(!ok)return;
+  inventoryPurchases.unshift({id:id,itemId:itemId,expenseId:exp?exp.id:null,quantity:qty,amount:amount,purchasedOn:date,notes:''});
+  closeModal();
+  renderExpenses();renderDashboard();renderFinances();
+  showToast(exp?'Purchase saved. That charge is no longer overhead.':'Purchase saved. It sets the unit cost and is not in cash spent, because there is no card charge.');
+}
+async function deleteInventoryPurchase(id){
+  const lot=(inventoryPurchases||[]).find(p=>p.id===id);
+  if(!lot)return;
+  if(!confirm('Remove this stock lot? The card charge stays on the expense list and returns to overhead if it is not linked to a session.'))return;
+  const ok=await dbWrite(sb.from('inventory_purchases').delete().eq('id',id),'Remove inventory purchase');
+  if(!ok)return;
+  inventoryPurchases=inventoryPurchases.filter(p=>p.id!==id);
+  renderExpenses();renderDashboard();renderFinances();
+}
+function openCourseMaterialUse(){
+  const courses=inventoryCourseChoices();
+  const courseOpts=courses.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  showModal(`<div class="modal-head"><h3>Course use per student</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="fg full"><label>Course *</label><select id="m-use-course">${courseOpts}</select></div>
+      <div class="fg"><label>Item *</label><select id="m-use-item">${inventoryItemOptions('', false)}</select></div>
+      <div class="fg"><label>Units per student *</label><input type="number" id="m-use-qty" min="0.01" step="1" value="1"></div>
+    </div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.5;margin-top:8px">This does not change the price families pay or what an instructor is paid. It only says how many units one enrolled student uses.</div>
+    </div>
+    <div class="modal-foot"><button class="btn" type="button" onclick="closeModal()">Cancel</button><button class="btn primary" type="button" onclick="saveCourseMaterialUse()">Save</button></div>`);
+}
+async function saveCourseMaterialUse(){
+  const course=(document.getElementById('m-use-course')||{}).value||'';
+  const itemId=(document.getElementById('m-use-item')||{}).value||'';
+  const qty=Number((document.getElementById('m-use-qty')||{}).value);
+  if(!course||!itemId){alert('Choose a course and an item.');return;}
+  if(!(qty>0)){alert('Enter how many units one student uses.');return;}
+  const existing=(courseMaterialUses||[]).find(u=>u.courseName===course&&u.itemId===itemId);
+  if(existing){
+    const ok=await dbWrite(sb.from('course_inventory_use').update({qty_per_student:qty}).eq('id',existing.id),'Update course use');
+    if(!ok)return;
+    existing.qtyPerStudent=qty;
+  }else{
+    const id=sid();
+    const ok=await dbWrite(sb.from('course_inventory_use').insert({id:id,course_name:course,item_id:itemId,qty_per_student:qty}),'Add course use');
+    if(!ok)return;
+    courseMaterialUses.push({id:id,courseName:course,itemId:itemId,qtyPerStudent:qty});
+  }
+  closeModal();
+  renderDashboard();renderFinances();
+  showToast('Course use saved.');
+}
+async function deleteCourseMaterialUse(id){
+  const row=(courseMaterialUses||[]).find(u=>u.id===id);
+  if(!row)return;
+  if(!confirm('Stop counting '+row.courseName+' as using this item?'))return;
+  const ok=await dbWrite(sb.from('course_inventory_use').delete().eq('id',id),'Remove course use');
+  if(!ok)return;
+  courseMaterialUses=courseMaterialUses.filter(u=>u.id!==id);
+  renderDashboard();renderFinances();
 }
 
 // ─── MATERIALS (equipment inventory + checkouts) ─────────────
@@ -17531,6 +18062,9 @@ function printYearReport(){
     if(isNaN(d.getTime())||d.getFullYear()!==year)return;
     const mi=d.getMonth();
     const amt=Number(e.amount)||0;
+    // A bulk purchase is cash spent. It is not overhead and not a session expense.
+    // The units used are already in the session cost above.
+    if(typeof expenseIsInventoryPurchase==='function'&&expenseIsInventoryPurchase(e))return;
     // A linked expense is counted once, on the expense date, even when the
     // session was cancelled. It is not also inside the session cost above.
     if(e.sessionId){months[mi].linked+=amt;months[mi].cost+=amt;}
@@ -17553,14 +18087,14 @@ function printYearReport(){
   const tot=months.reduce((acc,m)=>({
     rev:acc.rev+m.rev,fee:acc.fee+m.fee,mat:acc.mat+m.mat,instr:acc.instr+m.instr,
     comm:acc.comm+m.comm,ship:acc.ship+m.ship,overhead:acc.overhead+m.overhead,
-    linked:acc.linked+(m.linked||0),legacy:acc.legacy+(m.legacy||0),cost:acc.cost+m.cost,
+    linked:acc.linked+(m.linked||0),legacy:acc.legacy+(m.legacy||0),inventory:acc.inventory+(m.inventory||0),cost:acc.cost+m.cost,
     profit:0,sess:acc.sess+m.sess,students:acc.students+m.students
-  }),{rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,linked:0,legacy:0,cost:0,profit:0,sess:0,students:0});
+  }),{rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,linked:0,legacy:0,inventory:0,cost:0,profit:0,sess:0,students:0});
   const undatedLive=!!(undatedHold.sess||undatedHold.rev||undatedHold.cost||undatedHold.fee||undatedHold.instr||undatedHold.legacy);
   if(undatedLive){
     tot.rev+=undatedHold.rev;tot.fee+=undatedHold.fee;tot.mat+=undatedHold.mat;tot.instr+=undatedHold.instr;
     tot.comm+=undatedHold.comm;tot.ship+=undatedHold.ship;tot.overhead+=undatedHold.overhead;
-    tot.linked+=undatedHold.linked||0;tot.legacy+=undatedHold.legacy||0;tot.cost+=undatedHold.cost;
+    tot.linked+=undatedHold.linked||0;tot.legacy+=undatedHold.legacy||0;tot.inventory+=(undatedHold.inventory||0);tot.cost+=undatedHold.cost;
     tot.sess+=undatedHold.sess;tot.students+=undatedHold.students;
   }
   const yearFig=financeYearFigures(tot.rev,tot.fee,tot.cost);
@@ -17582,7 +18116,7 @@ function printYearReport(){
   const fmtS=n=>(n<0?'-':'')+fmtN(n);
   const profitColor=n=>n>=0?'#2d7a5e':'#c0392b';
 
-  const monthActive=m=>!!(m.sess||m.rev||m.fee||m.instr||m.legacy||m.linked||m.overhead||m.comm||m.cost);
+  const monthActive=m=>!!(m.sess||m.rev||m.fee||m.instr||m.legacy||m.linked||m.inventory||m.overhead||m.comm||m.cost);
   const cell=n=>n?fmtN(n):'-';
   let monthRows=months.map(m=>`
     <tr style="${monthActive(m)?'':'color:#aaa'}">
@@ -17592,6 +18126,7 @@ function printYearReport(){
       <td style="text-align:right;font-weight:500">${m.gross?fmtN(m.gross):'-'}</td>
       <td style="text-align:right;color:#c0392b">${m.instr&&m.instrEstimated?('est. '+cell(m.instr)):cell(m.instr)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.linked)}</td>
+      <td style="text-align:right;color:#c0392b">${cell(m.inventory)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.legacy)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.comm)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.overhead)}</td>
@@ -17607,6 +18142,7 @@ function printYearReport(){
       <td style="text-align:right;font-weight:500">${undatedHold.gross?fmtN(undatedHold.gross):'-'}</td>
       <td style="text-align:right;color:#c0392b">${undatedHold.instr&&undatedHold.instrEstimated?('est. '+cell(undatedHold.instr)):cell(undatedHold.instr)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.linked)}</td>
+      <td style="text-align:right;color:#c0392b">${cell(undatedHold.inventory)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.legacy)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.comm)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.overhead)}</td>
@@ -17695,6 +18231,7 @@ function printYearReport(){
         <th>Month</th><th style="text-align:center">Sessions</th><th style="text-align:center">Students</th>
         <th style="text-align:right">Gross payments</th>
         <th style="text-align:right">Instructor</th><th style="text-align:right">Session-linked</th>
+        <th style="text-align:right">Inventory</th>
         <th style="text-align:right">Older costs</th>
         <th style="text-align:right">Partner comm.</th>
         <th style="text-align:right">Other expenses</th><th style="text-align:right">Card fees</th>
@@ -17709,6 +18246,7 @@ function printYearReport(){
         <td style="text-align:right">${fmtN(tot.gross)}</td>
         <td style="text-align:right;color:#c0392b">${(months.some(m=>m.instrEstimated)||undatedHold.instrEstimated)&&tot.instr?('est. '+fmtN(tot.instr)):fmtN(tot.instr)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.linked)}</td>
+        <td style="text-align:right;color:#c0392b">${fmtN(tot.inventory||0)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.overhead)}</td>
@@ -17733,7 +18271,7 @@ function printYearReport(){
 
     ${Object.keys(catBuckets).length?`
     <h2>Finances expenses by category</h2>
-    <p style="font-size:15px;color:#6b7a99;margin-bottom:10px">Every expense entered on Finances, session-linked and other. Each amount is in this list once. Other expenses are the ones with no session.</p>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:10px">Cash spent, by category. Inventory purchases are included here because the card was charged. They are not in Other expenses on the monthly table, and they are not charged again on a session. Session profit uses the units each class consumes.</p>
     <table>
       <thead><tr><th>Category</th><th style="text-align:right">Total</th></tr></thead>
       <tbody>${catRows}</tbody>
@@ -17741,15 +18279,23 @@ function printYearReport(){
     </table>`:''}
 
     <h2>All expenses by category</h2>
-    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes instructor fees, older session costs still typed on a class, community partner commission, payment processing fees, and every Finances expense. Handbook and supply orders are other expenses, not a per-student charge on each class. Processing fees are counted here once and are not also removed from gross payments. A cancelled session adds no revenue and no estimated instructor pay.</p>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:14px">Includes instructor fees, inventory the classes used, older session costs still typed on a class, community partner commission, payment processing fees, and Finances expenses that are not inventory. A bulk handbook or certification order is cash spent. It is left out of this profit chart so it is not counted again as the units classes use. Processing fees are counted here once and are not also removed from gross payments. A cancelled session adds no revenue and no estimated instructor pay.</p>
     ${(()=>{
       // Build unified expense map: session costs + overhead
       const allCats={};
       if(tot.instr>0)allCats['Instructor fees']=tot.instr;
       if(tot.comm>0)allCats['Partner commission']=tot.comm;
       if(tot.legacy>0)allCats['Costs entered on the session']=tot.legacy;
+      if((tot.inventory||0)>0)allCats['Handbooks and certifications used']=tot.inventory;
       if(tot.fee>0)allCats['Payment processing fees']=tot.fee;
-      Object.entries(catBuckets).forEach(([k,v])=>{if(v>0)allCats[k]=(allCats[k]||0)+v;});
+      const pnlPosts=(typeof expenseOccurrences==='function'
+        ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
+        :expenses).filter(e=>{
+        const d=new Date((e&&e.date?e.date:'')+'T12:00:00');
+        if(isNaN(d.getTime())||d.getFullYear()!==year)return false;
+        return !(typeof expenseIsInventoryPurchase==='function'&&expenseIsInventoryPurchase(e));
+      });
+      Object.entries(expenseCategoryTotals(pnlPosts)).forEach(([k,v])=>{if(v>0)allCats[k]=(allCats[k]||0)+v;});
       const grandTotal=Object.values(allCats).reduce((s,v)=>s+v,0);
       if(!grandTotal)return '<p style="color:#aaa;font-style:italic">No expense data for this year.</p>';
       const palette=['#4a8fc4','#e07c5a','#2d7a5e','#b86a00','#6b3fa0','#c0392b','#1a5c8a','#888','#3a7a5a','#a04060','#0f6f8a','#c46b2d'];
@@ -17796,8 +18342,9 @@ function printYearReport(){
           </table>
           <div style="margin-top:12px;padding:10px 12px;background:#f8f9fc;border-radius:6px;font-size:14px;color:#6b7a99;line-height:1.7">
             <strong style="color:#1a2744">How these are counted:</strong><br>
-            <em>Instructor fees</em>: hourly rate times course hours, plus one paid hour of travel at the same rate (virtual courses have no travel), or a flat fee where the course has one. A cancelled session counts only instructor pay that was marked paid, with the amount frozen at that time. Handbook and student-supply purchases are other expenses, entered when you order them.<br>
-            <em>Session-linked expenses</em>: Finances expenses tied to a session, counted once on the expense date, including when that session was cancelled.<br>
+            <em>Instructor fees</em>: hourly rate times course hours, plus one paid hour of travel at the same rate (virtual courses have no travel), or a flat fee where the course has one. A cancelled session counts only instructor pay that was marked paid, with the amount frozen at that time. Handbook and certification orders are inventory once a quantity is entered. Profit uses the units a class consumes, not the full card charge.<br>
+            <em>Handbooks and certifications used</em>: enrolled students times the average cost per unit. The bulk charge stays in cash spent and is not also overhead.<br>
+            <em>Session-linked expenses</em>: Finances expenses tied to a session, counted once on the expense date, including when that session was cancelled. Inventory purchases are not in this line.<br>
             <em>Costs entered on the session</em>: facility rental, parking, printing, and other costs still typed on that class or job. A line already moved to Finances is not counted again. On a cancelled session, only a line with a date paid is counted.<br>
             <em>Payment processing fees</em>: PayPal, Venmo, and card fees on paid family registrations (2.99% + $0.49). A cost, subtracted once. Organization invoices are not included. Cancelled sessions do not add these fees.
           </div>
@@ -17843,7 +18390,7 @@ function printMonthReport(){
     const slot=financeRevenueSlot(s, nowMo);
     if(!(slot&&slot.year===year&&slot.month===mi))return;
     const p=financeSessionFigures(s);
-    if(!p.instr&&!p.legacy)return;
+    if(!p.instr&&!p.legacy&&!(p.inventory))return;
     monthSessions.push(s);
     seenIds[s.id]=true;
   });
@@ -17856,7 +18403,7 @@ function printMonthReport(){
     ?(expenses||[]).reduce(function(acc,row){return acc.concat(expenseOccurrences(row));},[])
     :expenses).filter(inThisMonth);
 
-  const tot={rev:0,fee:0,mat:0,instr:0,legacy:0,linked:0,extra:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0,regs:0,instrEstimated:false};
+  const tot={rev:0,fee:0,mat:0,instr:0,legacy:0,linked:0,inventory:0,extra:0,comm:0,overhead:0,cost:0,profit:0,sess:0,students:0,regs:0,instrEstimated:false};
   const courseBuckets={};
   let linkedOnRows=0;
 
@@ -17865,10 +18412,12 @@ function printMonthReport(){
     const p=financeSessionFigures(s);
     const linkedHere=linkedExpenses(s.id).filter(inThisMonth).reduce((sum,e)=>sum+(Number(e.amount)||0),0);
     tot.rev+=p.rev;tot.fee+=p.fee;tot.instr+=p.instr;tot.legacy+=p.legacy;
+    const invHere=(s&&s.isCancelled)?0:(p.inventory||0);
+    tot.inventory+=invHere;
     if(p.instrEstimated)tot.instrEstimated=true;
     linkedOnRows+=linkedHere;
     if(p.sess){tot.sess++;tot.students+=p.students;tot.regs+=f.totalCount;}
-    const rowProfit=p.rev-p.instr-p.legacy-linkedHere;
+    const rowProfit=p.rev-p.instr-p.legacy-linkedHere-invHere;
     if(!courseBuckets[s.course])courseBuckets[s.course]={rev:0,sess:0,regs:0,students:0,profit:0};
     courseBuckets[s.course].rev+=p.rev;
     courseBuckets[s.course].profit+=rowProfit;
@@ -17889,6 +18438,7 @@ function printMonthReport(){
       <td style="text-align:right;font-weight:500">${fmtN(p.rev)}</td>
       <td style="text-align:right;color:#c0392b">${p.instrEstimated&&p.instr?('est. '+dash(p.instr)):dash(p.instr)}${((typeof paidHoursBreakdown==='function')&&paidHoursBreakdown(s))?`<div style="font-size:12px;color:#6b7a99;font-weight:400">${escapeHtml(paidHoursBreakdown(s))}</div>`:''}</td>
       <td style="text-align:right;color:#c0392b">${dash(linkedHere)}</td>
+      <td style="text-align:right;color:#c0392b">${dash(invHere)}</td>
       <td style="text-align:right;color:#c0392b">${dash(p.legacy)}</td>
       <td style="text-align:right;font-weight:600;color:${profitColor(rowProfit)}">${estPrefix(fmtS(rowProfit), !!p.instrEstimated)}</td>
     </tr>`;
@@ -17897,6 +18447,7 @@ function printMonthReport(){
   let orphanLinked=0;
   monthExpenses.forEach(e=>{
     const amt=Number(e.amount)||0;
+    if(typeof expenseIsInventoryPurchase==='function'&&expenseIsInventoryPurchase(e))return;
     if(!e.sessionId){tot.overhead+=amt;return;} // Other expenses stay on the annual report.
     if(!seenIds[e.sessionId])orphanLinked+=amt;
   });
@@ -17908,9 +18459,11 @@ function printMonthReport(){
   // Community partner commission earned this month: money received and class taught.
   invalidateCommissionCache();
   tot.comm=round2(partnerCommissionMonths(year)[mi]||0);
+  tot.inventory=round2(tot.inventory||0);
   tot.cost=round2(tot.instr+tot.legacy+tot.linked+tot.comm);
+  tot.cost=round2(tot.cost+tot.inventory);
   tot.profit=round2(tot.rev-tot.cost);
-  const rowProfitTot=round2(tot.rev-tot.instr-tot.legacy-linkedOnRows);
+  const rowProfitTot=round2(tot.rev-tot.instr-tot.legacy-linkedOnRows-(tot.inventory||0));
 
   const monthCatBuckets=expenseCategoryTotals(monthExpenses);
   const monthCatRows=Object.entries(monthCatBuckets).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>`
@@ -17983,10 +18536,11 @@ function printMonthReport(){
         <th style="text-align:center">Registrations</th><th style="text-align:center">Paid</th>
         <th style="text-align:right">Revenue</th>
         <th style="text-align:right">Instructor</th><th style="text-align:right">Linked expenses</th>
+        <th style="text-align:right">Inventory</th>
         <th style="text-align:right">Older costs</th>
         <th style="text-align:right">Net profit</th>
       </tr></thead>
-      <tbody>${sessRows||'<tr><td colspan="9" style="color:#aaa;text-align:center;padding:16px">No sessions this month</td></tr>'}</tbody>
+      <tbody>${sessRows||'<tr><td colspan="10" style="color:#aaa;text-align:center;padding:16px">No sessions this month</td></tr>'}</tbody>
       ${monthSessions.length?`<tfoot><tr class="total-row">
         <td colspan="2">TOTAL</td>
         <td style="text-align:center">${tot.regs}</td>
@@ -17994,11 +18548,12 @@ function printMonthReport(){
         <td style="text-align:right">${fmtN(tot.rev)}</td>
         <td style="text-align:right;color:#c0392b">${tot.instrEstimated&&tot.instr?('est. '+fmtN(tot.instr)):fmtN(tot.instr)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(linkedOnRows)}</td>
+        <td style="text-align:right;color:#c0392b">${fmtN(tot.inventory||0)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td>
         <td style="text-align:right;color:${profitColor(rowProfitTot)}">${estPrefix(fmtS(rowProfitTot), !!tot.instrEstimated)}</td>
       </tr></tfoot>`:''}
     </table>
-    ${monthSessions.length||tot.linked||tot.cost?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Operating net profit is revenue minus instructor fees, session-linked expenses dated this month, older session costs, and partner commission. Revenue is net of payment processing fees (PayPal 2.99% + $0.49/transaction). Handbook orders and other expenses are reported annually. A cancelled session adds no revenue. It still adds instructor pay that was marked paid, linked expenses, and older costs that have a date paid.</p>':''}
+    ${monthSessions.length||tot.linked||tot.cost?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Operating net profit is revenue minus instructor fees, session-linked expenses dated this month, inventory the classes use, older session costs, and partner commission. Revenue is net of payment processing fees (PayPal 2.99% + $0.49/transaction). A bulk handbook order is not a session expense. Handbook orders still waiting for a quantity, and other expenses, are reported annually. A cancelled session adds no revenue and does not consume inventory. It still adds instructor pay that was marked paid, linked expenses, and older costs that have a date paid.</p>':''}
     ${orphanLinked?`<p style="font-size:14px;color:#6b7a99;margin-top:6px">Session-linked expenses dated this month for classes outside this month: ${fmtN(orphanLinked)}. They are in the profit summary and are not on the session rows.</p>`:''}
     ${undatedListed?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Sessions marked (on hold) have no class date. Revenue already collected — paid registrations, or a payment note such as a deposited check — is included in this month because the hold term falls in the current year (or names no year). An organization roster that has not been paid yet is not included. Saving a date moves that revenue to the class month.</p>':''}
 
@@ -18018,6 +18573,7 @@ function printMonthReport(){
         <tr><td>Revenue</td><td style="text-align:right;font-weight:500">${fmtN(tot.rev)}</td></tr>
         <tr><td>Instructor fees</td><td style="text-align:right;color:#c0392b">${tot.instrEstimated&&tot.instr?('est. '+fmtN(tot.instr)):fmtN(tot.instr)}</td></tr>
         <tr><td>Session-linked expenses</td><td style="text-align:right;color:#c0392b">${fmtN(tot.linked)}</td></tr>
+        <tr><td>Inventory used</td><td style="text-align:right;color:#c0392b">${fmtN(tot.inventory||0)}</td></tr>
         <tr><td>Costs entered on the session</td><td style="text-align:right;color:#c0392b">${fmtN(tot.legacy)}</td></tr>
         ${tot.comm?`<tr><td>Community partner commission</td><td style="text-align:right;color:#c0392b">${fmtN(tot.comm)}</td></tr>`:''}
         <tr class="total-row"><td>Net profit</td><td style="text-align:right;color:${profitColor(tot.profit)}">${estPrefix(fmtS(tot.profit), !!tot.instrEstimated)}</td></tr>
@@ -18028,7 +18584,7 @@ function printMonthReport(){
 
     ${Object.keys(monthCatBuckets).length?`
     <h2>Expenses by category</h2>
-    <p style="font-size:15px;color:#6b7a99;margin-bottom:10px">Finances expenses dated this month. Each stored category is its own row. Session-linked amounts are already in the profit summary. Expenses with no session are listed here and in the annual report.</p>
+    <p style="font-size:15px;color:#6b7a99;margin-bottom:10px">Finances expenses dated this month. Each stored category is its own row. Inventory purchases are in this cash list because the card was charged. They are not also in the profit summary. Session profit uses the units each class consumes. Session-linked amounts are already in the profit summary. Expenses with no session are listed here and in the annual report.</p>
     <table>
       <thead><tr><th>Category</th><th style="text-align:right">Total</th></tr></thead>
       <tbody>${monthCatRows}</tbody>
