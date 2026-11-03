@@ -638,6 +638,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <button class="btn" id="print-report-btn" onclick="printReport()">Print monthly report</button>
         </div>
       </div>
+      <div id="fin-grants"></div>
       <div id="legacy-cost-banner"></div>
       <div id="profit-session-tools"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="fin-table"></table></div></div>
@@ -946,7 +947,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),troopLevel:r.troop_level||null,countyDisclaimer:r.county_disclaimer===true?true:(r.county_disclaimer===false?false:null),extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),troopLevel:r.troop_level||null,countyDisclaimer:r.county_disclaimer===true?true:(r.county_disclaimer===false?false:null),grantTag:r.grant_tag||'',extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -1030,6 +1031,10 @@ const PARTICIPANTS_EXPECTED_SQL_TOAST='⚠️ Saved, but WITHOUT Participants ex
 // Anon is not granted this column. See migrations/20261029_troop_level.sql.
 let TROOP_LEVEL_COL=true;
 const TROOP_LEVEL_SQL_TOAST='⚠️ Saved, but WITHOUT Troop level — run migrations/20261029_troop_level.sql in the Supabase SQL editor, then re-save this session.';
+// Grant a session is funded by. Null/blank means regular class money.
+// Anon is not granted this column. See migrations/20261103_session_grant_tag.sql.
+let GRANT_TAG_COL=true;
+const GRANT_TAG_SQL_TOAST='⚠️ Saved, but WITHOUT the grant tag — run migrations/20261103_session_grant_tag.sql in the Supabase SQL editor, then re-save this session.';
 const FEE_RECEIVED_SQL_TOAST='⚠️ Saved, but WITHOUT the received mark — run migrations/fee_received.sql in the Supabase SQL editor, then mark it received again.';
 // Organization registration: public limit 0, no session code, hidden from
 // public listings. Anon never reads this column; the public RPCs enforce it.
@@ -1139,6 +1144,9 @@ function sessionToDB(s){
   if((typeof COUNTY_DISCLAIMER_COL==='undefined'||COUNTY_DISCLAIMER_COL)&&s.countyDisclaimer!==undefined){
     o.county_disclaimer=s.countyDisclaimer===true?true:(s.countyDisclaimer===false?false:null);
   }
+  if((typeof GRANT_TAG_COL==='undefined'||GRANT_TAG_COL)&&s.grantTag!==undefined){
+    o.grant_tag=s.grantTag?String(s.grantTag):null;
+  }
   return o;
 }
 // Which optional column PostgREST rejected, if any. A missing column fails the
@@ -1167,6 +1175,7 @@ function sessionUpsertRejectColumn(msg){
   if((typeof PARTICIPANTS_EXPECTED_COL==='undefined'||PARTICIPANTS_EXPECTED_COL)&&/participants_expected/i.test(msg))return 'participants_expected';
   if((typeof TROOP_LEVEL_COL==='undefined'||TROOP_LEVEL_COL)&&/troop_level/i.test(msg))return 'troop_level';
   if((typeof COUNTY_DISCLAIMER_COL==='undefined'||COUNTY_DISCLAIMER_COL)&&/county_disclaimer/i.test(msg))return 'county_disclaimer';
+  if((typeof GRANT_TAG_COL==='undefined'||GRANT_TAG_COL)&&/grant_tag/i.test(msg))return 'grant_tag';
   return '';
 }
 function applySessionUpsertReject(which,flags){
@@ -1190,10 +1199,11 @@ function applySessionUpsertReject(which,flags){
   else if(which==='participants_expected'){PARTICIPANTS_EXPECTED_COL=false;flags.missingParticipantsExpected=true;}
   else if(which==='troop_level'){TROOP_LEVEL_COL=false;flags.missingTroopLevel=true;}
   else if(which==='county_disclaimer'){COUNTY_DISCLAIMER_COL=false;flags.missingCountyDisclaimer=true;}
+  else if(which==='grant_tag'){GRANT_TAG_COL=false;flags.missingGrantTag=true;}
   return !!which;
 }
 function blankSessionUpsertFlags(){
-  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false,missingParticipantsExpected:false,missingTroopLevel:false,missingCountyDisclaimer:false};
+  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false,missingParticipantsExpected:false,missingTroopLevel:false,missingCountyDisclaimer:false,missingGrantTag:false};
 }
 // Every session write goes through here: course sessions, custom jobs, holds,
 // publish, cancel. One unknown column used to abort custom-job and hold saves
@@ -1237,6 +1247,7 @@ function sessionOptionalColToast(f){
   if(f.missingParticipantsExpected)return PARTICIPANTS_EXPECTED_SQL_TOAST;
   if(f.missingTroopLevel)return TROOP_LEVEL_SQL_TOAST;
   if(f.missingCountyDisclaimer)return '⚠️ Saved, but WITHOUT the Montgomery County disclaimer setting — run migrations/20261102_county_disclaimer.sql in the Supabase SQL editor, then re-save this session.';
+  if(f.missingGrantTag)return GRANT_TAG_SQL_TOAST;
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
   return '';
@@ -8351,6 +8362,7 @@ function openAddSession(){
     </div>
     ${participantsExpectedFieldHtml(null)}
     ${troopLevelFieldHtml(null)}
+    ${grantTagFieldHtml(null)}
     <div class="fg full"><label>Host registration</label>
       <select id="m-hashost"><option value="yes">Allow host registration (private home)</option><option value="no">No host — public venue</option></select></div>
     <div class="fg full"><label>WiFi info <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="m-wifi" placeholder="e.g. Network: HomeWifi · Password: abc123"></div>
@@ -8535,6 +8547,7 @@ function openAddCustomJob(){
       <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
     ${participantsExpectedFieldHtml(null,'cj-expected')}
     ${troopLevelFieldHtml(null,'cj-troop-level')}
+    ${grantTagFieldHtml(null,'cj-grant-tag')}
     ${adminPrivateNotesFieldHtml('')}
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCustomJob()">Add job</button></div>`);
@@ -8664,6 +8677,8 @@ async function saveCustomJob(){
   if(troopLevel!==undefined)s.troopLevel=troopLevel;
   const countyDisclaimer=readCountyDisclaimer();
   if(countyDisclaimer!==undefined)s.countyDisclaimer=countyDisclaimer;
+  const grantTag=readGrantTag('cj-grant-tag');
+  if(grantTag!==undefined)s.grantTag=grantTag;
   sessions.push(s);
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
@@ -8819,6 +8834,7 @@ ${lockboxFieldHtml(s)}
       <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea></div>
     ${participantsExpectedFieldHtml(s,'cj-expected')}
     ${troopLevelFieldHtml(s,'cj-troop-level')}
+    ${grantTagFieldHtml(s,'cj-grant-tag')}
     ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
 </div></details>
   </div>
@@ -8883,6 +8899,8 @@ async function saveEditCustomJob(id){
   if(troopLevel!==undefined)s.troopLevel=troopLevel;
   const countyDisclaimer=readCountyDisclaimer();
   if(countyDisclaimer!==undefined)s.countyDisclaimer=countyDisclaimer;
+  const grantTag=readGrantTag('cj-grant-tag');
+  if(grantTag!==undefined)s.grantTag=grantTag;
   closeModal();renderSessions();renderDashboard();renderCodes();
   let saveFailed=false,saveErr=null,rnColMissing=false,ssColMissing=false,externalUrlMissing=false,privateNotesMissing=false,feeReceivedMissing=false,orgRegMissing=false;
   {const _r=await upsertSessionRow(s);saveFailed=!!_r.error;saveErr=_r.error;rnColMissing=_r.missingRnCol;ssColMissing=_r.missingSsCol;externalUrlMissing=!!_r.missingExternalUrl;privateNotesMissing=!!_r.missingPrivateNotes;feeReceivedMissing=!!_r.missingFeeReceived;orgRegMissing=!!_r.missingOrgReg;}
@@ -9168,6 +9186,7 @@ ${lockboxFieldHtml(s)}
     </div>
     ${participantsExpectedFieldHtml(s)}
     ${troopLevelFieldHtml(s)}
+    ${grantTagFieldHtml(s)}
     <div class="fg full"><label>WiFi info <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="m-wifi" value="${s.wifiInfo||''}" placeholder="e.g. Network: HomeWifi · Password: abc123"></div>
     ${externalRegistrationFieldHtml(s)}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
@@ -9336,6 +9355,8 @@ async function saveSession(editId){
   if(troopLevel!==undefined)s.troopLevel=troopLevel;
   const countyDisclaimer=readCountyDisclaimer();
   if(countyDisclaimer!==undefined)s.countyDisclaimer=countyDisclaimer;
+  const grantTag=readGrantTag('m-grant-tag');
+  if(grantTag!==undefined)s.grantTag=grantTag;
   closeModal();renderSessions();renderDashboard();renderCodes();
   // Save session first, then job data (so foreign key is satisfied).
   // Supabase returns errors on the result object (it does not throw for RLS / constraint failures),
@@ -10396,6 +10417,7 @@ function renderFinances(){
   const moSel=document.getElementById('report-month');
   if(moSel){const curMo=(moSel.value!==''&&moSel.value!=null)?moSel.value:new Date().getMonth();moSel.innerHTML=Array.from({length:12},(_,m)=>`<option value="${m}" ${m==curMo?'selected':''}>${new Date(2000,m,1).toLocaleDateString('en-US',{month:'long'})}</option>`).join('');}
   renderLegacyCostBanner();
+  if(typeof renderGrantFunds==='function')renderGrantFunds();
   renderPaidWith();
   if(finView==='session'){
     renderProfitBySession();
@@ -12002,6 +12024,62 @@ function readTroopLevel(inputId){
   const v=String(el.value||'').trim().toLowerCase();
   if(!v)return null;
   return troopLevelLabel(v)?v:null;
+}
+// ---- Grant funding -------------------------------------------------------
+// Grants Lindsay has won. A session tagged with a grant (the Funding dropdown
+// on the session form) draws its instructor pay and linked expenses down
+// against the award instead of regular class money. The funder invoices
+// themselves are standalone Invoices-tab records billed to the funder, never
+// tied to a class, so they never inflate class revenue.
+const GRANTS=[
+  {tag:'dd-council-2027',name:'Family Safety Toolkit',funder:'Maryland Developmental Disabilities Council',funderMatch:'Developmental Disabilities Council',award:3000}
+];
+function grantByTag(tag){return GRANTS.find(g=>g.tag===tag)||null;}
+function readGrantTag(inputId){
+  const el=document.getElementById(inputId||'m-grant-tag');
+  if(!el)return undefined;
+  const v=String(el.value||'').trim();
+  return grantByTag(v)?v:'';
+}
+function grantTagFieldHtml(s, inputId){
+  const id=inputId||'m-grant-tag';
+  const current=String(s&&s.grantTag||'').trim();
+  const opts=['<option value="">Regular class money</option>'].concat(GRANTS.map(function(g){
+    return '<option value="'+g.tag+'"'+(current===g.tag?' selected':'')+'>'+escapeHtml(g.name+' grant — '+g.funder)+'</option>';
+  })).join('');
+  return '<div class="fg"><label for="'+id+'">Funding <span style="font-weight:400;color:var(--muted)">(grant)</span></label>'
+    +'<select id="'+id+'" style="width:100%">'+opts+'</select>'
+    +'<div style="font-size:14px;color:var(--muted);margin-top:4px">Admin only. Tagging this session makes its instructor pay and linked expenses draw down the grant on the Finances screen.</div></div>';
+}
+// Drawdown math for one grant: each tagged session costs what Finances already
+// counts for it (calcFin totalCost: instructor pay + linked and on-session
+// expenses). Received/invoiced come from the funder's Invoices-tab records.
+function grantSummary(g){
+  const tagged=(typeof sessions!=='undefined'?sessions:[]).filter(s=>s&&!s.isCancelled&&s.grantTag===g.tag);
+  let spent=0;
+  const rows=tagged.map(s=>{
+    const fin=calcFin(s);
+    const cost=round2(Number(fin.totalCost)||0);
+    spent=round2(spent+cost);
+    return{date:s.date||'',course:s.course||'Session',instrFee:round2(Number(fin.instrFee)||0),extraCosts:round2(Number(fin.extraCosts)||0),cost};
+  });
+  rows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const invs=(typeof invoices!=='undefined'?invoices:[]).filter(v=>v&&String(v.orgName||'').indexOf(g.funderMatch)>=0);
+  const invoiced=round2(invs.reduce((a,v)=>a+(Number(v.total)||0),0));
+  const received=round2(invs.filter(v=>v.status==='paid').reduce((a,v)=>a+(Number(v.total)||0),0));
+  return{rows,spent,invoiced,received,award:g.award,remaining:round2(g.award-spent)};
+}
+function renderGrantFunds(){
+  const el=document.getElementById('fin-grants');
+  if(!el)return;
+  el.innerHTML=GRANTS.map(g=>{
+    const sum=grantSummary(g);
+    const stats=[['Awarded',fmt(sum.award)],['Received from funder',fmt(sum.received)],['Invoiced so far',fmt(sum.invoiced)],['Spent on tagged sessions',fmt(sum.spent)],['Left to spend',fmt(sum.remaining)]];
+    const statsHtml=stats.map(st=>`<div style="min-width:130px"><div style="font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)">${st[0]}</div><div style="font-size:22px;font-weight:800;color:var(--navy)">${st[1]}</div></div>`).join('');
+    const rowsHtml=sum.rows.length?`<div style="margin-top:12px">${sum.rows.map(r=>{const dlabel=r.date?new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}):'No date';return `<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--border);font-size:15px"><span>${escapeHtml(dlabel)} · ${escapeHtml(r.course)}</span><span style="white-space:nowrap">Instructor ${fmt(r.instrFee)} · Other costs ${fmt(r.extraCosts)} · <strong>${fmt(r.cost)}</strong></span></div>`;}).join('')}</div>`:`<div style="margin-top:12px;font-size:15px;color:var(--muted)">No sessions are tagged to this grant yet. Open a session, set Funding to this grant, and its costs will draw down the award here.</div>`;
+    const migNote=GRANT_TAG_COL?'':'<div style="margin-top:10px;font-size:14px;color:var(--warn)">Grant tagging is off until migrations/20261103_session_grant_tag.sql runs in the Supabase SQL editor.</div>';
+    return `<div class="card" style="margin-bottom:16px"><div class="card-title">Grant funds — ${escapeHtml(g.name)} (${escapeHtml(g.funder)})</div><div style="display:flex;flex-wrap:wrap;gap:18px;margin-top:6px">${statsHtml}</div>${rowsHtml}${migNote}</div>`;
+  }).join('');
 }
 function troopLevelFieldHtml(s, inputId){
   const id=inputId||'m-troop-level';
