@@ -90,6 +90,7 @@
     'Ready. Period.': 'ready-period',
     'Baby Ready': 'baby-ready',
     'Care Ready': 'care-ready',
+    'Safe & Ready Families': 'safe-and-ready-families',
     'My First Babysitters Club': 'my-first-babysitters-club',
     'Little Medics': 'little-medics',
     'Girl Scouts — First Aid Badge Workshop': 'first-aid-badge-workshop'

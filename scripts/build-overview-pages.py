@@ -60,6 +60,8 @@ MANIFEST = [
      "1SOhw4J0oqVzu6p-g6XxpYUmuegqQSBHa", "After School Clubs"),
     ("first-aid-badge-workshop", "First Aid Badge Workshop", "docx",
      "1YqoS1N0zH7kZWoGt4Ze8LYQ0tKFwmMx7", "Girl Scouts"),
+    ("safe-and-ready-families", "Safe & Ready Families", "gdoc",
+     "1guPusGvMTOCeeWRJkwcaTfx4Tcgd_bzE5-SVXxQjN-4", "Parents & Caregivers"),
 ]
 
 BRAND_LINES = {
