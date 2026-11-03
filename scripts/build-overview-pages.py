@@ -51,6 +51,8 @@ MANIFEST = [
      "1xZnkQv1Po0KTVK7kXtN6uUMSB8jJHzmg4MBXXscqK74", "Kids Safety"),
     ("baby-ready", "Baby Ready™", "gdoc",
      "1UpibpWdbMs2ntGdkGpRTlL6PaTxNUid-SOr1eTnecMg", "Parents & Baby"),
+    ("safe-and-ready-families", "Safe & Ready Families™", "gdoc",
+     "1fqH796QvtZ_BDX1XWzppHNlntoukeGZPnK_7j8zxHP8", "Parents & Baby"),
     ("care-ready", "Care Ready™", "gdoc",
      "1i5vo6u1pRxPogFi_7j1Nl3dMYT6jHjW_Usy3NfpMrew",
      "Nannies & Caregivers"),
@@ -395,6 +397,9 @@ def main():
     for slug, display, kind, fid, group in MANIFEST:
         blocks = gdoc_blocks(fid) if kind == "gdoc" else docx_blocks(fid)
         body, blurb = render_blocks(blocks, display)
+        # The overview doc says 6 to 20. The published class size is 10 to 25.
+        if slug == "safe-and-ready-families":
+            body = body.replace("6 to 20", "10 to 25")
         page = PAGE.replace("{CSS_V}", css_v).replace("{HEADER}", header) \
             .replace("{FOOTER}", footer).replace("{NAME}", html.escape(display)) \
             .replace("{BODY}", body)

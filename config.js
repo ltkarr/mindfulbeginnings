@@ -141,6 +141,12 @@ const COURSES={
   // Lunchroom Lifesaver (new Oct 29 2026): 45-minute no-certification
   // choking response class for school staff and volunteers, 6 to 12.
   'Lunchroom Lifesaver':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:0.75,maxStudents:12,audience:'School staff and volunteers'},
+  // Safe & Ready Families (new Nov 2026): 2.5-hour in-person workshop for
+  // parents, grandparents, and caregivers of children with developmental
+  // disabilities and neurodivergent needs. $40 per person. 10 to 25 adults.
+  // Taught by a registered nurse. The listed price is $40. It is usually
+  // offered free through grant funds, community wellness funds, or PTAs.
+  'Safe & Ready Families':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:0,hours:2.5,maxStudents:25,minStudents:10,requiresRN:true,adult:true,audience:'Parents, grandparents, and caregivers'},
   // My First Babysitters Club: the 8-week series is $200 per participant for
   // sessions created on/after Oct 19 2026 (see LATER_PRICE_CHANGES). Earlier
   // sessions stay at the price they were booked at ($165 after Aug 26 2026).
@@ -447,6 +453,7 @@ const MAX_STUDENTS={
   'Screen Ready':40,
   'Screen Ready — Virtual':40,
   'Lunchroom Lifesaver':12,
+  'Safe & Ready Families':25,
   'My First Babysitters Club':16,
   'My First Babysitters Club — Single Session':16,
   'Little Medics':16,

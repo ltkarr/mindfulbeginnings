@@ -42,6 +42,7 @@ const COURSES={
   "Screen Ready":{hours:1,maxStudents:40},
   "Screen Ready — Virtual":{hours:1,maxStudents:40,instrFlatFee:75,virtual:true},
   "Lunchroom Lifesaver":{hours:0.75,maxStudents:12},
+  "Safe & Ready Families":{hours:2.5,maxStudents:25,requiresRN:true,adult:true},
   "My First Babysitters Club":{hours:1,maxStudents:16},
   "My First Babysitters Club — Single Session":{hours:2.5,maxStudents:16},
   "Little Medics":{hours:1,maxStudents:16},

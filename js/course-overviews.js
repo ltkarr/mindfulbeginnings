@@ -85,6 +85,7 @@
     'Social Ready': 'social-ready',
     'Stay Ready': 'stay-ready',
     'Steady and Ready': 'steady-and-ready',
+    'Safe & Ready Families': 'safe-and-ready-families',
     'All Kids Welcome': 'all-kids-welcome',
     'Season Ready': 'season-ready',
     'Ready. Period.': 'ready-period',

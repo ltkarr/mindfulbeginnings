@@ -29,6 +29,7 @@
 <script src="/js/payments.js"></script>
 <script src="/js/discount-codes.js"></script>
 <script src="/js/confirmation-email.js"></script>
+<script src="/js/course-overviews.js"></script>
 
 <!--
   PAYMENT: card/PayPal via /api/paypal/* (Orders API, dynamic amount) + Venmo + Zelle.
@@ -76,6 +77,7 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
 .sess-banner .cname{font-weight:800;font-size:16px;color:var(--navy)}
 .sess-banner .cmeta{font-size:15px;font-weight:600;color:var(--muted);margin-top:2px}
 .county-disclaimer{margin:8px 0 0;font-size:13px;font-weight:600;line-height:1.45;color:var(--navy)}
+.grant-note{margin:8px 0 0;background:#fff;border-left:6px solid var(--btn-gold);border-radius:0 12px 12px 0;padding:8px 12px;font-size:13px;font-weight:600;line-height:1.45;color:var(--navy)}
 .public-card .county-disclaimer{margin-top:6px}
 .sess-price{margin-left:auto;font-weight:800;color:var(--navy);font-size:17px;white-space:nowrap}
 .fsec{margin-bottom:28px}
@@ -866,7 +868,7 @@ if(typeof getSessionBasePrice==='undefined'){
   };
 }
 if(typeof MAX_STUDENTS==='undefined'){
-  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':20,'Safe@Home — Virtual':20,'Safe@Home — Series':20,'Grandparents: Getting Started':16,'Safe Sitter® Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'Baby Ready + CPR Certification':12,'Babysitting Grandkids Workshop':20,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Stay Ready™: Choking Rescue, CPR, and Seizure Response':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'Middle School Ready':20,'Middle School Ready — Virtual':20,'Lunchroom Lifesaver':12,'Screen Ready':40,'Screen Ready — Virtual':40,'My First Babysitters Club':16,'My First Babysitters Club — Single Session':16,'Little Medics':16,'Pet Sitter\'s Club':16,'Snack Squad':16,'Kid Boss Club':16,'Middle School, Here I Come':16,'Big Sibling Club':16,'My First Phone':16,'Walk and Roll Ready':16,'Calm and Ready':16,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Season Ready™: Safety Skills for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':16,'Girl Scout Badge Class':16,'Babysitter\'s Training':12,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12,'Adult First Aid/CPR/AED Certification':12,'Basic Life Support (BLS) Certification':12,'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)':12,'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':12};
+  window.MAX_STUDENTS={'Safe Sitter®':16,'Safe Sitter® Babysitting Essentials':16,'Intro to Babysitting':20,'Safe@Home':20,'Safe@Home — Virtual':20,'Safe@Home — Series':20,'Grandparents: Getting Started':16,'Safe Sitter® Grandparents: Getting Started':16,'Care Ready':16,'Baby Ready':12,'Baby Ready + CPR Certification':12,'Babysitting Grandkids Workshop':20,'All Kids Welcome':20,'Stay Ready: Choking Rescue and CPR':12,'Stay Ready™: Choking Rescue, CPR, and Seizure Response':12,'Campus Ready: Safety Skills for College Life':12,'Steady and Ready':8,'Middle School Ready':20,'Middle School Ready — Virtual':20,'Lunchroom Lifesaver':12,'Safe & Ready Families':25,'Screen Ready':40,'Screen Ready — Virtual':40,'My First Babysitters Club':16,'My First Babysitters Club — Single Session':16,'Little Medics':16,'Pet Sitter\'s Club':16,'Snack Squad':16,'Kid Boss Club':16,'Middle School, Here I Come':16,'Big Sibling Club':16,'My First Phone':16,'Walk and Roll Ready':16,'Calm and Ready':16,'Ready. Period.':18,'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes':20,'Season Ready™: Safety Skills for Student Athletes':20,'Social Ready':20,'Girl Scouts — First Aid Badge Workshop':16,'Girl Scout Badge Class':16,'Babysitter\'s Training':12,'Red Cross Babysitter\'s Training + Pediatric First Aid/CPR/AED':12,'Adult & Pediatric First Aid/CPR/AED Certification':12,'Adult First Aid/CPR/AED Certification':12,'Basic Life Support (BLS) Certification':12,'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)':12,'Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)':12};
 }
 if(typeof PROMO_CODES==='undefined'){
   // No fallback discount amounts on purpose — codes resume working once config.js loads.
@@ -1320,6 +1322,7 @@ function renderPublicSessions(){
       '<div class="pmeta">'+escapeHtml(when)+'</div>'+
       (place?'<div class="pplace">'+escapeHtml(place)+'</div>':'')+
       ((window.MBCountyDisclaimer&&MBCountyDisclaimer.shows(r))?MBCountyDisclaimer.html():'')+
+      (helpers.grantNote&&helpers.grantNote(r.course)?'<p class="grant-note">'+escapeHtml(helpers.grantNote(r.course))+'</p>':'')+
       '</div>'+
       '<div class="pside">'+(priceLabel?'<div class="pprice" aria-hidden="true">'+escapeHtml(priceLabel)+'</div>':'')+
       seatsHtml+
@@ -3124,6 +3127,7 @@ function showSuccessScreen(reg,s,price,method,skipEmail){
     <div class="crow"><span class="cl">Participant</span><span class="cv">${escapeHtml(reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''))}</span></div>
     ${reg.grade?`<div class="crow"><span class="cl">Grade</span><span class="cv">${escapeHtml(reg.grade)}</span></div>`:''}
     <div class="crow"><span class="cl">Course</span><span class="cv">${s.course}</span></div>
+    ${(window.MBCourseOverviews&&MBCourseOverviews.urlFor&&MBCourseOverviews.urlFor(s.course))?`<div class="crow"><span class="cl">Course overview</span><span class="cv"><a href="${escapeHtml(MBCourseOverviews.urlFor(s.course))}">${escapeHtml(MBCourseOverviews.urlFor(s.course))}</a></span></div>`:''}
     ${promoApplied?`<div class="crow"><span class="cl">Discount</span><span class="cv" style="color:#2d7a5e">Code ${PROMO_CODE} (−$${PROMO_DISCOUNT})</span></div>`:''}
     <div class="crow"><span class="cl">Date</span><span class="cv">${d}</span></div>
     ${s.time?`<div class="crow"><span class="cl">Time</span><span class="cv">${escapeHtml(s.time)}</span></div>`:''}
@@ -3391,6 +3395,10 @@ function sendConfirmationEmail(reg,session,price){
   const amountWithUrl = (helpers&&typeof helpers.withPayUrlInAmount==='function')
     ? helpers.withPayUrlInAmount(amountLine, payUrl)
     : amountLine;
+  const overviewApi=window.MBCourseOverviews;
+  const overviewUrl=(overviewApi&&typeof overviewApi.urlFor==='function')?(overviewApi.urlFor(session.course)||''):'';
+  const courseLabel=publicCourseName(session.course);
+  const courseForEmail=overviewUrl?(courseLabel+'. Course overview: '+overviewUrl):courseLabel;
   
   emailjs.send(
     'service_delt0r4',
@@ -3399,7 +3407,8 @@ function sendConfirmationEmail(reg,session,price){
       to_email: parentEmail,
       to_name: reg.parent_name||reg.student_name,
       student_name: reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''),
-      course: publicCourseName(session.course),
+      course: courseForEmail,
+      overview_url: overviewUrl,
       date: d,
       time: session.time||'TBD',
       location: session.location||'TBD',
