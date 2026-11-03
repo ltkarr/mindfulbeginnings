@@ -107,6 +107,16 @@
     return normName(b).length - normName(a).length;
   });
 
+  var SPANISH_OVERVIEW = {
+    'safe & ready families': 'safe-and-ready-families-es'
+  };
+
+  function urlForLang(course, lang) {
+    var name = normName(course);
+    if (lang === 'es' && SPANISH_OVERVIEW[name]) return OVERVIEW_BASE + SPANISH_OVERVIEW[name];
+    return urlFor(course);
+  }
+
   function urlFor(course) {
     var name = normName(course);
     if (!name) return '';
@@ -131,7 +141,8 @@
     OVERVIEW_URLS: OVERVIEW_URLS,
     overviewFor: overviewFor,
     textFor: textFor,
-    urlFor: urlFor
+    urlFor: urlFor,
+    urlForLang: urlForLang
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

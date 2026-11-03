@@ -45,6 +45,7 @@ window.MB_ADMIN_BUILD='20261102-parent-roster';
 <script src="/js/session-place.js"></script>
 <script src="/js/county-disclaimer.js"></script>
 <script src="/js/duplicate-sessions.js"></script>
+<script src="/js/srf-grant.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -520,6 +521,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
       <div class="nav-item" title="Invoices" onclick="showScreen('invoices',this)"><span class="nav-icon">🧾</span> <span class="nav-label">Invoices</span></div>
       <div class="nav-item" title="Evaluations" onclick="showScreen('evaluations',this)"><span class="nav-icon">★</span> <span class="nav-label">Evaluations</span></div>
+      <div class="nav-item" title="Grant report" onclick="showScreen('grant',this)"><span class="nav-icon">✎</span> <span class="nav-label">Grant report</span></div>
       <div class="nav-item" title="Onboarding" onclick="showScreen('onboarding',this)"><span class="nav-icon">🎓</span> <span class="nav-label">Onboarding</span></div>
       <div class="nav-item" title="Instructors" onclick="showScreen('instructors',this)"><span class="nav-icon">◉</span> <span class="nav-label">Instructors</span></div>
       <div class="nav-item" id="nav-more" title="More" onclick="showScreen('more',this)"><span class="nav-icon">⋯</span> <span class="nav-label">More</span></div>
@@ -701,6 +703,16 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="evaluations-table"></table></div></div>
       <div id="evaluations-by-instructor"></div>
+    </div>
+
+    <div class="screen" id="screen-grant">
+      <div class="page-header">
+        <div><div class="page-title">Grant report</div><div class="page-sub">Safe &amp; Ready Families. Participants served come from the registration questions, grouped by role. More confidence comes from the class-day survey. A written safety plan means both the About Me Sheet and the Wandering Plan on the 60-day follow-up. Copy a link and send it yourself. This page does not send email.</div></div>
+        <button class="btn" onclick="downloadSrfGrantCsv()">Download CSV</button>
+      </div>
+      <div id="srf-grant-stats" class="stat-row" style="margin-bottom:12px"></div>
+      <div id="srf-grant-roles" style="margin-bottom:12px"></div>
+      <div class="card" style="padding:0"><div class="tbl-wrap"><table id="srf-grant-sessions"></table></div></div>
     </div>
 
     <div class="screen" id="screen-onboarding">
@@ -1424,6 +1436,10 @@ async function showApp(){
   document.getElementById('dash-metrics').innerHTML='<div style="color:var(--muted);font-size:16px;padding:8px">Loading data...</div>';
   await loadData();
   renderDashboard();
+  if((location.hash||'')==='#grant'){
+    const nav=document.querySelector('.nav-item[title="Grant report"]');
+    showScreen('grant',nav);
+  }
 }
 
 // Menu width. Collapsing the menu to icons gives the wide tables about 160
@@ -5986,6 +6002,12 @@ function showScreen(name,el){
   if(name==='finances'){renderFinances();renderExpenses();}
   if(name==='invoices'&&typeof renderInvoices==='function')renderInvoices();
   if(name==='evaluations'&&typeof renderEvaluations==='function')renderEvaluations();
+  if(name==='grant'&&typeof renderSrfGrant==='function')renderSrfGrant();
+  if(name==='grant'){
+    if(location.hash!=='#grant')history.replaceState(null,'',location.pathname+location.search+'#grant');
+  }else if(location.hash==='#grant'){
+    history.replaceState(null,'',location.pathname+location.search);
+  }
   if(name==='onboarding'&&typeof renderOnboarding==='function')renderOnboarding();
   if(name==='codes')renderCodes();
   if(name==='instructors')renderInstructors();
@@ -17585,6 +17607,82 @@ async function deleteEvaluation(id){
   renderEvaluations();
 }
 
+let srfGrantCache=[];
+function srfPctText(p, n){
+  if(!n)return 'No responses yet';
+  return Number(p).toFixed(1)+'%';
+}
+function srfGrantSessionList(){
+  return (sessions||[]).filter(s=>window.MBSrfGrant&&MBSrfGrant.isCourse(s.course)&&!s.isHold)
+    .slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+}
+async function loadSrfGrant(){
+  if(!sb)return [];
+  try{
+    const {data,error}=await sb.from('srf_grant_responses').select('*').order('created_at',{ascending:false});
+    if(error)throw error;
+    srfGrantCache=data||[];
+  }catch(e){console.warn('Grant report load failed:',e);srfGrantCache=[];}
+  return srfGrantCache;
+}
+function downloadSrfGrantCsv(){
+  if(!window.MBSrfGrant)return;
+  const csv=MBSrfGrant.csv(srfGrantCache||[]);
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='safe-and-ready-families-grant-report.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+async function renderSrfGrant(){
+  if(!window.MBSrfGrant)return;
+  const rows=await loadSrfGrant();
+  const summary=MBSrfGrant.report(rows);
+  const stats=document.getElementById('srf-grant-stats');
+  if(stats){
+    stats.innerHTML='<div class="instr-stats">'+
+      '<div class="instr-stat"><b>'+summary.served+'</b><span>participants served</span></div>'+
+      '<div class="instr-stat"><b>'+escapeHtml(srfPctText(summary.moreConfidentPct, summary.confidenceResponses))+'</b><span>more confident</span></div>'+
+      '<div class="instr-stat"><b>'+escapeHtml(srfPctText(summary.writtenPlanPct, summary.planResponses))+'</b><span>written safety plan</span></div>'+
+      '</div>'+
+      '<div style="color:var(--muted);font-size:13px;margin-top:8px">Participants served counts registration answers, not a sign-in sheet. More confident is Much more confident or Somewhat more confident, divided by class-day responses ('+summary.moreConfident+' of '+summary.confidenceResponses+'). A written plan is Yes, both are complete, divided by follow-up responses ('+summary.writtenPlan+' of '+summary.planResponses+'). Targets: about 100 served, at least 80 percent more confident, at least 75 percent with a written plan.</div>';
+  }
+  const roles=document.getElementById('srf-grant-roles');
+  if(roles){
+    const keys=Object.keys(summary.byRole).sort();
+    roles.innerHTML='<div class="card" style="padding:14px 16px"><b>Participants served by role</b>'+
+      (keys.length?'<ul style="margin:8px 0 0;padding-left:18px">'+keys.map(k=>'<li>'+escapeHtml(k)+': '+summary.byRole[k]+'</li>').join('')+'</ul>':'<div style="color:var(--muted);margin-top:8px">No registration answers yet.</div>')+
+      '</div>';
+  }
+  const table=document.getElementById('srf-grant-sessions');
+  if(!table)return;
+  const list=srfGrantSessionList();
+  if(!list.length){
+    table.innerHTML='<tr><td style="padding:24px;color:var(--muted)">No Safe &amp; Ready Families sessions yet.</td></tr>';
+    return;
+  }
+  table.innerHTML='<thead><tr><th>Date</th><th>Code</th><th>Place</th><th>Served</th><th>More confident</th><th>Written plan</th><th>Class-day survey</th><th>60-day follow-up</th></tr></thead><tbody>'+
+    list.map(s=>{
+      const mine=rows.filter(r=>r.session_code===s.code);
+      const rep=MBSrfGrant.report(mine);
+      const es=!!(s.requiresSpanish||String(s.code||'').toUpperCase()==='SRF-270413');
+      const b=MBSrfGrant.surveyUrl('B', s.code, es?'es':'');
+      const c=MBSrfGrant.surveyUrl('C', s.code, es?'es':'');
+      const place=[s.location,s.city].filter(Boolean).join(', ');
+      return '<tr>'+
+        '<td style="white-space:nowrap">'+escapeHtml(s.date||'')+(s.isCancelled?' <span style="color:#C0392B">Cancelled</span>':'')+'</td>'+
+        '<td>'+escapeHtml(s.code||'')+'</td>'+
+        '<td>'+escapeHtml(place)+'</td>'+
+        '<td>'+rep.served+'</td>'+
+        '<td>'+escapeHtml(srfPctText(rep.moreConfidentPct, rep.confidenceResponses))+'</td>'+
+        '<td>'+escapeHtml(srfPctText(rep.writtenPlanPct, rep.planResponses))+'</td>'+
+        '<td><button class="btn sm" type="button" data-srf-link="'+escapeHtml(b)+'" onclick="copyLink(this.getAttribute(\'data-srf-link\'))">'+(es?'Copy Spanish link':'Copy link')+'</button></td>'+
+        '<td><button class="btn sm" type="button" data-srf-link="'+escapeHtml(c)+'" onclick="copyLink(this.getAttribute(\'data-srf-link\'))">'+(es?'Copy Spanish link':'Copy link')+'</button></td>'+
+        '</tr>';
+    }).join('')+'</tbody>';
+}
 function renderInvoices(){
   const t=document.getElementById('invoices-table');if(!t)return;
   // "Ready to invoice" alerts

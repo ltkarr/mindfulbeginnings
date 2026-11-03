@@ -15,6 +15,7 @@
 <link rel="apple-touch-icon" href="/email-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/site.css?v=29">
+<link rel="stylesheet" href="/srf-grant.css">
 <!-- Pinned. crossorigin is safe here: jsDelivr sends Access-Control-Allow-Origin: *. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js" crossorigin="anonymous"></script>
@@ -30,6 +31,7 @@
 <script src="/js/discount-codes.js"></script>
 <script src="/js/confirmation-email.js"></script>
 <script src="/js/course-overviews.js"></script>
+<script src="/js/srf-grant.js"></script>
 
 <!--
   PAYMENT: card/PayPal via /api/paypal/* (Orders API, dynamic amount) + Venmo + Zelle.
@@ -284,10 +286,11 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
   <div class="fsec"><div class="fsec-title" id="guardian-title">Parent / guardian</div>
     <div class="fgrid">
       <div class="field full"><label id="guardian-name-label">Name *</label><input type="text" id="p-name" placeholder="Full name"></div>
-      <div class="field"><label>Email *</label><input type="email" id="p-email" placeholder="your@email.com"></div>
+      <div class="field"><label>Email *</label><input type="email" id="p-email" placeholder="your@email.com"><p id="srf-email-note" hidden></p></div>
       <div class="field"><label>Cell phone *</label><input type="tel" id="p-phone" placeholder="(301) 555-1234"></div>
     </div>
   </div>
+  <div class="fsec" id="srf-grant" hidden></div>
   <div class="fsec" id="referral-section"><div class="fsec-title">How did you hear about us?</div>
     <div class="fgrid">
       <div class="field full"><label>Please let us know how you found us</label>
@@ -397,8 +400,8 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
       <!-- Virtual sessions only. Filled by registration-copy.js when is_virtual is set. -->
       <div id="terms-virtual" style="display:none"></div>
       <!-- Refund / cancellation applies to everyone -->
-      <p class="policy-sep"><strong>Refund and transfer policy.</strong> All sales are final. If a participant is unable to attend, you may transfer the registration to another student. Please email lindsay@mindfulbeginnings.org with the new participant's name. Any payment settlement for the spot must be handled directly between the involved parties.</p>
-      <p><strong>Course cancellations.</strong> Mindful Beginnings reserves the right to cancel any course that does not meet its minimum enrollment requirement. If a course is canceled due to low enrollment, registered families will be notified at least five (5) days before the scheduled date and will receive a full refund.</p>
+      <p class="policy-sep" id="terms-refund"><strong>Refund and transfer policy.</strong> All sales are final. If a participant is unable to attend, you may transfer the registration to another student. Please email lindsay@mindfulbeginnings.org with the new participant's name. Any payment settlement for the spot must be handled directly between the involved parties.</p>
+      <p id="terms-cancel"><strong>Course cancellations.</strong> Mindful Beginnings reserves the right to cancel any course that does not meet its minimum enrollment requirement. If a course is canceled due to low enrollment, registered families will be notified at least five (5) days before the scheduled date and will receive a full refund.</p>
       <!-- Campus Ready: final acknowledgment shown last, after all other terms -->
       <p id="terms-campus-ready-ack" style="display:none">I have read this release and understand all of its terms. I execute it voluntarily and with full knowledge of its meaning and significance, and by submitting this registration form I provide my signature as proof of acceptance.</p>
     </div>
@@ -1159,7 +1162,8 @@ function sessionFromCodeRow(r, extras){
     createdAt:r.created_at||null,
     isVirtual:r.is_virtual||false,zoomLink:'',
     county_disclaimer:(r.county_disclaimer===true||r.county_disclaimer===false)?r.county_disclaimer:null,
-    extraDates:extraDatesFromRow(r)
+    extraDates:extraDatesFromRow(r),
+    requiresSpanish:r.requires_spanish===true
   };
 }
 async function applySessionLogistics(session, reg){
@@ -1681,7 +1685,19 @@ function registrationGradeOptions(course){
   if(isGirlScoutBadgeCourse(name))return blank+'<option>Kindergarten</option><option>1st grade</option><option>2nd grade</option><option>3rd grade</option><option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option><option>9th grade</option><option>10th grade</option><option>11th grade</option><option>12th grade</option>';
   return blank+'<option>4th grade</option><option>5th grade</option><option>6th grade</option><option>7th grade</option><option>8th grade</option>';
 }
+function sessionUsesSpanish(s){
+  if(!s||!window.MBSrfGrant||!MBSrfGrant.isCourse(s.course))return false;
+  if(s.requiresSpanish)return true;
+  return String(s.code||'').toUpperCase()==='SRF-270413';
+}
+function overviewUrlForSession(s){
+  const api=window.MBCourseOverviews;
+  if(!api)return '';
+  if(sessionUsesSpanish(s)&&typeof api.urlForLang==='function')return api.urlForLang(s.course,'es')||'';
+  return (typeof api.urlFor==='function')?(api.urlFor(s&&s.course)||''):'';
+}
 function setBanner(id){
+  if(window.MBSrfGrant&&typeof MBSrfGrant.applyPage==='function')MBSrfGrant.applyPage(document,'en');
   const s=currentSession;
   const unitRaw=getSessionBasePrice(s.course, s.date, s.createdAt);
   const unitPrice=unitRaw==null?null:Number(unitRaw);
@@ -1909,6 +1925,68 @@ function setBanner(id){
   // them with the Zoom form (no manikin consent, no classroom emergency care).
   if(window.MBRegistrationCopy)window.MBRegistrationCopy.applyRegistrationMode(s);
   applyArcForm(s);
+  syncSrfGrant(s);
+}
+
+// Part A questions for Safe & Ready Families. Name, email, phone, and the
+// selected class date stay in the standard fields above this block.
+function syncSrfGrant(s){
+  const on=!!(window.MBSrfGrant&&MBSrfGrant.isCourse(s&&s.course));
+  const es=sessionUsesSpanish(s);
+  const box=document.getElementById('srf-grant');
+  const note=document.getElementById('srf-email-note');
+  if(note){
+    note.hidden=!on;
+    note.textContent=on?(es?MBSrfGrant.EMAIL_NOTE_ES:MBSrfGrant.EMAIL_NOTE):'';
+  }
+  if(!box)return;
+  box.hidden=!on;
+  if(!on){
+    if(window.MBSrfGrant&&typeof MBSrfGrant.applyPage==='function')MBSrfGrant.applyPage(document,'en');
+    return;
+  }
+  const lang=es?'es':'en';
+  box.dataset.lang=lang;
+  if(box.dataset.built!==lang){
+    box.innerHTML=MBSrfGrant.registrationHtml(lang);
+    box.dataset.built=lang;
+  }
+  const dateLine=document.getElementById('srf-class-date');
+  if(dateLine){
+    const when=s&&s.date?new Date(s.date+'T12:00:00').toLocaleDateString(es?'es':'en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
+    dateLine.textContent=(es?MBSrfGrant.CLASS_DATE_ES:MBSrfGrant.CLASS_DATE_Q)+(when?(' '+when):'');
+  }
+  if(typeof MBSrfGrant.applyPage==='function')MBSrfGrant.applyPage(document,lang);
+}
+let srfGrantPosted=false;
+function submitSrfRegistration(reg){
+  if(srfGrantPosted)return Promise.resolve();
+  if(!window.MBSrfGrant||!MBSrfGrant.isCourse(currentSession&&currentSession.course))return Promise.resolve();
+  const box=document.getElementById('srf-grant');
+  const read=box?MBSrfGrant.readRegistration(box):{ok:false};
+  if(!read.ok)return Promise.resolve();
+  const email=(document.getElementById('p-email').value||'').trim().toLowerCase();
+  return fetch('/api/evaluations/submit',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      form:'srf-grant',
+      lang:sessionUsesSpanish(currentSession)?'es':'en',
+      part:'A',
+      session_id:currentSession.id,
+      session_code:currentSession.code,
+      session_date:currentSession.date,
+      email:email,
+      registration_id:reg&&reg.id,
+      answers:read.answers,
+      website:''
+    })
+  }).then(function(r){return r.json().then(function(j){return{ok:r.ok,body:j};});}).then(function(res){
+    if(res.ok&&res.body&&res.body.ok)srfGrantPosted=true;
+    else alert(sessionUsesSpanish(currentSession)?'Su lugar está guardado, pero las preguntas de la subvención no se guardaron. Escriba a lindsay@mindfulbeginnings.org para que las registremos.':'Your seat is saved, but the grant questions did not save. Please email lindsay@mindfulbeginnings.org so we can record them.');
+  }).catch(function(){
+    alert(sessionUsesSpanish(currentSession)?'Su lugar está guardado, pero las preguntas de la subvención no se guardaron. Escriba a lindsay@mindfulbeginnings.org para que las registremos.':'Your seat is saved, but the grant questions did not save. Please email lindsay@mindfulbeginnings.org so we can record them.');
+  });
 }
 
 // Sitter referral list opt-in (All Kids Welcome) — reveal the contact fields and
@@ -2122,13 +2200,24 @@ async function goToPayment(){
       if(sitterBox)sitterBox.classList.remove('err');
     }
   }else if(sitterBox){sitterBox.classList.remove('err');}
+  window.__srfGrantError='';
+  const grantBox=document.getElementById('srf-grant');
+  if(window.MBSrfGrant&&MBSrfGrant.isCourse(currentSession&&currentSession.course)){
+    const grantRead=MBSrfGrant.readRegistration(grantBox||document);
+    if(!grantRead.ok){
+      ok=false;
+      window.__srfGrantError=grantRead.error;
+      if(grantBox){grantBox.classList.add('err');if(!firstBad)firstBad=grantBox;}
+    }else if(grantBox)grantBox.classList.remove('err');
+  }else if(grantBox)grantBox.classList.remove('err');
   // Remove any existing error banner
   const oldErr=document.getElementById('form-error-msg');if(oldErr)oldErr.remove();
   if(!ok){
     const errDiv=document.createElement('div');
     errDiv.id='form-error-msg';
     errDiv.style.cssText='background:#fdf0ee;border:1px solid #f0b8b2;border-radius:12px;padding:12px 16px;color:#c0392b;font-size:13px;font-weight:500;margin-bottom:16px;display:flex;align-items:center;gap:8px';
-    errDiv.innerHTML='⚠️ Please complete or correct the highlighted fields before continuing.';
+    const grantLead=sessionUsesSpanish(currentSession)?'Complete o corrija los campos marcados antes de continuar.':'Please complete or correct the highlighted fields before continuing.';
+    errDiv.innerHTML='⚠️ '+grantLead+(window.__srfGrantError?' '+escapeHtml(window.__srfGrantError):'');
     document.getElementById('screen-info').querySelector('.btn-p').before(errDiv);
     (firstBad||document.getElementById('screen-info').querySelector('.btn-p')).scrollIntoView({behavior:'smooth',block:'center'});
     return;
@@ -2185,8 +2274,10 @@ async function goToPayment(){
     confirmBtn.textContent='Confirm registration — no charge';
     confirmBtn.onclick=function(){completeReg('host-free',null);};
   }else if(freeSession){
-    document.getElementById('host-free-msg').innerHTML='✓ &nbsp;<div><strong>No payment required.</strong> This class is free — just confirm your spot below.</div>';
-    confirmBtn.textContent='Confirm registration — no charge';
+    document.getElementById('host-free-msg').innerHTML=sessionUsesSpanish(currentSession)
+      ?'✓ &nbsp;<div><strong>No se requiere pago.</strong> Esta clase es gratuita. Confirme su lugar abajo.</div>'
+      :'✓ &nbsp;<div><strong>No payment required.</strong> This class is free — just confirm your spot below.</div>';
+    confirmBtn.textContent=sessionUsesSpanish(currentSession)?'Confirmar inscripción, sin cargo':'Confirm registration — no charge';
     confirmBtn.onclick=function(){completeReg('free',null);};
   }
   // A config.js promo typed on the form is applied before the seat is saved,
@@ -2256,6 +2347,7 @@ async function goToPayment(){
     clearPending(reg.id);
     reservedReg=reg;
     reservedDone=true;
+    await submitSrfRegistration(reg);
     if(typedCode&&!staticMatch){
       const applied=await applySingleUseCode(typedCode, reg.id, getEffectivePrice());
       if(!applied.ok)window.__discountNotice=applied.message;
@@ -3042,7 +3134,10 @@ async function completeReg(method,txId){
 
   stashPending(reg,s); // survive a frozen page mid-save
   const {ok,error,full,duplicateStudent}=await saveRegistration(reg);
-  if(ok)clearPending(reg.id);
+  if(ok){
+    clearPending(reg.id);
+    await submitSrfRegistration(reg);
+  }
   if(duplicateStudent){
     clearPending(reg.id);
     if(btn)btn.disabled=false;
@@ -3112,11 +3207,7 @@ function showSuccessScreen(reg,s,price,method,skipEmail){
   const ovLink=document.getElementById('overview-link');
   if(ovWrap&&ovLink){
     let ovUrl='';
-    try{
-      if(window.MBCourseOverviews&&typeof window.MBCourseOverviews.urlFor==='function'){
-        ovUrl=window.MBCourseOverviews.urlFor(s.course);
-      }
-    }catch(e){}
+    try{ovUrl=overviewUrlForSession(s);}catch(e){}
     if(ovUrl){
       ovLink.href=ovUrl;
       ovWrap.style.display='block';
@@ -3143,7 +3234,8 @@ function showSuccessScreen(reg,s,price,method,skipEmail){
   }else{
     pendingBanner.style.display='none';
   }
-  document.getElementById('ok-title').textContent=isPending?'Spot reserved!':'You\u2019re registered!';
+  const esPage=sessionUsesSpanish(s);
+  document.getElementById('ok-title').textContent=isPending?(esPage?'Lugar reservado':'Spot reserved!'):(esPage?'Ya está inscrito':'You\u2019re registered!');
   document.getElementById('ok-sub').textContent=isZelle
     ?'Your spot is reserved and your registration is saved. Just send your Zelle payment using the details below — you do not need to return to this page. A confirmation email is on its way to you.'
     :(isVenmo
@@ -3152,20 +3244,20 @@ function showSuccessScreen(reg,s,price,method,skipEmail){
         ?'Thank you! Your spot is reserved and your registration is saved. We\u2019ll confirm your existing payment on our end shortly \u2014 no further action needed. A confirmation email is on its way to you.'
         :(isPayPalLink
           ?'Your spot is reserved and your registration is saved. Just finish your payment on the PayPal checkout page \u2014 you do not need to return to this page. A confirmation email is on its way to you.'
-          :'Thank you for registering with Mindful Beginnings. A confirmation email is on its way to you!')));
-  const amountLabel=method==='discount'?'$0 (discount code)':(isHost?'Free (host)':(method==='auction'?'Free (auction prize)':(method==='free'?'Free':(isZelle?'$'+price+' (pending — Zelle)':(isVenmo?'$'+price+' (pending — Venmo)':(isAlreadyPaid?'$'+price+' (already paid — confirming)':(isPayPalLink?'$'+price+' (pending — PayPal)':'$'+price)))))));
+          :(esPage?'Gracias por inscribirse en Mindful Beginnings. Le enviaremos un correo de confirmación.':'Thank you for registering with Mindful Beginnings. A confirmation email is on its way to you!'))));
+  const amountLabel=method==='discount'?'$0 (discount code)':(isHost?'Free (host)':(method==='auction'?'Free (auction prize)':(method==='free'?(esPage?'Gratis':'Free'):(isZelle?'$'+price+' (pending — Zelle)':(isVenmo?'$'+price+' (pending — Venmo)':(isAlreadyPaid?'$'+price+' (already paid — confirming)':(isPayPalLink?'$'+price+' (pending — PayPal)':'$'+price)))))));
   const amountColor=isHost||!isPending?'var(--success)':'#6D1ED4';
   document.getElementById('conf-box').innerHTML=`
-    <div class="crow"><span class="cl">Participant</span><span class="cv">${escapeHtml(reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''))}</span></div>
+    <div class="crow"><span class="cl">${esPage?'Participante':'Participant'}</span><span class="cv">${escapeHtml(reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''))}</span></div>
     ${reg.grade?`<div class="crow"><span class="cl">Grade</span><span class="cv">${escapeHtml(reg.grade)}</span></div>`:''}
-    <div class="crow"><span class="cl">Course</span><span class="cv">${s.course}</span></div>
-    ${(window.MBCourseOverviews&&MBCourseOverviews.urlFor&&MBCourseOverviews.urlFor(s.course))?`<div class="crow"><span class="cl">Course overview</span><span class="cv"><a href="${escapeHtml(MBCourseOverviews.urlFor(s.course))}">${escapeHtml(MBCourseOverviews.urlFor(s.course))}</a></span></div>`:''}
+    <div class="crow"><span class="cl">${esPage?'Curso':'Course'}</span><span class="cv">${s.course}</span></div>
+    ${overviewUrlForSession(s)?`<div class="crow"><span class="cl">${esPage?'Descripción del curso':'Course overview'}</span><span class="cv"><a href="${escapeHtml(overviewUrlForSession(s))}">${escapeHtml(overviewUrlForSession(s))}</a></span></div>`:''}
     ${promoApplied?`<div class="crow"><span class="cl">Discount</span><span class="cv" style="color:#2d7a5e">Code ${PROMO_CODE} (−$${PROMO_DISCOUNT})</span></div>`:''}
-    <div class="crow"><span class="cl">Date</span><span class="cv">${d}</span></div>
-    ${s.time?`<div class="crow"><span class="cl">Time</span><span class="cv">${escapeHtml(s.time)}</span></div>`:''}
-    <div class="crow"><span class="cl">Location</span><span class="cv">${s.isVirtual?('Virtual class (Zoom)'+(s.zoomLink?'<br><span style="font-weight:400;font-size:13px;color:var(--sky)">'+escapeHtml(s.zoomLink)+'</span>':' — link coming via email')):escapeHtml(s.location||'TBD')+( s.hostAddress?'<br><span style="font-weight:400;font-size:13px">'+escapeHtml(s.hostAddress+(s.city?', '+s.city:'')+(s.state?' '+s.state:'')+(s.zip?' '+s.zip:''))+'</span>':"")}</span></div>
-    <div class="crow"><span class="cl">Contact</span><span class="cv">${escapeHtml(document.getElementById('p-email').value.trim())}</span></div>
-    <div class="crow"><span class="cl">${isPending&&!isAlreadyPaid?'Amount due':'Amount paid'}</span><span class="cv" style="color:${amountColor}">${amountLabel}</span></div>
+    <div class="crow"><span class="cl">${esPage?'Fecha':'Date'}</span><span class="cv">${d}</span></div>
+    ${s.time?`<div class="crow"><span class="cl">${esPage?'Hora':'Time'}</span><span class="cv">${escapeHtml(s.time)}</span></div>`:''}
+    <div class="crow"><span class="cl">${esPage?'Lugar':'Location'}</span><span class="cv">${s.isVirtual?('Virtual class (Zoom)'+(s.zoomLink?'<br><span style="font-weight:400;font-size:13px;color:var(--sky)">'+escapeHtml(s.zoomLink)+'</span>':' — link coming via email')):escapeHtml(s.location||'TBD')+( s.hostAddress?'<br><span style="font-weight:400;font-size:13px">'+escapeHtml(s.hostAddress+(s.city?', '+s.city:'')+(s.state?' '+s.state:'')+(s.zip?' '+s.zip:''))+'</span>':"")}</span></div>
+    <div class="crow"><span class="cl">${esPage?'Contacto':'Contact'}</span><span class="cv">${escapeHtml(document.getElementById('p-email').value.trim())}</span></div>
+    <div class="crow"><span class="cl">${isPending&&!isAlreadyPaid?(esPage?'Monto por pagar':'Amount due'):(esPage?'Monto pagado':'Amount paid')}</span><span class="cv" style="color:${amountColor}">${amountLabel}</span></div>
     ${isZelle?`<div class="crow"><span class="cl">Send Zelle to</span><span class="cv" style="font-weight:600">lindsay@mindfulbeginnings.org</span></div>`:''}
     ${isVenmo?`<div class="crow"><span class="cl">Send Venmo to</span><span class="cv" style="font-weight:600">@mindfulbeginnings</span></div>`:''}`;
   goToScreen(4);
@@ -3427,10 +3519,9 @@ function sendConfirmationEmail(reg,session,price){
   const amountWithUrl = (helpers&&typeof helpers.withPayUrlInAmount==='function')
     ? helpers.withPayUrlInAmount(amountLine, payUrl)
     : amountLine;
-  const overviewApi=window.MBCourseOverviews;
-  const overviewUrl=(overviewApi&&typeof overviewApi.urlFor==='function')?(overviewApi.urlFor(session.course)||''):'';
+  const overviewUrl=overviewUrlForSession(session);
   const courseLabel=publicCourseName(session.course);
-  const courseForEmail=overviewUrl?(courseLabel+'. Course overview: '+overviewUrl):courseLabel;
+  const courseForEmail=overviewUrl?(courseLabel+(sessionUsesSpanish(session)?'. Descripción del curso: ':'. Course overview: ')+overviewUrl):courseLabel;
   
   emailjs.send(
     'service_delt0r4',
