@@ -79,7 +79,10 @@ test('the public catalog shows both Safe@Home prices and drops couple pricing', 
   assert.match(catalog, /Ages 13 and up · 3 hours 45 minutes · In person/);
   // 2026-10-30: the catalog carries no prices at all (Lindsay's direction);
   // pricing lives in the Program Guide and quotes come from contacting her.
-  assert.doesNotMatch(catalog, /\$\d/);
+  // The Safe & Ready Families acknowledgment names the federal award total
+  // ($1,262,422); that is grant funding language, not a price, so scan past it.
+  const catalogNoAcl = catalog.replace(/This project is supported by the Administration for Community Living[\s\S]*?U\.S\. Government\./, '');
+  assert.doesNotMatch(catalogNoAcl, /\$\d/);
   assert.doesNotMatch(catalog, /\$300 per couple/);
   assert.doesNotMatch(catalog, /\$495/);
   assert.match(catalog, /Baby Ready™ \+ CPR Certification/);

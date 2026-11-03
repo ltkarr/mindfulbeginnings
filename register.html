@@ -238,6 +238,7 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
     <p class="public-sessions-lead">Tap a class to register — no code needed for these public sessions.</p>
     <div class="filter-chips" id="session-filters" role="group" aria-label="Filter classes">
       <button type="button" class="fchip active" data-chip="all">All classes</button>
+      <button type="button" class="fchip" data-chip="free">Free</button>
       <button type="button" class="fchip" data-chip="inperson">In person</button>
       <button type="button" class="fchip" data-chip="virtual">Virtual</button>
       <button type="button" class="fchip" data-chip="hybrid">Hybrid</button>
@@ -1243,6 +1244,13 @@ function isArcCertCourse(course){
 }
 function sessionMatchesChip(row, chip){
   if(!chip||chip==='all')return true;
+  if(chip==='free'){
+    const helpers=window.MBPublicSessions;
+    if(!helpers||typeof helpers.sessionPrice!=='function')return false;
+    const pf=typeof getSessionBasePrice==='function'?getSessionBasePrice:null;
+    const p=helpers.sessionPrice(row,pf);
+    return p!=null&&!isNaN(Number(p))&&Number(p)<=0;
+  }
   const virtual=isVirtualRow(row);
   if(chip==='virtual')return virtual;
   if(chip==='inperson')return !virtual;
@@ -1251,7 +1259,7 @@ function sessionMatchesChip(row, chip){
   if(chip==='babysitting')return /babysit|safe sitter/i.test(String(row&&row.course||''));
   return true;
 }
-const CHIP_EMPTY_LABEL={inperson:'in-person',virtual:'virtual',hybrid:'hybrid',babysitting:'babysitting',redcross:'Red Cross certification'};
+const CHIP_EMPTY_LABEL={free:'free',inperson:'in-person',virtual:'virtual',hybrid:'hybrid',babysitting:'babysitting',redcross:'Red Cross certification'};
 function renderPublicSessions(){
   const box=document.getElementById('public-sessions-list');
   const moreBtn=document.getElementById('public-show-more');

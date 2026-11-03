@@ -107,7 +107,9 @@ test('classes are simple text rows with no pills, bands, or best-if boxes', () =
   assert.equal(page.includes('filter-pill'), false);
   assert.match(page, /American Red Cross certification/);
   const note = 'This program is usually offered FREE through grant funds, community wellness funds, or PTAs.';
-  assert.equal((page.match(new RegExp(note.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length, 2);
+  assert.equal((page.match(new RegExp(note.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length, 1);
+  assert.match(page, /This program is FREE\. Limited spots available\./);
+  assert.match(page, /Administration for Community Living \(ACL\)/);
 });
 
 test('course rows are not links, and the group path is one clear button', () => {

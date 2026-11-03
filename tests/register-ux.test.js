@@ -41,6 +41,7 @@ test('step 1 lists public sessions first, then the private/host code entry at th
   assert.doesNotMatch(register, /host-code-details/);
   assert.match(register, /id="session-filters"/);
   assert.match(register, /data-chip="all"/);
+  assert.match(register, /data-chip="free"/);
   assert.match(register, /data-chip="inperson"/);
   assert.match(register, /data-chip="virtual"/);
   assert.match(register, /data-chip="hybrid"/);

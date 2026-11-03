@@ -5,6 +5,9 @@ const assert = require('node:assert/strict');
 const {
   isPublicSession,
   isPrivateHostSession,
+  parseTimeRangeEndMinutes,
+  sessionLastDate,
+  isSessionEnded,
   filterPublicSessions,
   sessionPlace,
   sessionCardPlace,
@@ -374,4 +377,51 @@ test('uniqueCourses and uniqueCities stay available as helpers', () => {
 
 test('addDaysISO is calendar-local', () => {
   assert.equal(addDaysISO('2026-09-16', 60), '2026-11-15');
+});
+
+test('parseTimeRangeEndMinutes reads the end of a display time range', () => {
+  assert.equal(parseTimeRangeEndMinutes('10:30 AM – 3:30 PM'), 15 * 60 + 30);
+  assert.equal(parseTimeRangeEndMinutes('10 AM - 3 PM'), 15 * 60);
+  assert.equal(parseTimeRangeEndMinutes('5:00-7:30 PM'), 19 * 60 + 30);
+  assert.equal(parseTimeRangeEndMinutes('9 AM – 12 PM'), 12 * 60);
+  assert.equal(parseTimeRangeEndMinutes(''), null);
+  assert.equal(parseTimeRangeEndMinutes('Time TBD'), null);
+});
+
+test('a session leaves the public list once it has ended today', () => {
+  const now = new Date('2026-09-16T16:00:00');
+  const ended = row({ date: TODAY, time: '10:30 AM – 3:30 PM' });
+  const running = row({ date: TODAY, time: '10:30 AM – 5:30 PM' });
+  assert.equal(isSessionEnded(ended, now), true);
+  assert.equal(isSessionEnded(running, now), false);
+  assert.equal(isPublicSession(ended, TODAY, now), false);
+  assert.equal(isPublicSession(running, TODAY, now), true);
+  // Without a clock, the same row keeps the old date-only behavior.
+  assert.equal(isPublicSession(ended, TODAY), true);
+});
+
+test('a session with no readable end time stays listed for its whole day', () => {
+  const now = new Date('2026-09-16T23:00:00');
+  assert.equal(isSessionEnded(row({ date: TODAY, time: '' }), now), false);
+});
+
+test('a multi-date series ends only after its last date ends', () => {
+  const now = new Date('2026-09-16T16:00:00');
+  const series = row({ date: '2026-09-15', time: '10 AM - 11 AM', extra_dates: ['2026-09-22'] });
+  assert.equal(sessionLastDate(series), '2026-09-22');
+  assert.equal(isSessionEnded(series, now), false);
+  const lastDay = row({ date: '2026-09-15', time: '10 AM - 11 AM', extra_dates: [{ date: '2026-09-16' }] });
+  assert.equal(isSessionEnded(lastDay, now), true);
+});
+
+test('filterPublicSessions drops sessions that ended earlier today', () => {
+  const now = new Date('2026-09-16T16:00:00');
+  const rows = [
+    row({ code: 'A-1', date: TODAY, time: '9 AM - 10 AM' }),
+    row({ code: 'B-2', date: TODAY, time: '5 PM - 6 PM' }),
+    row({ code: 'C-3', date: '2026-09-20', time: '9 AM - 10 AM' })
+  ];
+  assert.deepEqual(filterPublicSessions(rows, undefined, now).map(r => r.code), ['B-2', 'C-3']);
+  // Pinned-date callers keep date-only behavior.
+  assert.equal(filterPublicSessions(rows, TODAY).length, 3);
 });

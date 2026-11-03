@@ -74,6 +74,22 @@ BRAND_LINES = {
 PRICE_LABEL_RE = re.compile(r"^(cost|tuition|price|fee)\b", re.I)
 PRICE_LINE_RE = re.compile(r"^(cost|tuition|price|fee)\s*[:\-]", re.I)
 
+# Safe & Ready Families carries a funding note its overview doc does not
+# contain: the workshop is free under the Maryland Developmental
+# Disabilities Council award, with the federal ACL/HHS acknowledgment
+# verbatim (Lindsay, 2026-11-03). Injected at build time so the daily sync
+# keeps it. The guard exempts the acknowledgment's dollar figure, which is
+# an award total, not a price.
+ACL_DISCLAIMER = (
+    "This project is supported by the Administration for Community "
+    "Living (ACL), U.S. Department of Health and Human Services (HHS) "
+    "as part of a financial assistance award totaling $1,262,422 with "
+    "100% funding by ACL/HHS. The contents are those of the author(s) "
+    "and do not necessarily represent the official views of, nor an "
+    "endorsement, by ACL/HHS, or the U.S. Government.")
+SRF_NOTE_TEXT = ("This program is FREE. Limited spots available. "
+                 + ACL_DISCLAIMER)
+
 
 def letters(s):
     return re.sub(r"[^a-z0-9]", "", s.lower())
@@ -383,8 +399,12 @@ INDEX = """<!DOCTYPE html>
 
 def guard(page, slug):
     body = page[page.index("</head>"):]
+    # The Safe & Ready Families funding acknowledgment names a dollar
+    # figure; it is not a price. Scan a copy with it removed so the price
+    # guard still trips on anything else.
+    scan = body.replace(ACL_DISCLAIMER, "")
     for bad in ("$", "dabble"):
-        if bad in body.lower() if bad == "dabble" else bad in body:
+        if bad in scan.lower() if bad == "dabble" else bad in scan:
             raise SystemExit("FAIL %s: forbidden content %r survived" %
                              (slug, bad))
 
@@ -400,6 +420,12 @@ def main():
         # The overview doc says 6 to 20. The published class size is 10 to 25.
         if slug == "safe-and-ready-families":
             body = body.replace("6 to 20", "10 to 25")
+            note = '<p class="mb-note">%s</p>' % SRF_NOTE_TEXT
+            anchor = '<h3 class="ov-h3">Host a class</h3>'
+            if anchor in body:
+                body = body.replace(anchor, note + "\n" + anchor, 1)
+            elif "mb-note" not in body:
+                body = body + "\n" + note
         page = PAGE.replace("{CSS_V}", css_v).replace("{HEADER}", header) \
             .replace("{FOOTER}", footer).replace("{NAME}", html.escape(display)) \
             .replace("{BODY}", body)

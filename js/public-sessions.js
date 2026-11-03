@@ -115,12 +115,19 @@
   // price is unchanged. This only says the workshop is often funded.
   var GRANT_NOTE = 'This program is usually offered FREE through grant funds, community wellness funds, or PTAs.';
   var GRANT_NOTE_COURSES = {
-    'Safe & Ready Families': true,
     'Lunchroom Lifesaver': true
   };
 
+  // Safe & Ready Families is free under the Maryland Developmental
+  // Disabilities Council award, so its note says so outright and carries
+  // the required federal acknowledgment verbatim (Lindsay, 2026-11-03).
+  var ACL_DISCLAIMER = 'This project is supported by the Administration for Community Living (ACL), U.S. Department of Health and Human Services (HHS) as part of a financial assistance award totaling $1,262,422 with 100% funding by ACL/HHS. The contents are those of the author(s) and do not necessarily represent the official views of, nor an endorsement, by ACL/HHS, or the U.S. Government.';
+  var SRF_FREE_NOTE = 'This program is FREE. Limited spots available. ' + ACL_DISCLAIMER;
+
   function grantNote(course) {
-    return GRANT_NOTE_COURSES[String(course || '')] ? GRANT_NOTE : '';
+    var name = String(course || '');
+    if (name === 'Safe & Ready Families') return SRF_FREE_NOTE;
+    return GRANT_NOTE_COURSES[name] ? GRANT_NOTE : '';
   }
 
   function todayLocalISO(now) {
@@ -190,10 +197,62 @@
     return v !== false && v !== 'false' && v !== 0 && v !== '0';
   }
 
-  function isPublicSession(row, today) {
+  // End time of a session from its display time range ("10:30 AM – 3:30 PM",
+  // "10 AM - 3 PM", "5:00-7:30 PM"). Returns minutes since midnight for the
+  // LAST time in the string (the end), or null when no time can be read.
+  function parseTimeRangeEndMinutes(timeStr) {
+    var re = /(\d{1,2})(?::(\d{2}))?\s*([AaPp])\.?[Mm]\.?/g;
+    var m;
+    var last = null;
+    var s = String(timeStr || '');
+    while ((m = re.exec(s))) {
+      var h = Number(m[1]) % 12;
+      if (/p/i.test(m[3])) h += 12;
+      last = h * 60 + Number(m[2] || 0);
+    }
+    return last;
+  }
+
+  // The last day a session runs: its date, or the latest of its extra dates
+  // for a multi-date series.
+  function sessionLastDate(row) {
+    if (!row) return '';
+    var last = String(row.date || '');
+    var extra = row.extra_dates != null ? row.extra_dates : row.extraDates;
+    if (Array.isArray(extra)) {
+      extra.forEach(function (e) {
+        var d = typeof e === 'string' ? e : (e && e.date) || '';
+        if (d && String(d) > last) last = String(d);
+      });
+    }
+    return last;
+  }
+
+  // A session is over once its last date has passed, or — on its last date —
+  // once its end time has passed. When the end time cannot be read, the
+  // session stays listed for the rest of that day (the old date-only rule).
+  function isSessionEnded(row, now) {
+    if (!row) return false;
+    var d = now ? new Date(now) : new Date();
+    if (isNaN(d.getTime())) return false;
+    var last = sessionLastDate(row);
+    if (!last) return false;
+    var todayStr = todayLocalISO(d);
+    if (last < todayStr) return true;
+    if (last > todayStr) return false;
+    var endMin = parseTimeRangeEndMinutes(row.time);
+    if (endMin == null) return false;
+    return d.getHours() * 60 + d.getMinutes() >= endMin;
+  }
+
+  function isPublicSession(row, today, now) {
     if (!row || !row.code) return false;
-    var day = today || todayLocalISO();
+    var day = today || todayLocalISO(now);
     if (row.date && String(row.date) < day) return false;
+    // Ended sessions leave the list the moment they end, not at midnight —
+    // but only when the caller supplies the current time, so date-only
+    // callers (and the unit tests) keep the original behavior.
+    if (now != null && isSessionEnded(row, now)) return false;
     if (flagOn(row, 'is_cancelled') || flagOn(row, 'isCancelled')) return false;
     if (flagOn(row, 'is_hold') || flagOn(row, 'isHold')) return false;
     // Custom jobs (Shatterproof, instructor booths, partner events) are not
@@ -209,9 +268,12 @@
     return true;
   }
 
-  function filterPublicSessions(rows, today) {
-    var day = today || todayLocalISO();
-    return (rows || []).filter(function (row) { return isPublicSession(row, day); })
+  function filterPublicSessions(rows, today, now) {
+    var day = today || todayLocalISO(now);
+    // Live callers pass nothing: judge "ended" against right now. Callers
+    // that pin a date (tests) keep date-only behavior.
+    var refNow = now != null ? now : (today ? null : new Date());
+    return (rows || []).filter(function (row) { return isPublicSession(row, day, refNow); })
       .sort(function (a, b) {
         var da = String(a.date || '');
         var db = String(b.date || '');
@@ -436,6 +498,9 @@
     externalRegistrationHost: externalRegistrationHost,
     externalRegistrationLabel: externalRegistrationLabel,
     isPrivateHostSession: isPrivateHostSession,
+    parseTimeRangeEndMinutes: parseTimeRangeEndMinutes,
+    sessionLastDate: sessionLastDate,
+    isSessionEnded: isSessionEnded,
     isPublicSession: isPublicSession,
     filterPublicSessions: filterPublicSessions,
     sessionPlace: sessionPlace,
@@ -453,6 +518,8 @@
     courseAudience: courseAudience,
     coursePublicName: coursePublicName,
     GRANT_NOTE: GRANT_NOTE,
+    ACL_DISCLAIMER: ACL_DISCLAIMER,
+    SRF_FREE_NOTE: SRF_FREE_NOTE,
     grantNote: grantNote,
     sessionPriceLabel: sessionPriceLabel,
     matchesPriceFilter: matchesPriceFilter,
