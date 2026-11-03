@@ -52,7 +52,7 @@ MANIFEST = [
     ("baby-ready", "Baby Ready™", "gdoc",
      "1UpibpWdbMs2ntGdkGpRTlL6PaTxNUid-SOr1eTnecMg", "Parents & Baby"),
     ("safe-and-ready-families", "Safe & Ready Families™", "gdoc",
-     "1fqH796QvtZ_BDX1XWzppHNlntoukeGZPnK_7j8zxHP8", "Parents & Baby"),
+     "1fqH796QvtZ_BDX1XWzppHNlntoukeGZPnK_7j8zxHP8", "Parents & Caregivers"),
     ("care-ready", "Care Ready™", "gdoc",
      "1i5vo6u1pRxPogFi_7j1Nl3dMYT6jHjW_Usy3NfpMrew",
      "Nannies & Caregivers"),

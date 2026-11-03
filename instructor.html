@@ -1183,7 +1183,9 @@ function goodToKnowHTML(s){
   const bits=[];
   if(s.instructorInfo)bits.push(escapeHtml(s.instructorInfo).replace(/\n/g,'<br>'));
   const facts=[];
-  if(sessionRequiresRN(s))facts.push('Requires an <strong>RN credential</strong>');
+  if(sessionRequiresRN(s)&&sessionRequiresSpanish(s))facts.push('<strong>Registered nurses who speak Spanish only</strong>');
+  else if(sessionRequiresRN(s))facts.push('<strong>Registered nurses only</strong>');
+  else if(sessionRequiresSpanish(s))facts.push('<strong>Spanish speakers only</strong>');
   if(sessionRequiresSafeSitter(s))facts.push('Requires <strong>Safe Sitter® training</strong>');
   if(!s.isCustomJob){
     const cap=s.maxStudentsOverride||c.maxStudents;
@@ -2015,10 +2017,11 @@ function canTeachSession(s){
 function credentialPill(s){
   const c=(typeof COURSES!=='undefined'&&s&&COURSES[s.course])||{};
   if(c.requiresLeadTeacher||c.redCross)return'<span class="pill pill-rn">Lead Teachers only</span>';
-  if(sessionRequiresRN(s))return'<span class="pill pill-rn">🩺 RN instructors only</span>';
-  if(sessionRequiresSafeSitter(s))return'<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>';
-  if(sessionRequiresSpanish(s))return'<span class="pill pill-rn">🗣️ En español</span>';
-  return'';
+  const bits=[];
+  if(sessionRequiresRN(s))bits.push('<span class="pill pill-rn">🩺 RN instructors only</span>');
+  else if(sessionRequiresSafeSitter(s))bits.push('<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>');
+  if(sessionRequiresSpanish(s))bits.push('<span class="pill pill-rn">🗣️ Spanish speakers only</span>');
+  return bits.join(' ');
 }
 // True when a job another instructor already holds should be left off this
 // person's Open jobs board. Taken jobs never appear here — every listing on

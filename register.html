@@ -566,6 +566,10 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
       We hit a snag automatically saving your registration, but <strong>nothing is lost</strong>. Please email the details below (including the PayPal/Transaction ID) to <strong>lindsay@mindfulbeginnings.org</strong> and your spot will be confirmed right away. You will not be charged again.
     </div>
     <div class="conf-box" id="conf-box"></div>
+    <div id="overview-link-wrap" style="display:none;margin:0 0 14px">
+      <a id="overview-link" href="#" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;padding:13px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:12px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;text-align:center;text-decoration:none;transition:background .2s" onmouseover="this.style.background='#DCE4EF'" onmouseout="this.style.background='#fff'">📖 View your course overview</a>
+      <p style="font-size:13px;color:var(--muted);text-align:center;margin:8px 0 0">What the class covers, what to bring, and who teaches it.</p>
+    </div>
     <button id="cal-btn" onclick="downloadCalendar()" style="width:100%;padding:13px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:12px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:6px;transition:background .2s" onmouseover="this.style.background='#DCE4EF'" onmouseout="this.style.background='#fff'">📅 Add to my calendar</button>
     <p style="font-size:13px;color:var(--muted);margin:0 0 12px">Using Apple Calendar or Outlook? <a id="cal-ics-link" href="#" style="color:var(--sky);font-weight:500">Download the .ics file</a></p>
     <p style="font-size:13px;color:var(--muted)">Questions? <a href="mailto:lindsay@mindfulbeginnings.org" style="color:var(--sky)">Contact us</a></p>
@@ -3091,6 +3095,26 @@ function showSuccessScreen(reg,s,price,method,skipEmail){
       icsLink.style.display='inline';
     }else{
       icsLink.style.display='none';
+    }
+  }
+  // Course overview link: shown only when this course has an overview page
+  // (the hidden course-overviews pages). Courses without one get no link,
+  // never a wrong one.
+  const ovWrap=document.getElementById('overview-link-wrap');
+  const ovLink=document.getElementById('overview-link');
+  if(ovWrap&&ovLink){
+    let ovUrl='';
+    try{
+      if(window.MBCourseOverviews&&typeof window.MBCourseOverviews.urlFor==='function'){
+        ovUrl=window.MBCourseOverviews.urlFor(s.course);
+      }
+    }catch(e){}
+    if(ovUrl){
+      ovLink.href=ovUrl;
+      ovWrap.style.display='block';
+    }else{
+      ovWrap.style.display='none';
+      ovLink.removeAttribute('href');
     }
   }
   // Show/hide pending banner and update headline

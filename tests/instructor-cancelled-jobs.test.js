@@ -111,6 +111,8 @@ function loadPortal() {
       extractFn(instructor, 'openJobs'),
       extractFn(instructor, 'myUpcomingJobs'),
       extractFn(instructor, 'incomeYearOptions'),
+      extractFn(instructor, 'grantJobNote'),
+      extractFn(instructor, 'grantJobHtml'),
       extractFn(instructor, 'renderMyJobs'),
       extractFn(instructor, 'downloadIncomeSummary')
     ].join('\n'),
