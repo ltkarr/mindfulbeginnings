@@ -2,7 +2,12 @@
 
 // Automated post-course email drafts in Lindsay's Outlook drafts folder.
 //
-// Runs on a Vercel cron every 2 hours (see vercel.json "crons"). Each run:
+// DISABLED. Lindsay writes these emails herself. The Vercel cron entry was
+// removed from vercel.json, and the handler returns immediately after the
+// auth check so a manual hit creates nothing. Existing Outlook drafts are
+// left untouched. The draft-building code below is retained unused.
+//
+// Previously ran on a Vercel cron (see vercel.json "crons"). Each run:
 //   1. Finds sessions whose class end time has passed within the last 3 days
 //      (not cancelled, not on hold), skipping any already in the
 //      post_course_draft_watermarks table.
@@ -231,6 +236,9 @@ async function handler(req, res) {
   if (!secret || auth !== 'Bearer ' + secret) {
     return sendJson(res, 401, { error: 'Unauthorized' });
   }
+
+  // Lindsay writes post-course emails herself. Do not create Outlook drafts.
+  return sendJson(res, 200, { ok: true, disabled: true, draftsCreated: 0 });
 
   var cfg = supabaseConfig();
   if (!cfg.configured) return sendJson(res, 500, { error: 'Supabase not configured' });

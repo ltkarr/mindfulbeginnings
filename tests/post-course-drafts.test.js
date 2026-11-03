@@ -9,6 +9,37 @@ const drafts = require('../js/post-course-emails.js');
 
 const EM_DASH = /\u2014/;
 
+function mockRes() {
+  const r = { statusCode: 0, headers: {}, body: '' };
+  r.setHeader = (k, v) => { r.headers[k] = v; };
+  r.end = (b) => { r.body = b || ''; };
+  return r;
+}
+
+test('authorized handler is disabled and creates no drafts', async (t) => {
+  const prev = process.env.CRON_SECRET;
+  const prevFetch = global.fetch;
+  t.after(() => {
+    if (prev == null) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = prev;
+    global.fetch = prevFetch;
+  });
+  process.env.CRON_SECRET = 'test-secret';
+  let fetched = false;
+  global.fetch = async () => { fetched = true; throw new Error('fetch should not run'); };
+
+  const denied = mockRes();
+  await cron({ headers: { authorization: 'Bearer wrong' } }, denied);
+  assert.equal(denied.statusCode, 401);
+  assert.equal(fetched, false);
+
+  const res = mockRes();
+  await cron({ headers: { authorization: 'Bearer test-secret' } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(JSON.parse(res.body), { ok: true, disabled: true, draftsCreated: 0 });
+  assert.equal(fetched, false, 'disabled handler must not call Supabase or Graph');
+});
+
 // ---------------------------------------------------------------------------
 // End-time parsing
 // ---------------------------------------------------------------------------

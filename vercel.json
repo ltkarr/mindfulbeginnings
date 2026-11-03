@@ -8,10 +8,6 @@
     {
       "path": "/api/cron/instructor-eval-report",
       "schedule": "0 12 * * 1"
-    },
-    {
-      "path": "/api/cron/post-course-drafts",
-      "schedule": "0 22 * * *"
     }
   ],
   "redirects": [
