@@ -27,7 +27,7 @@ function extractFunction(src, name) {
   throw new Error('unclosed ' + name);
 }
 
-const names = ['fmtYMD', 'round2', 'cashForecast30', 'cashForecastBalance', 'setCashForecastBalance'];
+const names = ['fmtYMD', 'round2', 'cashForecast30', 'cashForecastBalance', 'setCashForecastBalance', 'cashBalanceLocal', 'scheduleCashBalancePush'];
 
 // 2026-10-16 -> window is 2026-10-16 .. 2026-11-15
 const NOW = new Date('2026-10-16T12:00:00');

@@ -6899,15 +6899,86 @@ function upcomingCommittedExpenses(now){
 // ── 30-day cash forecast ────────────────────────────────────────────────────
 // Instructor pay still owed for sessions dated in the next 30 days, against
 // the business account balance. Answers: how much cash needs to move over.
-function cashForecastBalance(){
+// The balance lives in Supabase (admin_settings, key 'cash_balance') so the
+// same number follows Lindsay across phone and computer. localStorage is the
+// instant local mirror. The two are reconciled by edit time: the most recent
+// edit anywhere wins everywhere. Until migrations/20261103_admin_settings.sql
+// runs, the database side stays off and everything works locally, silently.
+let cashBalanceTableReady=false;
+let cashBalanceDbChecked=false;
+let cashBalanceEnsureInflight=null;
+let cashBalancePushTimer=null;
+function cashBalanceLocal(){
   try{
     const v=localStorage.getItem('mb_cash_balance');
-    if(v!=null&&v!==''&&isFinite(Number(v)))return Number(v);
-  }catch(e){}
-  return 1500;
+    if(v==null||v===''||!isFinite(Number(v)))return null;
+    return {value:Number(v),at:Date.parse(localStorage.getItem('mb_cash_balance_at')||'')||0};
+  }catch(e){return null;}
+}
+function cashForecastBalance(){
+  const l=cashBalanceLocal();
+  return l?l.value:1500;
 }
 function setCashForecastBalance(v){
-  try{localStorage.setItem('mb_cash_balance',String(v));}catch(e){}
+  try{
+    localStorage.setItem('mb_cash_balance',String(v));
+    localStorage.setItem('mb_cash_balance_at',new Date().toISOString());
+  }catch(e){}
+  scheduleCashBalancePush();
+}
+// Debounced so a burst of keystrokes sends only the final number, and the
+// write carries that edit's own timestamp.
+function scheduleCashBalancePush(){
+  if(typeof sb==='undefined'||!sb||!cashBalanceTableReady)return;
+  if(cashBalancePushTimer)clearTimeout(cashBalancePushTimer);
+  cashBalancePushTimer=setTimeout(function(){
+    cashBalancePushTimer=null;
+    const l=cashBalanceLocal();
+    if(!l)return;
+    dbWrite(sb.from('admin_settings').upsert(
+      {key:'cash_balance',value:String(l.value),updated_at:new Date(l.at||Date.now()).toISOString()},
+      {onConflict:'key'}),'Account balance');
+  },700);
+}
+async function loadCashBalanceSetting(){
+  try{
+    if(typeof sb==='undefined'||!sb)return;
+    const res=await sb.from('admin_settings').select('value,updated_at').eq('key','cash_balance').maybeSingle();
+    if(!res||res.error){
+      console.warn('Admin settings table not loaded (run migrations/20261103_admin_settings.sql):',res&&res.error);
+      return;
+    }
+    cashBalanceTableReady=true;
+    const l=cashBalanceLocal();
+    if(res.data&&isFinite(Number(res.data.value))){
+      const dbAt=Date.parse(res.data.updated_at||'')||0;
+      if(l&&l.at>dbAt){
+        // This device's edit is newer than the database: push it up.
+        scheduleCashBalancePush();
+      }else{
+        const dbVal=Number(res.data.value);
+        const changed=!l||l.value!==dbVal;
+        try{
+          localStorage.setItem('mb_cash_balance',String(dbVal));
+          localStorage.setItem('mb_cash_balance_at',res.data.updated_at||new Date().toISOString());
+        }catch(e){}
+        if(changed)renderCashForecast(new Date());
+      }
+    }else if(l){
+      // No row yet: seed the database with this device's number.
+      scheduleCashBalancePush();
+    }
+  }catch(e){
+    console.warn('Cash balance setting not loaded:',e);
+  }finally{
+    cashBalanceDbChecked=true;
+  }
+}
+function ensureCashBalanceSetting(){
+  if(cashBalanceDbChecked)return Promise.resolve();
+  if(cashBalanceEnsureInflight)return cashBalanceEnsureInflight;
+  cashBalanceEnsureInflight=loadCashBalanceSetting().finally(function(){cashBalanceEnsureInflight=null;});
+  return cashBalanceEnsureInflight;
 }
 function cashForecast30(now){
   const n=now instanceof Date?now:new Date();
@@ -6945,6 +7016,7 @@ function cashForecast30(now){
 function renderCashForecast(now){
   const el=document.getElementById('dash-cash');
   if(!el)return;
+  ensureCashBalanceSetting();
   // Never rebuild the card while the balance field is being edited: a data
   // refresh (window focus / tab visible) would wipe the typed value before
   // it saves, snapping the field back to the stored balance.
