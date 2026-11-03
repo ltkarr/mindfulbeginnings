@@ -6945,6 +6945,11 @@ function cashForecast30(now){
 function renderCashForecast(now){
   const el=document.getElementById('dash-cash');
   if(!el)return;
+  // Never rebuild the card while the balance field is being edited: a data
+  // refresh (window focus / tab visible) would wipe the typed value before
+  // it saves, snapping the field back to the stored balance.
+  const balIn=document.getElementById('cash-bal');
+  if(balIn&&document.activeElement===balIn)return;
   const fc=cashForecast30(now);
   const bal=cashForecastBalance();
   const need=round2(Math.max(0,fc.total-fc.inTotal-bal));
@@ -6965,7 +6970,7 @@ function renderCashForecast(now){
     <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:10px">
       <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Pay out, 30 days</div><div style="font-size:24px;font-weight:700;color:var(--danger)"${fc.totalEstimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(fc.total), fc.totalEstimated)}</div></div>
       <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Invoices in, 30 days</div><div style="font-size:24px;font-weight:700;color:var(--success)">${fmt(fc.inTotal)}</div></div>
-      <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">In the account now</div><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-size:20px;font-weight:600">$</span><input type="number" id="cash-bal" value="${bal}" min="0" step="1" onchange="setCashForecastBalance(Number(this.value)||0);renderCashForecast(new Date())" style="width:110px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:18px;font-family:Montserrat,sans-serif;outline:none"></div></div>
+      <div><div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">In the account now</div><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-size:20px;font-weight:600">$</span><input type="number" id="cash-bal" value="${bal}" min="0" step="1" oninput="setCashForecastBalance(Number(this.value)||0)" onchange="setCashForecastBalance(Number(this.value)||0);renderCashForecast(new Date())" style="width:110px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:18px;font-family:Montserrat,sans-serif;outline:none"></div></div>
     </div>
     ${verdict}
     <div style="margin-top:10px">${rows}</div>
