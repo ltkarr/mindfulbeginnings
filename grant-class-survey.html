@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Safe &amp; Ready Families Class Survey | Mindful Beginnings</title>
+<meta name="description" content="Safe &amp; Ready Families class-day survey. It takes about four minutes.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/site.css?v=29">
+<link rel="stylesheet" href="/srf-grant.css">
+</head>
+<body>
+<header class="mb-header">
+<a class="mb-brand" href="/"><img class="mb-logo" src="/images/logo-navy.png" alt="Mindful Beginnings" width="44" height="44"><span class="mb-wordmark"><span class="mb-lockup">Mindful <span class="mb-lockup-script">Beginnings</span></span><span class="mb-tagline">Safety and Confidence for All Ages</span></span></a>
+<a class="mb-reg-m" href="/register.html">Register</a>
+<button class="mb-nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span><span></span><span></span></button>
+<nav class="mb-nav" id="primary-nav" aria-label="Primary">
+<a href="/about">About</a>
+<a href="/classes-catalog">Classes</a>
+<a href="/host-a-class.html">Host a Class</a>
+<a href="/girl-scouts.html">Girl Scouts</a>
+<a href="/after-school-clubs.html">After School Clubs</a>
+<a href="/cpr-certification">CPR Certification</a>
+<a href="/contact.html">Contact</a>
+<a class="mb-btn mb-btn-gold mb-btn-sm" href="/register.html">Register</a>
+</nav>
+</header>
+<section class="mb-hero">
+<div class="mb-hero-inner">
+<h1 class="mb-script-title">class survey</h1>
+<p class="mb-hero-sub" id="srf-when">Safe &amp; Ready Families. This takes about four minutes.</p>
+</div>
+</section>
+<section class="mb-section mb-section-white">
+<div class="mb-wrap eval-wrap">
+<div class="eval-error" id="srf-error" role="alert"></div>
+<div class="eval-card" id="srf-card">
+<div id="srf-body"></div>
+</div>
+</div>
+</section>
+<footer class="mb-footer">
+<div class="mb-footer-inner">
+<p class="mb-footer-name">Mindful Beginnings LLC</p>
+<p class="mb-footer-line"><a href="mailto:lindsay@mindfulbeginnings.org">lindsay@mindfulbeginnings.org</a></p>
+<p class="mb-footer-copy">&copy; 2026 Mindful Beginnings LLC. All rights reserved.</p>
+</div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" crossorigin="anonymous"></script>
+<script src="/js/srf-grant.js"></script>
+<script src="/js/srf-grant-page.js"></script>
+<script>
+MBSrfGrantPage.mount({ part: 'B', slot: 'srf-body', whenId: 'srf-when' });
+var t=document.querySelector('.mb-nav-toggle');
+if(t){t.addEventListener('click',function(){
+  var open=t.getAttribute('aria-expanded')==='true';
+  t.setAttribute('aria-expanded',String(!open));
+  document.getElementById('primary-nav').classList.toggle('open',!open);
+});}
+</script>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

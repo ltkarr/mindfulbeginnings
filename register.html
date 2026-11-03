@@ -15,6 +15,7 @@
 <link rel="apple-touch-icon" href="/email-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/site.css?v=29">
+<link rel="stylesheet" href="/srf-grant.css">
 <!-- Pinned. crossorigin is safe here: jsDelivr sends Access-Control-Allow-Origin: *. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js" crossorigin="anonymous"></script>
@@ -30,6 +31,7 @@
 <script src="/js/discount-codes.js"></script>
 <script src="/js/confirmation-email.js"></script>
 <script src="/js/course-overviews.js"></script>
+<script src="/js/srf-grant.js"></script>
 
 <!--
   PAYMENT: card/PayPal via /api/paypal/* (Orders API, dynamic amount) + Venmo + Zelle.
@@ -283,10 +285,11 @@ main{max-width:720px;margin:0 auto;padding:28px 6vw 44px}
   <div class="fsec"><div class="fsec-title" id="guardian-title">Parent / guardian</div>
     <div class="fgrid">
       <div class="field full"><label id="guardian-name-label">Name *</label><input type="text" id="p-name" placeholder="Full name"></div>
-      <div class="field"><label>Email *</label><input type="email" id="p-email" placeholder="your@email.com"></div>
+      <div class="field"><label>Email *</label><input type="email" id="p-email" placeholder="your@email.com"><p id="srf-email-note" hidden></p></div>
       <div class="field"><label>Cell phone *</label><input type="tel" id="p-phone" placeholder="(301) 555-1234"></div>
     </div>
   </div>
+  <div class="fsec" id="srf-grant" hidden></div>
   <div class="fsec" id="referral-section"><div class="fsec-title">How did you hear about us?</div>
     <div class="fgrid">
       <div class="field full"><label>Please let us know how you found us</label>
@@ -1901,6 +1904,60 @@ function setBanner(id){
   // them with the Zoom form (no manikin consent, no classroom emergency care).
   if(window.MBRegistrationCopy)window.MBRegistrationCopy.applyRegistrationMode(s);
   applyArcForm(s);
+  syncSrfGrant(s);
+}
+
+// Part A questions for Safe & Ready Families. Name, email, phone, and the
+// selected class date stay in the standard fields above this block.
+function syncSrfGrant(s){
+  const on=!!(window.MBSrfGrant&&MBSrfGrant.isCourse(s&&s.course));
+  const box=document.getElementById('srf-grant');
+  const note=document.getElementById('srf-email-note');
+  if(note){
+    note.hidden=!on;
+    note.textContent=on?MBSrfGrant.EMAIL_NOTE:'';
+  }
+  if(!box)return;
+  box.hidden=!on;
+  if(!on)return;
+  if(!box.dataset.ready){
+    box.innerHTML=MBSrfGrant.registrationHtml();
+    box.dataset.ready='1';
+  }
+  const dateLine=document.getElementById('srf-class-date');
+  if(dateLine){
+    const when=s&&s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
+    dateLine.textContent=MBSrfGrant.CLASS_DATE_Q+(when?(' '+when):'');
+  }
+}
+let srfGrantPosted=false;
+function submitSrfRegistration(reg){
+  if(srfGrantPosted)return Promise.resolve();
+  if(!window.MBSrfGrant||!MBSrfGrant.isCourse(currentSession&&currentSession.course))return Promise.resolve();
+  const box=document.getElementById('srf-grant');
+  const read=box?MBSrfGrant.readRegistration(box):{ok:false};
+  if(!read.ok)return Promise.resolve();
+  const email=(document.getElementById('p-email').value||'').trim().toLowerCase();
+  return fetch('/api/evaluations/submit',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      form:'srf-grant',
+      part:'A',
+      session_id:currentSession.id,
+      session_code:currentSession.code,
+      session_date:currentSession.date,
+      email:email,
+      registration_id:reg&&reg.id,
+      answers:read.answers,
+      website:''
+    })
+  }).then(function(r){return r.json().then(function(j){return{ok:r.ok,body:j};});}).then(function(res){
+    if(res.ok&&res.body&&res.body.ok)srfGrantPosted=true;
+    else alert('Your seat is saved, but the grant questions did not save. Please email lindsay@mindfulbeginnings.org so we can record them.');
+  }).catch(function(){
+    alert('Your seat is saved, but the grant questions did not save. Please email lindsay@mindfulbeginnings.org so we can record them.');
+  });
 }
 
 // Sitter referral list opt-in (All Kids Welcome) — reveal the contact fields and
@@ -2114,13 +2171,23 @@ async function goToPayment(){
       if(sitterBox)sitterBox.classList.remove('err');
     }
   }else if(sitterBox){sitterBox.classList.remove('err');}
+  window.__srfGrantError='';
+  const grantBox=document.getElementById('srf-grant');
+  if(window.MBSrfGrant&&MBSrfGrant.isCourse(currentSession&&currentSession.course)){
+    const grantRead=MBSrfGrant.readRegistration(grantBox||document);
+    if(!grantRead.ok){
+      ok=false;
+      window.__srfGrantError=grantRead.error;
+      if(grantBox){grantBox.classList.add('err');if(!firstBad)firstBad=grantBox;}
+    }else if(grantBox)grantBox.classList.remove('err');
+  }else if(grantBox)grantBox.classList.remove('err');
   // Remove any existing error banner
   const oldErr=document.getElementById('form-error-msg');if(oldErr)oldErr.remove();
   if(!ok){
     const errDiv=document.createElement('div');
     errDiv.id='form-error-msg';
     errDiv.style.cssText='background:#fdf0ee;border:1px solid #f0b8b2;border-radius:12px;padding:12px 16px;color:#c0392b;font-size:13px;font-weight:500;margin-bottom:16px;display:flex;align-items:center;gap:8px';
-    errDiv.innerHTML='⚠️ Please complete or correct the highlighted fields before continuing.';
+    errDiv.innerHTML='⚠️ Please complete or correct the highlighted fields before continuing.'+(window.__srfGrantError?' '+escapeHtml(window.__srfGrantError):'');
     document.getElementById('screen-info').querySelector('.btn-p').before(errDiv);
     (firstBad||document.getElementById('screen-info').querySelector('.btn-p')).scrollIntoView({behavior:'smooth',block:'center'});
     return;
@@ -2248,6 +2315,7 @@ async function goToPayment(){
     clearPending(reg.id);
     reservedReg=reg;
     reservedDone=true;
+    await submitSrfRegistration(reg);
     if(typedCode&&!staticMatch){
       const applied=await applySingleUseCode(typedCode, reg.id, getEffectivePrice());
       if(!applied.ok)window.__discountNotice=applied.message;
@@ -3034,7 +3102,10 @@ async function completeReg(method,txId){
 
   stashPending(reg,s); // survive a frozen page mid-save
   const {ok,error,full,duplicateStudent}=await saveRegistration(reg);
-  if(ok)clearPending(reg.id);
+  if(ok){
+    clearPending(reg.id);
+    await submitSrfRegistration(reg);
+  }
   if(duplicateStudent){
     clearPending(reg.id);
     if(btn)btn.disabled=false;
