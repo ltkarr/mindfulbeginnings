@@ -237,6 +237,23 @@ test('the April Spanish session uses the Spanish survey wording and the same sto
   assert.equal(mixed.moreConfidentPct, 100);
 });
 
+test('the April 13 public card, registration banner, and instructor job say the class is in Spanish', () => {
+  assert.match(register, /In Spanish \/ En español/);
+  assert.match(register, /function sessionListedInSpanish/);
+  assert.match(register, /spanishSessionBadge\(\)/);
+  assert.match(instructor, /In Spanish \/ En español/);
+  assert.match(instructor, /function sessionListedInSpanish/);
+  const migration = fs.readFileSync(path.join(root, 'migrations/20261103_public_listing_spanish.sql'), 'utf8');
+  assert.match(migration, /requires_spanish boolean/);
+  assert.match(migration, /coalesce\(s\.requires_spanish, false\)/);
+  const added = [
+    register.slice(register.indexOf('function sessionListedInSpanish'), register.indexOf('function sessionUsesSpanish')),
+    instructor.slice(instructor.indexOf('if(sessionListedInSpanish(s))'), instructor.indexOf('return bits.join')),
+    instructor.slice(instructor.indexOf('function sessionListedInSpanish'), instructor.indexOf('// True when a job'))
+  ].join('\n') + migration;
+  assert.equal(added.indexOf('\u2014'), -1);
+});
+
 test('class-day form requires every before and now number', () => {
   const map = {
     'srf-email': 'parent@example.com',
