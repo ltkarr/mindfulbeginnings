@@ -38,6 +38,10 @@ test('authorized handler is disabled and creates no drafts', async (t) => {
   assert.equal(res.statusCode, 200);
   assert.deepEqual(JSON.parse(res.body), { ok: true, disabled: true, draftsCreated: 0 });
   assert.equal(fetched, false, 'disabled handler must not call Supabase or Graph');
+
+  const cfg = require('../vercel.json');
+  const scheduled = (cfg.crons || []).some((c) => c.path === '/api/cron/post-course-drafts');
+  assert.equal(scheduled, false, 'vercel.json must not schedule post-course drafts');
 });
 
 // ---------------------------------------------------------------------------
@@ -124,13 +128,27 @@ test('extractParticipantEmails returns empty for no valid contacts', () => {
 // Draft module: links embedded, fallback exists
 // ---------------------------------------------------------------------------
 
-test('postCourseDraftFor embeds review and evaluation links', () => {
+test('Safe Sitter letter is the owner text, with links and no signature', () => {
   const d = drafts.postCourseDraftFor('Safe Sitter®');
-  assert.ok(d.subject);
-  assert.ok(d.bodyHtml.includes('https://g.page/r/Ca2jsWW-MkfvEAE/review'));
-  assert.ok(d.bodyHtml.includes('https://mindfulbeginnings.org/course-evaluation.html'));
-  assert.ok(d.bodyHtml.includes('Lindsay Karr'));
-  assert.ok(!EM_DASH.test(d.bodyHtml), 'no em dashes in draft html');
+  assert.equal(d.subject, 'Thank you for a great Safe Sitter® class');
+  assert.match(d.body, /^Hi there,\n\nThank you for trusting Mindful Beginnings with your child\./);
+  assert.match(d.body, /I'm ready to be picked up now/);
+  assert.match(d.body, /certified Safe Sitter®!$/);
+  assert.doesNotMatch(d.body, /Two quick asks/);
+  assert.doesNotMatch(d.body + d.bodyHtml, /Warmly|Lindsay Karr/);
+  assert.doesNotMatch(d.subject + d.body + d.bodyHtml, /Safe Sitter®®/);
+  assert.doesNotMatch(d.subject + d.body + d.bodyHtml, /Safe Sitter(?!®)/);
+  assert.match(d.bodyHtml, /<a href="https:\/\/g\.page\/r\/Ca2jsWW-MkfvEAE\/review">Google review<\/a>/);
+  assert.match(d.bodyHtml, /<a href="https:\/\/mindfulbeginnings\.org\/course-evaluation\.html">program evaluation<\/a>/);
+  assert.ok(!EM_DASH.test(d.subject + d.body + d.bodyHtml), 'no em dashes in draft');
+});
+
+test('other post-course letters still add the shared asks line and no signature', () => {
+  const d = drafts.postCourseDraftFor('Care Ready');
+  assert.match(d.body, /Two quick asks: would you leave us a Google review \(https:\/\/g\.page\/r\/Ca2jsWW-MkfvEAE\/review\)/);
+  assert.match(d.bodyHtml, /<a href="https:\/\/mindfulbeginnings\.org\/course-evaluation\.html">program evaluation<\/a>/);
+  assert.doesNotMatch(d.body + d.bodyHtml, /Warmly|Lindsay Karr/);
+  assert.ok(!EM_DASH.test(d.subject + d.body + d.bodyHtml));
 });
 
 test('Babysitter\'s Training thank-you is Red Cross, not Safe Sitter', () => {
@@ -151,7 +169,7 @@ test('genericFallbackDraft has both links and no em dashes', () => {
   assert.ok(d.subject.includes('Mindful Beginnings'));
   assert.ok(d.bodyHtml.includes('https://g.page/r/Ca2jsWW-MkfvEAE/review'));
   assert.ok(d.bodyHtml.includes('https://mindfulbeginnings.org/course-evaluation.html'));
-  assert.ok(d.bodyHtml.includes('Lindsay Karr'));
+  assert.doesNotMatch(d.bodyHtml, /Lindsay Karr|Warmly/);
   assert.ok(!EM_DASH.test(d.subject + d.bodyHtml), 'no em dashes in fallback');
 });
 
@@ -162,10 +180,10 @@ test('genericFallbackDraft has both links and no em dashes', () => {
 const sampleDraft = {
   subject: 'Thank you for a great class',
   body: 'Hi there,\n\nThanks for coming.',
-  bodyHtml: '<p>Hi there,</p><p>Thanks for coming.</p><p>Warmly,<br>Lindsay Karr, M.Ed. | Founder, Mindful Beginnings</p>'
+  bodyHtml: '<p>Hi there,</p><p>Thanks for coming.</p>'
 };
 
-test('buildPostCourseHtml wraps content with brand, links, and signoff', () => {
+test('buildPostCourseHtml wraps content with brand and links', () => {
   const html = cron.buildPostCourseHtml(sampleDraft, { course: 'Safe Sitter®', date: '2026-10-16' }, ['a@b.com']);
   assert.ok(html.includes('#1E3161'), 'navy header');
   assert.ok(html.includes('#C7A24A'), 'gold accent');
@@ -174,7 +192,8 @@ test('buildPostCourseHtml wraps content with brand, links, and signoff', () => {
   assert.ok(html.includes('https://mindfulbeginnings.org/course-evaluation.html'), 'evaluation button link');
   assert.ok(html.includes('Leave a Google Review'), 'review button label');
   assert.ok(html.includes('Complete Our Program Evaluation'), 'evaluation button label');
-  assert.ok(html.includes('Lindsay Karr, M.Ed. | Founder, Mindful Beginnings'), 'signoff');
+  assert.ok(!html.includes('Lindsay Karr'), 'builder does not add a signature');
+  assert.ok(!html.includes('Warmly'), 'builder does not add a signature');
   assert.ok(html.includes('Safe Sitter®'), 'course line');
   assert.ok(!html.includes('No participant emails were found'), 'no warning when emails exist');
   assert.ok(!EM_DASH.test(html), 'no em dashes in output');
