@@ -127,7 +127,7 @@ function cleanToken(v, max) {
 
 async function srfSession(cfg, code) {
   const url = cfg.url + '/rest/v1/sessions?code=eq.' + encodeURIComponent(code) +
-    '&select=id,code,course,date,is_cancelled&limit=1';
+    '&select=id,code,course,date,is_cancelled,requires_spanish&limit=1';
   const r = await fetch(url, {
     headers: { apikey: cfg.serviceKey, Authorization: 'Bearer ' + cfg.serviceKey }
   });
@@ -141,7 +141,8 @@ async function handleSrfGrant(res, body) {
   if (part !== 'A' && part !== 'B' && part !== 'C') {
     return sendJson(res, 400, { error: 'Unknown survey.' });
   }
-  const accepted = srfGrant.accept(part, body.answers);
+  const lang = String(body.lang || '').toLowerCase() === 'es' ? 'es' : 'en';
+  const accepted = srfGrant.accept(part, body.answers, lang);
   if (!accepted.ok) return sendJson(res, 400, { error: accepted.error });
 
   const code = cleanToken(body.session_code, 20).toUpperCase();
@@ -156,8 +157,12 @@ async function handleSrfGrant(res, body) {
   }
   const session = found.session;
   if (!session || session.course !== srfGrant.COURSE || session.is_cancelled) {
-    return sendJson(res, 400, { error: 'This survey link does not match a Safe & Ready Families class.' });
+    var mismatch = lang === 'es'
+      ? 'Este enlace no corresponde a una clase de Safe & Ready Families.'
+      : 'This survey link does not match a Safe & Ready Families class.';
+    return sendJson(res, 400, { error: mismatch });
   }
+  if (session.requires_spanish && accepted.answers) accepted.answers.lang = 'es';
 
   const email = part === 'A'
     ? cleanStr(body.email, 160).toLowerCase()

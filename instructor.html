@@ -1171,12 +1171,13 @@ function srfGrantSurveyHTML(s){
   if(!s||!/safe\s*&\s*ready families|safe and ready families/i.test(String(s.course||'')))return'';
   const code=String(s.code||'').trim();
   if(!code)return'';
+  const es=!!(s.requiresSpanish||String(code).toUpperCase()==='SRF-270413');
   const url=(window.MBSrfGrant&&typeof MBSrfGrant.surveyUrl==='function')
-    ?MBSrfGrant.surveyUrl('B',code)
-    :('https://mindfulbeginnings.org/grant-class-survey.html?code='+encodeURIComponent(code));
+    ?MBSrfGrant.surveyUrl('B',code,es?'es':'')
+    :('https://mindfulbeginnings.org/grant-class-survey.html?code='+encodeURIComponent(code)+(es?'&lang=es':''));
   const qr='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(url);
   return`<div class="jc-section"><div class="jc-section-t">Class-day survey</div>
-    <div style="font-size:14px;line-height:1.6;margin-bottom:10px">Show this at the end of class so each family can answer on their phone.</div>
+    <div style="font-size:14px;line-height:1.6;margin-bottom:10px">Show this at the end of class so each family can answer on their phone.${es?' This survey is in Spanish.':''}</div>
     <a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="font-size:14px;word-break:break-all">${escapeHtml(url)}</a>
     <div style="margin-top:10px"><img src="${escapeHtml(qr)}" width="180" height="180" alt="QR code for the class-day survey"></div>
   </div>`;

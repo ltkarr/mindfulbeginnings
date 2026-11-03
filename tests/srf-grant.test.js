@@ -96,7 +96,7 @@ test('grant questions use the survey set wording and no em dash', () => {
   assert.match(later, /Today, how confident do you feel that you could keep your child safe and respond in an emergency\?/);
   assert.match(later, /Compared to before the class, I feel:/);
   assert.match(later, /No thanks/);
-  assert.doesNotMatch(blob, /¿|Confianza|encuesta/);
+  assert.doesNotMatch(reg + day + later, /¿Qué describe mejor su caso/);
   assert.doesNotMatch(api + pageJs + classPage + followPage, /Two minutes that keep this class free/);
 });
 
@@ -158,7 +158,7 @@ test('saved answers stay inside the written choices', () => {
 
 test('registration, surveys, instructor link, and admin report are wired', () => {
   assert.match(register, /id="srf-grant"/);
-  assert.match(register, /MBSrfGrant\.registrationHtml\(\)/);
+  assert.match(register, /MBSrfGrant\.registrationHtml\(lang\)/);
   assert.match(register, /MBSrfGrant\.EMAIL_NOTE/);
   assert.match(register, /form:'srf-grant'/);
   assert.match(register, /part:'A'/);
@@ -185,6 +185,56 @@ test('registration, surveys, instructor link, and admin report are wired', () =>
   assert.match(migration, /to authenticated/);
   assert.equal(srf.surveyUrl('B', 'SRF-270413'), 'https://mindfulbeginnings.org/grant-class-survey.html?code=SRF-270413');
   assert.equal(srf.surveyUrl('C', 'SRF-270413'), 'https://mindfulbeginnings.org/grant-followup.html?code=SRF-270413');
+  assert.equal(srf.surveyUrl('B', 'SRF-270413', 'es'), 'https://mindfulbeginnings.org/grant-class-survey.html?code=SRF-270413&lang=es');
+  assert.equal(srf.surveyUrl('C', 'SRF-270413', 'es'), 'https://mindfulbeginnings.org/grant-followup.html?code=SRF-270413&lang=es');
+});
+
+test('the April Spanish session uses the Spanish survey wording and the same stored answers', () => {
+  const esReg = srf.registrationHtml('es');
+  const esDay = srf.classSurveyHtml({ date: '2027-04-13' }, 'es');
+  const esLater = srf.followupHtml('es');
+  const blob = esReg + esDay + esLater;
+  assert.equal(blob.indexOf('\u2014'), -1);
+  assert.match(esReg, /¿Qué describe mejor su caso\? OBLIGATORIO\. Elija una\./);
+  assert.match(esReg, /Padre, madre o padrastro\/madrastra/);
+  assert.match(esReg, /value="Parent or stepparent"/);
+  assert.match(esReg, /¿A cuántos niños con una discapacidad cuida\?/);
+  assert.match(esReg, /Síndrome de Down/);
+  assert.match(esReg, /Prefiero no decirlo/);
+  assert.match(esReg, new RegExp(srf.CONSENT_ES.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(esDay, /Para cada afirmación, encierre en un círculo un número/);
+  assert.match(esDay, /Evitar que mi hijo se escape/);
+  assert.match(esDay, /Mucho más seguro\/a/);
+  assert.match(esDay, /value="Much more confident"/);
+  assert.match(esDay, /Plan si mi hijo se escapa/);
+  assert.match(esDay, /value="Wandering Plan"/);
+  assert.match(esLater, /Sí, ambos están completos/);
+  assert.match(esLater, /value="Yes, both are complete"/);
+  assert.match(esLater, /Ninguna de estas todavía/);
+  assert.match(esLater, /No, gracias/);
+  const scales = srf.CONFIDENCE.map(function () { return { before: 1, now: 5 }; });
+  const saved = srf.accept('B', {
+    email: 'familia@example.com',
+    overall: 'Mucho más seguro/a',
+    statements: scales,
+    sheets: ['Plan si mi hijo se escapa'],
+    lang: 'es'
+  }, 'es');
+  assert.equal(saved.ok, true);
+  assert.equal(saved.answers.overall, 'Much more confident');
+  assert.deepEqual(saved.answers.sheets, ['Wandering Plan']);
+  assert.equal(saved.answers.lang, 'es');
+  const plan = srf.accept('C', {
+    email: 'familia@example.com',
+    plan: 'Sí, ambos están completos'
+  }, 'es');
+  assert.equal(plan.answers.plan, 'Yes, both are complete');
+  const mixed = srf.report([
+    { part: 'B', answers: { overall: 'Much more confident' } },
+    { part: 'B', answers: { overall: 'Much more confident', lang: 'es' } }
+  ]);
+  assert.equal(mixed.confidenceResponses, 2);
+  assert.equal(mixed.moreConfidentPct, 100);
 });
 
 test('class-day form requires every before and now number', () => {

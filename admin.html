@@ -17666,8 +17666,9 @@ async function renderSrfGrant(){
     list.map(s=>{
       const mine=rows.filter(r=>r.session_code===s.code);
       const rep=MBSrfGrant.report(mine);
-      const b=MBSrfGrant.surveyUrl('B', s.code);
-      const c=MBSrfGrant.surveyUrl('C', s.code);
+      const es=!!(s.requiresSpanish||String(s.code||'').toUpperCase()==='SRF-270413');
+      const b=MBSrfGrant.surveyUrl('B', s.code, es?'es':'');
+      const c=MBSrfGrant.surveyUrl('C', s.code, es?'es':'');
       const place=[s.location,s.city].filter(Boolean).join(', ');
       return '<tr>'+
         '<td style="white-space:nowrap">'+escapeHtml(s.date||'')+(s.isCancelled?' <span style="color:#C0392B">Cancelled</span>':'')+'</td>'+
@@ -17676,8 +17677,8 @@ async function renderSrfGrant(){
         '<td>'+rep.served+'</td>'+
         '<td>'+escapeHtml(srfPctText(rep.moreConfidentPct, rep.confidenceResponses))+'</td>'+
         '<td>'+escapeHtml(srfPctText(rep.writtenPlanPct, rep.planResponses))+'</td>'+
-        '<td><button class="btn sm" type="button" data-srf-link="'+escapeHtml(b)+'" onclick="copyLink(this.getAttribute(\'data-srf-link\'))">Copy link</button></td>'+
-        '<td><button class="btn sm" type="button" data-srf-link="'+escapeHtml(c)+'" onclick="copyLink(this.getAttribute(\'data-srf-link\'))">Copy link</button></td>'+
+        '<td><button class="btn sm" type="button" data-srf-link="'+escapeHtml(b)+'" onclick="copyLink(this.getAttribute(\'data-srf-link\'))">'+(es?'Copy Spanish link':'Copy link')+'</button></td>'+
+        '<td><button class="btn sm" type="button" data-srf-link="'+escapeHtml(c)+'" onclick="copyLink(this.getAttribute(\'data-srf-link\'))">'+(es?'Copy Spanish link':'Copy link')+'</button></td>'+
         '</tr>';
     }).join('')+'</tbody>';
 }
