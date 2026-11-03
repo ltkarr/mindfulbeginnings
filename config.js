@@ -144,9 +144,12 @@ const COURSES={
   // Safe & Ready Families (new Nov 2026): 2.5-hour in-person workshop for
   // parents, grandparents, and caregivers of children with developmental
   // disabilities and neurodivergent needs. $40 per person. 10 to 25 adults.
-  // Taught by a registered nurse. The listed price is $40. It is usually
-  // offered free through grant funds, community wellness funds, or PTAs.
-  'Safe & Ready Families':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:0,hours:2.5,maxStudents:25,minStudents:10,requiresRN:true,adult:true,audience:'Parents, grandparents, and caregivers'},
+  // Usually taught by a registered nurse, but RN-only is set per session in
+  // Admin, not locked by the course (Lindsay, 2026-11-03: the Apr 13, 2027
+  // grant session is Spanish-speaking instructor only). The listed price is
+  // $40. It is usually offered free through grant funds, community wellness
+  // funds, or PTAs.
+  'Safe & Ready Families':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:0,hours:2.5,maxStudents:25,minStudents:10,adult:true,audience:'Parents, grandparents, and caregivers'},
   // My First Babysitters Club: the 8-week series is $200 per participant for
   // sessions created on/after Oct 19 2026 (see LATER_PRICE_CHANGES). Earlier
   // sessions stay at the price they were booked at ($165 after Aug 26 2026).

@@ -1577,7 +1577,7 @@ const COURSES={
   'Lunchroom Lifesaver':{price:35,price2027:35,priceNew:35,priceNew2027:35,matCost:0,hours:0.75,maxStudents:12},
   // Safe & Ready Families: 2.5 hours, $40 per person, 10 to 25 adults.
   // Registered nurse only. Usually offered free through grants; listed price stays $40.
-  'Safe & Ready Families':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:0,hours:2.5,maxStudents:25,minStudents:10,requiresRN:true,adult:true},
+  'Safe & Ready Families':{price:40,price2027:40,priceNew:40,priceNew2027:40,matCost:0,hours:2.5,maxStudents:25,minStudents:10,adult:true},
   // My First Babysitters Club: old $40/$50 values were placeholders; the Aug 2026 program
   // guide confirmed $165 for the 8-week series, so future sessions charge $165.
   // Material allowance is $30/student — an 8-week series consumes far more supplies than a
@@ -7612,6 +7612,7 @@ function renderSessions(){
       if(sessionRequiresLeadTeacher(s))pills.push(pill('Lead Teacher','#f7f3ea','#7a5c1e','American Red Cross course. Lead Teachers only.'));
       if(sessionRequiresRN(s))pills.push(pill('RN only','#e2efe7','#2d7a5e','Registered nurse instructors only'));
       if(sessionRequiresSafeSitter(s))pills.push(pill('Safe Sitter only','#e6eff7','#1a5c8a','Safe Sitter® instructors only'));
+      if(sessionRequiresSpanish(s))pills.push(pill('En español','#f3e8d8','#8a5a1a','Spanish-speaking instructor required'));
       if(grantPill)pills.push(grantPill);
       if(kit)pills.push(kit);
       const wl=registrations.filter(r=>r.sessionId===s.id&&r.payStatus==='waitlist').length;
