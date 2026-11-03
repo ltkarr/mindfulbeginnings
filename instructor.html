@@ -117,6 +117,7 @@ main{max-width:800px;margin:0 auto;padding:28px 20px 60px}
 .pill-open{background:#f0f4ff;color:#3355bb}
 .pill-accepted{background:var(--success-bg);color:var(--success)}
 .pill-taken{background:#f0f0f0;color:#888}
+.pill-grant{background:#e7f0ea;color:#1d6b45}
 .pill-rn{background:#eaf1f8;color:#2c5f8a;margin-left:8px;vertical-align:middle}
 .pill-mat-pending{background:var(--warn-bg);color:var(--warn)}
 .pill-mat-ready{background:var(--success-bg);color:var(--success)}
@@ -483,7 +484,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,grantTag:r.grant_tag||'',extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -518,6 +519,7 @@ if(typeof COURSES==='undefined'){
     'Stay Ready™: Choking Rescue, CPR, and Seizure Response':{hours:1.25, maxStudents:12, requiresRN:true},
     'Campus Ready: Safety Skills for College Life':{hours:1, maxStudents:12, instrFlatFee:100, requiresRN:true},
     'Steady and Ready':{hours:1, maxStudents:8},
+    'Safe & Ready Families':{hours:2.5, maxStudents:25, requiresRN:true, adult:true},
     'My First Babysitters Club':{hours:1, maxStudents:16},
     'My First Babysitters Club — Single Session':{hours:2.5, maxStudents:16},
     'Little Medics':{hours:1, maxStudents:16},
@@ -559,6 +561,7 @@ Object.keys(COURSES).forEach(c=>{
   // "first aid" inside a Girl Scout badge name is not a course-level RN rule.
   // Those jobs follow the per-session checkbox. A stale config cannot force them.
   if(!girlScoutBadge&&/stay ready|campus ready|ready\. ?period|season ready|first aid/i.test(c))COURSES[c].requiresRN=true;  // RN instructors only
+  if(/safe\s*&\s*ready families|safe and ready families/i.test(c))COURSES[c].requiresRN=true;
   if(/safe sitter|grandparent/i.test(c)&&!/babysitting grandkids/i.test(c))COURSES[c].requiresSafeSitter=true;  // Safe Sitter® trained only
   if(/babysitting grandkids/i.test(c)){
     COURSES[c].requiresSafeSitter=false;
@@ -1180,7 +1183,9 @@ function goodToKnowHTML(s){
   const bits=[];
   if(s.instructorInfo)bits.push(escapeHtml(s.instructorInfo).replace(/\n/g,'<br>'));
   const facts=[];
-  if(sessionRequiresRN(s))facts.push('Requires an <strong>RN credential</strong>');
+  if(sessionRequiresRN(s)&&sessionRequiresSpanish(s))facts.push('<strong>Registered nurses who speak Spanish only</strong>');
+  else if(sessionRequiresRN(s))facts.push('<strong>Registered nurses only</strong>');
+  else if(sessionRequiresSpanish(s))facts.push('<strong>Spanish speakers only</strong>');
   if(sessionRequiresSafeSitter(s))facts.push('Requires <strong>Safe Sitter® training</strong>');
   if(!s.isCustomJob){
     const cap=s.maxStudentsOverride||c.maxStudents;
@@ -2012,10 +2017,11 @@ function canTeachSession(s){
 function credentialPill(s){
   const c=(typeof COURSES!=='undefined'&&s&&COURSES[s.course])||{};
   if(c.requiresLeadTeacher||c.redCross)return'<span class="pill pill-rn">Lead Teachers only</span>';
-  if(sessionRequiresRN(s))return'<span class="pill pill-rn">🩺 RN instructors only</span>';
-  if(sessionRequiresSafeSitter(s))return'<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>';
-  if(sessionRequiresSpanish(s))return'<span class="pill pill-rn">🗣️ En español</span>';
-  return'';
+  const bits=[];
+  if(sessionRequiresRN(s))bits.push('<span class="pill pill-rn">🩺 RN instructors only</span>');
+  else if(sessionRequiresSafeSitter(s))bits.push('<span class="pill pill-rn">🧒 Safe Sitter® instructors only</span>');
+  if(sessionRequiresSpanish(s))bits.push('<span class="pill pill-rn">🗣️ Spanish speakers only</span>');
+  return bits.join(' ');
 }
 // True when a job another instructor already holds should be left off this
 // person's Open jobs board. Taken jobs never appear here — every listing on
@@ -2058,6 +2064,19 @@ function renderOnboardingGate(el){
   return true;
 }
 
+// Funding label for a tagged job. The award amount stays in admin Finances.
+function grantJobNote(s){
+  const tag=String(s&&s.grantTag||'').trim();
+  if(tag==='dd-council-2027')return 'Grant-funded: Maryland Developmental Disabilities Council';
+  if(tag)return 'Grant-funded';
+  return '';
+}
+function grantJobHtml(s){
+  const note=grantJobNote(s);
+  if(!note)return '';
+  return '<div class="jc-when"><span class="pill pill-grant">'+escapeHtml(note)+'</span></div>';
+}
+
 // ─── OPEN JOBS ───────────────────────────────────────────────
 // Upcoming sessions the instructor can act on: unclaimed postings they are
 // eligible to teach. Excludes jobs they already hold (those live in My jobs),
@@ -2092,7 +2111,7 @@ function renderOpen(){
     const mapQ=portalMaps(s);
     const mapLink=mapQ?` <a href="${escapeHtml(mapQ)}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">View on map ↗</a>`:'';
     return`<div class="job-card">
-      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>${pill}</div>
+      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${grantJobHtml(s)}${whenLineHTML(s)}</div>${pill}</div>
       ${heroStripHTML(s,fee)}
       ${fitChecksHTML(s,idx)}
       ${notesHTML(s)}
@@ -2222,7 +2241,7 @@ function renderMyJobs(){
     const mapQ=portalMaps(s,priv0);
     const mapLink=mapQ?` <a href="${escapeHtml(mapQ)}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">Directions ↗</a>`:'';
     return`<div class="job-card">
-      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>
+      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${grantJobHtml(s)}${whenLineHTML(s)}</div>
       <span class="pill ${cx?'pill-taken':(upcoming?'pill-accepted':'pill-taken')}">${cx?'Cancelled':(upcoming?'Upcoming':'Completed')}</span></div>
       ${cxBanner}
       ${upcoming?heroStripHTML(s,fee):`<div class="jc-details">
@@ -3559,6 +3578,7 @@ const FAQ_SECTIONS=[
     ['6 to 20 students.','Social Ready\u2122. Ages 8 to 14. 60 minutes. In person or virtual.'],
     ['Up to 20 students.','Season Ready\u2122. 60 minutes. In person.'],
     ['10 to 40 participants.','Screen Ready\u2122. Parent workshop on screen time and young children. 60 minutes. In person or virtual.'],
+    ['10 to 25 participants.','Safe & Ready Families\u2122. Parents, grandparents, and caregivers of children with developmental disabilities and neurodivergent needs. 2.5 hours. In person. Taught by a registered nurse.'],
     ['8 to 20 participants.','Babysitting Grandkids Workshop. 60 minutes. In person.'],
     ['Typical group, 6 to 16 scouts.','Girl Scout badge workshops are custom-scheduled. Lindsay sets the time, and the group size, for each job. Daisy through Ambassador. Do not plan on a fixed length.'],
     ['Custom group size.','Group CPR Certification for Workplaces. Sized to the client. Confirm with Lindsay.']

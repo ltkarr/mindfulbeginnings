@@ -241,6 +241,7 @@ test('overview page urls map courses to their overview pages', () => {
   assert.equal(overviews.urlFor('Girl Scout Badge Class'), '');
   assert.equal(overviews.urlFor('Campus Ready: Safety Skills for College Life'), '');
   assert.equal(overviews.urlFor('Screen Ready'), '');
+  assert.equal(overviews.urlFor('Safe & Ready Families'), base + 'safe-and-ready-families');
   assert.equal(overviews.urlFor('Adult & Pediatric First Aid/CPR/AED Certification'), '');
   assert.equal(overviews.urlFor(''), '');
 });

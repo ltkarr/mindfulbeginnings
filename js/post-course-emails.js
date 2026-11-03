@@ -138,6 +138,16 @@
       ]
     },
     {
+      keys: ['Safe & Ready Families'],
+      subject: 'Safe & Ready Families',
+      greeting: 'Hello,',
+      taker: 'complete',
+      paragraphs: [
+        'Thank you for joining Safe & Ready Families with Mindful Beginnings. You planned for wandering and running off, water safety, and choking and CPR awareness adapted for your child, and you started your Safe & Ready Families Toolkit in class.',
+        'Keep the Wandering Plan, Water Safety Checklist, Choking and CPR Quick Card, About Me Sheet, and Babysitter and Respite Brief where caregivers can find them. This class is planning and awareness, not a CPR certification.'
+      ]
+    },
+    {
       keys: ['Lunchroom Lifesaver'],
       subject: 'Lunchroom Lifesaver',
       greeting: 'Hello,',

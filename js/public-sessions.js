@@ -48,6 +48,7 @@
     'Middle School Ready': 'Grades 5 to 7',
     'Middle School Ready — Virtual': 'Grades 5 to 7, virtual',
     'Lunchroom Lifesaver': 'School staff and volunteers',
+    'Safe & Ready Families': 'Parents, grandparents, and caregivers',
     'Screen Ready': 'Parents',
     'Screen Ready — Virtual': 'Parents, virtual',
     'My First Babysitters Club': 'Grades 4 to 5, 8-week series',
@@ -92,6 +93,7 @@
     'Middle School Ready': 'Middle School Ready™',
     'Middle School Ready — Virtual': 'Middle School Ready',
     'Lunchroom Lifesaver': 'Lunchroom Lifesaver™',
+    'Safe & Ready Families': 'Safe & Ready Families™',
     'Screen Ready': 'Screen Ready™',
     'Screen Ready — Virtual': 'Screen Ready',
     'Social Ready': 'Social Ready™',
@@ -107,6 +109,18 @@
   function coursePublicName(course) {
     var name = String(course || '');
     return COURSE_PUBLIC_NAME[name] || name;
+  }
+
+  // Shown on the public class list and on registration cards. The listed
+  // price is unchanged. This only says the workshop is often funded.
+  var GRANT_NOTE = 'This program is usually offered FREE through grant funds, community wellness funds, or PTAs.';
+  var GRANT_NOTE_COURSES = {
+    'Safe & Ready Families': true,
+    'Lunchroom Lifesaver': true
+  };
+
+  function grantNote(course) {
+    return GRANT_NOTE_COURSES[String(course || '')] ? GRANT_NOTE : '';
   }
 
   function todayLocalISO(now) {
@@ -438,6 +452,8 @@
     monthLabel: monthLabel,
     courseAudience: courseAudience,
     coursePublicName: coursePublicName,
+    GRANT_NOTE: GRANT_NOTE,
+    grantNote: grantNote,
     sessionPriceLabel: sessionPriceLabel,
     matchesPriceFilter: matchesPriceFilter,
     uniqueCourses: uniqueCourses,

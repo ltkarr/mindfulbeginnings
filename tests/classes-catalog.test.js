@@ -70,6 +70,7 @@ const EXPECTED = [
   ["parents-caregivers", "adult-fa", "Adult First Aid/CPR/AED Certification", "Adults · 3 hours 15 minutes · In person", "Adult CPR, AED use, choking relief, and basic first aid, with a 2-year Red Cross certification. Also offered as online plus classroom.", "American Red Cross certification"],
   ["parents-caregivers", "bls", "Basic Life Support (BLS) Certification", "Healthcare providers · 4 hours · In person", "Professional-level CPR, AED use, and team-based scenarios for healthcare providers, with a 2-year Red Cross certification. Also offered as online plus classroom.", "American Red Cross certification"],
   ["parents-caregivers", "lunchroom-lifesaver", "Lunchroom Lifesaver™", "School staff and volunteers · 45 minutes · In person", "No-certification training for the adults watching kids at lunch: recognizing choking, back blows and abdominal thrusts, what to do if a child becomes unresponsive, calling 911, and hands-only CPR and AED basics. Also a Lunchroom Ready Day for schools: up to 6 back-to-back sessions in one school day. Contact us for pricing.", ""],
+  ["parents-caregivers", "safe-ready-families", "Safe & Ready Families™", "Parents, grandparents, and caregivers · 2.5-hour · In person", "A 2.5-hour, in-person class taught by a registered nurse for parents and caregivers of children with developmental disabilities and neurodivergent needs. Families plan for wandering and running off, water safety, and adapted choking and CPR awareness (not a certification), and each family starts a Safe & Ready Families Toolkit in class.", ""],
   ["parents-caregivers", "screen-ready", "Screen Ready™", "Parents · 60 minutes · In person · Virtual option available", "What the research says about screen time and young children’s attention, impulsivity, and learning, what age-appropriate content looks like at each stage, and realistic routines, boundaries, and conversation starters. Every parent leaves with a one-page plan to start using that night, and no one gets lectured.", ""],
   ["parents-caregivers", "grandparents", "Safe Sitter® Grandparents: Getting Started", "Grandparents and caregivers · 3-hour · In person", "Current standards, updated guidelines, and practical tips for grandparents caring for grandchildren.", null],
   ["parents-caregivers", "grandkids", "Babysitting Grandkids Workshop", "Grandparents of kids from infancy to about age 10 · 60-minute · In person · Virtual option available", "Current safety basics for grandparents who babysit kids from infancy to about age 10, also offered live online with a registered nurse.", null],
@@ -105,6 +106,8 @@ test('classes are simple text rows with no pills, bands, or best-if boxes', () =
   });
   assert.equal(page.includes('filter-pill'), false);
   assert.match(page, /American Red Cross certification/);
+  const note = 'This program is usually offered FREE through grant funds, community wellness funds, or PTAs.';
+  assert.equal((page.match(new RegExp(note.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length, 2);
 });
 
 test('course rows are not links, and the group path is one clear button', () => {

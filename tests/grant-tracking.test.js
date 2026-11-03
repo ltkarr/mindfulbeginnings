@@ -111,6 +111,18 @@ test('the grant tag round-trips through the session DB mapping', () => {
   assert.match(admin, /o\.grant_tag=s\.grantTag\?String\(s\.grantTag\):null/);
 });
 
+test('admin session rows and instructor job posts show the grant tag', () => {
+  assert.match(admin, /MD DD Council grant/);
+  assert.match(admin, /grantPill/);
+  const instructor = fs.readFileSync(path.join(__dirname, '..', 'instructor.html'), 'utf8');
+  assert.match(instructor, /grantTag:r\.grant_tag\|\|''/);
+  assert.match(instructor, /Grant-funded: Maryland Developmental Disabilities Council/);
+  assert.match(instructor, /grantJobHtml\(s\)/);
+  const sql = fs.readFileSync(path.join(__dirname, '..', 'migrations/20261103_instructor_grant_tag.sql'), 'utf8');
+  assert.match(sql, /grant_tag/);
+  assert.doesNotMatch(sql, /admin_private_notes/);
+});
+
 test('the Finances screen has a grants mount point and renders it', () => {
   assert.match(admin, /<div id="fin-grants"><\/div>/);
   assert.match(admin, /renderGrantFunds\(\)/);
