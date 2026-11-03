@@ -35,19 +35,24 @@ function sample(over) {
 test('post-course email is per-course with embedded links', () => {
   const draft = emails.draft('postCourse', sample());
   assert.equal(draft.field, 'bcc');
-  assert.equal(draft.subject, 'Thank you for a great Safe Sitter class');
+  assert.equal(draft.subject, 'Thank you for a great Safe Sitter® class');
   assert.match(draft.body, /Safety Signal/);
-  assert.match(draft.body, /mindfulbeginnings\.org\/course-evaluation\.html/);
+  assert.match(draft.body, /certified Safe Sitter®!/);
+  assert.doesNotMatch(draft.body, /Two quick asks/);
   assert.doesNotMatch(draft.body, /forms\.gle/);
+  assert.doesNotMatch(draft.body + draft.bodyHtml, /Warmly|Lindsay Karr/);
   assert.match(draft.bodyHtml, /<a href="https:\/\/mindfulbeginnings\.org\/course-evaluation\.html">program evaluation<\/a>/);
   assert.match(draft.bodyHtml, /<a href="https:\/\/g\.page\/r\/Ca2jsWW-MkfvEAE\/review">Google review<\/a>/);
-  assert.doesNotMatch(draft.subject + draft.body, /\u2014/);
+  assert.doesNotMatch(draft.subject + draft.body + draft.bodyHtml, /\u2014/);
+  assert.doesNotMatch(draft.subject + draft.body + draft.bodyHtml, /Safe Sitter®®/);
 });
 
 test('post-course email picks the right draft per course', () => {
   const cpr = emails.draft('postCourse', sample({ course: 'Adult & Pediatric First Aid/CPR/AED Certification' }));
   assert.equal(cpr.subject, "You're certified");
   assert.match(cpr.body, /valid for two years/);
+  assert.match(cpr.body, /Two quick asks/);
+  assert.doesNotMatch(cpr.body, /Warmly/);
   const gs = emails.draft('postCourse', sample({ course: 'Girl Scouts \u2014 First Aid Badge Workshop' }));
   assert.equal(gs.subject, 'Badge work, well done');
   const virtual = emails.draft('postCourse', sample({ course: 'Safe@Home \u2014 Virtual' }));

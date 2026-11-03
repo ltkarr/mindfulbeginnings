@@ -1,24 +1,24 @@
 # Post-Course Email Drafts
 
-Ready to copy into Gmail. Links are marked as [anchor text](URL), so embed each link in its anchor words before sending.
+Ready to copy into Gmail. Links are marked as [anchor text](URL), so embed each link in its anchor words before sending. Each letter ends after its closing line. There is no signature. The Safe Sitter letter already includes the review and evaluation ask, so it does not add the shared "Two quick asks" line.
 
 ---
 
 ## Safe Sitter®
 
-**Subject:** Thank you for a great Safe Sitter class
+**Subject:** Thank you for a great Safe Sitter® class
 
 Hi there,
 
-Thank you for trusting Mindful Beginnings with your child's Safe Sitter training. Your child practiced the real skills sitters need, from handling emergencies to caring for younger children and making safe choices when no adult is in the room.
+Thank you for trusting Mindful Beginnings with your child. We hope they came home feeling confident, capable, and proud of everything they accomplished.
 
-Please keep practicing the Safety Signal at home, your family's code phrase that means "come pick me up now, no questions asked." And remember that finishing Safe Sitter is a wonderful foundation, but it doesn't automatically mean your child is ready to babysit alone. Trust your judgment on timing.
+The most important thing your child learned today is the Safety Signal. If you ever receive a text or call that says, "I'm ready to be picked up now," that is their signal that they feel unsafe. Please go immediately, do not ask questions, and let them explain once they are in the car. This signal works in any situation, not only babysitting.
 
-When they're ready for the next step, Safe Sitter Babysitting Essentials builds on everything they learned today.
+The course is a meaningful achievement, but it does not automatically mean your child is ready to babysit or stay home alone, so please assess their readiness based on their individual maturity. We ask students to take jobs only with friends, neighbors, and others you or they know personally, and never to advertise online. And a quick conversation after each job gives your child helpful guidance while keeping you informed about what they are experiencing.
 
-Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
+If you have a moment, two small things would mean a great deal to us. A [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review) helps other families find us! And our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html) helps us improve every session.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
+Thank you again for being part of the Mindful Beginnings community. We are so glad your child is now a certified Safe Sitter®!
 
 ---
 
@@ -34,8 +34,6 @@ They're ready to take on sitting jobs and handle whatever the afternoon brings, 
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## Intro to Babysitting
@@ -46,11 +44,9 @@ Hi there,
 
 Thank you for bringing your child to Intro to Babysitting. They got a first taste of a sitter's world: basic child care, safety awareness, and how to stay calm and think clearly when something unexpected happens.
 
-This class plants the seed. When your child turns 11, Safe Sitter is the natural next step, with deeper training in emergencies, rescue skills, and real sitting scenarios. We loved having your child in class and hope they left excited about what's ahead.
+This class plants the seed. When your child turns 11, Safe Sitter® is the natural next step, with deeper training in emergencies, rescue skills, and real sitting scenarios. We loved having your child in class and hope they left excited about what's ahead.
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
-
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
 
 ---
 
@@ -68,8 +64,6 @@ A great next step is making a family plan together. Talk through who they call, 
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## Grandparents: Getting Started
@@ -84,8 +78,6 @@ Your grandkids are lucky to have a grandparent who shows up prepared. Keep the c
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## Care Ready
@@ -99,8 +91,6 @@ Thank you for completing Care Ready with Mindful Beginnings. You trained in the 
 Families can feel the difference when a caregiver is truly prepared. Review what you practiced every few months so it stays second nature. Consider keeping a small first aid kit in your bag, so you're ready wherever the day takes you.
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
-
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
 
 ---
 
@@ -118,8 +108,6 @@ If grandparents or other caregivers will be lending a hand, our Grandparents: Ge
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## All Kids Welcome
@@ -133,8 +121,6 @@ Thank you for choosing All Kids Welcome. Your child learned that every kid deser
 The takeaway is simple: kindness plus know-how. Keep the conversation going at home about including others and speaking up for friends who need it. Thank you for raising a child who makes room for everyone.
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
-
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
 
 ---
 
@@ -150,8 +136,6 @@ Skills fade without practice, so review the steps every few months. When you're 
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## Campus Ready: Safety Skills for College Life
@@ -165,8 +149,6 @@ Thank you for choosing Campus Ready for your college-bound teen. They covered th
 Have one more conversation before move-in day about your family's expectations and their personal safety plan. It matters more than you think. They're heading into an exciting chapter, and now they're heading in prepared.
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
-
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
 
 ---
 
@@ -182,8 +164,6 @@ Small daily habits make the biggest difference here. Keep practicing what you le
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## My First Babysitters Club
@@ -196,11 +176,9 @@ Hi there,
 
 Thank you for joining My First Babysitters Club. Your child started building real babysitting skills early through fun, hands-on activities: safety basics, child care know-how, and the confidence to step up and help.
 
-As they grow, Intro to Babysitting and then Safe Sitter at age 11 keep the journey going. Ask them to show you what they practiced. Kids retain so much more when they get to teach it.
+As they grow, Intro to Babysitting and then Safe Sitter® at age 11 keep the journey going. Ask them to show you what they practiced. Kids retain so much more when they get to teach it.
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
-
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
 
 ---
 
@@ -216,8 +194,6 @@ Keep the door open at home. Kids handle this transition best when they know they
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes
@@ -231,8 +207,6 @@ Thank you for choosing Season Ready. Your athlete covered what keeps them in the
 Remind them that rest and good fuel are part of training, not extras. Wishing them a healthy season. Thanks for investing in the part of sports that never shows up on the scoreboard.
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
-
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
 
 ---
 
@@ -248,8 +222,6 @@ These skills transfer everywhere, from the lunch table to group chats. Keep enco
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## Girl Scouts - First Aid Badge Workshop
@@ -262,11 +234,9 @@ Hello,
 
 Thank you for bringing your troop to our First Aid Badge Workshop. Your scouts earned real skills today: responding in an emergency, treating everyday injuries, and staying calm under pressure.
 
-Scouts who want to keep building on this love Safe Sitter, where first aid meets full babysitting training. And thank you for leading them. Troop leaders like you make these experiences possible.
+Scouts who want to keep building on this love Safe Sitter®, where first aid meets full babysitting training. And thank you for leading them. Troop leaders like you make these experiences possible.
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
-
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
 
 ---
 
@@ -282,8 +252,6 @@ This combination is the gold standard for young sitters. Encourage them to keep 
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## Adult & Pediatric First Aid/CPR/AED Certification
@@ -297,8 +265,6 @@ Thank you for completing your American Red Cross Adult and Pediatric First Aid/C
 The skills are in your hands now. A quick review every few months keeps you ready, and we'll be here when it's time to recertify. If you ever use these skills, we'd love to hear the story. Our instructors live for those moments.
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
-
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
 
 ---
 
@@ -314,8 +280,6 @@ These skills matter most in the first minutes of an emergency. Give them a refre
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## Basic Life Support (BLS)
@@ -330,8 +294,6 @@ High-quality CPR is a perishable skill, even for professionals. Regular refreshe
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
 
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings
-
 ---
 
 ## Red Cross Babysitter's Training
@@ -345,5 +307,3 @@ Congratulations to your child on completing Red Cross Babysitter's Training. The
 When they're ready to add emergency credentials, Pediatric First Aid/CPR/AED pairs perfectly with this training. Sitters with Red Cross training stand out to families, and your child earned that edge today.
 
 Two quick asks: would you leave us a [Google review](https://g.page/r/Ca2jsWW-MkfvEAE/review)? And please complete our short [program evaluation](https://mindfulbeginnings.org/course-evaluation.html). Your feedback keeps our classes strong.
-
-Warmly, Lindsay Karr, M.Ed. | Founder, Mindful Beginnings

@@ -1,30 +1,32 @@
 /* Per-course post-course emails for families.
    Keyed by admin session course name. Each draft: subject, greeting,
-   paragraphs, and who completes the evaluation ("complete" for every course).
-   Nothing here sends email. ADMIN builds the draft and Lindsay copies it
-   into her own email. Links are embedded in words in the HTML version. */
+   and paragraphs. The Safe Sitter letter already asks for a Google review
+   and the program evaluation, so that draft does not add the shared asks
+   line. Other drafts add that line. Nothing here sends email. ADMIN builds
+   the draft and Lindsay copies it into her own email. Links are embedded
+   in words in the HTML version. Letters end after the closing line. */
 (function (root) {
   'use strict';
 
   var REVIEW_URL = 'https://g.page/r/Ca2jsWW-MkfvEAE/review';
   var EVAL_URL = 'https://mindfulbeginnings.org/course-evaluation.html';
-  var SIGNOFF = 'Warmly,\nLindsay Karr, M.Ed. | Founder, Mindful Beginnings';
 
-  function asks(taker) {
-    return 'Two quick asks: would you leave us a Google review? And please ' + taker +
-      ' our short program evaluation. Your feedback keeps our classes strong.';
+  function markSafeSitter(text) {
+    return String(text).replace(/Safe Sitter(?!®)/g, 'Safe Sitter®');
   }
 
   var DRAFTS = [
     {
       keys: ['Safe Sitter®'],
-      subject: 'Thank you for a great Safe Sitter class',
+      subject: 'Thank you for a great Safe Sitter® class',
       greeting: 'Hi there,',
-      taker: 'complete',
+      embeddedAsks: true,
       paragraphs: [
-        'Thank you for trusting Mindful Beginnings with your child\'s Safe Sitter training. Your child practiced the real skills sitters need, from handling emergencies to caring for younger children and making safe choices when no adult is in the room.',
-        'Please keep practicing the Safety Signal at home, your family\'s code phrase that means "come pick me up now, no questions asked." And remember that finishing Safe Sitter is a wonderful foundation, but it doesn\'t automatically mean your child is ready to babysit alone. Trust your judgment on timing.',
-        'When they\'re ready for the next step, Safe Sitter Babysitting Essentials builds on everything they learned today.'
+        'Thank you for trusting Mindful Beginnings with your child. We hope they came home feeling confident, capable, and proud of everything they accomplished.',
+        'The most important thing your child learned today is the Safety Signal. If you ever receive a text or call that says, "I\'m ready to be picked up now," that is their signal that they feel unsafe. Please go immediately, do not ask questions, and let them explain once they are in the car. This signal works in any situation, not only babysitting.',
+        'The course is a meaningful achievement, but it does not automatically mean your child is ready to babysit or stay home alone, so please assess their readiness based on their individual maturity. We ask students to take jobs only with friends, neighbors, and others you or they know personally, and never to advertise online. And a quick conversation after each job gives your child helpful guidance while keeping you informed about what they are experiencing.',
+        'If you have a moment, two small things would mean a great deal to us. A Google review helps other families find us! And our short program evaluation helps us improve every session.',
+        'Thank you again for being part of the Mindful Beginnings community. We are so glad your child is now a certified Safe Sitter®!'
       ]
     },
     {
@@ -44,7 +46,7 @@
       taker: 'complete',
       paragraphs: [
         'Thank you for bringing your child to Introduction to Safe Babysitting by Safe Sitter®. They got a first taste of a sitter\'s world: basic child care, safety awareness, and how to stay calm and think clearly when something unexpected happens.',
-        'This class plants the seed. When your child turns 11, Safe Sitter is the natural next step, with deeper training in emergencies, rescue skills, and real sitting scenarios. We loved having your child in class and hope they left excited about what\'s ahead.'
+        'This class plants the seed. When your child turns 11, Safe Sitter® is the natural next step, with deeper training in emergencies, rescue skills, and real sitting scenarios. We loved having your child in class and hope they left excited about what\'s ahead.'
       ]
     },
     {
@@ -174,7 +176,7 @@
       taker: 'complete',
       paragraphs: [
         'Thank you for joining My First Babysitters Club. Your child started building real babysitting skills early through fun, hands-on activities: safety basics, child care know-how, and the confidence to step up and help.',
-        'As they grow, Introduction to Safe Babysitting and then Safe Sitter at age 11 keep the journey going. Ask them to show you what they practiced. Kids retain so much more when they get to teach it.'
+        'As they grow, Introduction to Safe Babysitting and then Safe Sitter® at age 11 keep the journey going. Ask them to show you what they practiced. Kids retain so much more when they get to teach it.'
       ]
     },
     {
@@ -214,7 +216,7 @@
       taker: 'complete',
       paragraphs: [
         'Thank you for bringing your troop to our First Aid Badge Workshop. Your scouts earned real skills today: responding in an emergency, treating everyday injuries, and staying calm under pressure.',
-        'Scouts who want to keep building on this love Safe Sitter, where first aid meets full babysitting training. And thank you for leading them. Troop leaders like you make these experiences possible.'
+        'Scouts who want to keep building on this love Safe Sitter®, where first aid meets full babysitting training. And thank you for leading them. Troop leaders like you make these experiences possible.'
       ]
     },
     {
@@ -305,23 +307,34 @@
         if (hit) { d = DRAFTS[j]; break; }
       }
     }
-    var plain = d.greeting + '\n\n' + d.paragraphs.join('\n\n') + '\n\n' +
-      'Two quick asks: would you leave us a Google review (' + REVIEW_URL +
-      ')? And please ' + d.taker + ' our short program evaluation (' + EVAL_URL +
-      '). Your feedback keeps our classes strong.' +
-      '\n\n' + SIGNOFF;
+    var subject = markSafeSitter(d.subject);
+    var paragraphs = d.paragraphs.map(markSafeSitter);
     var esc = function (t) {
       return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     };
-    var htmlParas = d.paragraphs.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('');
-    var htmlAsks = '<p>Two quick asks: would you leave us a <a href="' + REVIEW_URL + '">Google review</a>? ' +
-      'And please ' + esc(d.taker) + ' our short <a href="' + EVAL_URL + '">program evaluation</a>. ' +
-      'Your feedback keeps our classes strong.</p>';
-    var htmlSign = '<p>Warmly,<br>Lindsay Karr, M.Ed. | Founder, Mindful Beginnings</p>';
+    var plain = d.greeting + '\n\n' + paragraphs.join('\n\n');
+    var htmlParas = paragraphs.map(function (p) {
+      var html = esc(p);
+      if (d.embeddedAsks) {
+        html = html.replace('Google review', '<a href="' + REVIEW_URL + '">Google review</a>');
+        html = html.replace('program evaluation', '<a href="' + EVAL_URL + '">program evaluation</a>');
+      }
+      return '<p>' + html + '</p>';
+    }).join('');
+    var htmlAsks = '';
+    if (!d.embeddedAsks) {
+      plain += '\n\n' +
+        'Two quick asks: would you leave us a Google review (' + REVIEW_URL +
+        ')? And please ' + d.taker + ' our short program evaluation (' + EVAL_URL +
+        '). Your feedback keeps our classes strong.';
+      htmlAsks = '<p>Two quick asks: would you leave us a <a href="' + REVIEW_URL + '">Google review</a>? ' +
+        'And please ' + esc(d.taker) + ' our short <a href="' + EVAL_URL + '">program evaluation</a>. ' +
+        'Your feedback keeps our classes strong.</p>';
+    }
     return {
-      subject: d.subject,
+      subject: subject,
       body: plain,
-      bodyHtml: '<p>' + esc(d.greeting) + '</p>' + htmlParas + htmlAsks + htmlSign
+      bodyHtml: '<p>' + esc(d.greeting) + '</p>' + htmlParas + htmlAsks
     };
   }
 

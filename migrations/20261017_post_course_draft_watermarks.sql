@@ -1,7 +1,8 @@
--- Watermarks for the automated post-course Outlook draft cron
--- (api/cron/post-course-drafts.js). One row per session means a draft was
--- created in Lindsay's Outlook drafts folder, so each class gets drafted
--- exactly once. Drafts are NEVER sent automatically.
+-- Watermarks from the old post-course Outlook draft cron
+-- (api/cron/post-course-drafts.js). That cron is turned off: vercel.json
+-- does not schedule it, and the handler returns without creating Graph
+-- drafts. Rows already stored here stay put. Drafts were never sent
+-- automatically.
 
 create table if not exists post_course_draft_watermarks (
   session_id text primary key,

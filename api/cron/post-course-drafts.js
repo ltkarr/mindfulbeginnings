@@ -188,8 +188,7 @@ function genericFallbackDraft(course) {
     '. We hope you or your child came home feeling confident, capable, and proud of everything accomplished.</p>' +
     '<p>Two quick asks: would you leave us a <a href="' + REVIEW_URL + '">Google review</a>? ' +
     'And please complete our short <a href="' + EVAL_URL + '">program evaluation</a>. ' +
-    'Your feedback keeps our classes strong.</p>' +
-    '<p>Warmly,<br>Lindsay Karr, M.Ed. | Founder, Mindful Beginnings</p>';
+    'Your feedback keeps our classes strong.</p>';
   return { subject: subject, body: 'Thank you for choosing Mindful Beginnings.', bodyHtml: bodyHtml };
 }
 
