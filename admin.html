@@ -3200,11 +3200,37 @@ function sessionRevenueNotes(s,f){
   return '';
 }
 
+// One instructor row on the post-class wrap-up, with the referral bonus taken
+// back out. Session profit adds that bonus once on its own line. The dollar
+// before the bonus is wrapupPayAmount, so a recorded payout, paid travel
+// hours, a flat override, and the hourly formula cannot drift from wrap-up.
+function wrapupFeeWithoutBonus(s,instr,jdi,slot){
+  const amt=wrapupPayAmount(s,instr,jdi,slot);
+  if(amt==null||!isFinite(Number(amt)))return 0;
+  if(slot==='second')return Number(amt);
+  const bonus=Number(jdi&&jdi.referralBonus)||0;
+  return Number(amt)-(isFinite(bonus)&&bonus>0?bonus:0);
+}
 function calcFin(s){
-  // Custom jobs have no registrations or course pricing. Pay is the flat instructor amount;
-  // revenue is whatever the organization pays Mindful Beginnings (stored in priceOverride, optional).
+  // Custom jobs have no registrations or course pricing. Pay is the wrap-up
+  // amount for each instructor (a recorded payout if one was saved, otherwise
+  // the flat instr_pay_override). Revenue is whatever the organization pays
+  // Mindful Beginnings (stored in priceOverride, optional).
   if(s.isCustomJob){
-    const pay=s.instrPayOverride!=null?Number(s.instrPayOverride):0;
+    const jdiJob=sessionJobData(s);
+    const rosterJob=(typeof instructors!=='undefined'&&instructors)||[];
+    const personJob=id=>id?(rosterJob.find(x=>x&&x.id===id)||{hourlyRate:(typeof INSTR_RATE!=='undefined')?INSTR_RATE:50}):null;
+    const primaryJob=sessionPrimaryInstructorId(s);
+    let pay=0;
+    if(typeof wrapupPayAmount==='function'){
+      if(!s.ownerTaught){
+        const amt=wrapupPayAmount(s,personJob(primaryJob),jdiJob,'primary');
+        if(amt!=null&&isFinite(Number(amt)))pay+=Number(amt);
+      }
+      if(s.secondInstructorId&&s.secondInstructorId!==primaryJob)pay+=wrapupFeeWithoutBonus(s,personJob(s.secondInstructorId),jdiJob,'second');
+    }else{
+      pay=s.instrPayOverride!=null?Number(s.instrPayOverride):0;
+    }
     const orgFee=s.priceOverride!=null?Number(s.priceOverride):0;
     // Facility rental, parking, printing, and other costs entered on the job come off
     // the top. Per-student handbook lines do not. Those purchases are overhead.
@@ -3240,22 +3266,27 @@ function calcFin(s){
   // Handbook and student-supply cost is an overhead expense, not a per-student
   // deduction. matCost stays on the result so older readers keep working.
   const matCost=0;
-  // Instructor cost. An accepted or assigned person is paid their own rate:
-  // a Lead Teacher at $75, otherwise their hourly rate, otherwise $50. The
-  // same rule applies to the second slot. An empty primary slot is estimated
-  // at the Lead Teacher rate for every course. A flat override wins, and a
-  // paid slot keeps the frozen amount.
+  // Instructor cost is the wrap-up amount for each instructor who is paid.
+  // wrapupPayAmount is teaching hours (or the course default) plus
+  // paid_travel_hours, times that instructor's rate. A flat
+  // instr_pay_override replaces that. A recorded payout (paid_fee, or
+  // second_instr_paid_fee) replaces the formula. The primary referral bonus
+  // is added once below, not inside instrFee. An empty primary slot is not a
+  // wrap-up dollar; company profit keeps the Lead Teacher estimate.
   const jdiFin=sessionJobData(s);
   const primaryId=sessionPrimaryInstructorId(s);
   const secondId=(s.secondInstructorId&&s.secondInstructorId!==primaryId)?s.secondInstructorId:null;
+  const rosterFin=(typeof instructors!=='undefined'&&instructors)||[];
+  const personFin=id=>id?(rosterFin.find(x=>x&&x.id===id)||{hourlyRate:(typeof INSTR_RATE!=='undefined')?INSTR_RATE:50}):null;
   let instrFee=0;
   const addPerson=(id,isSecond)=>{
-    const roster=(typeof instructors!=='undefined'&&instructors)||[];
-    const inst=roster.find(x=>x&&x.id===id)||{hourlyRate:(typeof INSTR_RATE!=='undefined')?INSTR_RATE:50};
-    instrFee+=isSecond?secondInstrDisplayFee(s,inst,jdiFin):instrDisplayFee(s,inst,jdiFin);
+    const inst=personFin(id);
+    const slot=isSecond?'second':'primary';
+    if(typeof wrapupFeeWithoutBonus==='function')instrFee+=wrapupFeeWithoutBonus(s,inst,jdiFin,slot);
+    else instrFee+=isSecond?secondInstrDisplayFee(s,inst,jdiFin):instrDisplayFee(s,inst,jdiFin);
   };
   if(s.ownerTaught){
-    // You teach for free — but a co-instructor, if assigned, is still paid.
+    // You teach for free. A co-instructor, if assigned, is still paid.
     if(secondId)addPerson(secondId,true);
   }else if(instructorCostIsEstimate(s)){
     instrFee+=instrEstimateFee(s);
@@ -3263,8 +3294,8 @@ function calcFin(s){
   }else if(!primaryId){
     // Override, or a fee frozen when the job was marked paid, with nobody
     // currently in the primary slot. Do not also invent a Lead Teacher guess.
-    if(jdiFin.payStatus==='paid'&&jdiFin.paidFee!=null)instrFee+=Number(jdiFin.paidFee)||0;
-    else if(payOverrideIsSet(s)&&!secondId)instrFee+=Number(s.instrPayOverride);
+    if(jdiFin.payStatus==='paid'&&jdiFin.paidFee!=null)instrFee+=(typeof wrapupFeeWithoutBonus==='function')?wrapupFeeWithoutBonus(s,null,jdiFin,'primary'):Number(jdiFin.paidFee)||0;
+    else if(payOverrideIsSet(s)&&!secondId)instrFee+=(typeof wrapupFeeWithoutBonus==='function')?wrapupFeeWithoutBonus(s,null,jdiFin,'primary'):Number(s.instrPayOverride);
     if(secondId)addPerson(secondId,true);
   }else{
     addPerson(primaryId,false);
