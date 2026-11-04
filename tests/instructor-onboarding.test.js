@@ -1,7 +1,9 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { spawnSync } = require('child_process');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -68,6 +70,39 @@ test('quiz never reveals the correct answers after grading', () => {
   assert.doesNotMatch(page, /correct answers are highlighted/);
   assert.match(page, /You missed this one\. Work it out in/);
   assert.match(page, /right answers are not shown on purpose/);
+});
+
+function extractInlineScripts(html) {
+  const scripts = [];
+  const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+  let match;
+  while ((match = re.exec(html))) {
+    const attrs = match[1] || '';
+    if (/\bsrc\s*=/i.test(attrs)) continue;
+    const typeMatch = attrs.match(/\btype\s*=\s*["']([^"']+)["']/i);
+    const type = typeMatch ? typeMatch[1].toLowerCase() : '';
+    if (type && type !== 'text/javascript' && type !== 'application/javascript' && type !== 'text/ecmascript' && type !== 'module') {
+      continue;
+    }
+    scripts.push(match[2]);
+  }
+  return scripts;
+}
+
+test('onboarding page inline script passes node --check', () => {
+  const scripts = extractInlineScripts(page);
+  assert.ok(scripts.length > 0, 'instructor-onboarding.html has no inline script to syntax-check');
+  scripts.forEach((code, index) => {
+    const file = path.join(os.tmpdir(), 'mb-onboarding-' + process.pid + '-' + index + '.js');
+    fs.writeFileSync(file, code);
+    try {
+      const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
+      const detail = (result.stderr || result.stdout || 'node --check failed').trim();
+      assert.equal(result.status, 0, detail);
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
+  });
 });
 
 test('admin has an onboarding screen wired to renderOnboarding', () => {
