@@ -1258,7 +1258,7 @@ function sessionOptionalColToast(f){
   if(f.missingPaidTravel||f.missingTeachingHours)return '⚠️ Saved, but WITHOUT class length / paid travel hours — run migrations/20261020_paid_travel_hours.sql in the Supabase SQL editor, then re-save this session.';
   if(f.missingParticipantsExpected)return PARTICIPANTS_EXPECTED_SQL_TOAST;
   if(f.missingTroopLevel)return TROOP_LEVEL_SQL_TOAST;
-  if(f.missingCountyDisclaimer)return '⚠️ Saved, but WITHOUT the Montgomery County disclaimer setting — run migrations/20261102_county_disclaimer.sql in the Supabase SQL editor, then re-save this session.';
+  if(f.missingCountyDisclaimer)return '⚠️ Saved, but WITHOUT the Montgomery County disclaimer setting. Run migrations/20261102_county_disclaimer.sql in the Supabase SQL editor, then re-save this session.';
   if(f.missingGrantTag)return GRANT_TAG_SQL_TOAST;
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
@@ -2328,22 +2328,20 @@ function orgRegistrationFieldHtml(s, codeInputId){
     </div>`;
 }
 function countyDisclaimerFieldHtml(s){
-  const v=s&&s.countyDisclaimer===true?'show':(s&&s.countyDisclaimer===false?'hide':'auto');
+  const show=!!(s&&s.countyDisclaimer===true);
   return `<div class="fg full"><label>Montgomery County disclaimer</label>
     <select id="m-county-disclaimer">
-      <option value="auto" ${v==='auto'?'selected':''}>Automatic — schools and Edgemoor</option>
-      <option value="show" ${v==='show'?'selected':''}>Always show</option>
-      <option value="hide" ${v==='hide'?'selected':''}>Hide for this session</option>
+      <option value="hide"${show?'':' selected'}>Don't show</option>
+      <option value="show"${show?' selected':''}>Always show</option>
     </select>
-    <div style="font-size:14px;color:var(--muted);margin-top:4px">Registration shows “This activity is not sponsored, associated with, or endorsed by Montgomery County Government” when the site name or address contains School, Elementary, Middle, High, MCPS, or Edgemoor. Always show or Hide overrides that.</div>
+    <div style="font-size:14px;color:var(--muted);margin-top:4px">Registration shows this line only when you choose Always show: This activity is not sponsored, associated with, or endorsed by Montgomery County Government. Don't show leaves it off for every location, including schools and Edgemoor.</div>
   </div>`;
 }
 function readCountyDisclaimer(){
   const el=document.getElementById('m-county-disclaimer');
   if(!el)return undefined;
   if(el.value==='show')return true;
-  if(el.value==='hide')return false;
-  return null;
+  return false;
 }
 function toggleOrgRegistration(on, codeInputId){
   const wrap=document.getElementById(codeInputId+'-wrap');
