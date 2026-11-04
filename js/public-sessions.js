@@ -111,6 +111,17 @@
     return COURSE_PUBLIC_NAME[name] || name;
   }
 
+  // Hybrid means the course itself mixes online learning with an in-person
+  // session, and that is in the course name: "(Online + Classroom)" or
+  // "(Hybrid)". A plain Red Cross certification course is fully in person
+  // even though it carries the same certification line (Lindsay flagged the
+  // Jan 9, 2027 Babysitter's Training + Pediatric combo, 9:00 AM to 4:20 PM,
+  // showing under the Hybrid filter on 2026-11-03: it is in person, 7 hours
+  // 20 minutes, not hybrid). Never infer hybrid from redCross/cert status.
+  function isHybridCourse(course) {
+    return /\(online \+ classroom\)|\(hybrid\)/i.test(String(course || ''));
+  }
+
   // Shown on the public class list and on registration cards. The listed
   // price is unchanged. This only says the workshop is often funded.
   var GRANT_NOTE = 'This program is usually offered FREE through grant funds, community wellness funds, or PTAs.';
@@ -517,6 +528,7 @@
     monthLabel: monthLabel,
     courseAudience: courseAudience,
     coursePublicName: coursePublicName,
+    isHybridCourse: isHybridCourse,
     GRANT_NOTE: GRANT_NOTE,
     ACL_DISCLAIMER: ACL_DISCLAIMER,
     SRF_FREE_NOTE: SRF_FREE_NOTE,

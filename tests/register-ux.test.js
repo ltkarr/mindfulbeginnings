@@ -48,6 +48,12 @@ test('step 1 lists public sessions first, then the private/host code entry at th
   assert.match(register, /data-chip="babysitting"/);
   assert.match(register, /data-chip="redcross"/);
   assert.match(register, /function sessionMatchesChip/);
+  // Hybrid chip = blended courses only (name carries Online + Classroom /
+  // Hybrid). Plain Red Cross certification courses are fully in person and
+  // must not match it (regression: Jan 9, 2027 Babysitter's Training +
+  // Pediatric combo under Hybrid, flagged 2026-11-03).
+  assert.match(register, /chip==='hybrid'\)return !virtual&&isHybridCourse\(row&&row\.course\)/);
+  assert.doesNotMatch(register, /chip==='hybrid'\)return !virtual&&isArcCertCourse/);
   assert.match(register, /don’t appear in the public list/);
   assert.match(register, /enter it below/);
   assert.doesNotMatch(register, /enter it above/);

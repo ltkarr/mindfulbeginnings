@@ -1248,6 +1248,14 @@ function isArcCertCourse(course){
   const cfg=table&&table[name];
   return !!(cfg&&cfg.redCross)||/adult\s*&\s*pediatric first aid\/cpr\/aed|adult first aid\/cpr\/aed|basic life support|\(bls\)/i.test(name);
 }
+// Hybrid is a property of the course name ("(Online + Classroom)" or
+// "(Hybrid)"), NOT of Red Cross certification: the plain certification
+// courses are fully in person and must not surface under the Hybrid chip.
+function isHybridCourse(course){
+  const helpers=window.MBPublicSessions;
+  if(helpers&&typeof helpers.isHybridCourse==='function')return !!helpers.isHybridCourse(course);
+  return /\(online \+ classroom\)|\(hybrid\)/i.test(String(course||''));
+}
 function sessionMatchesChip(row, chip){
   if(!chip||chip==='all')return true;
   if(chip==='free'){
@@ -1260,7 +1268,7 @@ function sessionMatchesChip(row, chip){
   const virtual=isVirtualRow(row);
   if(chip==='virtual')return virtual;
   if(chip==='inperson')return !virtual;
-  if(chip==='hybrid')return !virtual&&isArcCertCourse(row&&row.course);
+  if(chip==='hybrid')return !virtual&&isHybridCourse(row&&row.course);
   if(chip==='redcross')return isArcCertCourse(row&&row.course);
   if(chip==='babysitting')return /babysit|safe sitter/i.test(String(row&&row.course||''));
   return true;

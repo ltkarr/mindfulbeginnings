@@ -24,6 +24,7 @@ const {
   todayLocalISO,
   addDaysISO,
   courseAudience,
+  isHybridCourse,
   applyBrowseFilters,
   sliceForDisplay,
   matchesPriceFilter,
@@ -321,6 +322,26 @@ test('sessionPriceLabel is parent-facing (Free / whole dollars / cents)', () => 
   assert.equal(sessionPriceLabel(185), '$185 per person');
   assert.equal(sessionPriceLabel(40.5), '$40.50 per person');
   assert.equal(sessionPriceLabel(null), '');
+});
+
+test('isHybridCourse: only (Online + Classroom) / (Hybrid) courses are hybrid', () => {
+  // Truly blended: online learning plus an in-person session.
+  assert.equal(isHybridCourse("Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED (Online + Classroom)"), true);
+  assert.equal(isHybridCourse('Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)'), true);
+  assert.equal(isHybridCourse('Adult & Pediatric First Aid/CPR/AED Certification (Hybrid)'), true);
+  assert.equal(isHybridCourse('Adult First Aid/CPR/AED Certification (Hybrid)'), true);
+  assert.equal(isHybridCourse('Basic Life Support (BLS) Certification (Hybrid)'), true);
+  // Fully in person, even though they are Red Cross certification courses.
+  // Regression (2026-11-03): the plain Babysitter's Training + Pediatric
+  // combo (7 hours 20 minutes) surfaced under the register Hybrid filter.
+  assert.equal(isHybridCourse("Red Cross Babysitter's Training + Pediatric First Aid/CPR/AED"), false);
+  assert.equal(isHybridCourse('Adult & Pediatric First Aid/CPR/AED Certification'), false);
+  assert.equal(isHybridCourse('Adult First Aid/CPR/AED Certification'), false);
+  assert.equal(isHybridCourse('Basic Life Support (BLS) Certification'), false);
+  assert.equal(isHybridCourse("Babysitter's Training"), false);
+  assert.equal(isHybridCourse('Safe Sitter®'), false);
+  assert.equal(isHybridCourse(''), false);
+  assert.equal(isHybridCourse(null), false);
 });
 
 test('courseAudience prefers config.audience then the built-in map', () => {
