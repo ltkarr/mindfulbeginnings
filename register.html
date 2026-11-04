@@ -3533,8 +3533,11 @@ function sendConfirmationEmail(reg,session,price){
     : amountLine;
   const overviewUrl=overviewUrlForSession(session);
   const courseLabel=publicCourseName(session.course);
-  const courseForEmail=overviewUrl?(courseLabel+(sessionUsesSpanish(session)?'. Descripción del curso: ':'. Course overview: ')+overviewUrl):courseLabel;
-  
+  // The overview link travels ONLY in overview_url. It must never be
+  // appended to the course name: {{course}} feeds the email subject,
+  // where the URL renders as mangled &#x2F; entities (seen live
+  // 2026-11-03). The template renders overview_url as a clean link.
+
   emailjs.send(
     'service_delt0r4',
     'template_c3yfejb',
@@ -3542,7 +3545,7 @@ function sendConfirmationEmail(reg,session,price){
       to_email: parentEmail,
       to_name: reg.parent_name||reg.student_name,
       student_name: reg.student_name+(partnerFromNotes(reg.notes)?' & '+partnerFromNotes(reg.notes):''),
-      course: courseForEmail,
+      course: courseLabel,
       overview_url: overviewUrl,
       date: d,
       time: session.time||'TBD',
