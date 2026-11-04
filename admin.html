@@ -7508,6 +7508,74 @@ function renderDupeBanner(){
     ${card}${footNote}</div>`;
 }
 
+// Instructor lines under Revenue. The amounts are the same dollars Net already
+// subtracts: wrap-up pay (a recorded payout when one is saved, otherwise
+// teaching hours plus paid travel hours times the rate, or a flat override).
+// A second instructor is a second line. A referral bonus sits on the first
+// line for a regular class, because Net adds that bonus once.
+function sessionInstructorPayNotes(s){
+  if(!s)return [];
+  const jdi=sessionJobData(s);
+  const roster=(typeof instructors!=='undefined'&&Array.isArray(instructors))?instructors:[];
+  const person=id=>{
+    if(!id)return null;
+    return roster.find(x=>x&&x.id===id)||null;
+  };
+  const named=(inst,fallback)=>(inst&&inst.name)?inst.name:fallback;
+  const rateStub={hourlyRate:(typeof INSTR_RATE!=='undefined')?INSTR_RATE:50};
+  const primaryId=sessionPrimaryInstructorId(s);
+  const secondId=(s.secondInstructorId&&s.secondInstructorId!==primaryId)?s.secondInstructorId:null;
+  const lines=[];
+  const push=(amount,name,estimated)=>{
+    lines.push({amount:Number(amount)||0,name:name||'Instructor',estimated:!!estimated});
+  };
+  const slotFee=(inst,slot)=>{
+    const who=slot==='primary'&&!inst?null:(inst||rateStub);
+    if(typeof wrapupFeeWithoutBonus==='function')return wrapupFeeWithoutBonus(s,who,jdi,slot);
+    if(slot==='second')return (typeof secondInstrDisplayFee==='function')?secondInstrDisplayFee(s,inst||rateStub,jdi):0;
+    if(jdi.payStatus==='paid'&&jdi.paidFee!=null)return Number(jdi.paidFee)||0;
+    return (typeof instrDisplayFee==='function')?instrDisplayFee(s,inst||rateStub,jdi):0;
+  };
+  if(s.isCustomJob){
+    if(s.ownerTaught)push(0,'You',false);
+    else{
+      let amt=0;
+      if(typeof wrapupPayAmount==='function'){
+        const n=wrapupPayAmount(s,person(primaryId),jdi,'primary');
+        if(n!=null&&isFinite(Number(n)))amt=Number(n);
+      }else if(s.instrPayOverride!=null&&s.instrPayOverride!=='')amt=Number(s.instrPayOverride)||0;
+      push(amt,named(person(primaryId),'not yet assigned'),false);
+    }
+    if(secondId)push(slotFee(person(secondId),'second'),named(person(secondId),'Second instructor'),false);
+    return lines;
+  }
+  if(s.ownerTaught)push(0,'You',false);
+  else if(typeof instructorCostIsEstimate==='function'&&instructorCostIsEstimate(s)){
+    push((typeof instrEstimateFee==='function')?instrEstimateFee(s):0,'not yet assigned',true);
+  }else if(!primaryId){
+    let amt=0;
+    if(jdi.payStatus==='paid'&&jdi.paidFee!=null)amt=slotFee(null,'primary');
+    else if(typeof payOverrideIsSet==='function'&&payOverrideIsSet(s)&&!secondId)amt=slotFee(null,'primary');
+    push(amt,'not yet assigned',false);
+  }else{
+    const inst=person(primaryId);
+    push(slotFee(inst,'primary'),named(inst,'Instructor'),false);
+  }
+  if(secondId){
+    const inst2=person(secondId);
+    push(slotFee(inst2,'second'),named(inst2,'Second instructor'),false);
+  }
+  const bonus=Number(jdi.referralBonus)||0;
+  if(bonus>0&&lines.length)lines[0].amount+=bonus;
+  return lines;
+}
+function sessionInstructorPayNoteHtml(s){
+  return sessionInstructorPayNotes(s).map(function(line){
+    const est=line.estimated?'est. ':'';
+    const title=line.estimated?` title="${INSTR_EST_TITLE}"`:'';
+    return `<span class="pay-note" style="color:#c0392b"${title}>- ${est}${fmt(line.amount)} instructor (${escapeHtml(line.name)})</span>`;
+  }).join('');
+}
 function renderSessions(){
   const cf=document.getElementById('sf-course').value;
   const mf=document.getElementById('sf-month').value;
@@ -7565,7 +7633,8 @@ function renderSessions(){
     const title=cap?` title="${escapeHtml(cap)}"`:'';
     const costNote=f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:'';
     const invNote=(f.inventoryCost||f.inventoryUnpriced)?`<span class="pay-note" style="color:#c0392b" title="Handbooks and certifications this class uses, at the average cost per unit. The bulk card charge is not included here.">+ ${fmt(f.inventoryCost||0)} inventory${f.inventoryUnpriced?' (needs quantity)':''}</span>`:'';
-    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${feeReceivedControl(s,f.orgRevenue)}${extra}${costNote}${invNote}${netLine(f.profit, !!f.instrEstimated)}`;
+    const instrNote=sessionInstructorPayNoteHtml(s);
+    return `<span class="sess-wrap"${title}>${fmt(f.revenue)}</span>${sessionRevenueNotes(s,f)}${feeReceivedControl(s,f.orgRevenue)}${extra}${costNote}${invNote}${instrNote}${netLine(f.profit, !!f.instrEstimated)}`;
   };
   const locCell=s=>adminPlaceHtml(s);
   t.innerHTML=`<colgroup><col class="c-date"><col class="c-course"><col class="c-loc"><col class="c-instr"><col class="c-seats"><col class="c-pay"><col class="c-wrap"><col class="c-mgr"></colgroup><thead><tr><th>Date</th><th>Course</th><th>Location</th><th>Instructor</th><th>Students</th><th>Revenue</th><th>Wrap-up</th><th class="mgr-cell" style="background:white"></th></tr></thead><tbody>`+
@@ -7654,7 +7723,7 @@ function renderSessions(){
           <td><div class="cell-stack">${where}</div></td>
           <td><div class="cell-stack">${instrStatus}</div></td>
           <td><div class="cell-stack"><span class="sess-sub">—</span></div></td>
-          <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.orgRevenue?`<span class="pay-note">Org fee ${fmt(f.orgRevenue)}</span>${feeReceivedControl(s,f.orgRevenue)}`:''}${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${(f.inventoryCost||f.inventoryUnpriced)?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.inventoryCost||0)} inventory${f.inventoryUnpriced?' (needs quantity)':''}</span>`:''}${netLine(f.profit, !!f.instrEstimated)}</div></td>
+          <td style="color:#7a5c1e"><div class="cell-stack"><span class="sess-wrap">${payAmt}</span><span class="pay-note">flat pay</span>${f.orgRevenue?`<span class="pay-note">Org fee ${fmt(f.orgRevenue)}</span>${feeReceivedControl(s,f.orgRevenue)}`:''}${f.extraCosts?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.extraCosts)} costs</span>`:''}${(f.inventoryCost||f.inventoryUnpriced)?`<span class="pay-note" style="color:#c0392b">+ ${fmt(f.inventoryCost||0)} inventory${f.inventoryUnpriced?' (needs quantity)':''}</span>`:''}${sessionInstructorPayNoteHtml(s)}${netLine(f.profit, !!f.instrEstimated)}</div></td>
           <td>${isPast?`<div class="cell-stack"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${instrPaidNow?'var(--success)':'#dde4ee'};margin-right:2px"></span></span><span class="pay-note" style="color:${instrPaidNow?'var(--success)':'var(--muted)'}">${instrPaidNow?'Paid':'Unpaid'}</span></div>`:'<span class="pay-note">Upcoming</span>'}</td>
           ${mgr('#fdf8f0')}</tr>`;
       }
