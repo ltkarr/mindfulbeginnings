@@ -66,7 +66,12 @@ test('a Safe Sitter class prints its own steps, kit, and the checked pre-class b
   assert.match(html, /SS-261031/);
   assert.match(html, /<h2>Teaching steps<\/h2>/);
   assert.ok(model.steps.length <= 12);
-  assert.ok(model.supplies.length <= 16);
+  assert.ok(model.supplies.length <= 22);
+  assert.ok(model.supplies.some((row) => row.label === '1 AV kit'));
+  assert.ok(model.supplies.some((row) => row.label === 'Laptop, case, and speakers (Mindful Beginnings)'));
+  assert.ok(model.supplies.some((row) => /Projector, case, and remote/.test(row.label) && /host provides the wall or screen/.test(row.label)));
+  assert.ok(model.supplies.some((row) => row.label === 'USB-C to HDMI adapter (in the AV kit)'));
+  assert.ok(model.supplies.some((row) => row.label === 'Power strip or cord (in the AV kit)'));
   assert.ok(model.after.length <= 6);
 });
 
@@ -96,6 +101,39 @@ test('Intro to Babysitting, Safe@Home, and Stay Ready do not share the Safe Sitt
   assert.equal(stay.courseId, 'stay-ready');
   assert.ok(stay.steps.some((step) => /0:32 to 0:50/.test(step)));
   assert.ok(stay.supplies.every((row) => !/Safe Sitter handbook/i.test(row.label)));
+});
+
+test('an in-person AV class keeps the kit pieces, and a Zoom class does not pack them', () => {
+  const home = sheet({
+    course: 'Safe@Home',
+    kitLines: ['10 Safe@Home student handbooks (1 per student)', '1 AV kit']
+  });
+  assert.equal(home.courseId, 'safe-at-home');
+  assert.ok(home.supplies.some((row) => row.label === '1 AV kit'));
+  assert.ok(home.supplies.some((row) => /Laptop, case, and speakers/.test(row.label)));
+  assert.equal(home.supplies.some((row) => /if the site needs one/.test(row.label)), false);
+
+  const intro = sheet({ course: 'Intro to Babysitting', kitLines: ['6 Intro to Babysitting handbooks'] });
+  assert.ok(intro.supplies.some((row) => /USB-C to HDMI adapter/.test(row.label)));
+  assert.equal(intro.supplies.some((row) => /if the site needs one/.test(row.label)), false);
+
+  const zoom = sheet({
+    course: 'Safe@Home',
+    isVirtual: true,
+    zoom: 'https://zoom.us/j/123',
+    kitLines: ['1 AV kit', 'Laptop, case, and speakers (Mindful Beginnings)']
+  });
+  assert.equal(zoom.courseId, 'safe-at-home-virtual');
+  assert.equal(zoom.supplies.some((row) => /laptop/i.test(row.label)), false);
+  assert.equal(zoom.supplies.some((row) => /projector/i.test(row.label)), false);
+  assert.equal(zoom.supplies.some((row) => /HDMI/i.test(row.label)), false);
+  assert.equal(zoom.supplies.some((row) => row.label === '1 AV kit'), false);
+
+  const period = sheet({ course: 'Ready. Period.', kitLines: [] });
+  assert.equal(period.supplies.some((row) => /Laptop, case, and speakers/.test(row.label)), false);
+
+  const bare = sheet({ course: 'Safe Sitter®', kitLines: [] });
+  assert.ok(bare.supplies.some((row) => /Projector, case, and remote/.test(row.label)));
 });
 
 test('a Zoom class prints the link and the virtual plan when that course has one', () => {

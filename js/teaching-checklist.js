@@ -12,6 +12,34 @@
 
   var ROOM = 'Leave the room as you found it. Clear food and drinks, push in chairs, and take every material with you.';
   var KIT_BACK = 'Return the kit after class. It is due back 7 days after the class unless you are keeping it for another session.';
+  // What one AV kit contains. Same pieces named in the instructor loss schedule
+  // (laptop, case, and speakers; projector, case, and remote; power strip or cord)
+  // and in the instructor guide (USB-C to HDMI adapter). The host provides the wall or screen.
+  var AV_PARTS = [
+    'Laptop, case, and speakers (Mindful Beginnings)',
+    'Projector, case, and remote (Mindful Beginnings). The host provides the wall or screen.',
+    'USB-C to HDMI adapter (in the AV kit)',
+    'Power strip or cord (in the AV kit)'
+  ];
+  // Courses whose session kit includes AV (admin MAT_NEEDS av:1) or whose teaching
+  // checklist names a digital presentation. Virtual sessions never get this list.
+  var AV_COURSE_IDS = {
+    'safe-sitter': true,
+    'safe-sitter-essentials': true,
+    'intro-to-babysitting': true,
+    'safe-at-home': true,
+    'safe-at-home-series': true,
+    'stay-ready': true,
+    'season-ready': true,
+    'campus-ready': true,
+    'all-kids-welcome': true,
+    'girl-scout-first-aid': true,
+    'grandparents-started': true,
+    'baby-ready': true,
+    'baby-ready-cpr': true,
+    'care-ready': true,
+    'red-cross': true
+  };
 
   function norm(value) {
     return String(value == null ? '' : value)
@@ -959,9 +987,27 @@
     if (has('infant manikin') && n.indexOf('infant manikin') >= 0) return true;
     if (has('child manikin') && n.indexOf('child manikin') >= 0) return true;
     if (has('adult manikin') && n.indexOf('adult manikin') >= 0) return true;
-    if (has('av kit') && (n.indexOf('av kit') >= 0 || (n.indexOf('laptop') >= 0 && n.indexOf('projector') >= 0))) return true;
     if (has('batter') && n.indexOf('batter') >= 0) return true;
     return false;
+  }
+
+  function isGenericAvLine(line) {
+    return /^\d+ av kits?$/.test(norm(line));
+  }
+
+  function isAvSupplyLine(line) {
+    var n = norm(line);
+    if (isGenericAvLine(line)) return true;
+    if (n.indexOf('hdmi') >= 0 || n.indexOf('power strip') >= 0) return true;
+    if (n.indexOf('laptop') >= 0 && (n.indexOf('speaker') >= 0 || n.indexOf('projector') >= 0)) return true;
+    if (n.indexOf('projector') >= 0 && n.indexOf('host provides the wall') >= 0) return true;
+    return false;
+  }
+
+  function sessionNeedsAvParts(course, input, kit) {
+    if (input && input.isVirtual) return false;
+    if ((kit || []).some(isGenericAvLine)) return true;
+    return !!(course && AV_COURSE_IDS[course.id]);
   }
 
   function supplyList(course, input) {
@@ -981,11 +1027,22 @@
       });
     }
     if (input.isVirtual) {
+      kit = kit.filter(function (line) { return !isAvSupplyLine(line); });
+      packed = kitText(kit);
       extra = extra.filter(function (line) {
         var n = norm(line);
+        if (isAvSupplyLine(line)) return false;
         if (n.indexOf('manikin') >= 0) return false;
-        if (n.indexOf('projector if the site') >= 0) return false;
+        if (n.indexOf('projector') >= 0) return false;
         return true;
+      });
+    } else if (sessionNeedsAvParts(course, input, kit)) {
+      extra = extra.filter(function (line) {
+        var n = norm(line);
+        return !(n.indexOf('laptop') >= 0 && n.indexOf('projector') >= 0 && n.indexOf('if the site') >= 0);
+      });
+      AV_PARTS.forEach(function (line) {
+        if (extra.indexOf(line) < 0) extra.push(line);
       });
     }
     var merged = kit.slice();
