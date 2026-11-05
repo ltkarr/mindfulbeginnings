@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261105-open-requests';
+window.MB_ADMIN_BUILD='20261105-zoom-checklist';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -1358,12 +1358,13 @@ function instructorToDB(i){
   return row;
 }
 function jobFromDB(r){
-  return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,materialsSentAt:r.materials_sent_at||null,materialsOutAt:r.materials_out_at||null,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',repNotified:r.rep_notified||false,badgeSummarySent:!!r.badge_summary_sent,redCrossReported:!!r.red_cross_reported,parentLetterSent:r.parent_letter_sent||false,instrFollowupSent:r.instr_followup_sent||false,instrReminderSent:r.instr_reminder_sent||false,hostReminderSent:r.host_reminder_sent||false,classReminderSent:r.class_reminder_sent||false,evalSentToHost:r.eval_sent_to_host||false,referralBonus:r.referral_bonus||0,secondInstrPaid:r.second_instr_paid||false,secondInstrPayDate:r.second_instr_pay_date||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee),secondInstrPaidFee:r.second_instr_paid_fee==null?null:Number(r.second_instr_paid_fee)};
+  return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,materialsSentAt:r.materials_sent_at||null,materialsOutAt:r.materials_out_at||null,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',repNotified:r.rep_notified||false,badgeSummarySent:!!r.badge_summary_sent,redCrossReported:!!r.red_cross_reported,parentLetterSent:r.parent_letter_sent||false,instrFollowupSent:r.instr_followup_sent||false,instrReminderSent:r.instr_reminder_sent||false,hostReminderSent:r.host_reminder_sent||false,classReminderSent:r.class_reminder_sent||false,instrFinalRosterSent:!!r.instr_final_roster_sent,evalSentToHost:r.eval_sent_to_host||false,referralBonus:r.referral_bonus||0,secondInstrPaid:r.second_instr_paid||false,secondInstrPayDate:r.second_instr_pay_date||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee),secondInstrPaidFee:r.second_instr_paid_fee==null?null:Number(r.second_instr_paid_fee)};
 }
 let MATERIALS_SENT_AT_COL=true;
 let MATERIALS_OUT_AT_COL=true;
 let BADGE_SUMMARY_COL=true;
 let RED_CROSS_REPORTED_COL=true;
+let INSTR_FINAL_ROSTER_COL=true;
 function jobToDB(sessId,j){
   const row={session_id:sessId,instructor_id:j.instructorId||null,waitlist:j.waitlist||[],materials_method:j.materialsMethod||null,materials_sent:j.materialsSent||false,eval_received:j.evalReceived||false,pay_status:j.payStatus||null,pay_date:j.payDate||null,notes:j.notes||'',rep_notified:j.repNotified||false,parent_letter_sent:j.parentLetterSent||false,instr_followup_sent:j.instrFollowupSent||false,instr_reminder_sent:j.instrReminderSent||false,host_reminder_sent:j.hostReminderSent||false,class_reminder_sent:j.classReminderSent||false,eval_sent_to_host:j.evalSentToHost||false,referral_bonus:j.referralBonus||0,second_instr_paid:j.secondInstrPaid||false,second_instr_pay_date:j.secondInstrPayDate||null,paid_fee:j.paidFee==null?null:Number(j.paidFee),second_instr_paid_fee:j.secondInstrPaidFee==null?null:Number(j.secondInstrPaidFee)};
   // Same checkbox as materials_sent. The time is omitted until
@@ -1374,6 +1375,9 @@ function jobToDB(sessId,j){
   if(typeof MATERIALS_OUT_AT_COL==='undefined'||MATERIALS_OUT_AT_COL)row.materials_out_at=j.materialsSent?(j.materialsOutAt||null):null;
   if(typeof BADGE_SUMMARY_COL==='undefined'||BADGE_SUMMARY_COL)row.badge_summary_sent=!!j.badgeSummarySent;
   if(typeof RED_CROSS_REPORTED_COL==='undefined'||RED_CROSS_REPORTED_COL)row.red_cross_reported=!!j.redCrossReported;
+  // Day-before Zoom roster. Omitted until migrations/20261105_zoom_final_roster.sql
+  // has been run, so the rest of the checklist still saves.
+  if(typeof INSTR_FINAL_ROSTER_COL==='undefined'||INSTR_FINAL_ROSTER_COL)row.instr_final_roster_sent=!!j.instrFinalRosterSent;
   return row;
 }
 // Equipment inventory (reusable teaching kits: manikins, AV kits) and their checkouts.
@@ -2657,6 +2661,11 @@ async function upsertJobData(sessId){
     if(RED_CROSS_REPORTED_COL&&/red_cross_reported/i.test(raw)){
       RED_CROSS_REPORTED_COL=false;
       showToast('⚠️ Wrap-up will save, but the Red Cross check needs a database column. Run migrations/20261013_materials_checklist.sql in the Supabase SQL editor.');
+      return upsertJobData(sessId);
+    }
+    if(INSTR_FINAL_ROSTER_COL&&/instr_final_roster_sent/i.test(raw)){
+      INSTR_FINAL_ROSTER_COL=false;
+      showToast('⚠️ The checklist will save, but the final-roster check needs a database column. Run migrations/20261105_zoom_final_roster.sql in the Supabase SQL editor.');
       return upsertJobData(sessId);
     }
     console.error('Failed to save job data (database rejected):',res.error,'\nPayload:',payload);
@@ -6816,15 +6825,24 @@ function ackMilestone(instrId,milestone){
 // materials out for the instructor, and the instructor still gets a reminder.
 // The family reminder stays off that card. The one-week host reminder is not
 // a checklist item, so an unsent host reminder does not keep a class here.
+// A Zoom class has no materials box. It keeps three reminders: a week-before
+// note to the instructor (Zoom link and roster), a week-before Zoom link to
+// participants when someone is registered, and a day-before final roster to
+// the instructor. The day-before box keeps the card on the dashboard until it
+// is checked, even after the week-before boxes are done. Checking a box only
+// records that Lindsay sent it. Nothing in this list sends email.
 function preClassMaterialsLabel(s){
   return (s&&s.isCustomJob)?'Put out materials for the instructor':'Put out handbooks &amp; supplies';
 }
 function preClassInstrReminderLabel(s){
-  if(s&&s.isVirtual)return 'Email instructor the Zoom link + roster';
+  if(s&&s.isVirtual)return 'Week before — email instructor Zoom link + roster';
   return (s&&s.isCustomJob)?'Send reminder to instructor':'Send reminder + roster to instructor';
 }
 function preClassStudentReminderLabel(s){
-  return (s&&s.isVirtual)?'Send Zoom link reminder to students':'Family reminder — before class';
+  return (s&&s.isVirtual)?'Week before — email participants Zoom link':'Family reminder — before class';
+}
+function preClassFinalRosterLabel(s){
+  return 'Day before — send final roster to instructor';
 }
 function preClassShowsStudentCount(s){return !(s&&s.isCustomJob);}
 function preClassLiveStudentCount(s){
@@ -6850,6 +6868,7 @@ function preClassTaskList(s){
   if(!(s&&s.isVirtual))tasks.push({key:'materialsSent',done:!!jd.materialsSent});
   if(hasInstr)tasks.push({key:'instrReminderSent',done:!!jd.instrReminderSent});
   if(preClassNeedsStudentReminder(s))tasks.push({key:'classReminderSent',done:!!jd.classReminderSent});
+  if(s&&s.isVirtual&&hasInstr)tasks.push({key:'instrFinalRosterSent',done:!!jd.instrFinalRosterSent});
   return tasks;
 }
 function preClassChecklistDone(s){
@@ -7340,6 +7359,9 @@ function renderDashboard(){
           }
           if(t.key==='instrReminderSent'){
             return item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,preClassInstrReminderLabel(s),sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee'));
+          }
+          if(t.key==='instrFinalRosterSent'){
+            return item(!!jd.instrFinalRosterSent,`toggleReminderFlag('${s.id}','instrFinalRosterSent',this.checked)`,preClassFinalRosterLabel(s),sendBtn(`openInstructorFinalRoster('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee'));
           }
           return item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,preClassStudentReminderLabel(s),sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8'));
         });
@@ -12380,7 +12402,7 @@ function downloadPackingPdf(){
 function toggleReminderFlag(sessId,field,checked){
   if(!jobDataCache[sessId])jobDataCache[sessId]={waitlist:[]};
   jobDataCache[sessId][field]=checked;
-  const labels={instrReminderSent:'Instructor reminder',hostReminderSent:'Host reminder (1 week before)',classReminderSent:'Family reminder (before class)'};
+  const labels={instrReminderSent:'Instructor reminder',hostReminderSent:'Host reminder (1 week before)',classReminderSent:'Family reminder (before class)',instrFinalRosterSent:'Final roster to instructor (day before)'};
   showToast((labels[field]||'Reminder')+(checked?' marked sent':' marked not sent'));
   renderDashboard();
   upsertJobData(sessId);
@@ -13222,9 +13244,9 @@ function familyForwardMoney(s){
   }
   return {familyPayLine:familyLine,orgCoverLine:orgLine};
 }
-function opsDraft(kind,s){
+function opsDraft(kind,s,extra){
   const api=opsEmailsApi();
-  const info=opsEmailInfo(s);
+  const info=Object.assign(opsEmailInfo(s), extra||{});
   if(!api)return {subject:'',body:'',field:kind==='classReminder'||kind==='postCourse'?'bcc':'to'};
   return api.draft(kind, info);
 }
@@ -13254,13 +13276,13 @@ function openClassReminder(sessId){
   const draft=opsDraft('classReminder', s);
   openDocEmail({
     type:'classReminder',
-    category:s.isVirtual?'Send Zoom link reminder to students':'Family class reminder — before class',
+    category:s.isVirtual?preClassStudentReminderLabel(s):'Family class reminder — before class',
     sessionLine:s.course+' · '+d,
     subject:draft.subject,
     emails:emails,
     field:'bcc',
     body:draft.body,
-    note:s.isVirtual?'This is the Zoom link for registered students. Everyone is BCC so families cannot see each other. Copy the message and the BCC list. Addresses are separated with semicolons.':'This is the before-class note for families (what to pack, and the meal). Everyone is BCC so families cannot see each other. Edit the meal line if it still shows a placeholder, then copy the message and the BCC list. Addresses are separated with semicolons.'
+    note:s.isVirtual?'This is the week-before Zoom link for registered participants. Everyone is BCC so families cannot see each other. Copy the message and the BCC list. Addresses are separated with semicolons.':'This is the before-class note for families (what to pack, and the meal). Everyone is BCC so families cannot see each other. Edit the meal line if it still shows a placeholder, then copy the message and the BCC list. Addresses are separated with semicolons.'
   });
 }
 
@@ -19052,14 +19074,51 @@ function openInstructorReminder(sessId,specificInstrId){
   // Instructor-facing notes only. adminPrivateNotes is never included in email.
   if(s.notes)detailLines.push('Notes: '+s.notes);
   const where=s.isVirtual?'Virtual (Zoom)':(s.location?(s.location+(s.city?', '+s.city:'')):'TBD');
+  const virtual=!!s.isVirtual;
+  const draft=virtual?opsDraft('instructorZoomReminder', s, {instructor:instr.name||''}):null;
   openDocEmail({
     type:'instructorReminder',
-    category:s.isVirtual?'Email instructor the Zoom link + roster':'Send reminder + roster to instructor',
+    category:virtual?preClassInstrReminderLabel(s):'Send reminder + roster to instructor',
     sessionLine:s.course+' · '+when+' · '+(instr.name||''),
     field:'to',
     emails:instr.email?[instr.email]:[],
-    subject:'Reminder: your upcoming '+s.course+' course'+(when&&when!=='To be confirmed'?' on '+when:''),
-    note:s.isVirtual?'Email the instructor the Zoom link and the roster. Session facts for this class are below. Nothing is sent from this screen.':'Paste the instructor reminder from the Google Doc. Print the roster and attach it before you send. Session facts for this class are below.',
+    subject:virtual?draft.subject:('Reminder: your upcoming '+s.course+' course'+(when&&when!=='To be confirmed'?' on '+when:'')),
+    body:virtual?draft.body:'',
+    note:virtual?'This is the week-before note for the instructor. It includes the Zoom link and the current roster. Copy the message, then print or copy the roster below.':'Paste the instructor reminder from the Google Doc. Print the roster and attach it before you send. Session facts for this class are below.',
+    extraHtml:emailFactsHtml('Session facts', detailLines.join('\n'))+classRosterSection(s, regs, {when:when, where:where, who:instr.name, privateCols:true}),
+    copyExtra:detailLines.join('\n'),
+    copyExtraLabel:'Copy details',
+    hasRoster:true
+  });
+}
+
+// Day before a Zoom class. The roster in this window is the final one.
+// Copy only — the same window as the other ops emails. Nothing is sent.
+function openInstructorFinalRoster(sessId,specificInstrId){
+  const s=sessions.find(x=>x.id===sessId);if(!s)return;
+  const targetId=specificInstrId||(jobDataCache[sessId]||{}).instructorId||s.instructorId;
+  const instr=instructors.find(x=>x.id===targetId);
+  if(!instr){alert('No instructor assigned to this session yet.');return;}
+  const d=s.date?new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'';
+  const when=openJobMeetings(s).length>1?openJobWhenText(s,''):(d||'To be confirmed');
+  const regs=registrations.filter(r=>r.sessionId===sessId&&isLiveReg(r));
+  const where=s.isVirtual?'Virtual (Zoom)':(s.location?(s.location+(s.city?', '+s.city:'')):'TBD');
+  const draft=opsDraft('instructorFinalRoster', s, {instructor:instr.name||''});
+  const detailLines=['Course: '+s.course,'Date: '+when];
+  if(openJobMeetings(s).length<2)detailLines.push('Time: '+(s.time||'To be confirmed'));
+  detailLines.push('Format: Virtual (Zoom)');
+  detailLines.push('Zoom link: '+(s.zoomLink||'Link to be provided'));
+  detailLines.push('Session code: '+s.code);
+  detailLines.push(rosterCountPhrase(s.course, regs));
+  openDocEmail({
+    type:'instructorFinalRoster',
+    category:preClassFinalRosterLabel(s),
+    sessionLine:s.course+' · '+when+' · '+(instr.name||''),
+    field:'to',
+    emails:instr.email?[instr.email]:[],
+    subject:draft.subject,
+    body:draft.body,
+    note:'This is the day-before final roster for the instructor. The Zoom link is in the message. Copy the message, then print or copy the roster below.',
     extraHtml:emailFactsHtml('Session facts', detailLines.join('\n'))+classRosterSection(s, regs, {when:when, where:where, who:instr.name, privateCols:true}),
     copyExtra:detailLines.join('\n'),
     copyExtraLabel:'Copy details',
