@@ -1,4 +1,4 @@
-/* ADMIN class-request inbox. One status, a linked session code, and the full text. Does not send email. */
+/* ADMIN class-request inbox. Received stays on the list. Replied (and any later status) stays in the database and leaves the list. Does not send email. */
 (function (root) {
   'use strict';
 
@@ -12,9 +12,7 @@
 
   var REQUEST_STATUSES = [
     { value: 'received', label: 'Received' },
-    { value: 'replied', label: 'Replied' },
-    { value: 'confirmed', label: 'Confirmed' },
-    { value: 'session_built', label: 'Session built' }
+    { value: 'replied', label: 'Replied' }
   ];
 
   function canonicalStatus(row) {
@@ -25,10 +23,19 @@
     return 'received';
   }
 
+  function isOpenRequest(row) {
+    return canonicalStatus(row) === 'received';
+  }
+
+  function shownStatus(row) {
+    return isOpenRequest(row) ? 'received' : 'replied';
+  }
+
   function statusLabel(value) {
     var hit = REQUEST_STATUSES.filter(function (item) { return item.value === value; })[0];
     if (hit) return hit.label;
-    if (model && model.STATUS_LABELS && model.STATUS_LABELS[value]) return model.STATUS_LABELS[value];
+    if (value === 'received') return 'Received';
+    if (value === 'replied') return 'Replied';
     return 'Received';
   }
 
@@ -36,18 +43,19 @@
     return canonicalStatus(row);
   }
 
-  function openCount(rows) {
-    return (rows || []).filter(function (row) { return canonicalStatus(row) !== 'session_built'; }).length;
+  function receivedCount(rows) {
+    return (rows || []).filter(function (row) { return isOpenRequest(row); }).length;
   }
 
-  function receivedCount(rows) {
-    return (rows || []).filter(function (row) { return canonicalStatus(row) === 'received'; }).length;
+  function openCount(rows) {
+    return receivedCount(rows);
   }
 
   function matchesFilter(row, filter) {
+    var open = isOpenRequest(row);
     if (filter === 'all') return true;
-    if (filter === 'received' || filter === 'pending') return canonicalStatus(row) === 'received';
-    return canonicalStatus(row) !== 'session_built';
+    if (filter === 'replied' || filter === 'closed') return !open;
+    return open;
   }
 
   function whenText(row) {
@@ -101,42 +109,8 @@
     return rows.join('');
   }
 
-  function instructorLine(row, session) {
-    if (!session) return '';
-    var name = '';
-    if (session.instructorId && typeof instructors !== 'undefined') {
-      var person = instructors.find(function (i) { return i.id === session.instructorId; });
-      name = person ? person.name : '';
-    }
-    if (!session.instructorId) return '';
-    return '<div style="font-size:14px;color:var(--muted);margin-top:6px">Instructor on the session: <strong>' + esc(name || 'assigned') + '</strong></div>';
-  }
-
-  function linkedSession(row, session, sessionList) {
-    if (session) return session;
-    var code = String((row && row.session_code) || '').trim();
-    if (!code) return null;
-    return (sessionList || []).find(function (s) { return s && s.code === code; }) || null;
-  }
-
-  function sessionCodeHtml(row, session) {
-    var code = String(row.session_code || '').trim();
-    var field = '<label style="display:block;font-size:15px;margin-top:10px">Linked session code ' +
-      '<input type="text" value="' + esc(code) + '" placeholder="Optional" ' +
-      'onchange="saveClassRequestCode(\'' + esc(row.id) + '\', this.value)" ' +
-      'style="margin-left:8px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font:inherit"></label>';
-    if (!code) return field;
-    var link;
-    if (session && session.id) {
-      link = '<a href="#" onclick="openRequestSession(\'' + esc(row.id) + '\');return false;">' + esc(code) + '</a>';
-    } else {
-      link = '<a href="https://register.mindfulbeginnings.org/register.html?code=' + encodeURIComponent(code) + '" target="_blank" rel="noopener">' + esc(code) + '</a>';
-    }
-    return field + '<div style="font-size:15px;margin-top:4px">Session: ' + link + '</div>';
-  }
-
   function statusSelectHtml(row) {
-    var current = canonicalStatus(row);
+    var current = shownStatus(row);
     var options = REQUEST_STATUSES.map(function (item) {
       return '<option value="' + item.value + '"' + (item.value === current ? ' selected' : '') + '>' + esc(item.label) + '</option>';
     }).join('');
@@ -187,14 +161,12 @@
     add('Referral', (n && n.referral) || payload.referral);
     add('Dates as written', payload.datesText || (n && n.datesText));
     add('Clubs', (n && n.clubs) || payload.clubs);
-    add('Linked session code', row.session_code);
-    add('Status', statusLabel(canonicalStatus(row)));
+    add('Status', statusLabel(shownStatus(row)));
     return lines.join('\n');
   }
 
-  function cardHtml(row, session) {
-    var status = canonicalStatus(row);
-    var label = statusLabel(status);
+  function cardHtml(row) {
+    var label = statusLabel(shownStatus(row));
     var kind = row.kind === 'organization' ? 'Organization' : 'Private host';
     var created = row.created_at ? new Date(row.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
     return '<div class="card" style="padding:16px 18px;margin-bottom:12px">' +
@@ -205,8 +177,6 @@
         '<div style="text-align:right"><span style="background:#e9eff8;color:#27467A;border-radius:100px;padding:3px 10px;font-size:13px;font-weight:700">' + esc(label) + '</span>' +
         '<div style="font-size:13px;color:var(--muted);margin-top:6px">' + esc(created) + '</div></div></div>' +
       statusSelectHtml(row) +
-      sessionCodeHtml(row, session) +
-      instructorLine(row, session) +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
         '<button class="btn sm" type="button" onclick="copyClassRequest(\'' + esc(row.id) + '\')">Copy request</button>' +
         '<button class="btn sm" type="button" style="color:#b91c1c;border-color:#e5b4b4" onclick="deleteClassRequest(\'' + esc(row.id) + '\')">Delete request</button>' +
@@ -215,23 +185,24 @@
       '</div>';
   }
 
-  function renderList(rows, filter, sessionList) {
+  function renderList(rows, filter) {
     var shown = (rows || []).filter(function (row) { return matchesFilter(row, filter || 'open'); });
-    if (!shown.length) return '<div class="card" style="padding:18px;color:var(--muted)">No requests in this view.</div>';
-    return shown.map(function (row) {
-      var session = (sessionList || []).find(function (s) { return s.id === row.session_id; }) || null;
-      return cardHtml(row, linkedSession(row, session, sessionList));
-    }).join('');
+    if (!shown.length) {
+      var empty = filter === 'replied' || filter === 'closed' || filter === 'all'
+        ? 'No requests in this view.'
+        : 'No open requests.';
+      return '<div class="card" style="padding:18px;color:var(--muted)">' + empty + '</div>';
+    }
+    return shown.map(function (row) { return cardHtml(row); }).join('');
   }
 
   function bannerHtml(rows, tableReady) {
     if (tableReady === false) return '';
     var n = openCount(rows);
     if (!n) return '';
-    var fresh = receivedCount(rows);
     return '<div class="card" style="padding:14px 16px;margin-bottom:16px;border-color:#f0d090;background:#fff7e6">' +
-      '<div style="font-weight:700">' + n + ' class request' + (n === 1 ? '' : 's') + ' need attention</div>' +
-      '<div style="font-size:15px;color:#7a5000">' + (fresh ? fresh + ' just received. ' : '') +
+      '<div style="font-weight:700">' + n + ' class request' + (n === 1 ? ' needs' : 's need') + ' attention</div>' +
+      '<div style="font-size:15px;color:#7a5000">' +
       '<a href="#" onclick="showScreen(\'requests\', document.getElementById(\'nav-requests\'));return false;">Open class requests</a></div></div>';
   }
 
@@ -268,18 +239,27 @@
     if (!rootEl) return;
     if (typeof classRequestsTableReady !== 'undefined' && !classRequestsTableReady) {
       rootEl.innerHTML = '<div class="card" style="padding:18px"><strong>Class requests are not in the database yet.</strong><p style="margin:8px 0 0">Run <code>migrations/class_requests.sql</code> in the Supabase SQL editor, then refresh.</p></div>';
+      var missing = document.getElementById('cr-show-replied');
+      if (missing) missing.hidden = true;
       return;
     }
-    var filterEl = document.getElementById('cr-filter');
-    var filter = filterEl ? filterEl.value : 'open';
     var list = typeof classRequests === 'undefined' ? [] : classRequests;
-    var sess = typeof sessions === 'undefined' ? [] : sessions;
-    rootEl.innerHTML = renderList(list, filter, sess);
+    var repliedRows = list.filter(function (row) { return matchesFilter(row, 'replied'); });
+    rootEl.innerHTML = renderList(list, 'open');
+    var showEl = document.getElementById('cr-show-replied');
+    var repliedEl = document.getElementById('class-requests-replied');
+    var summary = document.getElementById('cr-show-replied-summary');
+    if (summary) summary.textContent = 'Show replied (' + repliedRows.length + ')';
+    if (showEl) {
+      showEl.hidden = repliedRows.length === 0;
+      if (!repliedRows.length) showEl.open = false;
+    }
+    if (repliedEl) repliedEl.innerHTML = repliedRows.length ? renderList(repliedRows, 'all') : '';
     if (root.renderClassRequestNav) root.renderClassRequestNav();
   };
 
   root.setClassRequestStatus = async function (id, status) {
-    var allowed = { received: true, replied: true, confirmed: true, session_built: true };
+    var allowed = { received: true, replied: true };
     if (!allowed[status]) return;
     var row = (classRequests || []).find(function (r) { return r.id === id; });
     if (!row || typeof sb === 'undefined') return;
