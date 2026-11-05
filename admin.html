@@ -6875,7 +6875,7 @@ function preClassChecklistDone(s){
   return preClassTaskList(s).every(function(t){return t.done;});
 }
 // Classes still needing checklist work. A class with every box checked drops
-// off. The reminder window is the next 8 days; once those are done, the next
+// off. The reminder window is the next 14 days; once those are done, the next
 // upcoming incomplete classes take their place (up to 5).
 function dashChecklistSessions(list, today){
   const now=today instanceof Date?today:new Date();
@@ -6889,7 +6889,7 @@ function dashChecklistSessions(list, today){
     return !!(s&&!s.isHold&&!s.isCancelled&&s.date&&dayDiff(s)>=0);
   }).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
   const incomplete=upcoming.filter(function(s){return !preClassChecklistDone(s);});
-  const due=incomplete.filter(function(s){return dayDiff(s)<=8;});
+  const due=incomplete.filter(function(s){return dayDiff(s)<=14;});
   if(due.length)return due;
   return incomplete.slice(0,5);
 }
@@ -7319,8 +7319,8 @@ function renderDashboard(){
       </div>`;
     }
   }
-  // ── Pre-class action reminders (one week & one day out) ──
-  // Completed classes drop off. If the next 8 days are all done, the next
+  // ── Pre-class action reminders (next 14 days) ──
+  // Completed classes drop off. If the next 14 days are all done, the next
   // upcoming classes that still need work take their place.
   const reminderEl=document.getElementById('reminder-alerts');
   if(reminderEl){
@@ -7328,7 +7328,7 @@ function renderDashboard(){
       // A class whose boxes are all green is removed here too, so a finished
     // checklist cannot stay on the dashboard if the picker ever lets one through.
     const upcoming=dashChecklistSessions(sessions, now).filter(function(s){return !preClassChecklistDone(s);});
-    const checklistHead='<div style="font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px">🔔 Pre-class checklist — reminders due at 1 week &amp; 1 day out</div>';
+    const checklistHead='<div style="font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px">🔔 Pre-class checklist: reminders due in the next 2 weeks</div>';
     if(!upcoming.length){
       reminderEl.innerHTML=`<div class="card" style="padding:12px 16px">${checklistHead}<div style="font-size:15px;color:var(--muted)">All caught up — no upcoming class still needs checklist work.</div></div>`;
     }

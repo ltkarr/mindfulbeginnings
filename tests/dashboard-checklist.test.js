@@ -98,6 +98,42 @@ test('dashboard no longer renders the removed widgets', () => {
   assert.doesNotMatch(admin, /id="org-billing"/);
   assert.match(admin, /All caught up — no upcoming class still needs checklist work/);
   assert.match(admin, /dashChecklistSessions\(sessions, now\)\.filter\(function\(s\)\{return !preClassChecklistDone\(s\);\}/);
+  assert.match(admin, /The reminder window is the next 14 days/);
+  assert.match(admin, /dayDiff\(s\)<=14/);
+  assert.match(admin, /Pre-class checklist: reminders due in the next 2 weeks/);
+  assert.doesNotMatch(admin, /reminders due at 1 week &amp; 1 day out/);
+});
+
+test('a class 10 to 14 days out stays in the primary due set and a finished class drops off', () => {
+  const today = new Date(2026, 8, 26);
+  const done = { materialsSent: true, instrReminderSent: true, classReminderSent: true };
+  sandbox.jobDataCache = {
+    finished: done,
+    soon: { materialsSent: false },
+    ten: { materialsSent: true, instrReminderSent: false },
+    fourteen: { classReminderSent: false },
+    fifteen: { materialsSent: false },
+    later: { materialsSent: false }
+  };
+  const rows = [
+    sess('finished', '2026-09-27'),
+    sess('soon', '2026-09-30'),
+    sess('ten', '2026-10-06'),
+    sess('fourteen', '2026-10-10'),
+    sess('fifteen', '2026-10-11'),
+    sess('later', '2026-10-20'),
+    sess('old', '2026-09-01'),
+    sess('hold', '2026-10-08', { isHold: true })
+  ];
+  // 10 and 14 days out are inside the primary window. 15 days out is not,
+  // so it stays hidden while anything in the window still needs work.
+  assert.deepEqual(sandbox.dashChecklistSessions(rows, today).map((s) => s.id), ['soon', 'ten', 'fourteen']);
+  assert.equal(sandbox.preClassChecklistDone(rows.find((s) => s.id === 'finished')), true);
+
+  sandbox.jobDataCache.soon = done;
+  sandbox.jobDataCache.ten = done;
+  sandbox.jobDataCache.fourteen = done;
+  assert.deepEqual(sandbox.dashChecklistSessions(rows, today).map((s) => s.id), ['fifteen', 'later']);
 });
 
 test('a wall of finished green checklists is removed from the dashboard', () => {
