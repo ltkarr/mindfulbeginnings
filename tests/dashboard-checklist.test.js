@@ -100,6 +100,48 @@ test('dashboard no longer renders the removed widgets', () => {
   assert.match(admin, /dashChecklistSessions\(sessions, now\)\.filter\(function\(s\)\{return !preClassChecklistDone\(s\);\}/);
 });
 
+test('the pre-class checklist keeps incomplete classes through 14 days, not only 8', () => {
+  const today = new Date(2026, 10, 5);
+  const open = { materialsSent: false };
+  sandbox.jobDataCache = {
+    d1: open,
+    d8: open,
+    d9: open,
+    d14: open,
+    d15: open
+  };
+  const rows = [
+    sess('d1', '2026-11-06'),
+    sess('d8', '2026-11-13'),
+    sess('d9', '2026-11-14'),
+    sess('d14', '2026-11-19'),
+    sess('d15', '2026-11-20')
+  ];
+  assert.deepEqual(sandbox.dashChecklistSessions(rows, today).map((s) => s.id), ['d1', 'd8', 'd9', 'd14']);
+
+  const done = { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true };
+  sandbox.jobDataCache.d1 = done;
+  sandbox.jobDataCache.d8 = done;
+  sandbox.jobDataCache.d9 = done;
+  sandbox.jobDataCache.d14 = done;
+  assert.deepEqual(sandbox.dashChecklistSessions(rows, today).map((s) => s.id), ['d15']);
+
+  const block = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('// ─── SESSIONS'));
+  assert.match(admin, /The reminder window is the next 14 days/);
+  assert.match(admin, /If the next 14 days are all done/);
+  assert.match(admin, /dayDiff\(s\)<=14/);
+  assert.doesNotMatch(admin, /next 8 days/);
+  assert.doesNotMatch(admin, /dayDiff\(s\)<=8/);
+  assert.match(block, /plan 2 weeks out; reminders due at 1 week &amp; 1 day/);
+  assert.match(block, /dayDiff>=6&&dayDiff<=8/);
+  assert.match(block, />1 week out</);
+  assert.match(block, /Tomorrow · 1 day out/);
+  assert.match(block, /dayDiff>=9&&dayDiff<=14/);
+  assert.match(block, />2 weeks out</);
+  assert.doesNotMatch(block, /reminders due at 1 week &amp; 1 day out/);
+  assert.match(block, /printTeachingChecklist\('\$\{s\.id\}'\)/);
+});
+
 test('a wall of finished green checklists is removed from the dashboard', () => {
   const today = new Date(2026, 8, 26);
   const done = { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true };
