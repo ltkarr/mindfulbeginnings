@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261102-parent-roster';
+window.MB_ADMIN_BUILD='20261105-open-requests';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -559,15 +559,13 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 
     <div class="screen" id="screen-requests">
       <div class="page-header">
-        <div><div class="page-title">Class requests</div><div class="page-sub">New requests arrive as Received. Mark Replied, Confirmed, or Session built as you go. Copy a request when you want the full text for a reply.</div></div>
-      </div>
-      <div class="filter-row">
-        <select id="cr-filter" onchange="renderClassRequests()">
-          <option value="open" selected>Open</option>
-          <option value="all">All</option>
-        </select>
+        <div><div class="page-title">Class requests</div><div class="page-sub">New requests stay on this list while they are Received. Mark Replied and the request leaves the list. Copy a request when you want the full text for a reply.</div></div>
       </div>
       <div id="class-requests-root"></div>
+      <details id="cr-show-replied" hidden style="margin:4px 0 12px">
+        <summary id="cr-show-replied-summary" style="cursor:pointer;width:fit-content;font-size:14px;color:var(--muted);font-weight:600">Show replied</summary>
+        <div id="class-requests-replied" style="margin-top:12px"></div>
+      </details>
     </div>
 
     <div class="screen" id="screen-sessions">

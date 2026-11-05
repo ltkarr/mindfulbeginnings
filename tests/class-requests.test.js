@@ -454,13 +454,21 @@ test('checklist stays pending until a session is approved, then advances only wh
   assert.equal(reopened.status, 'session_created');
 });
 
-test('ADMIN shows one status, a linked session code, and copy, and drops the old draft buttons', () => {
+test('ADMIN lists only Received requests, with Replied as the other status, and keeps copy and the full submission', () => {
   assert.match(admin, /id="screen-requests"/);
   assert.match(admin, /id="nav-requests"/);
   assert.match(admin, /class_requests/);
   assert.match(admin, /migrations\/class_requests\.sql/);
+  const requestsScreen = admin.slice(admin.indexOf('id="screen-requests"'), admin.indexOf('id="screen-sessions"'));
+  assert.match(requestsScreen, /id="cr-show-replied"/);
+  assert.match(requestsScreen, /Show replied/);
+  assert.match(requestsScreen, /hidden/);
+  assert.doesNotMatch(requestsScreen, /id="cr-filter"/);
+  assert.doesNotMatch(requestsScreen, /Linked session code/);
+  assert.doesNotMatch(requestsScreen, /Session built/);
+  assert.doesNotMatch(requestsScreen, /Confirmed/);
   const longBadge = 'Brownie message. ' + 'x'.repeat(2500);
-  const html = adminUi.renderList([{
+  const closedRow = {
     id: 'req-1',
     kind: 'host',
     status: 'session_created',
@@ -474,21 +482,27 @@ test('ADMIN shows one status, a linked session code, and copy, and drops the old
     checklist: model.checklistAfterSubmit(true).checklist,
     payload: hostBody({ badge: longBadge }),
     created_at: '2026-10-05T12:00:00Z'
-  }], 'all', [{ id: 'sess-1', code: 'SS-261102', instructorId: null }]);
+  };
+  const html = adminUi.renderList([closedRow], 'all', [{ id: 'sess-1', code: 'SS-261102', instructorId: null }]);
   assert.doesNotMatch(html, /Create session in Admin/);
   assert.doesNotMatch(html, /Open confirmation draft/);
   assert.doesNotMatch(html, /Open Outlook draft/);
   assert.doesNotMatch(html, /Session created in ADMIN/);
   assert.doesNotMatch(html, /Email sent/);
-  assert.match(html, /Session built/);
+  assert.doesNotMatch(html, /Session built/);
+  assert.doesNotMatch(html, /Confirmed/);
+  assert.doesNotMatch(html, /Linked session code/);
+  assert.doesNotMatch(html, /SS-261102/);
+  assert.doesNotMatch(html, /value="confirmed"/);
+  assert.doesNotMatch(html, /value="session_built"/);
   assert.match(html, /Copy request/);
+  assert.match(html, /Delete request/);
   assert.match(html, /Full submission/);
   assert.match(html, /value="received"/);
-  assert.match(html, /value="replied"/);
-  assert.match(html, /value="confirmed"/);
-  assert.match(html, /value="session_built" selected/);
-  assert.match(html, />SS-261102<\/a>/);
+  assert.match(html, /value="replied" selected/);
+  assert.match(html, />Replied</);
   assert.equal(html.includes(longBadge), true);
+  assert.equal(adminUi.renderList([closedRow], 'open').includes('Jane Host'), false);
   const pendingHtml = adminUi.renderList([{
     id: 'req-pending',
     kind: 'organization',
@@ -505,6 +519,7 @@ test('ADMIN shows one status, a linked session code, and copy, and drops the old
   assert.match(pendingHtml, /Copy request/);
   assert.match(pendingHtml, />Received</);
   assert.match(pendingHtml, /value="received" selected/);
+  assert.doesNotMatch(pendingHtml, /Linked session code/);
   assert.equal(pendingHtml.includes(longBadge), true);
   assert.match(pendingHtml, /A long custom note/);
   assert.doesNotMatch(pendingHtml, /Create session in Admin/);
@@ -515,15 +530,18 @@ test('ADMIN shows one status, a linked session code, and copy, and drops the old
     status: 'pending',
     submitter_name: 'Alex Brown',
     course: 'Safe Sitter®',
+    session_code: 'SS-261102',
     payload: orgBody({ badge: longBadge })
   });
   assert.match(copied, /Girl Scout badge: /);
   assert.equal(copied.includes(longBadge), true);
   assert.match(copied, /Alex Brown/);
+  assert.doesNotMatch(copied, /Linked session code/);
+  assert.doesNotMatch(copied, /SS-261102/);
   assert.equal(adminUi.canonicalStatus({ status: 'pending' }), 'received');
   assert.equal(adminUi.canonicalStatus({ status: 'session_created' }), 'session_built');
-  assert.equal(adminUi.openCount([{ status: 'pending' }, { status: 'replied' }, { status: 'session_built' }]), 2);
-  assert.match(admin, /<option value="open" selected>Open<\/option>/);
+  assert.equal(adminUi.openCount([{ status: 'pending' }, { status: 'replied' }, { status: 'session_built' }]), 1);
+  assert.equal(adminUi.receivedCount([{ status: 'pending' }, { status: 'replied' }, { status: 'session_built' }]), 1);
   assert.doesNotMatch(admin, /<option value="done">Done<\/option>/);
   assert.doesNotMatch(admin, /Just received/);
   assert.doesNotMatch(admin, /value="archived"/);
@@ -531,10 +549,16 @@ test('ADMIN shows one status, a linked session code, and copy, and drops the old
   const replied = { status: 'replied' };
   const built = { status: 'session_built' };
   assert.equal(adminUi.matchesFilter(fresh, 'open'), true);
-  assert.equal(adminUi.matchesFilter(replied, 'open'), true);
+  assert.equal(adminUi.matchesFilter(replied, 'open'), false);
   assert.equal(adminUi.matchesFilter(built, 'open'), false);
+  assert.equal(adminUi.matchesFilter(replied, 'replied'), true);
+  assert.equal(adminUi.matchesFilter(built, 'replied'), true);
+  assert.equal(adminUi.matchesFilter(fresh, 'replied'), false);
   assert.equal(adminUi.matchesFilter(built, 'all'), true);
   assert.equal(adminUi.matchesFilter(fresh, 'all'), true);
+  const banner = adminUi.bannerHtml([{ status: 'received' }, { status: 'replied' }], true);
+  assert.match(banner, /1 class request needs attention/);
+  assert.doesNotMatch(banner, /just received/);
   assert.match(migration, /enable row level security/i);
   assert.match(migration, /revoke all on table public\.class_requests from public, anon/i);
   assert.doesNotMatch(outlookSrc, /sendMail/);
