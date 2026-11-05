@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261105-zoom-checklist';
+window.MB_ADMIN_BUILD='20261105-teaching-checklists';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -46,6 +46,7 @@ window.MB_ADMIN_BUILD='20261105-zoom-checklist';
 <script src="/js/county-disclaimer.js"></script>
 <script src="/js/duplicate-sessions.js"></script>
 <script src="/js/srf-grant.js"></script>
+<script src="/js/teaching-checklists.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -484,6 +485,34 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
   body.pack-printing .pack-print-only{display:block !important}
   body.pack-printing .pack-pdf{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+/* Teaching checklist. Same-page print as the packing list: iPhone Safari
+   blocks a pop-up PDF, and the print dialog can save a PDF. */
+.teach-print-only{display:none}
+.teach-pdf{font-family:'Montserrat',sans-serif;color:#1E3161;max-width:720px}
+.teach-pdf-brand{font-weight:700;font-size:26px;line-height:1.2;color:#1E3161}
+.teach-pdf-rule{height:4px;width:72px;background:#C7A24A;margin:8px 0 12px}
+.teach-pdf-kicker{font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:#8a7340;font-weight:650;margin:0}
+.teach-pdf h1{font-weight:700;font-size:22px;line-height:1.25;margin:2px 0 0;color:#1E3161}
+.teach-pdf-session{margin:6px 0 0;font-size:15px;font-weight:650;line-height:1.4}
+.teach-pdf-note{margin:8px 0 0;font-size:14px;line-height:1.45}
+.teach-pdf-meta{margin:8px 0 0;font-size:14px;line-height:1.45;color:#3d4d73}
+.teach-pdf-section{margin-top:16px}
+.teach-pdf-section h2{font-weight:700;font-size:16px;margin:0 0 6px;padding-bottom:3px;border-bottom:2px solid #C7A24A;break-after:avoid;page-break-after:avoid}
+.teach-items{list-style:none;margin:0;padding:0}
+.teach-item{display:flex;align-items:flex-start;gap:8px;margin:0;padding:4px 0;font-size:13.5px;line-height:1.4;break-inside:avoid;page-break-inside:avoid}
+.teach-box{width:13px;height:13px;border:1.5px solid #1E3161;border-radius:2px;flex:none;margin-top:2px}
+.teach-pdf-foot{margin:16px 0 0;font-size:12px;line-height:1.45;color:#3d4d73}
+@media print{
+  body.teach-printing{background:#fff;min-height:0 !important;height:auto !important}
+  body.teach-printing #app,
+  body.teach-printing .main-content{min-height:0 !important;height:auto !important}
+  body.teach-printing > div{display:none !important}
+  body.teach-printing > #app{display:block !important}
+  body.teach-printing .sidebar{display:none !important;position:static !important;height:0 !important;overflow:hidden !important}
+  body.teach-printing .main-content{display:none !important}
+  body.teach-printing #teach-print-sheet{display:block !important}
+  body.teach-printing .teach-pdf{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 .referral-report{width:100%;border-collapse:collapse;font-size:13px}
 .referral-report th,.referral-report td{padding:6px 5px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
 .referral-report th{font-size:11px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted)}
@@ -541,6 +570,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div id="class-request-banner"></div>
       <div id="reminder-alerts" style="margin-bottom:16px"></div>
+      <div id="dash-teach-checks" style="margin-bottom:16px"></div>
       <div class="metrics" id="dash-metrics"></div>
       <div id="dash-mat-check" style="margin-bottom:16px"></div>
       <div id="dash-upcoming" style="margin-bottom:16px"></div>
@@ -885,6 +915,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
     </div>
 
   </div>
+  <div id="teach-print-sheet" class="teach-print-only"></div>
 </div>
 
 <div id="modal-root"></div>
@@ -7193,6 +7224,34 @@ function renderUpcomingExpenses(now){
     ${vendorBlock}${noFeeBlock}${classLine}${classTravel}${billLine}${unsetLine}
   </div>`;
 }
+function renderDashTeachingChecks(now){
+  const el=document.getElementById('dash-teach-checks');
+  if(!el)return;
+  const api=window.MBTeachingChecklists;
+  if(!api){el.innerHTML='';return;}
+  const today=fmtYMD(now instanceof Date?now:new Date());
+  const rows=api.upcoming(typeof sessions==='undefined'?[]:sessions, today, 60);
+  const options=api.list().map(function(c){
+    return '<option value="'+escapeHtml(c.id)+'">'+escapeHtml(c.title)+'</option>';
+  }).join('');
+  const body=rows.length?rows.map(function(s){
+    const when=api.formatDate(s.date);
+    const place=s.isVirtual?'Virtual':(adminPlaceText(s)||'');
+    const code=String(s.code||'').trim();
+    const id=String(s.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const bits=[when, s.time, place, code].filter(function(p){return String(p||'').trim();});
+    return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border)">'
+      +'<div style="min-width:0;font-size:15px;line-height:1.45"><span style="font-weight:650">'+escapeHtml(s.course||'Class')+'</span>'
+      +'<span style="display:block;color:var(--muted)">'+escapeHtml(bits.join(' · '))+'</span></div>'
+      +'<button type="button" class="btn sm" onclick="printTeachingChecklist(\''+id+'\')">Print</button></div>';
+  }).join(''):'<div style="font-size:15px;color:var(--muted);padding:6px 0 10px">No upcoming class in the next 60 days has a teaching checklist.</div>';
+  el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Teaching checklists</div>'
+    +'<div style="font-size:15px;color:var(--muted);line-height:1.45;margin:-2px 0 8px">Print the checklist for an upcoming class, or choose a course for a blank sheet. The print dialog can save a PDF.</div>'
+    +body
+    +'<div class="pack-actions" style="margin-top:12px"><label class="pack-range-label" for="teach-course-pick">Course</label>'
+    +'<select id="teach-course-pick"><option value="">Choose a course</option>'+options+'</select>'
+    +'<button type="button" class="btn" onclick="printSelectedTeachingChecklist()">Print blank checklist</button></div></div>';
+}
 function renderDashboard(){
   if(typeof renderClassRequestBanner==='function')renderClassRequestBanner();
   const now=new Date();const m=now.getMonth();const y=now.getFullYear();
@@ -7252,6 +7311,7 @@ function renderDashboard(){
     <div class="metric" title="Paid, pending, and unpaid registrations for classes dated ${y}. Host seats, the waitlist, and cancelled registrations are not included. Reports counts host seats and, on All time, every year."><div class="m-label">Registrations this year</div><div class="m-val">${totRegs}</div><div class="m-sub">Paid, pending, and unpaid for classes in ${y}. Host seats, waitlist, and cancelled are not included.</div><div class="m-sub">${awaiting.length?`<span style="color:var(--warn)">${fmt(awaitingAmt)} awaiting payment</span><br>${pendingCount} pending · ${unpaid} unpaid`:'All of these are paid.'}</div></div>
     <div class="metric" title="Classes still ahead. Holds and cancelled classes are not included."><div class="m-label">Upcoming sessions</div><div class="m-val">${sessions.filter(s=>!s.isHold&&!s.isCancelled&&sessionEndDate(s)>=fmtYMD(now)).length}</div></div>
   `;
+  renderDashTeachingChecks(now);
   renderDashMatChecklist(now);
   renderUpcomingExpenses(now);
   renderCashForecast(now);
@@ -7368,14 +7428,17 @@ function renderDashboard(){
         const instrLabel=checklistInstructorLabel(s);
         const hostLabel=checklistHostLabel(s);
         const countBit=preClassShowsStudentCount(s)?` · ${cnt} student${cnt!==1?'s':''}`:'';
+        const teachBtn=(window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s))
+          ?`<button type="button" onclick="printTeachingChecklist('${s.id}')" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid #1E3161;background:#1E3161;color:#fff;cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;flex-shrink:0">Print checklist</button>`
+          :'';
         const roleLine=(label,value,empty)=>`<span style="min-width:0"><span style="color:var(--muted)">${label}:</span> <span style="${value===empty?'color:var(--muted);font-style:italic':'font-weight:600'}">${escapeHtml(value)}</span></span>`;
         return`<div style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid ${accent}">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:2px;flex-wrap:wrap">
             <div style="font-size:15px;min-width:0">
               <span style="font-weight:600">${s.course}</span>
               <span style="color:var(--muted);margin-left:6px">${d}${countBit}</span>
             </div>
-            <div style="flex-shrink:0">${badge}</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap">${teachBtn}${badge}</div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin:0 0 6px;font-size:15px;line-height:1.45">
             ${roleLine('Instructor',instrLabel,'No instructor')}
@@ -7883,6 +7946,9 @@ function openSessionMenu(ev,sessId){
   const items=[];
   // Skim location, time, who is teaching, and both note fields without opening Edit.
   items.push({label:'ℹ️ About',act:`openSessionAbout('${sessId}')`});
+  if(window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s)){
+    items.push({label:'🖨️ Print teaching checklist',act:`printTeachingChecklist('${sessId}')`});
+  }
   // Troop and organization jobs: a draft the host forwards to families.
   // Holds and custom jobs included. Home classes with no bill-to name are not.
   if(String(s.billToOrg||'').trim()&&!s.orgHandlesRegistration)items.push({label:'✉️ Email for families (host forwards)',act:`openFamilyForward('${sessId}')`});
@@ -12373,6 +12439,68 @@ function renderDashMatChecklist(now){
 // Same-page print, not a new window: iPhone Safari blocks pop-up PDFs, and the
 // print dialog can save a PDF on both iPhone and a computer. The pack-printing
 // class is what swaps in the clean sheet; other tabs print as they did before.
+function teachingChecklistMeta(s){
+  if(!s)return null;
+  return {
+    date:s.date||'',
+    time:s.time||'',
+    place:s.isVirtual?'Virtual':(adminPlaceText(s)||''),
+    code:s.code||'',
+    sessionTitle:s.course||''
+  };
+}
+function openTeachingChecklistPrint(sheet, meta){
+  const el=document.getElementById('teach-print-sheet');
+  if(!el||!sheet||!window.MBTeachingChecklists)return;
+  el.innerHTML=MBTeachingChecklists.printHtml(sheet, meta||null);
+  const prevTitle=document.title;
+  document.title='Mindful Beginnings teaching checklist';
+  document.body.classList.add('teach-printing');
+  let cleared=false;
+  function clearTeachPrint(){
+    if(cleared)return;
+    cleared=true;
+    document.body.classList.remove('teach-printing');
+    document.title=prevTitle;
+  }
+  window.addEventListener('afterprint', clearTeachPrint, {once:true});
+  try{
+    const mq=window.matchMedia('print');
+    const onMq=function(e){
+      if(!e.matches){
+        if(mq.removeEventListener)mq.removeEventListener('change', onMq);
+        clearTeachPrint();
+      }
+    };
+    if(mq.addEventListener)mq.addEventListener('change', onMq);
+  }catch(err){}
+  window.print();
+}
+function printTeachingChecklist(sessId){
+  const s=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x.id===sessId;});
+  const api=window.MBTeachingChecklists;
+  if(!s||!api)return;
+  const sheet=api.forSession(s);
+  if(!sheet){
+    showToast('This course does not have a teaching checklist yet.');
+    return;
+  }
+  openTeachingChecklistPrint(sheet, teachingChecklistMeta(s));
+}
+function printTeachingChecklistById(id){
+  const api=window.MBTeachingChecklists;
+  const sheet=api&&api.byId(id);
+  if(!sheet)return;
+  openTeachingChecklistPrint(sheet, null);
+}
+function printSelectedTeachingChecklist(){
+  const sel=document.getElementById('teach-course-pick');
+  if(!sel||!sel.value){
+    showToast('Choose a course first.');
+    return;
+  }
+  printTeachingChecklistById(sel.value);
+}
 function downloadPackingPdf(){
   renderPackingList();
   const prevTitle=document.title;
