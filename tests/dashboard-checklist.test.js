@@ -52,7 +52,13 @@ vm.runInContext(
     'preClassShowsStudentCount',
     'preClassTaskList',
     'preClassChecklistDone',
-    'dashChecklistSessions'
+    'dashSessionDayDiff',
+    'dashUpcomingSessions',
+    'dashChecklistSessions',
+    'dashTeachingSlots',
+    'dashVisibleUpcoming',
+    'dashFortnightLoad',
+    'dashInstructorChoices'
   ].map((n) => extractFunction(admin, n)).join('\n'),
   sandbox
 );
@@ -61,12 +67,12 @@ function sess(id, date, flags) {
   return Object.assign({ id, course: 'Safe Sitter®', date, isHold: false, isCancelled: false, hasHost: true, instructorId: 'i1' }, flags);
 }
 
-test('a finished pre-class checklist drops off and the next incomplete class fills in', () => {
+test('finished prep stays on the dashboard, and past or hold sessions do not', () => {
   const today = new Date(2026, 8, 26);
   sandbox.jobDataCache = {
     done: { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true },
     soon: { materialsSent: true, instrReminderSent: false, hostReminderSent: true, classReminderSent: true },
-    later: { materialsSent: false }
+    later: { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true }
   };
   const rows = [
     sess('done', '2026-09-27'),
@@ -75,16 +81,10 @@ test('a finished pre-class checklist drops off and the next incomplete class fil
     sess('old', '2026-09-01'),
     sess('hold', '2026-09-28', { isHold: true })
   ];
-  const shown = sandbox.dashChecklistSessions(rows, today).map((s) => s.id);
-  assert.deepEqual(shown, ['soon']);
-
-  sandbox.jobDataCache.soon.classReminderSent = true;
-  sandbox.jobDataCache.soon.instrReminderSent = true;
-  const backfill = sandbox.dashChecklistSessions(rows, today).map((s) => s.id);
-  assert.deepEqual(backfill, ['later']);
-
-  sandbox.jobDataCache.later = { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true };
-  assert.deepEqual(sandbox.dashChecklistSessions(rows, today), []);
+  assert.equal(sandbox.preClassChecklistDone(rows[0]), true);
+  assert.equal(sandbox.preClassChecklistDone(rows[2]), true);
+  assert.deepEqual(sandbox.dashUpcomingSessions(rows, today).map((s) => s.id), ['done', 'soon', 'later']);
+  assert.deepEqual(sandbox.dashChecklistSessions(rows, today).map((s) => s.id), ['done', 'soon', 'later']);
 });
 
 test('dashboard no longer renders the removed widgets', () => {
@@ -96,53 +96,41 @@ test('dashboard no longer renders the removed widgets', () => {
   assert.match(admin, /id="reminder-alerts"/);
   assert.doesNotMatch(admin, /id="dash-materials"/);
   assert.doesNotMatch(admin, /id="org-billing"/);
-  assert.match(admin, /All caught up — no upcoming class still needs checklist work/);
-  assert.match(admin, /dashChecklistSessions\(sessions, now\)\.filter\(function\(s\)\{return !preClassChecklistDone\(s\);\}/);
+  assert.match(admin, /No upcoming sessions/);
+  assert.match(admin, /renderDashUpcoming\(now\)/);
+  assert.doesNotMatch(admin, /dashChecklistSessions\(sessions, now\)\.filter\(function\(s\)\{return !preClassChecklistDone\(s\);\}/);
 });
 
-test('the pre-class checklist keeps incomplete classes through 14 days, not only 8', () => {
+test('all upcoming stays the default, and next 2 weeks is a filter that still keeps finished prep', () => {
   const today = new Date(2026, 10, 5);
-  const open = { materialsSent: false };
-  sandbox.jobDataCache = {
-    d1: open,
-    d8: open,
-    d9: open,
-    d14: open,
-    d15: open
-  };
+  const done = { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true };
+  sandbox.jobDataCache = { d1: done, d14: done, d15: {} };
+  sandbox.instructors = [{ id: 'i1', name: 'Jane Doe' }];
   const rows = [
     sess('d1', '2026-11-06'),
-    sess('d8', '2026-11-13'),
-    sess('d9', '2026-11-14'),
     sess('d14', '2026-11-19'),
-    sess('d15', '2026-11-20')
+    sess('d15', '2026-11-20'),
+    sess('past', '2026-11-04'),
+    sess('hold', '2026-11-10', { isHold: true })
   ];
-  assert.deepEqual(sandbox.dashChecklistSessions(rows, today).map((s) => s.id), ['d1', 'd8', 'd9', 'd14']);
-
-  const done = { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true };
-  sandbox.jobDataCache.d1 = done;
-  sandbox.jobDataCache.d8 = done;
-  sandbox.jobDataCache.d9 = done;
-  sandbox.jobDataCache.d14 = done;
-  assert.deepEqual(sandbox.dashChecklistSessions(rows, today).map((s) => s.id), ['d15']);
-
+  assert.deepEqual(sandbox.dashVisibleUpcoming(rows, today, 'all', 'all').map((s) => s.id), ['d1', 'd14', 'd15']);
+  assert.deepEqual(sandbox.dashVisibleUpcoming(rows, today, '14', 'all').map((s) => s.id), ['d1', 'd14']);
+  assert.equal(sandbox.preClassChecklistDone(rows[0]), true);
   const block = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('// ─── SESSIONS'));
-  assert.match(admin, /The reminder window is the next 14 days/);
-  assert.match(admin, /If the next 14 days are all done/);
-  assert.match(admin, /dayDiff\(s\)<=14/);
-  assert.doesNotMatch(admin, /next 8 days/);
-  assert.doesNotMatch(admin, /dayDiff\(s\)<=8/);
-  assert.match(block, /plan 2 weeks out; reminders due at 1 week &amp; 1 day/);
-  assert.match(block, /dayDiff>=6&&dayDiff<=8/);
-  assert.match(block, />1 week out</);
-  assert.match(block, /Tomorrow · 1 day out/);
+  assert.match(block, /All upcoming/);
+  assert.match(block, /Next 2 weeks/);
+  assert.match(block, /setDashUpcomingScope\(\\'all\\'\)/);
+  assert.match(block, /setDashUpcomingScope\(\\'14\\'\)/);
+  assert.match(block, /setDashUpcomingInstructor/);
+  assert.match(block, /openInstructorFortnight/);
+  assert.match(block, /On Zoom\. No kit to pack\./);
+  assert.match(block, /printTeachingChecklist/);
   assert.match(block, /dayDiff>=9&&dayDiff<=14/);
   assert.match(block, />2 weeks out</);
-  assert.doesNotMatch(block, /reminders due at 1 week &amp; 1 day out/);
-  assert.match(block, /printTeachingChecklist\('\$\{s\.id\}'\)/);
+  assert.doesNotMatch(block, /Host reminder/);
 });
 
-test('a wall of finished green checklists is removed from the dashboard', () => {
+test('a finished checklist stays visible when the session is still upcoming', () => {
   const today = new Date(2026, 8, 26);
   const done = { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true };
   sandbox.jobDataCache = {
@@ -159,10 +147,57 @@ test('a wall of finished green checklists is removed from the dashboard', () => 
     sess('sat', '2026-10-03', { course: 'Safe Sitter®' }),
     sess('open', '2026-10-08', { course: 'Campus Ready: Safety Skills for College Life' })
   ];
-  const shown = sandbox.dashChecklistSessions(rows, today).map((s) => s.id);
-  assert.deepEqual(shown, ['open']);
+  const shown = sandbox.dashUpcomingSessions(rows, today).map((s) => s.id);
+  assert.deepEqual(shown, ['welcome', 'gp', 'fri', 'sat', 'open']);
   rows.filter((s) => s.id !== 'open').forEach((s) => assert.equal(sandbox.preClassChecklistDone(s), true));
   assert.equal(sandbox.preClassChecklistDone(rows[4]), false);
+});
+
+test('one instructor with two sessions in 14 days is flagged once per session, and a later class stays in All upcoming', () => {
+  const today = new Date(2026, 10, 5);
+  sandbox.instructors = [
+    { id: 'jane', name: 'Jane Doe' },
+    { id: 'bob', name: 'Bob Smith' }
+  ];
+  sandbox.jobDataCache = {};
+  const rows = [
+    sess('near', '2026-11-08', { instructorId: 'jane', course: 'Safe Sitter®', location: 'Beth El' }),
+    sess('week2', '2026-11-16', { instructorId: 'jane', secondInstructorId: 'bob', course: 'Baby Ready', location: 'Library' }),
+    sess('later', '2026-12-02', { instructorId: 'jane', course: 'Care Ready', location: 'School' }),
+    sess('zoom', '2026-11-10', { instructorId: 'jane', isVirtual: true, course: 'Safe@Home' }),
+    sess('bob-only', '2026-11-12', { instructorId: 'bob', course: 'Stay Ready' })
+  ];
+  const all = sandbox.dashVisibleUpcoming(rows, today, 'all', 'all', sandbox.instructors, {}).map((s) => s.id);
+  assert.deepEqual(all, ['near', 'zoom', 'bob-only', 'week2', 'later']);
+  assert.equal(all.filter((id) => id === 'week2').length, 1);
+
+  const janeAll = sandbox.dashVisibleUpcoming(rows, today, 'all', 'id:jane', sandbox.instructors, {}).map((s) => s.id);
+  assert.deepEqual(janeAll, ['near', 'zoom', 'week2', 'later']);
+  const janeSoon = sandbox.dashVisibleUpcoming(rows, today, '14', 'id:jane', sandbox.instructors, {}).map((s) => s.id);
+  assert.deepEqual(janeSoon, ['near', 'zoom', 'week2']);
+  const bobSoon = sandbox.dashVisibleUpcoming(rows, today, '14', 'id:bob', sandbox.instructors, {}).map((s) => s.id);
+  assert.deepEqual(bobSoon, ['bob-only', 'week2']);
+
+  const loads = sandbox.dashFortnightLoad(rows, today, sandbox.instructors, {});
+  const jane = loads.find((g) => g.key === 'id:jane');
+  assert.ok(jane);
+  assert.deepEqual(Array.from(jane.ids), ['near', 'week2']);
+  assert.equal(jane.ids.includes('zoom'), false);
+  assert.equal(jane.ids.includes('later'), false);
+  assert.equal(jane.ids.filter((id) => id === 'week2').length, 1);
+  const bob = loads.find((g) => g.key === 'id:bob');
+  assert.deepEqual(Array.from(bob.ids), ['bob-only', 'week2']);
+  assert.equal(bob.ids.filter((id) => id === 'week2').length, 1);
+
+  const owner = sess('mine', '2026-11-09', { ownerTaught: true, instructorId: null, secondInstructorId: 'bob' });
+  const open = sess('open', '2026-11-11', { instructorId: null });
+  const slots = sandbox.dashTeachingSlots(owner, sandbox.instructors, {});
+  assert.deepEqual(Array.from(slots, (slot) => slot.key), ['owner', 'id:bob']);
+  assert.deepEqual(Array.from(sandbox.dashTeachingSlots(open, sandbox.instructors, {}), (slot) => slot.name), ['Needs an instructor']);
+  const withOwner = rows.concat([owner, open]);
+  const everyone = sandbox.dashVisibleUpcoming(withOwner, today, 'all', 'all', sandbox.instructors, {});
+  assert.equal(everyone.filter((s) => s.id === 'mine').length, 1);
+  assert.deepEqual(sandbox.dashVisibleUpcoming(withOwner, today, '14', 'owner', sandbox.instructors, {}).map((s) => s.id), ['mine']);
 });
 
 test('checklist cards name the instructor and the host, or say when either is missing', () => {
@@ -217,7 +252,7 @@ test('checklist cards name the instructor and the host, or say when either is mi
   assert.match(block, /preClassMaterialsLabel\(s\)/);
   assert.match(block, /preClassInstrReminderLabel\(s\)/);
   assert.match(block, /preClassShowsStudentCount\(s\)/);
-  assert.match(block, /toggleMaterialsFromDash\('\$\{s\.id\}',this\.checked\)/);
+  assert.match(block, /toggleMaterialsFromDash/);
   assert.doesNotMatch(block, /if\(!custom&&hasHost\)/);
   assert.doesNotMatch(block, /hostReminderSent/);
   assert.doesNotMatch(block, /Host reminder/);
@@ -226,9 +261,9 @@ test('checklist cards name the instructor and the host, or say when either is mi
   assert.match(block, /preClassStudentReminderLabel\(s\)/);
   assert.match(admin, /return \(s&&s\.isCustomJob\)\?'Send reminder to instructor':'Send reminder \+ roster to instructor';/);
   assert.match(admin, /Family reminder — before class/);
-  assert.match(block, /openInstructorReminder\('\$\{s\.id\}'\)/);
-  assert.match(block, /openClassReminder\('\$\{s\.id\}'\)/);
-  assert.match(block, /openInstructorFinalRoster\('\$\{s\.id\}'\)/);
+  assert.match(block, /openInstructorReminder/);
+  assert.match(block, /openClassReminder/);
+  assert.match(block, /openInstructorFinalRoster/);
   assert.match(block, /preClassFinalRosterLabel\(s\)/);
   assert.match(block, /instrFinalRosterSent/);
   assert.doesNotMatch(block, /emailjs\.send/);
@@ -279,9 +314,9 @@ test('custom jobs keep a materials checkbox and an instructor reminder only', ()
 
   const today = new Date(2026, 9, 9);
   sandbox.jobDataCache.walk = { materialsSent: true, instrReminderSent: false };
-  assert.deepEqual(sandbox.dashChecklistSessions([walk, fest], today).map((s) => s.id), ['walk', 'fest']);
   sandbox.jobDataCache.fest = { materialsSent: true, instrReminderSent: true };
-  assert.deepEqual(sandbox.dashChecklistSessions([walk, fest], today).map((s) => s.id), ['walk']);
+  assert.equal(sandbox.preClassChecklistDone(fest), true);
+  assert.deepEqual(sandbox.dashUpcomingSessions([walk, fest], today).map((s) => s.id), ['fest', 'walk']);
 
   const ownerBooth = sess('booth', '2026-10-17', {
     course: 'Represent us at a booth',
@@ -325,10 +360,10 @@ test('a virtual class keeps week-before reminders and a day-before final roster'
   assert.equal(sandbox.preClassChecklistDone(zoom), false);
 
   const tomorrow = new Date(2026, 9, 17);
-  assert.deepEqual(sandbox.dashChecklistSessions([zoom], tomorrow).map((s) => s.id), ['abby']);
+  assert.deepEqual(sandbox.dashUpcomingSessions([zoom], tomorrow).map((s) => s.id), ['abby']);
   sandbox.jobDataCache.abby.instrFinalRosterSent = true;
   assert.equal(sandbox.preClassChecklistDone(zoom), true);
-  assert.deepEqual(sandbox.dashChecklistSessions([zoom], tomorrow), []);
+  assert.deepEqual(sandbox.dashUpcomingSessions([zoom], tomorrow).map((s) => s.id), ['abby']);
 
   const early = sess('early-zoom', '2026-10-27', {
     course: 'Safe@Home — Virtual',
@@ -343,9 +378,10 @@ test('a virtual class keeps week-before reminders and a day-before final roster'
     instrFinalRosterSent: false
   };
   assert.equal(sandbox.preClassChecklistDone(early), false);
-  assert.deepEqual(sandbox.dashChecklistSessions([early], tomorrow).map((s) => s.id), ['early-zoom']);
+  assert.deepEqual(sandbox.dashUpcomingSessions([early], tomorrow).map((s) => s.id), ['early-zoom']);
   sandbox.jobDataCache['early-zoom'].instrFinalRosterSent = true;
-  assert.deepEqual(sandbox.dashChecklistSessions([early], tomorrow), []);
+  assert.equal(sandbox.preClassChecklistDone(early), true);
+  assert.deepEqual(sandbox.dashUpcomingSessions([early], tomorrow).map((s) => s.id), ['early-zoom']);
 
   const selfTaught = sess('self', '2026-10-18', {
     isVirtual: true,
@@ -413,10 +449,10 @@ test('an unsent host reminder does not keep a class on the checklist', () => {
   };
   assert.deepEqual([...sandbox.preClassTaskList(ready)].map((t) => t.key), ['materialsSent', 'instrReminderSent', 'classReminderSent']);
   assert.equal(sandbox.preClassChecklistDone(ready), true);
-  assert.deepEqual(sandbox.dashChecklistSessions([ready], today), []);
+  assert.deepEqual(sandbox.dashUpcomingSessions([ready], today).map((s) => s.id), ['ready']);
 
   const noHost = sess('no-host', '2026-09-29', { hasHost: false, instructorId: 'i1' });
   sandbox.jobDataCache['no-host'] = { materialsSent: true, instrReminderSent: true, hostReminderSent: false, classReminderSent: false };
   assert.equal(sandbox.preClassChecklistDone(noHost), false);
-  assert.deepEqual(sandbox.dashChecklistSessions([ready, noHost], today).map((s) => s.id), ['no-host']);
+  assert.deepEqual(sandbox.dashUpcomingSessions([ready, noHost], today).map((s) => s.id), ['ready', 'no-host']);
 });

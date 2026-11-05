@@ -225,15 +225,15 @@ test('a hold still prints as a class, with the hold called out', () => {
 test('the print button is on the pre-class card, the materials row, and Manage', () => {
   assert.match(admin, /<script src="\/js\/teaching-checklist\.js"><\/script>/);
   const dash = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('// ─── SESSIONS'));
-  assert.match(dash, /printTeachingChecklist\('\$\{s\.id\}'\)/);
+  assert.match(dash, /printTeachingChecklist/);
   assert.match(dash, /teachingPrintLabel\(s\)/);
   const menuStart = admin.indexOf('function openSessionMenu');
   const menu = admin.slice(menuStart, admin.indexOf('if(s.isHold){', menuStart));
   assert.match(menu, /printTeachingChecklist\('\$\{sessId\}'\)/);
   assert.match(menu, /teachingPrintLabel\(s\)/);
-  const materials = admin.slice(admin.indexOf('function renderDashMatChecklist'), admin.indexOf('function downloadPackingPdf'));
-  assert.match(materials, /printTeachingChecklist/);
-  assert.match(materials, /teachingPrintLabel\(live\)/);
+  const upcoming = admin.slice(admin.indexOf('function renderDashUpcoming'), admin.indexOf('// ─── SESSIONS'));
+  assert.match(upcoming, /printTeachingChecklist/);
+  assert.match(upcoming, /teachingPrintLabel\(s\)/);
   const apiDir = fs.readdirSync(path.join(root, 'api'));
   assert.equal(apiDir.some((name) => /teaching|checklist/i.test(name)), false);
 });

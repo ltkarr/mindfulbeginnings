@@ -254,15 +254,19 @@ test('the packing tab is added without removing the other screens', () => {
   assert.deepEqual(labels, [
     'Dashboard',
     'Sessions',
-    'Packing list',
     'Class requests',
     'Registrations',
     'Finances',
+    'Invoices',
+    'Evaluations',
+    'Grant report',
+    'Onboarding',
     'Instructors',
     'More',
     'Narrow the menu',
     'Sign out'
   ]);
+  assert.doesNotMatch(admin.slice(admin.indexOf('class="nav-items"'), admin.indexOf('class="sidebar-footer"')), /Packing list/);
   for (const id of ['dashboard', 'sessions', 'requests', 'registrations', 'finances', 'instructors', 'more', 'partners', 'orgpartners', 'materials', 'reports', 'packing']) {
     assert.match(admin, new RegExp('id="screen-' + id + '"'));
   }
@@ -271,8 +275,10 @@ test('the packing tab is added without removing the other screens', () => {
   assert.match(admin, /value="60" selected/);
   assert.match(admin, /Download PDF/);
   assert.match(admin, /onclick="downloadPackingPdf\(\)"/);
-  assert.match(extractFunction(admin, 'showScreen'), /if\(name==='packing'\)renderPackingList\(\)/);
-  assert.match(extractFunction(admin, 'rerenderActiveScreen'), /else if\(name==='packing'\)renderPackingList\(\)/);
+  assert.match(extractFunction(admin, 'showScreen'), /name==='packing'/);
+  assert.match(extractFunction(admin, 'showScreen'), /dashUpcomingScope='14'/);
+  assert.match(extractFunction(admin, 'showScreen'), /name='dashboard'/);
+  assert.match(extractFunction(admin, 'rerenderActiveScreen'), /else if\(name==='packing'\)renderDashboard\(\)/);
   assert.match(extractFunction(admin, 'downloadPackingPdf'), /window\.print\(\)/);
   assert.match(extractFunction(admin, 'downloadPackingPdf'), /pack-printing/);
   const printCss = admin.slice(admin.indexOf('@media print{'), admin.indexOf('</style>'));

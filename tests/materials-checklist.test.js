@@ -76,9 +76,9 @@ test('the materials checklist card sits directly above upcoming expenses', () =>
   const upcoming = dash.indexOf('id="dash-upcoming"');
   assert.ok(check >= 0 && upcoming > check);
   assert.equal(dash.slice(check, upcoming).indexOf('id="'), 0);
-  assert.match(extractFunction(admin, 'renderDashboard'), /renderDashMatChecklist\(now\);\s*renderUpcomingExpenses\(now\);/);
-  assert.match(extractFunction(admin, 'renderDashMatChecklist'), /Materials checklist/);
-  assert.match(extractFunction(admin, 'renderDashMatChecklist'), /packingKitHtml\(r\)/);
+  assert.match(extractFunction(admin, 'renderDashboard'), /renderDashUpcoming\(now\)/);
+  assert.match(extractFunction(admin, 'renderDashUpcoming'), /packingKitHtml/);
+  assert.match(extractFunction(admin, 'renderDashMatChecklist'), /el\.innerHTML=''/);
   assert.doesNotMatch(admin, /id="dash-materials"/);
 });
 
