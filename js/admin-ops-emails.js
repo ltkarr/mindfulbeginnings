@@ -252,7 +252,7 @@
         lines.push(certLine);
         lines.push('');
       }
-      lines.push('Please let us know if you have any questions in the meantime. We can\u2019t wait for a great day of learning!');
+      lines.push('Please let us know if you have any questions in the meantime. Can\'t wait for a great class!');
       lines.push('');
       lines.push('Warmly,');
       lines.push('Lindsay');
