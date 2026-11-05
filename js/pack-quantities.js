@@ -46,6 +46,16 @@
     return (names || []).some(function (n) { return namesMatch(person, n); });
   }
 
+  // Same last name with a different first name is not a match. Do not subtract that kit.
+  function personAmbiguous(person, names) {
+    if (personMatches(person, names)) return false;
+    var P = nameParts(person);
+    return (names || []).some(function (n) {
+      var N = nameParts(n);
+      return !!(P.last && N.last && P.last === N.last);
+    });
+  }
+
   function kindOf(name) {
     var n = String(name || '');
     if (/infant/i.test(n)) return 'infant';
@@ -71,11 +81,14 @@
     return Math.max(0, Number(count) || 0) * n;
   }
 
+  // Teaching checklist: 1 infant and 1 child through 8 students, 2 of each above 8.
+  // admin.html applySafeSitterExtraManikins adds 2 onto the baseline of 1 for
+  // equipment reservations (3 total). These pack counts follow the checklist.
   function safeSitterGear(count) {
     var big = Number(count) > 8;
     return [
-      line('infant', 'Infant manikins', big ? 3 : 1, { consumable: false }),
-      line('child', 'Child manikins', big ? 3 : 1, { consumable: false }),
+      line('infant', 'Infant manikins', big ? 2 : 1, { consumable: false }),
+      line('child', 'Child manikins', big ? 2 : 1, { consumable: false }),
       line('av', 'AV kit', 1, { consumable: false })
     ];
   }
@@ -108,7 +121,7 @@
         { id: 'ssNotebook', label: 'Safe Sitter Important Information note pads', each: 1 },
         { id: 'nameTag', label: 'Name tags', each: 1, plusInstructors: true },
         { id: 'faceShield', label: 'CPR face shield protectors', each: 1 }
-      ]).concat(count == null ? [confirm('Infant and child manikins', 'The kit is 1 of each through 8 students and 3 of each above 8. Attendance is not confirmed.')] : safeSitterGear(count)).concat([
+      ]).concat(count == null ? [confirm('Infant and child manikins', 'The kit is 1 of each through 8 students and 2 of each above 8. Attendance is not confirmed.')] : safeSitterGear(count)).concat([
         confirm('Student evaluation forms', 'The checklist lists the forms and does not state how many.')
       ]);
     },
@@ -257,12 +270,17 @@
   function heldKinds(checkouts, names, today, sessionId, equipment) {
     var byKind = {};
     var sources = {};
+    var ambiguous = [];
     (checkouts || []).forEach(function (c) {
       if (!c || c.returnedDate || c.noEquipment) return;
       if ((c.items || []).some(function (it) { return it && (it.usesExisting || it.noEquipment); }) && !(c.items || []).some(function (it) { return it && Number(it.qty) > 0; })) return;
       if (sessionId && c.sessionId === sessionId) return;
       if (isFutureReservation(c, today)) return;
       if (c.outDate && today && c.outDate > today) return;
+      if (personAmbiguous(c.person, names)) {
+        if (ambiguous.indexOf(c.person) < 0) ambiguous.push(c.person);
+        return;
+      }
       if (!personMatches(c.person, names)) return;
       (c.items || []).forEach(function (it) {
         if (!it || it.usesExisting || it.noEquipment || it.consumable) return;
@@ -277,7 +295,7 @@
         if (src && sources[kind].indexOf(src) < 0) sources[kind].push(src);
       });
     });
-    return { qty: byKind, sources: sources };
+    return { qty: byKind, sources: sources, ambiguous: ambiguous };
   }
 
   function unconfirmedCarry(checkouts, names, neededKinds) {
@@ -346,9 +364,13 @@
     var needed = lines.filter(function (row) { return row && !row.consumable && !row.confirm; }).map(function (row) { return row.id; });
     var unverified = unconfirmedCarry(opts.checkouts, names, needed);
     var warning = '';
+    if (held.ambiguous && held.ambiguous.length) {
+      warning = 'A checkout for ' + held.ambiguous.join(', ') + ' was not subtracted. The name is not an exact match for the assigned instructor, so that equipment is not treated as already out.';
+    }
     var durableHeld = needed.some(function (id) { return (held.qty[id] || 0) > 0; });
     if (!durableHeld && unverified.length) {
-      warning = 'Confirm what is still with the instructor before packing another durable kit. A checkout was marked returned by an automatic cleanup (' + unverified.map(function (h) { return h.detail + (h.source ? ' from ' + h.source : ''); }).join('; ') + '). Those items are not counted as already out, and a second full kit is not filled in as packed.';
+      var retained = 'Confirm what is still with the instructor before packing another durable kit. A checkout was marked returned by an automatic cleanup (' + unverified.map(function (h) { return h.detail + (h.source ? ' from ' + h.source : ''); }).join('; ') + '). Those items are not counted as already out, and a second full kit is not filled in as packed.';
+      warning = warning ? (warning + ' ' + retained) : retained;
       lines.forEach(function (row) {
         if (row.consumable || row.confirm) return;
         if ((held.qty[row.id] || 0) > 0) return;

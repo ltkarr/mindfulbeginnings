@@ -83,8 +83,8 @@ test('enrollment changes and refunds change the pack count', () => {
     skipRefresh: true
   });
   assert.equal(nine.count, 9);
-  assert.equal(line(nine, 'infant').required, 3);
-  assert.equal(line(nine, 'child').required, 3);
+  assert.equal(line(nine, 'infant').required, 2);
+  assert.equal(line(nine, 'child').required, 2);
   assert.equal(line(nine, 'ssHandbook').required, 9);
 });
 
@@ -124,7 +124,7 @@ test('an organization class uses the billed headcount and does not print zero', 
   });
   assert.equal(set.count, 10);
   assert.equal(line(set, 'ssHandbook').required, 10);
-  assert.equal(line(set, 'infant').required, 3);
+  assert.equal(line(set, 'infant').required, 2);
 });
 
 test('Red Cross equipment stays at 2 adult, 2 child, and 2 infant manikins', () => {
@@ -228,11 +228,12 @@ test('a partial manikin shortfall packs only the difference', () => {
       items: [{ equipmentId: INFANT, qty: 1 }, { equipmentId: CHILD, qty: 3 }, { equipmentId: AV, qty: 1 }]
     }]
   });
-  assert.equal(line(plan, 'infant').required, 3);
+  assert.equal(line(plan, 'infant').required, 2);
   assert.equal(line(plan, 'infant').already, 1);
-  assert.equal(line(plan, 'infant').packNow, 2);
+  assert.equal(line(plan, 'infant').packNow, 1);
   assert.equal(line(plan, 'child').packNow, 0);
   assert.equal(line(plan, 'child').already, 3);
+  assert.ok(line(plan, 'infant').packNow >= 0);
 });
 
 test('a returned auto-closed checkout is not treated as gear in hand', () => {
@@ -306,4 +307,140 @@ test('recorded remaining handbooks can be subtracted, and unrecorded leftovers c
   assert.equal(line(recorded, 'ssHandbook').already, 2);
   assert.equal(line(recorded, 'ssHandbook').packNow, 4);
   assert.equal(line(recorded, 'ssNotebook').packNow, 6);
+});
+
+function ssPlan(count, extra) {
+  return pack.forChecklist(Object.assign({
+    checklistId: 'safe-sitter',
+    session: { id: 'ss', course: 'Safe Sitter®' },
+    registrations: regs('ss', Array.from({ length: count }, function () { return 'paid'; })),
+    instructorNames: ['Priya Shah'],
+    instructorCount: 1,
+    today: TODAY,
+    refresh: { ok: true },
+    skipRefresh: true,
+    equipment: EQUIPMENT,
+    checkouts: []
+  }, extra || {}));
+}
+
+test('Safe Sitter manikins are 1 each at 0, 6, and 8, and 2 each at 9', () => {
+  [0, 6, 8].forEach(function (n) {
+    const plan = ssPlan(n);
+    assert.equal(line(plan, 'infant').required, 1, 'infant at ' + n);
+    assert.equal(line(plan, 'child').required, 1, 'child at ' + n);
+    assert.equal(line(plan, 'ssHandbook').required, n);
+    assert.notEqual(line(plan, 'infant').required, 3);
+    assert.notEqual(line(plan, 'infant').required, 4);
+  });
+  const nine = ssPlan(9);
+  assert.equal(line(nine, 'infant').required, 2);
+  assert.equal(line(nine, 'child').required, 2);
+  assert.equal(line(nine, 'ssHandbook').required, 9);
+  assert.notEqual(line(nine, 'infant').required, 3);
+  assert.notEqual(line(nine, 'infant').required, 4);
+});
+
+test('held equipment changes pack-now the same way on the print sheet and the packing line', () => {
+  function check(count, heldInfant) {
+    const plan = ssPlan(count, {
+      checkouts: heldInfant ? [{
+        id: 'held',
+        person: 'Priya Shah',
+        outDate: '2026-10-01',
+        returnedDate: null,
+        source: 'earlier class',
+        items: [{ equipmentId: INFANT, qty: heldInfant }, { equipmentId: CHILD, qty: heldInfant }, { equipmentId: AV, qty: 1 }]
+      }] : []
+    });
+    const html = sheets.printHtml(sheets.byId('safe-sitter'), { pack: plan, instructor: 'Priya Shah' });
+    const text = pack.packNowText(plan);
+    ['infant', 'child', 'ssHandbook', 'ssNotebook'].forEach(function (id) {
+      const row = line(plan, id);
+      assert.ok(row.packNow >= 0 || row.packNow == null);
+      if (row.packNow != null) {
+        assert.match(html, new RegExp(row.packNow + ' required|PACK NOW ' + row.packNow));
+        assert.match(text, new RegExp(row.packNow + ' ' + row.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+      }
+    });
+    if (heldInfant) {
+      const need = count > 8 ? 2 : 1;
+      assert.equal(line(plan, 'infant').already, Math.min(heldInfant, need) === need && heldInfant > need ? heldInfant : Math.min(heldInfant, need) > need ? heldInfant : Math.min(heldInfant, line(plan, 'infant').required));
+      assert.equal(line(plan, 'infant').packNow, Math.max(0, line(plan, 'infant').required - Math.min(heldInfant, line(plan, 'infant').required) < 0 ? 0 : line(plan, 'infant').required - (heldInfant > line(plan, 'infant').required ? heldInfant : Math.min(heldInfant, line(plan, 'infant').required))));
+    }
+  }
+  [0, 6, 8, 9].forEach(function (n) {
+    check(n, 0);
+    check(n, 1);
+    check(n, 2);
+  });
+  const over = ssPlan(6, {
+    checkouts: [{
+      person: 'Priya Shah',
+      outDate: '2026-10-01',
+      returnedDate: null,
+      items: [{ equipmentId: INFANT, qty: 5 }]
+    }]
+  });
+  assert.equal(line(over, 'infant').packNow, 0);
+  assert.ok(line(over, 'infant').packNow >= 0);
+});
+
+test('two open reservations for the same instructor count the larger quantity once', () => {
+  const plan = ssPlan(6, {
+    checkouts: [
+      { person: 'Priya Shah', outDate: '2026-10-01', returnedDate: null, source: 'A', items: [{ equipmentId: INFANT, qty: 1 }] },
+      { person: 'Priya Shah', outDate: '2026-10-02', returnedDate: null, source: 'B', items: [{ equipmentId: INFANT, qty: 1 }] }
+    ]
+  });
+  assert.equal(line(plan, 'infant').already, 1);
+  assert.equal(line(plan, 'infant').packNow, 0);
+});
+
+test('a similar but different name is not subtracted', () => {
+  const plan = ssPlan(6, {
+    instructorNames: ['Kathryn Greenberg (Katy)'],
+    checkouts: [{
+      person: 'Sam Greenberg',
+      outDate: '2026-10-01',
+      returnedDate: null,
+      items: [{ equipmentId: INFANT, qty: 1 }, { equipmentId: CHILD, qty: 1 }, { equipmentId: AV, qty: 1 }]
+    }]
+  });
+  assert.equal(line(plan, 'infant').already, 0);
+  assert.equal(line(plan, 'infant').packNow, 1);
+  assert.match(plan.warning, /Sam Greenberg/);
+  assert.match(plan.warning, /not an exact match/);
+  assert.equal(pack.namesMatch('Katy Greenberg', 'Kathryn Greenberg (Katy)'), true);
+  assert.equal(pack.namesMatch('Sam Greenberg', 'Kathryn Greenberg'), false);
+  assert.equal(pack.namesMatch('Kat Greenberg', 'Kathryn Greenberg'), false);
+});
+
+test('an auto-closed return asks for confirmation instead of a second manikin kit', () => {
+  const plan = ssPlan(6, {
+    instructorNames: ['Kathryn Greenberg (Katy)'],
+    checkouts: [{
+      person: 'Katy Greenberg',
+      outDate: '2026-10-24',
+      returnedDate: '2026-10-13',
+      notes: '[auto-closed 2026-10-13 cleanup]',
+      source: 'prior class',
+      items: [{ kind: 'infant', qty: 1 }, { kind: 'child', qty: 1 }, { kind: 'av', qty: 1 }]
+    }, {
+      sessionId: 'ss',
+      person: 'Kathryn Greenberg',
+      outDate: '2026-11-06',
+      returnedDate: null,
+      items: [{ equipmentId: INFANT, qty: 2 }, { equipmentId: CHILD, qty: 2 }, { equipmentId: AV, qty: 1 }]
+    }]
+  });
+  const html = sheets.printHtml(sheets.byId('safe-sitter'), { pack: plan, instructor: 'Kathryn Greenberg (Katy)', code: 'SS-261030' });
+  assert.equal(line(plan, 'ssHandbook').packNow, 6);
+  assert.equal(line(plan, 'ssNotebook').packNow, 6);
+  assert.equal(line(plan, 'infant').already, 0);
+  assert.equal(line(plan, 'infant').packNow, null);
+  assert.match(plan.warning, /Confirm what is still with the instructor/);
+  assert.match(html, /PACK NOW 6/);
+  assert.match(html, /Confirm before packing another/);
+  assert.doesNotMatch(html, /Infant manikins: 1 required, 0 already with instructor. PACK NOW 1/);
 });

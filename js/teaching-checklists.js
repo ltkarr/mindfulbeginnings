@@ -148,7 +148,7 @@
         'Game pouch (blue zippered) and raffle ticket pouch',
         'Bingo prizes, tape, and a fake cell phone',
         'Soft-bodied dolls and disposable diapers',
-        'Infant manikin and child manikin (1 each for 8 or fewer students, 3 each when more than 8 are registered)',
+        'Infant manikin and child manikin (1 each for 8 or fewer students, 2 each above 8)',
         'Batteries and screwdriver',
         'CPR face shield protectors, 1 per participant'
       ]),
@@ -181,7 +181,7 @@
         'Safe Sitter Important Information Note Pad, 1 per student',
         'Student Evaluation Forms',
         'Soft-bodied dolls and disposable diapers',
-        'Infant manikin and child manikin for choking-rescue practice (1 each for 8 or fewer students, 3 each when more than 8 are registered)',
+        'Infant manikin and child manikin for choking-rescue practice (1 each for 8 or fewer students, 2 each above 8)',
         'Batteries and screwdriver',
         'CPR face shield protectors, 1 per participant',
         'Laptop, speaker, and projector if the site requires'
