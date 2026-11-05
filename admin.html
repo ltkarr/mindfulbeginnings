@@ -12091,7 +12091,7 @@ function packingBringLine(s, registered){
 function packingKitHtml(r){
   const bring=r&&r.bring?'<div class="pack-bring">'+escapeHtml(r.bring)+'</div>':'';
   const already=r&&r.already?'<div class="pack-bring">'+escapeHtml(r.already)+'</div>':'';
-  const packNow=r&&r.packNow?'<div class="pack-bring">'+escapeHtml(r.packNow)+'</div>':'';
+  const packNow=(r&&r.packNow&&r.packNow!==r.bring)?'<div class="pack-bring">'+escapeHtml(r.packNow)+'</div>':'';
   const warn=r&&r.carryWarning?'<div class="pack-bring">'+escapeHtml(r.carryWarning)+'</div>':'';
   const kit=r&&r.manikins?'<div class="pack-kit">Batteries + screwdriver</div>':'';
   const rep=(r&&r.representPack)?'<div class="pack-bring"><button type="button" class="btn sm" onclick="printRepresentPack(\''+String(r.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Print packing list</button></div>':'';

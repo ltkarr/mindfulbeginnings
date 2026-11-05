@@ -52,6 +52,13 @@
     list.push({ label: label, qty: known ? Number(qty) : null, confirm: !known });
   }
 
+  function addTask(list, label) {
+    if (!label) return;
+    var key = String(label).toLowerCase();
+    if (list.some(function (x) { return String(x.label || x).toLowerCase() === key; })) return;
+    list.push({ label: label, task: true });
+  }
+
   function build(session) {
     if (!isRepresentSession(session)) return null;
     var notes = printableNotes(session.notes || session.instructorInfo || '');
@@ -95,17 +102,17 @@
     if (/shirt|sweatshirt/i.test(text)) add(wear, 'Mindful Beginnings shirt or sweatshirt', 1);
     if (/\bbadge\b/i.test(text)) add(wear, 'Badge', 1);
 
-    if (/no food|no candy|do not (?:bring |pack )?food|without food/i.test(text)) add(restrict, 'No food or candy');
-    if (/do not use[^.]{0,40}(?:name|logo)|no [^.]{0,20}logo/i.test(text)) add(restrict, 'Do not put the host organization\'s name or logo on signage');
-    if (/health(?: and |\/)safety information only|health\/safety info only/i.test(text)) add(restrict, 'Health and safety information only');
+    if (/no food|no candy|do not (?:bring |pack )?food|without food/i.test(text)) addTask(restrict, 'No food or candy');
+    if (/do not use[^.]{0,40}(?:name|logo)|no [^.]{0,20}logo/i.test(text)) addTask(restrict, 'Do not put the host organization\'s name or logo on signage');
+    if (/health(?: and |\/)safety information only|health\/safety info only/i.test(text)) addTask(restrict, 'Health and safety information only');
 
-    if (/return leftovers|return any leftovers|return unused/i.test(text)) add(after, 'Return leftovers');
-    if (/quick report|send a report|report after/i.test(text)) add(after, 'Send a short report after the event');
+    if (/return leftovers|return any leftovers|return unused/i.test(text)) addTask(after, 'Return leftovers');
+    if (/quick report|send a report|report after/i.test(text)) addTask(after, 'Send a short report after the event');
 
     sentences(text).forEach(function (s) {
       if (/lock\s*code|door code|\$\d|parking/i.test(s)) return;
-      if (/set up by|arrive|vendor setup|cleanup|pack by/i.test(s)) add(during, s.replace(/\s+/g, ' '));
-      else if (/tell people|encourage everyone|share (?:all )?classes|hand out|capture email|point (?:people )?to registration|represent us at the event/i.test(s)) add(during, s.replace(/\s+/g, ' '));
+      if (/set up by|arrive|vendor setup|cleanup|pack by/i.test(s)) addTask(during, s.replace(/\s+/g, ' '));
+      else if (/tell people|encourage everyone|share (?:all )?classes|hand out|capture email|point (?:people )?to registration|represent us at the event/i.test(s)) addTask(during, s.replace(/\s+/g, ' '));
     });
 
     var mentionedCards = /business cards/i.test(text);
@@ -113,18 +120,18 @@
     var mentionedQr = /qr|registration sign|flyers?/i.test(text);
     var sparse = pack.length > 0 && pack.length <= 2 && !ownTable && !packOurTable && !/tablecloth|banner/i.test(text);
     if (sparse && /course|safe sitter|host a/i.test(text)) {
-      add(suggest, 'A short Safe Sitter hosting note for families');
-      if (!mentionedCards) add(suggest, 'Business cards');
-      if (!mentionedQr) add(suggest, 'A QR code or registration link');
-      add(suggest, 'A sheet to write names of people who want to host');
-      if (!mentionedPens) add(suggest, 'Pens');
+      addTask(suggest, 'A short Safe Sitter hosting note for families');
+      if (!mentionedCards) addTask(suggest, 'Business cards');
+      if (!mentionedQr) addTask(suggest, 'A QR code or registration link');
+      addTask(suggest, 'A sheet to write names of people who want to host');
+      if (!mentionedPens) addTask(suggest, 'Pens');
     }
     if (!/tablecloth|folding table|\btable\b/i.test(text)) {
-      add(check, 'A table and tablecloth are not in the notes. Confirm who provides the table before packing one.');
+      addTask(check, 'A table and tablecloth are not in the notes. Confirm who provides the table before packing one.');
     }
 
     if (!pack.length && !own.length && !provided.length) {
-      add(check, 'The notes do not list materials to pick up.');
+      addTask(check, 'The notes do not list materials to pick up.');
     }
 
     return {
@@ -144,7 +151,8 @@
   }
 
   function itemText(item) {
-    var row = typeof item === 'string' ? { label: item, qty: null, confirm: true } : item;
+    var row = typeof item === 'string' ? { label: item, task: true } : item;
+    if (row.task) return row.label;
     if (row.qty === 0) return row.label;
     if (row.qty > 0 && !row.confirm) return row.qty + ' ' + row.label;
     return row.label + ': quantity needs confirmation';

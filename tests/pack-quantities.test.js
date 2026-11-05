@@ -444,3 +444,99 @@ test('an auto-closed return asks for confirmation instead of a second manikin ki
   assert.match(html, /Confirm before packing another/);
   assert.doesNotMatch(html, /Infant manikins: 1 required, 0 already with instructor. PACK NOW 1/);
 });
+
+const MATERIAL = {
+  'Supplies and equipment': true,
+  'Course materials': true,
+  'Hands-on practice': true,
+  'Before class: materials': true
+};
+const NOT_SUPPLY = {
+  'Up to 20 participants': true,
+  '6 to 18 participants': true,
+  'Up to 12 students. 1 facilitator per 6 students is recommended.': true,
+  'Up to 16 participants': true,
+  'Confirm room setup, participant count, and the site AED location with the workplace contact': true
+};
+
+test('every tangible supply has a count, a confirmation, or an explicit not-packed reason', () => {
+  sheets.list().forEach(function (sheet) {
+    const plan = pack.forChecklist({
+      checklistId: sheet.id,
+      session: { id: 'cov-' + sheet.id },
+      registrations: regs('cov-' + sheet.id, ['paid', 'paid', 'paid', 'paid', 'paid', 'paid']),
+      instructorCount: 1,
+      instructorNames: ['Priya Shah'],
+      today: TODAY,
+      refresh: { ok: true },
+      skipRefresh: true
+    });
+    const covered = {};
+    const items = [];
+    sheet.sections.forEach(function (sec) {
+      (sec.items || []).forEach(function (item) { items.push(item); });
+    });
+    assert.ok(plan.lines.length > 0, sheet.id);
+    plan.lines.forEach(function (row) {
+      const decided = row.role === 'instructor' || row.role === 'conditional' || row.confirm === true || typeof row.required === 'number';
+      assert.equal(decided, true, sheet.id + ' ' + row.label);
+      if (row.role === 'instructor' || row.role === 'conditional') assert.equal(row.packNow, null, row.label);
+      if (row.confirm) assert.equal(row.packNow, null, row.label);
+      assert.ok(row.covers && row.covers.length, sheet.id + ' ' + row.id);
+      row.covers.forEach(function (text) {
+        covered[text] = true;
+        assert.equal(items.indexOf(text) >= 0, true, sheet.id + ' cover is not on the checklist: ' + text);
+      });
+    });
+    sheet.sections.forEach(function (sec) {
+      if (!MATERIAL[sec.title]) return;
+      sec.items.forEach(function (item) {
+        if (NOT_SUPPLY[item]) return;
+        assert.equal(!!covered[item], true, sheet.id + ' supply has no packing line: ' + item);
+      });
+    });
+    const html = sheets.printHtml(sheet, { pack: plan, instructor: 'Priya Shah', date: '2026-11-13' });
+    sheet.sections.forEach(function (sec) {
+      if (!MATERIAL[sec.title]) return;
+      sec.items.forEach(function (item) {
+        if (NOT_SUPPLY[item] || !covered[item]) return;
+        const stillRaw = plan.lines.every(function (row) { return row.label !== item; });
+        if (stillRaw && item.length > 24) {
+          assert.equal(html.indexOf(item), -1, sheet.id + ' still prints an unquantified supply line: ' + item);
+        }
+      });
+    });
+    assert.match(html, /Every supply on this checklist is listed here/);
+    assert.doesNotMatch(html, /—|–/);
+  });
+  const six = ssPlan(6);
+  const html = sheets.printHtml(sheets.byId('safe-sitter'), { pack: six, instructor: 'Kathryn Greenberg (Katy)', date: '2026-11-13', code: 'SS-261030' });
+  assert.match(html, /Instructor Manual: instructor brings this/);
+  assert.match(html, /Game pouch \(blue zippered\): 1 required/);
+  assert.match(html, /Raffle ticket pouch: 1 required/);
+  assert.match(html, /Bingo prizes: quantity needs confirmation/);
+  assert.match(html, /Tape: quantity needs confirmation/);
+  assert.match(html, /Fake cell phone: 1 required/);
+  assert.match(html, /Soft-bodied dolls: quantity needs confirmation/);
+  assert.match(html, /Disposable diapers: quantity needs confirmation/);
+  assert.match(html, /Batteries: quantity needs confirmation/);
+  assert.match(html, /Screwdriver: 1 required/);
+  assert.match(html, /Safe Sitter badges: not packed unless it applies/);
+  assert.match(html, /PACK NOW 6/);
+  assert.doesNotMatch(html, /Bingo prizes, tape, and a fake cell phone/);
+  assert.doesNotMatch(html, /Supplies and equipment/);
+  const text = pack.packNowText(six);
+  assert.match(text, /Pack now: 6 Safe Sitter Student Handbooks/);
+  assert.match(text, /Bingo prizes: quantity needs confirmation/);
+  assert.match(text, /Instructor Manual: instructor brings this, not packed from storage/);
+  assert.match(text, /Safe Sitter badges: not packed unless it applies/);
+  [0, 6, 8, 9].forEach(function (n) {
+    const plan = ssPlan(n);
+    assert.equal(line(plan, 'infant').required, n > 8 ? 2 : 1);
+    assert.equal(line(plan, 'child').required, n > 8 ? 2 : 1);
+    assert.equal(line(plan, 'gamePouch').required, 1);
+    assert.equal(line(plan, 'bingoPrizes').confirm, true);
+    assert.equal(line(plan, 'ssBadges').role, 'conditional');
+    assert.equal(line(plan, 'ssManual').role, 'instructor');
+  });
+});
