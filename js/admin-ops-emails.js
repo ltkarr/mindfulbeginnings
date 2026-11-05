@@ -1,4 +1,4 @@
-/* Session-filled copies of Lindsay's four ops emails.
+/* Session-filled copies of Lindsay's ops emails.
    ADMIN shows the result in a copy window. Nothing here sends mail. */
 (function (root) {
   'use strict';
@@ -185,10 +185,47 @@
       };
     }
 
+    if (kind === 'instructorZoomReminder' || kind === 'instructorFinalRoster') {
+      var zoom = val(info, 'zoomLink', '') || '[Add the Zoom link before sending]';
+      var who = firstName(instructor) || 'there';
+      var finalRoster = kind === 'instructorFinalRoster';
+      lines.push('Hi ' + who + ',');
+      lines.push('');
+      if (finalRoster) {
+        lines.push('Class is tomorrow. This is the final roster for your ' + course + ' class. The Zoom link is below. Please use this list for class. It replaces the roster from last week.');
+      } else {
+        lines.push('Your ' + course + ' class is one week away. Here is the Zoom link and the current roster. I will send the final roster again the day before class.');
+      }
+      lines.push('');
+      lines.push('SESSION DETAILS');
+      lines.push('Course: ' + course);
+      lines.push('Date: ' + dateLong);
+      lines.push('Time: ' + time);
+      lines.push('Format: Virtual (Zoom)');
+      lines.push('Zoom link: ' + zoom);
+      lines.push('Session code: ' + (code || 'To be confirmed'));
+      lines.push('Registration count: ' + countPhrase);
+      lines.push('');
+      lines.push('The class roster is below this message. Please keep it with you for class.');
+      lines.push('');
+      lines.push('Warmly,');
+      lines.push('Lindsay');
+      lines.push('Mindful Beginnings');
+      return {
+        field: 'to',
+        subject: (finalRoster ? 'Final roster: ' : 'Zoom link and roster: ') + course + ' on ' + dateShort,
+        body: lines.join('\n')
+      };
+    }
+
     if (kind === 'classReminder') {
       lines.push('Hi everyone,');
       lines.push('');
-      lines.push('Please review the important details below as you prepare for the class:');
+      if (info.virtual) {
+        lines.push('Your class is one week away. Here is the Zoom link so you can join from home.');
+      } else {
+        lines.push('Please review the important details below as you prepare for the class:');
+      }
       lines.push('');
       lines.push('CLASS LOGISTICS');
       lines.push('\u2022 Date and Time: ' + dateLong + ', ' + time);
@@ -222,7 +259,7 @@
       lines.push('Mindful Beginnings');
       return {
         field: 'bcc',
-        subject: 'Reminder: ' + course + ' class on ' + dateShort,
+        subject: (info.virtual ? 'Reminder: Zoom link for ' + course + ' on ' : 'Reminder: ' + course + ' class on ') + dateShort,
         body: lines.join('\n')
       };
     }

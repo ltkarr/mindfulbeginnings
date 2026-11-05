@@ -46,6 +46,7 @@ vm.runInContext(
     'preClassMaterialsLabel',
     'preClassInstrReminderLabel',
     'preClassStudentReminderLabel',
+    'preClassFinalRosterLabel',
     'preClassLiveStudentCount',
     'preClassNeedsStudentReminder',
     'preClassShowsStudentCount',
@@ -185,6 +186,10 @@ test('checklist cards name the instructor and the host, or say when either is mi
   assert.match(admin, /Family reminder — before class/);
   assert.match(block, /openInstructorReminder\('\$\{s\.id\}'\)/);
   assert.match(block, /openClassReminder\('\$\{s\.id\}'\)/);
+  assert.match(block, /openInstructorFinalRoster\('\$\{s\.id\}'\)/);
+  assert.match(block, /preClassFinalRosterLabel\(s\)/);
+  assert.match(block, /instrFinalRosterSent/);
+  assert.doesNotMatch(block, /emailjs\.send/);
   assert.match(block, /fmtSessDate\(s,/);
 });
 
@@ -249,7 +254,7 @@ test('custom jobs keep a materials checkbox and an instructor reminder only', ()
   assert.equal(sandbox.preClassChecklistDone(ownerBooth), true);
 });
 
-test('a virtual class emails the Zoom link and drops the handbook checkbox', () => {
+test('a virtual class keeps week-before reminders and a day-before final roster', () => {
   const zoom = sess('abby', '2026-10-18', {
     course: 'Safe@Home — Virtual',
     isVirtual: true,
@@ -260,21 +265,55 @@ test('a virtual class emails the Zoom link and drops the handbook checkbox', () 
   sandbox.jobDataCache = { abby: {} };
   sandbox.registrations = [];
   const zoomKeys = (s) => [...sandbox.preClassTaskList(s)].map((t) => t.key);
-  assert.deepEqual(zoomKeys(zoom), ['instrReminderSent']);
-  assert.equal(sandbox.preClassInstrReminderLabel(zoom), 'Email instructor the Zoom link + roster');
+  assert.deepEqual(zoomKeys(zoom), ['instrReminderSent', 'instrFinalRosterSent']);
+  assert.equal(sandbox.preClassInstrReminderLabel(zoom), 'Week before — email instructor Zoom link + roster');
+  assert.equal(sandbox.preClassFinalRosterLabel(zoom), 'Day before — send final roster to instructor');
   assert.equal(sandbox.preClassChecklistDone(zoom), false);
   sandbox.jobDataCache.abby = { materialsSent: false, instrReminderSent: true };
-  assert.equal(sandbox.preClassChecklistDone(zoom), true);
+  assert.equal(sandbox.preClassChecklistDone(zoom), false);
 
   sandbox.registrations = [
     { sessionId: 'abby', payStatus: 'paid', contact: 'parent@example.com' },
     { sessionId: 'abby', payStatus: 'waitlist', contact: 'wait@example.com' }
   ];
-  assert.deepEqual(zoomKeys(zoom), ['instrReminderSent', 'classReminderSent']);
-  assert.equal(sandbox.preClassStudentReminderLabel(zoom), 'Send Zoom link reminder to students');
+  assert.deepEqual(zoomKeys(zoom), ['instrReminderSent', 'classReminderSent', 'instrFinalRosterSent']);
+  assert.equal(sandbox.preClassStudentReminderLabel(zoom), 'Week before — email participants Zoom link');
   assert.equal(sandbox.preClassChecklistDone(zoom), false);
   sandbox.jobDataCache.abby.classReminderSent = true;
+  assert.equal(sandbox.preClassChecklistDone(zoom), false);
+
+  const tomorrow = new Date(2026, 9, 17);
+  assert.deepEqual(sandbox.dashChecklistSessions([zoom], tomorrow).map((s) => s.id), ['abby']);
+  sandbox.jobDataCache.abby.instrFinalRosterSent = true;
   assert.equal(sandbox.preClassChecklistDone(zoom), true);
+  assert.deepEqual(sandbox.dashChecklistSessions([zoom], tomorrow), []);
+
+  const early = sess('early-zoom', '2026-10-27', {
+    course: 'Safe@Home — Virtual',
+    isVirtual: true,
+    hasHost: false,
+    instructorId: 'abby'
+  });
+  sandbox.registrations.push({ sessionId: 'early-zoom', payStatus: 'paid', contact: 'parent@example.com' });
+  sandbox.jobDataCache['early-zoom'] = {
+    instrReminderSent: true,
+    classReminderSent: true,
+    instrFinalRosterSent: false
+  };
+  assert.equal(sandbox.preClassChecklistDone(early), false);
+  assert.deepEqual(sandbox.dashChecklistSessions([early], tomorrow).map((s) => s.id), ['early-zoom']);
+  sandbox.jobDataCache['early-zoom'].instrFinalRosterSent = true;
+  assert.deepEqual(sandbox.dashChecklistSessions([early], tomorrow), []);
+
+  const selfTaught = sess('self', '2026-10-18', {
+    isVirtual: true,
+    ownerTaught: true,
+    instructorId: null,
+    hasHost: false
+  });
+  sandbox.jobDataCache.self = {};
+  sandbox.registrations = [{ sessionId: 'self', payStatus: 'paid', contact: 'parent@example.com' }];
+  assert.deepEqual(zoomKeys(selfTaught), ['classReminderSent']);
 
   const room = sess('room', '2026-10-18', { isVirtual: false, hasHost: true, instructorId: 'i1' });
   sandbox.jobDataCache.room = {};
@@ -282,6 +321,46 @@ test('a virtual class emails the Zoom link and drops the handbook checkbox', () 
   assert.equal(sandbox.preClassMaterialsLabel(room), 'Put out handbooks &amp; supplies');
   assert.equal(sandbox.preClassInstrReminderLabel(room), 'Send reminder + roster to instructor');
   assert.equal(sandbox.preClassStudentReminderLabel(room), 'Family reminder — before class');
+  assert.equal(sandbox.preClassTaskList(room).some((t) => t.key === 'instrFinalRosterSent'), false);
+
+  const week = admin.slice(admin.indexOf('function openInstructorReminder'), admin.indexOf('function openInstructorFinalRoster'));
+  const day = admin.slice(admin.indexOf('function openInstructorFinalRoster'), admin.indexOf('// ─── ERROR TRACKING'));
+  assert.match(week, /opsDraft\('instructorZoomReminder'/);
+  assert.match(week, /Send reminder \+ roster to instructor/);
+  assert.match(day, /opsDraft\('instructorFinalRoster'/);
+  assert.match(day, /body:draft\.body/);
+  assert.match(day, /hasRoster:true/);
+  assert.match(day, /privateCols:true/);
+  assert.doesNotMatch(week + day, /emailjs/);
+  assert.doesNotMatch(week + day, /mailto:/);
+});
+
+test('the day-before final roster flag round-trips on job_data', () => {
+  const box = {
+    INSTR_FINAL_ROSTER_COL: true,
+    MATERIALS_SENT_AT_COL: true,
+    MATERIALS_OUT_AT_COL: true,
+    BADGE_SUMMARY_COL: true,
+    RED_CROSS_REPORTED_COL: true
+  };
+  vm.createContext(box);
+  vm.runInContext([extractFunction(admin, 'jobFromDB'), extractFunction(admin, 'jobToDB')].join('\n'), box);
+  const sent = box.jobToDB('abby', { instrFinalRosterSent: true, waitlist: [], materialsSent: false });
+  assert.equal(sent.instr_final_roster_sent, true);
+  assert.equal(box.jobFromDB(sent).instrFinalRosterSent, true);
+  const cleared = box.jobToDB('abby', { instrFinalRosterSent: false, waitlist: [] });
+  assert.equal(cleared.instr_final_roster_sent, false);
+  box.INSTR_FINAL_ROSTER_COL = false;
+  const pending = box.jobToDB('abby', { instrFinalRosterSent: true, waitlist: [] });
+  assert.equal(Object.prototype.hasOwnProperty.call(pending, 'instr_final_roster_sent'), false);
+
+  const sql = fs.readFileSync(path.join(__dirname, '..', 'migrations/20261105_zoom_final_roster.sql'), 'utf8');
+  assert.match(sql, /alter table public\.job_data\s+add column if not exists instr_final_roster_sent boolean not null default false;/);
+  assert.match(sql, /grant select \(instr_final_roster_sent\), insert \(instr_final_roster_sent\), update \(instr_final_roster_sent\)/);
+  assert.match(sql, /revoke select \(instr_final_roster_sent\), insert \(instr_final_roster_sent\), update \(instr_final_roster_sent\), references \(instr_final_roster_sent\)/);
+  assert.match(sql, /from anon, public/);
+  assert.match(sql, /to authenticated/);
+  assert.match(sql, /Nothing in this migration sends email/);
 });
 
 test('an unsent host reminder does not keep a class on the checklist', () => {

@@ -116,9 +116,51 @@ test('family reminder is the before-class pack and meal note', () => {
     zoomLink: 'https://zoom.us/j/84366764411',
     address: 'Virtual (Zoom) — https://zoom.us/j/84366764411'
   }));
+  assert.equal(zoom.subject, 'Reminder: Zoom link for Safe@Home — Virtual on October 10');
+  assert.match(zoom.body, /Your class is one week away\. Here is the Zoom link so you can join from home\./);
   assert.match(zoom.body, /Zoom link: https:\/\/zoom\.us\/j\/84366764411/);
   assert.doesNotMatch(zoom.body, /What to Bring/);
   assert.doesNotMatch(zoom.body, /Location:/);
+});
+
+test('zoom instructor drafts are a week-before Zoom link plus roster and a day-before final roster', () => {
+  const info = sample({
+    course: 'Safe@Home — Virtual',
+    instructor: 'Priya Shah',
+    virtual: true,
+    zoomLink: 'https://zoom.us/j/84366764411',
+    countPhrase: '6 students registered'
+  });
+  const week = emails.draft('instructorZoomReminder', info);
+  assert.equal(week.field, 'to');
+  assert.equal(week.subject, 'Zoom link and roster: Safe@Home — Virtual on October 10');
+  assert.match(week.body, /^Hi Priya,/);
+  assert.match(week.body, /one week away/);
+  assert.match(week.body, /Zoom link and the current roster/);
+  assert.match(week.body, /Zoom link: https:\/\/zoom\.us\/j\/84366764411/);
+  assert.match(week.body, /final roster again the day before class/);
+  assert.match(week.body, /6 students registered/);
+  assert.doesNotMatch(week.body, /Location:/);
+  assert.doesNotMatch(week.body, /mailto:/);
+
+  const day = emails.draft('instructorFinalRoster', info);
+  assert.equal(day.field, 'to');
+  assert.equal(day.subject, 'Final roster: Safe@Home — Virtual on October 10');
+  assert.match(day.body, /^Hi Priya,/);
+  assert.match(day.body, /Class is tomorrow/);
+  assert.match(day.body, /final roster/i);
+  assert.match(day.body, /replaces the roster from last week/);
+  assert.match(day.body, /Zoom link: https:\/\/zoom\.us\/j\/84366764411/);
+  assert.doesNotMatch(day.body, /one week away/);
+  assert.doesNotMatch(day.body, /mailto:/);
+
+  const missing = emails.draft('instructorFinalRoster', sample({
+    course: 'Safe@Home — Virtual',
+    instructor: '',
+    zoomLink: ''
+  }));
+  assert.match(missing.body, /^Hi there,/);
+  assert.match(missing.body, /\[Add the Zoom link before sending\]/);
 });
 
 test('host letter is the initial confirm and drops the free spot when there is no host seat', () => {
