@@ -174,4 +174,66 @@ test('more than 8 students, aliases, and the week-before buffer stay in the kit 
   assert.equal(plan.outDate, '2026-12-08');
   assert.equal(plan.dueDate, '2026-12-22');
   assert.equal(plan.largeKit, true);
+  assert.equal(plan.lines.find((l) => l.kind === 'infant').need, 3);
+  assert.equal(plan.lines.find((l) => l.kind === 'child').need, 3);
+});
+
+test('Safe Sitter adds 2 infant and 2 child manikins only when more than 8 students are registered', () => {
+  const eight = sandbox.sessionMatNeeds(sess({ id: 'ss8', course: 'Safe Sitter®' }), 8);
+  assert.equal(eight.infant, 1);
+  assert.equal(eight.child, 1);
+  assert.equal(eight.av, 1);
+  const nine = sandbox.sessionMatNeeds(sess({ id: 'ss9', course: 'Safe Sitter®' }), 9);
+  assert.equal(nine.infant, 3);
+  assert.equal(nine.child, 3);
+  assert.equal(nine.av, 1);
+
+  const essentials = sandbox.sessionMatNeeds(sess({ course: 'Safe Sitter® Babysitting Essentials' }), 10);
+  assert.equal(essentials.infant, 3);
+  assert.equal(essentials.child, 3);
+  assert.equal(essentials.av, 1);
+  const alias = sandbox.sessionMatNeeds(sess({ course: 'SafeSitter @Norwood' }), 9);
+  assert.equal(alias.infant, 3);
+  assert.equal(alias.child, 3);
+
+  const grandparents = sandbox.sessionMatNeeds(sess({ course: 'Safe Sitter® Grandparents: Getting Started' }), 9);
+  assert.equal(grandparents.infant, 2);
+  assert.equal(grandparents.child, 2);
+  const care = sandbox.sessionMatNeeds(sess({ course: 'Care Ready' }), 9);
+  assert.equal(care.infant, 2);
+  assert.equal(care.child, 2);
+
+  const bring8 = sandbox.packingBringLine(sess({ id: 'pack8', course: 'Safe Sitter®' }), 8);
+  assert.match(bring8, /8 Safe Sitter handbooks/);
+  assert.match(bring8, /1 AV kit, 1 infant manikin, 1 child manikin/);
+  const bring9 = sandbox.packingBringLine(sess({ id: 'pack9', course: 'Safe Sitter®' }), 9);
+  assert.match(bring9, /9 Safe Sitter handbooks, 9 Safe Sitter notebooks, 1 AV kit, 3 infant manikins, 3 child manikins/);
+
+  function regs(id, live, extra) {
+    const rows = [];
+    for (let i = 0; i < live; i++) rows.push({ sessionId: id, payStatus: 'paid', studentName: 'S' + i });
+    extra.forEach(function (status) { rows.push({ sessionId: id, payStatus: status, studentName: status }); });
+    return rows;
+  }
+  sandbox.registrations = regs('counted', 8, ['cancelled', 'canceled', 'refunded', 'waitlist']);
+  const stillSmall = sandbox.sessionMatNeeds(sess({ id: 'counted', course: 'Safe Sitter®' }), 12);
+  assert.equal(sandbox.safeSitterRegisteredStudents(sess({ id: 'counted', course: 'Safe Sitter®' }), 12), 8);
+  assert.equal(stillSmall.infant, 2);
+  assert.equal(stillSmall.child, 2);
+  assert.equal(stillSmall.av, 1);
+
+  sandbox.registrations = regs('counted9', 9, ['cancelled']);
+  const countedBig = sandbox.sessionMatNeeds(sess({ id: 'counted9', course: 'Safe Sitter®' }), 9);
+  assert.equal(sandbox.safeSitterRegisteredStudents(sess({ id: 'counted9', course: 'Safe Sitter®' }), 6), 9);
+  assert.equal(countedBig.infant, 3);
+  assert.equal(countedBig.child, 3);
+  const note = sandbox.safeSitterLargeKitSentence('Safe Sitter®', [
+    { kind: 'infant', need: 3 },
+    { kind: 'child', need: 3 },
+    { kind: 'av', need: 1 }
+  ]);
+  assert.match(note, /adds 2 infant and 2 child manikins/);
+  assert.match(note, /3 infant manikins and 3 child manikins/);
+  assert.equal(sandbox.safeSitterLargeKitSentence('Care Ready', [{ kind: 'infant', need: 2 }, { kind: 'child', need: 2 }]), '');
+  delete sandbox.registrations;
 });

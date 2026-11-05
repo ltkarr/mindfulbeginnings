@@ -679,15 +679,15 @@ test('more than 8 registered students reserves 2 infant and 2 child manikins', (
     course: 'Safe Sitter®', date: '2026-11-02', person: 'Helena Carboy', extraDates: [], headcount: 9
   });
   assert.equal(big.largeKit, true);
-  assert.equal(line(big, 'infant').need, 2);
-  assert.equal(line(big, 'child').need, 2);
+  assert.equal(line(big, 'infant').need, 3);
+  assert.equal(line(big, 'child').need, 3);
   assert.equal(line(big, 'av').need, 1);
-  assert.equal(line(big, 'infant').requested, 2);
-  assert.equal(line(big, 'child').requested, 2);
+  assert.equal(line(big, 'infant').requested, 3);
+  assert.equal(line(big, 'child').requested, 3);
   assert.equal(big.books.find((b) => b.eqId === 'ss-book').requested, 9);
   assert.equal(big.books.find((b) => b.kind === 'ssNotebook').requested, 9);
   const fresh = planSandbox.matCheckoutItemsFromPlan(big, false);
-  assert.equal(fresh.map((it) => it.equipmentId + ':' + it.qty).join(','), 'infant:2,child:2,av:1');
+  assert.equal(fresh.map((it) => it.equipmentId + ':' + it.qty).join(','), 'infant:3,child:3,av:1');
   assert.equal(fresh.some((it) => it.equipmentId === 'ss-book'), false);
 
   const home = planSandbox.matPlanForSession({
@@ -707,8 +707,8 @@ test('more than 8 registered students reserves 2 infant and 2 child manikins', (
   planSandbox.matCheckouts = [{
     id: 'full', person: 'Helena Carboy', returnedDate: null,
     items: [
-      { equipmentId: 'infant', qty: 2 },
-      { equipmentId: 'child', qty: 2 },
+      { equipmentId: 'infant', qty: 3 },
+      { equipmentId: 'child', qty: 3 },
       { equipmentId: 'av', qty: 1 }
     ],
     outDate: '2026-10-26', dueDate: '2026-11-09'
@@ -737,8 +737,8 @@ test('more than 8 registered students reserves 2 infant and 2 child manikins', (
   assert.equal(line(short, 'infant').requested, 0);
   assert.equal(line(short, 'child').requested, 0);
   assert.equal(line(short, 'av').requested, 0);
-  assert.equal(line(short, 'infant').bumpTo, 2);
-  assert.equal(line(short, 'child').bumpTo, 2);
+  assert.equal(line(short, 'infant').bumpTo, 3);
+  assert.equal(line(short, 'child').bumpTo, 3);
   assert.equal([...short.bumps].map((b) => b.kind).sort().join(','), 'child,infant');
   const shortItems = planSandbox.matCheckoutItemsFromPlan(short, true);
   assert.equal(shortItems[0].usesExisting, true);
@@ -752,6 +752,9 @@ test('more than 8 registered students reserves 2 infant and 2 child manikins', (
   planSandbox.sessions = [{
     id: 'big', course: 'Safe Sitter®', date: '2026-11-02', instructorId: 'helena', secondInstructorId: 'kim', extraDates: []
   }];
+  planSandbox.registrations = Array.from({ length: 9 }, function (_, i) {
+    return { sessionId: 'big', payStatus: 'paid', studentName: 'Student ' + i };
+  });
   planSandbox.matCheckouts = [
     {
       id: 'h', person: 'Helena Carboy', returnedDate: null,
@@ -760,7 +763,7 @@ test('more than 8 registered students reserves 2 infant and 2 child manikins', (
     },
     {
       id: 'k', person: 'Kim Varner', returnedDate: null,
-      items: [{ equipmentId: 'infant', qty: 1 }, { equipmentId: 'child', qty: 1 }],
+      items: [{ equipmentId: 'infant', qty: 2 }, { equipmentId: 'child', qty: 2 }],
       outDate: '2026-10-26', dueDate: '2026-11-09'
     }
   ];
@@ -768,8 +771,10 @@ test('more than 8 registered students reserves 2 infant and 2 child manikins', (
     course: 'Safe Sitter®', date: '2026-11-02', person: 'Helena Carboy', sessionId: 'big',
     extraDates: [], headcount: 9, reuse: true
   });
-  assert.equal(line(team, 'infant').held, 2);
-  assert.equal(line(team, 'child').held, 2);
+  assert.equal(line(team, 'infant').need, 3);
+  assert.equal(line(team, 'child').need, 3);
+  assert.equal(line(team, 'infant').held, 3);
+  assert.equal(line(team, 'child').held, 3);
   assert.equal(team.topUp, false);
   assert.equal(team.fullyCovered, true);
   assert.equal(team.bumps.length, 0);
