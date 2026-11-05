@@ -999,6 +999,78 @@
     });
   }
 
+  var MATERIAL_SECTION = {
+    'Supplies and equipment': true,
+    'Course materials': true,
+    'Hands-on practice': true,
+    'Before class: materials': true
+  };
+
+  function coveredSupplyText(pack) {
+    var set = {};
+    (pack && pack.lines || []).forEach(function (row) {
+      (row.covers || []).forEach(function (text) { set[text] = true; });
+    });
+    return set;
+  }
+
+  function packLineText(line) {
+    var text;
+    if (line.role === 'instructor') {
+      text = line.label + ': instructor brings this. Not packed from storage.';
+      if (line.required != null) text += ' ' + line.required + ' with the instructor.';
+      if (line.note) text += ' ' + line.note;
+      return text;
+    }
+    if (line.role === 'conditional') {
+      return line.label + ': not packed unless it applies. ' + (line.note || 'The checklist does not say this class needs it.');
+    }
+    if (line.confirm || line.required == null) {
+      return line.label + ': quantity needs confirmation. ' + (line.note || 'The checklist does not state an exact number.');
+    }
+    text = line.label + ': ' + line.required + ' required';
+    if (line.already) text += ', ' + line.already + ' already with instructor';
+    if (line.alreadyNote) text += ' (' + line.alreadyNote + ')';
+    if (line.packNow != null) text += '. PACK NOW ' + line.packNow;
+    if (line.holdNote) text += '. ' + line.holdNote;
+    if (line.note) text += ' ' + line.note;
+    return text;
+  }
+
+  function packGroup(lines, title, rows) {
+    if (!rows.length) return '';
+    return '<p class="teach-pdf-kicker">' + escapeHtml(title) + '</p><ul class="teach-items">' + rows.map(function (line) {
+      return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(packLineText(line)) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+
+  function packSectionHtml(pack) {
+    var lines, warning, basis, counted, ask, ownRows, onlyRows;
+    if (!pack || !(pack.lines || []).length) return '';
+    lines = pack.lines;
+    basis = '<p class="teach-pdf-note">' + escapeHtml(pack.basis || '') + '</p>';
+    if (pack.refreshNote) basis += '<p class="teach-pdf-note">' + escapeHtml(pack.refreshNote) + '</p>';
+    basis += '<p class="teach-pdf-note">Every supply on this checklist is listed here. Teaching steps below are tasks, not more items to pack.</p>';
+    warning = pack.warning ? '<p class="teach-pdf-note">' + escapeHtml(pack.warning) + '</p>' : '';
+    counted = [];
+    ask = [];
+    ownRows = [];
+    onlyRows = [];
+    lines.forEach(function (line) {
+      if (!line) return;
+      if (line.role === 'instructor') ownRows.push(line);
+      else if (line.role === 'conditional') onlyRows.push(line);
+      else if (line.confirm || line.required == null) ask.push(line);
+      else counted.push(line);
+    });
+    return '<section class="teach-pdf-section"><h2>How many to pack</h2>' + basis + warning +
+      packGroup(lines, 'Pack these', counted) +
+      packGroup(lines, 'Quantity needs confirmation', ask) +
+      packGroup(lines, 'Instructor brings, not packed from storage', ownRows) +
+      packGroup(lines, 'Only if it applies', onlyRows) +
+      '</section>';
+  }
+
   function instructorLine(meta) {
     var who = String(meta && meta.instructor || '').trim();
     if (!who || who === 'TBD') who = 'Unassigned';
@@ -1006,14 +1078,30 @@
   }
 
   function printHtml(checklist, meta) {
-    var sections, note, foot, lines, when, sessionTitle, bits, session;
+    var sections, note, foot, lines, when, sessionTitle, bits, session, pack, covered;
     if (!checklist) return '';
     session = meta == null ? null : meta;
+    pack = session && session.pack;
+    if (!pack && root.MBPackQuantities && checklist.id) {
+      pack = root.MBPackQuantities.forChecklist({
+        checklistId: checklist.id,
+        blank: true,
+        session: {},
+        registrations: [],
+        skipRefresh: true,
+        refresh: { ok: true }
+      });
+    }
+    covered = coveredSupplyText(pack);
     sections = (checklist.sections || []).map(function (section) {
-      var items = (section.items || []).map(function (item) {
+      var items = section.items || [];
+      if (pack && MATERIAL_SECTION[section.title]) {
+        items = items.filter(function (item) { return !covered[item]; });
+        if (!items.length) return '';
+      }
+      return '<section class="teach-pdf-section"><h2>' + escapeHtml(section.title) + '</h2><ul class="teach-items">' + items.map(function (item) {
         return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(item) + '</span></li>';
-      }).join('');
-      return '<section class="teach-pdf-section"><h2>' + escapeHtml(section.title) + '</h2><ul class="teach-items">' + items + '</ul></section>';
+      }).join('') + '</ul></section>';
     }).join('');
     note = checklist.note ? '<p class="teach-pdf-note">' + escapeHtml(checklist.note) + '</p>' : '';
     foot = checklist.foot ? '<p class="teach-pdf-foot">' + escapeHtml(checklist.foot) + '</p>' : '';
@@ -1028,7 +1116,7 @@
     if (sessionTitle && sessionTitle !== checklist.title) bits += '<p class="teach-pdf-session">' + escapeHtml(sessionTitle) + '</p>';
     bits += note;
     if (lines.length) bits += '<p class="teach-pdf-meta">' + lines.map(escapeHtml).join('<br>') + '</p>';
-    bits += '</header>' + sections + foot + '</div>';
+    bits += '</header>' + packSectionHtml(pack) + sections + foot + '</div>';
     return bits;
   }
 

@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261105-teach-instructor';
+window.MB_ADMIN_BUILD='20261105-pack-counts';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -47,6 +47,8 @@ window.MB_ADMIN_BUILD='20261105-teach-instructor';
 <script src="/js/duplicate-sessions.js"></script>
 <script src="/js/srf-grant.js"></script>
 <script src="/js/teaching-checklists.js"></script>
+<script src="/js/pack-quantities.js"></script>
+<script src="/js/represent-packing.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -7240,9 +7242,11 @@ function renderDashTeachingChecks(now){
     const code=String(s.code||'').trim();
     const id=String(s.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const bits=[when, s.time, place, code].filter(function(p){return String(p||'').trim();});
+    const qty=(typeof sessionQuantityView==='function')?sessionQuantityView(s):null;
+    const qtyLine=qty&&qty.packNow?'<span style="display:block;font-size:14px;line-height:1.45;margin-top:2px">'+escapeHtml(qty.packNow)+'</span>':'';
     return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border)">'
       +'<div style="min-width:0;font-size:15px;line-height:1.45"><span style="font-weight:650">'+escapeHtml(s.course||'Class')+'</span>'
-      +'<span style="display:block;color:var(--muted)">'+escapeHtml(bits.join(' · '))+'</span></div>'
+      +'<span style="display:block;color:var(--muted)">'+escapeHtml(bits.join(' · '))+'</span>'+qtyLine+'</div>'
       +'<button type="button" class="btn sm" onclick="printTeachingChecklist(\''+id+'\')">Print</button></div>';
   }).join(''):'<div style="font-size:15px;color:var(--muted);padding:6px 0 10px">No upcoming class in the next 60 days has a teaching checklist.</div>';
   el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Teaching checklists</div>'
@@ -7431,6 +7435,9 @@ function renderDashboard(){
         const teachBtn=(window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s))
           ?`<button type="button" onclick="printTeachingChecklist('${s.id}')" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid #1E3161;background:#1E3161;color:#fff;cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;flex-shrink:0">Print checklist</button>`
           :'';
+        const packBtn=(window.MBRepresentPacking&&MBRepresentPacking.isRepresentSession(s))
+          ?`<button type="button" onclick="printRepresentPack('${s.id}')" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid #1E3161;background:#fff;color:#1E3161;cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;flex-shrink:0">Print packing list</button>`
+          :'';
         const roleLine=(label,value,empty)=>`<span style="min-width:0"><span style="color:var(--muted)">${label}:</span> <span style="${value===empty?'color:var(--muted);font-style:italic':'font-weight:600'}">${escapeHtml(value)}</span></span>`;
         return`<div style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid ${accent}">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:2px;flex-wrap:wrap">
@@ -7438,13 +7445,14 @@ function renderDashboard(){
               <span style="font-weight:600">${s.course}</span>
               <span style="color:var(--muted);margin-left:6px">${d}${countBit}</span>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap">${teachBtn}${badge}</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap">${teachBtn}${packBtn}${badge}</div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin:0 0 6px;font-size:15px;line-height:1.45">
             ${roleLine('Instructor',instrLabel,'No instructor')}
             ${roleLine(sessionIsOrganization(s)?'Organization':'Host',hostLabel,sessionIsOrganization(s)?'No organization':'No host')}
             ${roleLine('Where',adminPlaceText(s)||'No location','No location')}
           </div>
+          ${(function(){const qty=(typeof sessionQuantityView==='function')?sessionQuantityView(s):null;return qty&&qty.packNow?'<div style="font-size:14px;line-height:1.45;margin:0 0 6px">'+escapeHtml(qty.packNow)+'</div>':'';})()}
           ${items.join('')}
         </div>`;
       }).join('');
@@ -7948,6 +7956,9 @@ function openSessionMenu(ev,sessId){
   items.push({label:'ℹ️ About',act:`openSessionAbout('${sessId}')`});
   if(window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s)){
     items.push({label:'🖨️ Print teaching checklist',act:`printTeachingChecklist('${sessId}')`});
+  }
+  if(window.MBRepresentPacking&&MBRepresentPacking.isRepresentSession(s)){
+    items.push({label:'🖨️ Print materials packing list',act:`printRepresentPack('${sessId}')`});
   }
   // Troop and organization jobs: a draft the host forwards to families.
   // Holds and custom jobs included. Home classes with no bill-to name are not.
@@ -12079,8 +12090,53 @@ function packingBringLine(s, registered){
 }
 function packingKitHtml(r){
   const bring=r&&r.bring?'<div class="pack-bring">'+escapeHtml(r.bring)+'</div>':'';
+  const already=r&&r.already?'<div class="pack-bring">'+escapeHtml(r.already)+'</div>':'';
+  const packNow=(r&&r.packNow&&r.packNow!==r.bring)?'<div class="pack-bring">'+escapeHtml(r.packNow)+'</div>':'';
+  const warn=r&&r.carryWarning?'<div class="pack-bring">'+escapeHtml(r.carryWarning)+'</div>':'';
   const kit=r&&r.manikins?'<div class="pack-kit">Batteries + screwdriver</div>':'';
-  return bring+kit;
+  const rep=(r&&r.representPack)?'<div class="pack-bring"><button type="button" class="btn sm" onclick="printRepresentPack(\''+String(r.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Print packing list</button></div>':'';
+  return bring+already+packNow+warn+kit+rep;
+}
+function sessionQuantityView(s, regList){
+  if(!s||s.isVirtual)return null;
+  const regs=regList!=null?regList:(typeof registrations!=='undefined'?registrations:[]);
+  if(typeof MBRepresentPacking!=='undefined'&&MBRepresentPacking.isRepresentSession(s)){
+    const model=MBRepresentPacking.build(s);
+    const sum=MBRepresentPacking.summary(model);
+    if(!sum)return null;
+    const bits=[sum.packNow, sum.confirm].filter(Boolean).join('. ');
+    return {packNow:bits, already:'', warning:'', plan:null};
+  }
+  if(typeof MBPackQuantities==='undefined'||typeof MBTeachingChecklists==='undefined')return null;
+  const sheet=MBTeachingChecklists.forSession(s);
+  if(!sheet)return null;
+  const names=(typeof sessionInstructorList==='function'?sessionInstructorList(s):[]).map(function(x){return x.name;});
+  const plan=MBPackQuantities.forChecklist({
+    checklistId:sheet.id,
+    session:s,
+    registrations:regs,
+    seatsPer:typeof seatsPerRegistration==='function'?seatsPerRegistration(s.course):1,
+    instructorNames:names,
+    instructorCount:names.length,
+    today:typeof matToday==='function'?matToday():fmtYMD(new Date()),
+    checkouts:packCheckoutSources(),
+    equipment:typeof equipment!=='undefined'?equipment:[],
+    expected:typeof participantsExpectedCount==='function'?participantsExpectedCount(s):null,
+    refresh:{ok:true},
+    skipRefresh:true
+  });
+  const phrases=MBPackQuantities.phrases(plan)||{};
+  return {packNow:MBPackQuantities.packNowText(plan), already:phrases.already||'', warning:plan.warning||phrases.warning||'', plan:plan};
+}
+function packingCarryFields(s, regList){
+  return sessionQuantityView(s, regList);
+}
+function packCheckoutSources(){
+  return (typeof matCheckouts==='undefined'?[]:matCheckouts||[]).map(function(c){
+    const sess=(typeof sessions!=='undefined'?(sessions||[]):[]).find(function(x){return x&&c&&x.id===c.sessionId;});
+    const source=sess?([sess.code,sess.course].filter(Boolean).join(' ')):'';
+    return Object.assign({},c,{source:source});
+  });
 }
 function packingBuildModel(sessionList, instructorList, jobData, today, days, regList){
   const span=packingRangeDaysValue(days);
@@ -12092,7 +12148,7 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
     const jd=(jobData&&s.id&&jobData[s.id])||{};
     const registered=packingRegisteredCount(s, regs);
     const expected=participantsExpectedCount(s);
-    return {
+    const row={
       id:s.id,
       date:s.date,
       time:String(s.time||'').trim(),
@@ -12107,8 +12163,18 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
       expected:expected,
       troopPhrase:packingTroopPhrase(s),
       bring:packingBringLine(s, packingKitCount(s, registered)),
-      manikins:(typeof sessionUsesManikins==='function')?!!sessionUsesManikins(s):false
+      manikins:(typeof sessionUsesManikins==='function')?!!sessionUsesManikins(s):false,
+      representPack:typeof MBRepresentPacking!=='undefined'&&MBRepresentPacking.isRepresentSession(s)
     };
+    const qty=sessionQuantityView(s, regs);
+    if(qty&&qty.packNow)row.bring=qty.packNow;
+    const carry=qty;
+    if(carry){
+      if(carry.already)row.already=carry.already;
+      if(carry.packNow)row.packNow=carry.packNow;
+      if(carry.warning)row.carryWarning=carry.warning;
+    }
+    return row;
   }).sort(function(a,b){
     return a.date.localeCompare(b.date)||packingTimeKey(a.time).localeCompare(packingTimeKey(b.time))||a.course.localeCompare(b.course)||String(a.id).localeCompare(String(b.id));
   });
@@ -12406,7 +12472,7 @@ function materialsChecklistRows(list, today){
   }).map(function(s){
     const registered=packingRegisteredCount(s, regs);
     const group=packingInstructorGroup(s, people, jobs);
-    return {
+    const row={
       id:s.id,
       course:String(s.course||'').trim()||'Class',
       date:s.date,
@@ -12414,6 +12480,15 @@ function materialsChecklistRows(list, today){
       bring:packingBringLine(s, packingKitCount(s, registered)),
       manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)
     };
+    const qty=sessionQuantityView(s, regs);
+    if(qty&&qty.packNow)row.bring=qty.packNow;
+    const carry=qty;
+    if(carry){
+      if(carry.already)row.already=carry.already;
+      if(carry.packNow)row.packNow=carry.packNow;
+      if(carry.warning)row.carryWarning=carry.warning;
+    }
+    return row;
   });
 }
 function renderDashMatChecklist(now){
@@ -12455,12 +12530,12 @@ function teachingChecklistMeta(s){
     instructor:instructor
   };
 }
-function openTeachingChecklistPrint(sheet, meta){
+function openPrintedHtml(html, title){
   const el=document.getElementById('teach-print-sheet');
-  if(!el||!sheet||!window.MBTeachingChecklists)return;
-  el.innerHTML=MBTeachingChecklists.printHtml(sheet, meta||null);
+  if(!el||!html)return;
+  el.innerHTML=html;
   const prevTitle=document.title;
-  document.title='Mindful Beginnings teaching checklist';
+  document.title=title||'Mindful Beginnings';
   document.body.classList.add('teach-printing');
   let cleared=false;
   function clearTeachPrint(){
@@ -12482,7 +12557,43 @@ function openTeachingChecklistPrint(sheet, meta){
   }catch(err){}
   window.print();
 }
-function printTeachingChecklist(sessId){
+function openTeachingChecklistPrint(sheet, meta){
+  if(!sheet||!window.MBTeachingChecklists)return;
+  openPrintedHtml(MBTeachingChecklists.printHtml(sheet, meta||null), 'Mindful Beginnings teaching checklist');
+}
+async function refreshRosterForPack(sessId){
+  const failed={ok:false,message:'Registrations could not be rechecked. This count is from the list already on screen, and it was not rechecked.'};
+  if(typeof sb==='undefined'||!sb||!sessId)return failed;
+  try{
+    const res=await sb.from('registrations').select('*').eq('session_id',sessId);
+    if(!res||res.error)return failed;
+    const fresh=(res.data||[]).map(regFromDB);
+    registrations=(registrations||[]).filter(function(r){return r.sessionId!==sessId;}).concat(fresh);
+    return {ok:true};
+  }catch(e){
+    return failed;
+  }
+}
+function teachPackPlan(s, refresh){
+  if(!s||typeof MBPackQuantities==='undefined'||typeof MBTeachingChecklists==='undefined')return null;
+  const sheet=MBTeachingChecklists.forSession(s);
+  if(!sheet)return null;
+  const names=(typeof sessionInstructorList==='function'?sessionInstructorList(s):[]).map(function(x){return x.name;});
+  return MBPackQuantities.forChecklist({
+    checklistId:sheet.id,
+    session:s,
+    registrations:typeof registrations!=='undefined'?registrations:[],
+    seatsPer:typeof seatsPerRegistration==='function'?seatsPerRegistration(s.course):1,
+    instructorNames:names,
+    instructorCount:names.length,
+    today:typeof matToday==='function'?matToday():fmtYMD(new Date()),
+    checkouts:packCheckoutSources(),
+    equipment:typeof equipment!=='undefined'?equipment:[],
+    expected:typeof participantsExpectedCount==='function'?participantsExpectedCount(s):null,
+    refresh:refresh||{ok:false,message:'Registrations could not be rechecked. This count is from the list already on screen, and it was not rechecked.'}
+  });
+}
+async function printTeachingChecklist(sessId){
   const s=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x.id===sessId;});
   const api=window.MBTeachingChecklists;
   if(!s||!api)return;
@@ -12495,7 +12606,30 @@ function printTeachingChecklist(sessId){
     showToast('This course does not have a teaching checklist yet.');
     return;
   }
-  openTeachingChecklistPrint(sheet, teachingChecklistMeta(s));
+  const refresh=await refreshRosterForPack(s.id);
+  const meta=teachingChecklistMeta(s);
+  meta.pack=teachPackPlan(s, refresh);
+  openTeachingChecklistPrint(sheet, meta);
+}
+function printRepresentPack(sessId){
+  const s=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x.id===sessId;});
+  const api=window.MBRepresentPacking;
+  if(!s||!api)return;
+  if(s.isVirtual||!api.isRepresentSession(s)){
+    showToast('This event does not have a materials packing list.');
+    return;
+  }
+  const model=api.build(s);
+  if(!model)return;
+  const who=(typeof sessionInstructorNames==='function')?sessionInstructorNames(s,''):'';
+  const when=s.date?(new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})):'';
+  openPrintedHtml(api.printHtml(model,{
+    instructor:String(who||'').trim()==='TBD'?'':who,
+    date:when,
+    time:s.time||'',
+    place:s.isVirtual?'Virtual':(adminPlaceText(s)||''),
+    code:s.code||''
+  }), 'Mindful Beginnings materials packing list');
 }
 function printTeachingChecklistById(id){
   const api=window.MBTeachingChecklists;
