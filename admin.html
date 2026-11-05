@@ -7242,9 +7242,11 @@ function renderDashTeachingChecks(now){
     const code=String(s.code||'').trim();
     const id=String(s.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const bits=[when, s.time, place, code].filter(function(p){return String(p||'').trim();});
+    const qty=(typeof sessionQuantityView==='function')?sessionQuantityView(s):null;
+    const qtyLine=qty&&qty.packNow?'<span style="display:block;font-size:14px;line-height:1.45;margin-top:2px">'+escapeHtml(qty.packNow)+'</span>':'';
     return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border)">'
       +'<div style="min-width:0;font-size:15px;line-height:1.45"><span style="font-weight:650">'+escapeHtml(s.course||'Class')+'</span>'
-      +'<span style="display:block;color:var(--muted)">'+escapeHtml(bits.join(' · '))+'</span></div>'
+      +'<span style="display:block;color:var(--muted)">'+escapeHtml(bits.join(' · '))+'</span>'+qtyLine+'</div>'
       +'<button type="button" class="btn sm" onclick="printTeachingChecklist(\''+id+'\')">Print</button></div>';
   }).join(''):'<div style="font-size:15px;color:var(--muted);padding:6px 0 10px">No upcoming class in the next 60 days has a teaching checklist.</div>';
   el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Teaching checklists</div>'
@@ -7450,6 +7452,7 @@ function renderDashboard(){
             ${roleLine(sessionIsOrganization(s)?'Organization':'Host',hostLabel,sessionIsOrganization(s)?'No organization':'No host')}
             ${roleLine('Where',adminPlaceText(s)||'No location','No location')}
           </div>
+          ${(function(){const qty=(typeof sessionQuantityView==='function')?sessionQuantityView(s):null;return qty&&qty.packNow?'<div style="font-size:14px;line-height:1.45;margin:0 0 6px">'+escapeHtml(qty.packNow)+'</div>':'';})()}
           ${items.join('')}
         </div>`;
       }).join('');
@@ -12094,25 +12097,39 @@ function packingKitHtml(r){
   const rep=(r&&r.representPack)?'<div class="pack-bring"><button type="button" class="btn sm" onclick="printRepresentPack(\''+String(r.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Print packing list</button></div>':'';
   return bring+already+packNow+warn+kit+rep;
 }
-function packingCarryFields(s){
-  if(!s||s.isVirtual||typeof MBPackQuantities==='undefined'||typeof MBTeachingChecklists==='undefined')return null;
+function sessionQuantityView(s, regList){
+  if(!s||s.isVirtual)return null;
+  const regs=regList!=null?regList:(typeof registrations!=='undefined'?registrations:[]);
+  if(typeof MBRepresentPacking!=='undefined'&&MBRepresentPacking.isRepresentSession(s)){
+    const model=MBRepresentPacking.build(s);
+    const sum=MBRepresentPacking.summary(model);
+    if(!sum)return null;
+    const bits=[sum.packNow, sum.confirm].filter(Boolean).join('. ');
+    return {packNow:bits, already:'', warning:'', plan:null};
+  }
+  if(typeof MBPackQuantities==='undefined'||typeof MBTeachingChecklists==='undefined')return null;
   const sheet=MBTeachingChecklists.forSession(s);
   if(!sheet)return null;
   const names=(typeof sessionInstructorList==='function'?sessionInstructorList(s):[]).map(function(x){return x.name;});
   const plan=MBPackQuantities.forChecklist({
     checklistId:sheet.id,
     session:s,
-    registrations:typeof registrations!=='undefined'?registrations:[],
+    registrations:regs,
     seatsPer:typeof seatsPerRegistration==='function'?seatsPerRegistration(s.course):1,
     instructorNames:names,
     instructorCount:names.length,
     today:typeof matToday==='function'?matToday():fmtYMD(new Date()),
     checkouts:packCheckoutSources(),
     equipment:typeof equipment!=='undefined'?equipment:[],
+    expected:typeof participantsExpectedCount==='function'?participantsExpectedCount(s):null,
     refresh:{ok:true},
     skipRefresh:true
   });
-  return MBPackQuantities.phrases(plan);
+  const phrases=MBPackQuantities.phrases(plan)||{};
+  return {packNow:MBPackQuantities.packNowText(plan), already:phrases.already||'', warning:plan.warning||phrases.warning||'', plan:plan};
+}
+function packingCarryFields(s, regList){
+  return sessionQuantityView(s, regList);
 }
 function packCheckoutSources(){
   return (typeof matCheckouts==='undefined'?[]:matCheckouts||[]).map(function(c){
@@ -12149,7 +12166,9 @@ function packingBuildModel(sessionList, instructorList, jobData, today, days, re
       manikins:(typeof sessionUsesManikins==='function')?!!sessionUsesManikins(s):false,
       representPack:typeof MBRepresentPacking!=='undefined'&&MBRepresentPacking.isRepresentSession(s)
     };
-    const carry=packingCarryFields(s);
+    const qty=sessionQuantityView(s, regs);
+    if(qty&&qty.packNow)row.bring=qty.packNow;
+    const carry=qty;
     if(carry){
       if(carry.already)row.already=carry.already;
       if(carry.packNow)row.packNow=carry.packNow;
@@ -12461,7 +12480,9 @@ function materialsChecklistRows(list, today){
       bring:packingBringLine(s, packingKitCount(s, registered)),
       manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)
     };
-    const carry=packingCarryFields(s);
+    const qty=sessionQuantityView(s, regs);
+    if(qty&&qty.packNow)row.bring=qty.packNow;
+    const carry=qty;
     if(carry){
       if(carry.already)row.already=carry.already;
       if(carry.packNow)row.packNow=carry.packNow;

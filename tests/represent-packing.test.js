@@ -11,7 +11,7 @@ const GMU = 'Health and safety information only. No food or candy. Do not use th
 
 function items(model, title) {
   const sec = model.sections.filter(function (s) { return s.title === title; })[0];
-  return sec ? sec.items.join(' | ') : '';
+  return sec ? sec.items.map(function (item) { return rep.itemText(item); }).join(' | ') : '';
 }
 
 test('representation events are recognized and teaching jobs are not', () => {
@@ -25,8 +25,8 @@ test('representation events are recognized and teaching jobs are not', () => {
 test('a sparse represent event packs only what the notes name and labels suggestions', () => {
   const model = rep.build({ code: 'RUA-261119', course: "Represent us at St. Raphael School's Girls Night Out!", notes: RAPHAEL });
   const pack = items(model, 'Pack from storage');
-  assert.match(pack, /Giveaways/);
-  assert.match(pack, /Signs/);
+  assert.match(pack, /Giveaways: quantity needs confirmation/);
+  assert.match(pack, /Signs: quantity needs confirmation/);
   assert.doesNotMatch(pack, /manikin|AV kit|tablecloth|Folding table/i);
   const suggest = items(model, 'Suggestions, not in the notes');
   assert.match(suggest, /Safe Sitter hosting note/);
@@ -41,6 +41,10 @@ test('a sparse represent event packs only what the notes name and labels suggest
   assert.match(html, /RUA-261119/);
   assert.match(html, /1513 Dunster Road/);
   assert.match(html, /Suggestions, not in the notes/);
+  assert.match(html, /quantity needs confirmation/);
+  const sum = rep.summary(model);
+  assert.match(sum.confirm, /Giveaways: quantity needs confirmation/);
+  assert.doesNotMatch(sum.packNow, /Giveaways/);
   assert.doesNotMatch(html, /—|–/);
 });
 
@@ -48,13 +52,15 @@ test('Darnestown table is the instructor\'s and THES table is packed from storag
   const darn = rep.build({ code: 'RUA-261121', course: 'Represent us at Darnestown Presbyterian Church', notes: DARNESTOWN });
   assert.match(items(darn, 'Instructor brings (do not pack)'), /instructor's own/);
   assert.doesNotMatch(items(darn, 'Pack from storage'), /Folding table|folding table/i);
-  assert.match(items(darn, 'Pack from storage'), /Navy tablecloth/);
+  assert.match(items(darn, 'Pack from storage'), /1 Navy tablecloth/);
+  assert.match(items(darn, 'Pack from storage'), /1 Mindful Beginnings banner/);
+  assert.match(items(darn, 'Pack from storage'), /Giveaways: quantity needs confirmation/);
   assert.match(items(darn, 'Pack from storage'), /banner/);
   assert.match(items(darn, 'Pack from storage'), /Giveaways/);
   assert.match(items(darn, 'Pack from storage'), /Pens/);
   assert.match(items(darn, 'Pack from storage'), /Business cards/);
   const thes = rep.build({ code: 'THE-261121', course: 'Represent us at THES PTA Holiday Market', notes: THES });
-  assert.match(items(thes, 'Pack from storage'), /Our folding table/);
+  assert.match(items(thes, 'Pack from storage'), /1 Our folding table/);
   assert.match(items(thes, 'At the event, not from our storage'), /Chairs/);
   assert.doesNotMatch(items(thes, 'Instructor brings (do not pack)'), /table/i);
   const html = rep.printHtml(thes, { instructor: '', date: '2026-11-21', place: 'THES', code: 'THE-261121' });

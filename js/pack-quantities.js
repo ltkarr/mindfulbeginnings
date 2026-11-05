@@ -370,6 +370,16 @@
     };
   }
 
+  function packNowText(plan) {
+    var parts = [];
+    (plan && plan.lines || []).forEach(function (row) {
+      if (!row) return;
+      if (row.confirm || row.packNow == null) parts.push(row.label + ': quantity needs confirmation');
+      else parts.push(row.packNow + ' ' + row.label);
+    });
+    return parts.length ? ('Pack now: ' + parts.join(', ')) : '';
+  }
+
   function phrases(plan) {
     if (!plan || !plan.lines) return null;
     var already = [];
@@ -400,6 +410,7 @@
     headcount: headcount,
     forChecklist: forChecklist,
     phrases: phrases,
+    packNowText: packNowText,
     safeSitterGear: safeSitterGear,
     rcGear: rcGear
   };

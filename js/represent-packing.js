@@ -40,10 +40,16 @@
 
   function has(text, re) { return re.test(String(text || '')); }
 
-  function add(list, label) {
+  function add(list, label, qty) {
     if (!label) return;
-    if (list.some(function (x) { return x.toLowerCase() === label.toLowerCase(); })) return;
-    list.push(label);
+    var key = String(label).toLowerCase();
+    if (list.some(function (x) { return String(x.label || x).toLowerCase() === key; })) return;
+    if (qty === 0) {
+      list.push({ label: label, qty: 0, confirm: false });
+      return;
+    }
+    var known = qty != null && isFinite(Number(qty)) && Number(qty) > 0;
+    list.push({ label: label, qty: known ? Number(qty) : null, confirm: !known });
   }
 
   function build(session) {
@@ -64,30 +70,30 @@
     var packOurTable = /pick\s*-?\s*up[^.]{0,120}(?:our )?folding table|our folding table/i.test(text);
     var vendorsBringTable = /vendors bring[^.]{0,40}tables?/i.test(text);
 
-    if (packOurTable) add(pack, 'Our folding table (pick up from storage)');
-    else if (ownTable) add(own, 'Folding table (instructor\'s own, not from storage)');
-    else if (vendorsBringTable) add(provided, 'Tables: vendors bring their own. Do not pack one unless the notes name our table.');
+    if (packOurTable) add(pack, 'Our folding table (pick up from storage)', 1);
+    else if (ownTable) add(own, 'Folding table (instructor\'s own, not from storage)', 1);
+    else if (vendorsBringTable) add(provided, 'Tables: vendors bring their own. Do not pack one unless the notes name our table.', 0);
 
     if (/vendors bring[^.]{0,40}chairs/i.test(text) && !/pick\s*-?\s*up[^.]{0,80}chairs/i.test(text)) {
-      add(provided, 'Chairs: vendors bring their own. Not packed from storage.');
+      add(provided, 'Chairs: vendors bring their own. Not packed from storage.', 0);
     }
 
-    if (/giveaways?/.test(text)) add(pack, 'Giveaways');
-    if (/\bsigns?\b|signage/.test(text)) add(pack, 'Signs');
+    if (/giveaways?/.test(text)) add(pack, 'Giveaways', null);
+    if (/\bsigns?\b|signage/.test(text)) add(pack, 'Signs', null);
     if (/tablecloth/.test(text)) {
       var cloth = /navy tablecloth/i.test(text) ? 'Navy tablecloth' : 'Tablecloth';
-      add(pack, cloth);
+      add(pack, cloth, 1);
     }
-    if (/\bbanner\b/.test(text)) add(pack, 'Mindful Beginnings banner');
-    if (/flyers?|qr registration|registration sign/i.test(text)) add(pack, 'Flyers or a QR registration sign');
-    if (/signup materials|sign-up materials/i.test(text)) add(pack, 'Signup materials');
-    if (/first aid kits?/i.test(text)) add(pack, 'First aid kits (listed with the giveaways)');
-    if (/postcards?/i.test(text)) add(pack, 'Postcards');
-    if (/\bpens?\b/.test(text) && /pick\s*-?\s*up|bring|giveaways/i.test(text)) add(pack, 'Pens');
-    if (/business cards/i.test(text)) add(pack, 'Business cards');
+    if (/\bbanner\b/.test(text)) add(pack, 'Mindful Beginnings banner', 1);
+    if (/flyers?|qr registration|registration sign/i.test(text)) add(pack, 'Flyers or a QR registration sign', null);
+    if (/signup materials|sign-up materials/i.test(text)) add(pack, 'Signup materials', null);
+    if (/first aid kits?/i.test(text)) add(pack, 'First aid kits (listed with the giveaways)', null);
+    if (/postcards?/i.test(text)) add(pack, 'Postcards', null);
+    if (/\bpens?\b/.test(text) && /pick\s*-?\s*up|bring|giveaways/i.test(text)) add(pack, 'Pens', null);
+    if (/business cards/i.test(text)) add(pack, 'Business cards', null);
 
-    if (/shirt|sweatshirt/i.test(text)) add(wear, 'Mindful Beginnings shirt or sweatshirt');
-    if (/\bbadge\b/i.test(text)) add(wear, 'Badge');
+    if (/shirt|sweatshirt/i.test(text)) add(wear, 'Mindful Beginnings shirt or sweatshirt', 1);
+    if (/\bbadge\b/i.test(text)) add(wear, 'Badge', 1);
 
     if (/no food|no candy|do not (?:bring |pack )?food|without food/i.test(text)) add(restrict, 'No food or candy');
     if (/do not use[^.]{0,40}(?:name|logo)|no [^.]{0,20}logo/i.test(text)) add(restrict, 'Do not put the host organization\'s name or logo on signage');
@@ -137,6 +143,33 @@
     };
   }
 
+  function itemText(item) {
+    var row = typeof item === 'string' ? { label: item, qty: null, confirm: true } : item;
+    if (row.qty === 0) return row.label;
+    if (row.qty > 0 && !row.confirm) return row.qty + ' ' + row.label;
+    return row.label + ': quantity needs confirmation';
+  }
+
+  function summary(model) {
+    if (!model) return null;
+    var pack = [];
+    var confirm = [];
+    model.sections.forEach(function (sec) {
+      if (sec.kind !== 'required' && sec.kind !== 'wear') return;
+      sec.items.forEach(function (item) {
+        var text = itemText(item);
+        if (item.confirm || item.qty == null) confirm.push(text);
+        else pack.push(text);
+      });
+    });
+    return {
+      packNow: pack.length ? ('Pack now: ' + pack.join(', ')) : '',
+      confirm: confirm.length ? confirm.join('. ') : '',
+      already: '',
+      warning: ''
+    };
+  }
+
   function sectionIntro(kind) {
     if (kind === 'suggest') return 'These are ideas because the notes are short. They are not requirements.';
     if (kind === 'check') return 'Not confirmed in the notes.';
@@ -157,7 +190,7 @@
     var sections = model.sections.map(function (sec) {
       var intro = sectionIntro(sec.kind);
       var items = sec.items.map(function (item) {
-        return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(item) + '</span></li>';
+        return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(itemText(item)) + '</span></li>';
       }).join('');
       return '<section class="teach-pdf-section"><h2>' + escapeHtml(sec.title) + '</h2>' +
         (intro ? '<p class="teach-pdf-note">' + escapeHtml(intro) + '</p>' : '') +
@@ -171,7 +204,9 @@
     isRepresentSession: isRepresentSession,
     build: build,
     printHtml: printHtml,
-    printableNotes: printableNotes
+    printableNotes: printableNotes,
+    itemText: itemText,
+    summary: summary
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.MBRepresentPacking = api;

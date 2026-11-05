@@ -40,6 +40,8 @@ test('six paid Safe Sitter registrations pack 6 handbooks and 6 note pads', () =
   assert.equal(plan.count, 6);
   assert.equal(line(plan, 'ssHandbook').required, 6);
   assert.equal(line(plan, 'ssHandbook').packNow, 6);
+  assert.match(pack.packNowText(plan), /Pack now: 6 Safe Sitter Student Handbooks/);
+  assert.match(pack.packNowText(plan), /6 Safe Sitter Important Information note pads/);
   assert.equal(line(plan, 'ssNotebook').packNow, 6);
   assert.equal(line(plan, 'faceShield').packNow, 6);
   assert.equal(line(plan, 'nameTag').required, 7);
