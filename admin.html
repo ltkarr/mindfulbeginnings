@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261105-teaching-checklists';
+window.MB_ADMIN_BUILD='20261105-teach-instructor';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -7246,7 +7246,7 @@ function renderDashTeachingChecks(now){
       +'<button type="button" class="btn sm" onclick="printTeachingChecklist(\''+id+'\')">Print</button></div>';
   }).join(''):'<div style="font-size:15px;color:var(--muted);padding:6px 0 10px">No upcoming class in the next 60 days has a teaching checklist.</div>';
   el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Teaching checklists</div>'
-    +'<div style="font-size:15px;color:var(--muted);line-height:1.45;margin:-2px 0 8px">Print the checklist for an upcoming class, or choose a course for a blank sheet. The print dialog can save a PDF.</div>'
+    +'<div style="font-size:15px;color:var(--muted);line-height:1.45;margin:-2px 0 8px">Print the checklist for an upcoming in-person class, or choose a course for a blank sheet. The print dialog can save a PDF.</div>'
     +body
     +'<div class="pack-actions" style="margin-top:12px"><label class="pack-range-label" for="teach-course-pick">Course</label>'
     +'<select id="teach-course-pick"><option value="">Choose a course</option>'+options+'</select>'
@@ -12441,12 +12441,18 @@ function renderDashMatChecklist(now){
 // class is what swaps in the clean sheet; other tabs print as they did before.
 function teachingChecklistMeta(s){
   if(!s)return null;
+  let instructor='';
+  if(typeof sessionInstructorNames==='function'){
+    instructor=String(sessionInstructorNames(s,'')||'').trim();
+    if(instructor==='TBD')instructor='';
+  }
   return {
     date:s.date||'',
     time:s.time||'',
     place:s.isVirtual?'Virtual':(adminPlaceText(s)||''),
     code:s.code||'',
-    sessionTitle:s.course||''
+    sessionTitle:s.course||'',
+    instructor:instructor
   };
 }
 function openTeachingChecklistPrint(sheet, meta){
@@ -12480,6 +12486,10 @@ function printTeachingChecklist(sessId){
   const s=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x.id===sessId;});
   const api=window.MBTeachingChecklists;
   if(!s||!api)return;
+  if(s.isVirtual){
+    showToast('Virtual classes do not use a teaching checklist.');
+    return;
+  }
   const sheet=api.forSession(s);
   if(!sheet){
     showToast('This course does not have a teaching checklist yet.');
