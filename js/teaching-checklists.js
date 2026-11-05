@@ -148,7 +148,7 @@
         'Game pouch (blue zippered) and raffle ticket pouch',
         'Bingo prizes, tape, and a fake cell phone',
         'Soft-bodied dolls and disposable diapers',
-        'Infant manikin and child manikin (1 each for 8 or fewer students, 2 each above 8)',
+        'Infant manikin and child manikin (1 each for 8 or fewer students, 3 each when more than 8 are registered)',
         'Batteries and screwdriver',
         'CPR face shield protectors, 1 per participant'
       ]),
@@ -181,7 +181,7 @@
         'Safe Sitter Important Information Note Pad, 1 per student',
         'Student Evaluation Forms',
         'Soft-bodied dolls and disposable diapers',
-        'Infant manikin and child manikin for choking-rescue practice (1 each for 8 or fewer students, 2 each above 8)',
+        'Infant manikin and child manikin for choking-rescue practice (1 each for 8 or fewer students, 3 each when more than 8 are registered)',
         'Batteries and screwdriver',
         'CPR face shield protectors, 1 per participant',
         'Laptop, speaker, and projector if the site requires'
@@ -999,6 +999,28 @@
     });
   }
 
+  function packSectionHtml(pack) {
+    var rows, warning, basis;
+    if (!pack) return '';
+    basis = '<p class="teach-pdf-note">' + escapeHtml(pack.basis || '') + '</p>';
+    if (pack.refreshNote) basis += '<p class="teach-pdf-note">' + escapeHtml(pack.refreshNote) + '</p>';
+    warning = pack.warning ? '<p class="teach-pdf-note">' + escapeHtml(pack.warning) + '</p>' : '';
+    rows = (pack.lines || []).map(function (line) {
+      var text;
+      if (line.confirm) {
+        text = line.label + ': quantity needs confirmation. ' + (line.note || 'The checklist does not state an exact number.');
+      } else {
+        text = line.label + ': ' + line.required + ' required';
+        if (line.already) text += ', ' + line.already + ' already with instructor';
+        if (line.alreadyNote) text += ' (' + line.alreadyNote + ')';
+        if (line.packNow != null) text += '. PACK NOW ' + line.packNow;
+        if (line.holdNote) text += '. ' + line.holdNote;
+      }
+      return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(text) + '</span></li>';
+    }).join('');
+    return '<section class="teach-pdf-section"><h2>How many to pack</h2>' + basis + warning + '<ul class="teach-items">' + rows + '</ul></section>';
+  }
+
   function instructorLine(meta) {
     var who = String(meta && meta.instructor || '').trim();
     if (!who || who === 'TBD') who = 'Unassigned';
@@ -1028,7 +1050,7 @@
     if (sessionTitle && sessionTitle !== checklist.title) bits += '<p class="teach-pdf-session">' + escapeHtml(sessionTitle) + '</p>';
     bits += note;
     if (lines.length) bits += '<p class="teach-pdf-meta">' + lines.map(escapeHtml).join('<br>') + '</p>';
-    bits += '</header>' + sections + foot + '</div>';
+    bits += '</header>' + packSectionHtml(session && session.pack) + sections + foot + '</div>';
     return bits;
   }
 
