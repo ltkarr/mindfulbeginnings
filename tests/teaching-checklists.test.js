@@ -83,6 +83,12 @@ test('a virtual Safe@Home or Ready. Period. session uses the virtual sheet', () 
   assert.equal(sheets.forSession({ course: 'Safe@Home — Series', isVirtual: true }).id, 'safe-at-home-series');
   assert.equal(sheets.forSession({ course: 'Ready. Period.', isVirtual: true }).id, 'ready-period-virtual');
   assert.equal(sheets.forSession({ course: 'Ready. Period.', isVirtual: false }).id, 'ready-period');
+  const virtual = sheets.byId('ready-period-virtual');
+  const text = virtual.sections.map(function (section) { return section.items.join('\n'); }).join('\n');
+  assert.match(text, /Confirm with families/);
+  assert.match(text, /one pad, a glass of water, a large spoon, and a towel ready before class/);
+  assert.doesNotMatch(text, /big spoon/);
+  assert.doesNotMatch(text, /do not bring class materials/i);
 });
 
 test('checklist copy is printable and does not carry draft notes', () => {

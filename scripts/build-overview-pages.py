@@ -410,6 +410,8 @@ def guard(page, slug):
 
 
 def main():
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from overview_virtual_format import patch_page
     header, footer, css_v = chrome()
     os.makedirs(OUT_DIR, exist_ok=True)
     groups = {}
@@ -429,6 +431,7 @@ def main():
         page = PAGE.replace("{CSS_V}", css_v).replace("{HEADER}", header) \
             .replace("{FOOTER}", footer).replace("{NAME}", html.escape(display)) \
             .replace("{BODY}", body)
+        page = patch_page(page, slug)
         guard(page, slug)
         with open(os.path.join(OUT_DIR, slug + ".html"), "w") as f:
             f.write(page)

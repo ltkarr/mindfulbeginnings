@@ -26,7 +26,12 @@
 .ov-band p{margin:0 auto 18px;font-size:16.5px;line-height:1.6;max-width:620px}
 .ov-band .mb-btn{margin:4px}
 .ov-back{display:inline-block;margin-top:22px;font-weight:700;color:var(--navy);text-decoration:none}
+html:not([data-overview-format="virtual"]) .ov-virtual{display:none}
+html[data-overview-format="virtual"] .ov-inperson{display:none}
 </style>
+<script>
+(function(){try{if(new URLSearchParams(location.search).get('format')==='virtual'){document.documentElement.setAttribute('data-overview-format','virtual');}}catch(e){}})();
+</script>
 </head>
 <body>
 <header class="mb-header">
@@ -51,11 +56,13 @@
 </div>
 </section>
 <main class="ov-main">
+<p class="ov-p ov-virtual"><strong>Virtual class.</strong> Students join a live Zoom class from home with a device and a camera. There are no class materials to bring and no hands-on kit.
+</p>
 <p class="ov-p">Students learn how to take care of themselves when they are home without an adult, how to avoid the situations that go wrong, and exactly what to do when something does.
 </p>
 <h3 class="ov-h3"><strong>AT A GLANCE</strong>
 </h3>
-<table class="ov-table"><tr><th scope="row">AGES</th><td>Ages 8 through 11</td></tr><tr><th scope="row">LENGTH</th><td>Ninety minutes, taught in one sitting</td></tr><tr><th scope="row">TAUGHT BY</th><td>Certified teachers and registered nurses</td></tr><tr><th scope="row">COMPLETION</th><td>Safe Sitter® Safe@Home completion card</td></tr></table>
+<table class="ov-table"><tr><th scope="row">AGES</th><td>Ages 8 through 11</td></tr><tr><th scope="row">LENGTH</th><td><span class="ov-inperson">Ninety minutes, taught in one sitting</span><span class="ov-virtual">60 minutes, live on Zoom</span></td></tr><tr><th scope="row">TAUGHT BY</th><td>Certified teachers and registered nurses</td></tr><tr><th scope="row">COMPLETION</th><td>Safe Sitter® Safe@Home completion card</td></tr></table>
 <h3 class="ov-h3"><strong>SAFE HABITS AT HOME</strong>
 </h3>
 <p class="ov-p">Rules for the hours between the school bus and a parent coming home
@@ -96,9 +103,13 @@
 </h3>
 <p class="ov-p">A certified teacher or registered nurse as your instructor
 </p>
-<p class="ov-p">A Safe@Home student booklet for every student to keep
+<p class="ov-p ov-inperson">A Safe@Home student booklet for every student to keep
 </p>
-<p class="ov-p">All class materials brought to your home, school or meeting space
+<p class="ov-p ov-inperson">All class materials brought to your home, school or meeting space
+</p>
+<p class="ov-p ov-virtual">No class materials. A device and a camera for Zoom are enough.
+</p>
+<p class="ov-p ov-virtual">A completion card, mailed or emailed after class
 </p>
 <h3 class="ov-h3"><strong>A NOTE ON READINESS</strong>
 </h3>

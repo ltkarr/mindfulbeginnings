@@ -26,7 +26,12 @@
 .ov-band p{margin:0 auto 18px;font-size:16.5px;line-height:1.6;max-width:620px}
 .ov-band .mb-btn{margin:4px}
 .ov-back{display:inline-block;margin-top:22px;font-weight:700;color:var(--navy);text-decoration:none}
+html:not([data-overview-format="virtual"]) .ov-virtual{display:none}
+html[data-overview-format="virtual"] .ov-inperson{display:none}
 </style>
+<script>
+(function(){try{if(new URLSearchParams(location.search).get('format')==='virtual'){document.documentElement.setAttribute('data-overview-format','virtual');}}catch(e){}})();
+</script>
 </head>
 <body>
 <header class="mb-header">
@@ -51,6 +56,7 @@
 </div>
 </section>
 <main class="ov-main">
+<div class="ov-inperson">
 <p class="ov-p"><strong>A Puberty Prep Workshop for Girls</strong>
 </p>
 <p class="ov-p"><strong>Grades 5, 6 &amp; 7  •  Girls  •  One 60 minute workshop  •  6 to 18 participants</strong>
@@ -126,6 +132,41 @@
 </p>
 <p class="ov-p">Our nurse shares what is typical and when something is worth a conversation with a parent and doctor. She does not diagnose, examine or give individual medical advice, and no girl is ever asked about her own development. Girls leave prepared, confident and ready for whatever comes next.
 </p>
+</div>
+<div class="ov-virtual">
+<p class="ov-p"><strong>A Puberty Prep Workshop for Girls</strong></p>
+<p class="ov-p"><strong>Grades 5, 6 and 7 · Girls · Live on Zoom</strong></p>
+<p class="ov-p"><strong>Virtual class.</strong> A registered nurse teaches this live on Zoom. Girls join from home with a device and a camera.</p>
+<p class="ov-p"><strong>Have these ready before class:</strong> one pad, a glass of water, a large spoon, and a towel. The same list is in the family reminder before the session.</p>
+<p class="ov-p"><strong>At a Glance</strong></p>
+<table class="ov-table"><tr><th scope="row">WHO IT IS FOR</th><td>Girls in grades 5, 6 and 7</td></tr><tr><th scope="row">FORMAT</th><td>One live Zoom workshop</td></tr><tr><th scope="row">GROUP SIZE</th><td>6 to 18 participants</td></tr><tr><th scope="row">TAUGHT BY</th><td>A registered nurse</td></tr><tr><th scope="row">WHERE</th><td>Live on Zoom</td></tr><tr><th scope="row">HAVE READY</th><td>One pad, a glass of water, a large spoon, and a towel</td></tr></table>
+<p class="ov-p"><strong>What We Cover</strong></p>
+<p class="ov-p"><strong>Body changes and timelines</strong></p>
+<p class="ov-p">Why everyone is on a different schedule, and why that is normal</p>
+<p class="ov-p">Breast development, body hair, skin and sweat</p>
+<p class="ov-p">The early sign almost nobody talks about</p>
+<p class="ov-p"><strong>What a period is really like</strong></p>
+<p class="ov-p">What a first period actually looks and feels like</p>
+<p class="ov-p">How much blood it really is</p>
+<p class="ov-p">Cramps and what helps</p>
+<p class="ov-p">What to do if it starts at school</p>
+<p class="ov-p"><strong>Products, explained on screen</strong></p>
+<p class="ov-p">The nurse shows how pads, liners, tampons, period underwear, and menstrual cups work.</p>
+<p class="ov-p">Girls use the one pad they have at home, with the glass of water, large spoon, and towel.</p>
+<p class="ov-p">No pressure: product choices are a family decision</p>
+<p class="ov-p"><strong>Care and confidence</strong></p>
+<p class="ov-p">Simple hygiene that actually matters</p>
+<p class="ov-p">Handling comparison and unkind comments</p>
+<p class="ov-p">Moods, sleep and big feelings</p>
+<p class="ov-p">Choosing a trusted adult to talk to</p>
+<p class="ov-p">When something is worth a call to the doctor</p>
+<p class="ov-p"><strong>What Is Included</strong></p>
+<p class="ov-p">A registered nurse for the workshop</p>
+<p class="ov-p">Questions in the Zoom chat</p>
+<p class="ov-p">A letter for parents, sent after class</p>
+<p class="ov-p"><strong>A Note on This Workshop</strong></p>
+<p class="ov-p">Ready. Period. on Zoom is a live workshop with a registered nurse. She shares what is typical and when something is worth a conversation with a parent and doctor. She does not diagnose, examine, or give individual medical advice, and no girl is asked about her own development.</p>
+</div>
 <a class="ov-back" href="/course-overviews">See all course overviews</a>
 </main>
 <section class="ov-band"><div class="ov-band-in">

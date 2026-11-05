@@ -687,7 +687,7 @@
         'Zoom, 60 minutes, solo nurse. Chat set to host only (the question box). Test it.',
         'Waiting room on. Admit only roster names. Recording off. Participant sharing off, mute on entry, no breakouts.',
         'Log in 15 minutes early. Check framing and the front light. Cover slide up before admitting.',
-        'Confirm with families: the girl joins with a first name, one pad, a glass of water, a big spoon, and a towel'
+        'Confirm with families: the girl joins with a first name, and has one pad, a glass of water, a large spoon, and a towel ready before class'
       ]),
       sec('Supplies and equipment', [
         'Facilitator Guide (virtual)',

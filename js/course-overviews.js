@@ -111,13 +111,40 @@
     'safe & ready families': 'safe-and-ready-families-es'
   };
 
-  function urlForLang(course, lang) {
-    var name = normName(course);
-    if (lang === 'es' && SPANISH_OVERVIEW[name]) return OVERVIEW_BASE + SPANISH_OVERVIEW[name];
-    return urlFor(course);
+  // Virtual sessions share the in-person overview page. ?format=virtual
+  // shows the Zoom version (no shipped kit, no manikins). Ready. Period.
+  // virtual still lists the four at-home items on that view.
+  var VIRTUAL_FORMAT = 'format=virtual';
+
+  function isVirtualCourseName(course) {
+    return /\bvirtual\b/i.test(String(course || ''));
   }
 
-  function urlFor(course) {
+  function isVirtualSession(session) {
+    if (!session) return false;
+    var flagged = session.virtual != null
+      ? session.virtual
+      : (session.isVirtual != null ? session.isVirtual : session.is_virtual);
+    if (flagged === true || flagged === 'true' || flagged === 1 || flagged === '1') return true;
+    if (flagged === false || flagged === 'false' || flagged === 0 || flagged === '0') {
+      return isVirtualCourseName(session.course);
+    }
+    return isVirtualCourseName(session.course);
+  }
+
+  function wantsVirtual(course, opts) {
+    if (opts && opts.virtual === false) return false;
+    if (opts && opts.virtual) return true;
+    return isVirtualCourseName(course);
+  }
+
+  function withFormat(url, virtual) {
+    if (!url || !virtual) return url;
+    if (/[?&]format=virtual(?:&|$)/.test(url)) return url;
+    return url + (url.indexOf('?') === -1 ? '?' : '&') + VIRTUAL_FORMAT;
+  }
+
+  function baseUrlFor(course) {
     var name = normName(course);
     if (!name) return '';
     // The club overview describes the multi-week series. The single-session
@@ -136,13 +163,27 @@
     return '';
   }
 
+  function urlForLang(course, lang, opts) {
+    var name = normName(course);
+    var url = (lang === 'es' && SPANISH_OVERVIEW[name])
+      ? OVERVIEW_BASE + SPANISH_OVERVIEW[name]
+      : baseUrlFor(course);
+    return withFormat(url, wantsVirtual(course, opts));
+  }
+
+  function urlFor(course, opts) {
+    return withFormat(baseUrlFor(course), wantsVirtual(course, opts));
+  }
+
   var api = {
     OVERVIEWS: OVERVIEWS,
     OVERVIEW_URLS: OVERVIEW_URLS,
     overviewFor: overviewFor,
     textFor: textFor,
     urlFor: urlFor,
-    urlForLang: urlForLang
+    urlForLang: urlForLang,
+    isVirtualSession: isVirtualSession,
+    isVirtualCourseName: isVirtualCourseName
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
