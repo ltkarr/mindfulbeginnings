@@ -15250,7 +15250,10 @@ function coIsOverdue(c){return!coUsesExisting(c)&&!coNoEquipment(c)&&!c.returned
 // Virtual sessions never need anything, regardless of course.
 // These counts are the baseline for 8 or fewer registered students. A larger
 // class (more than MAT_LARGE_CLASS on the roster) reserves 2 infant and 2 child
-// manikins. AV and adult counts stay as written here. Handbooks stay per student.
+// manikins. Safe Sitter® and Safe Sitter® Babysitting Essentials add 2 infant
+// and 2 child manikins to this baseline when more than 8 students are still
+// registered, so that class lists 3 of each. Cancelled registrations do not
+// count. AV and adult counts stay as written here. Handbooks stay per student.
 const MAT_NEEDS={
   'Safe Sitter®':{infant:1,child:1,av:1},
   'Baby Ready + CPR Certification':{infant:1,child:1,av:1},
@@ -15413,6 +15416,67 @@ function matCourseBooks(course){
   return (key&&MAT_BOOKS[key])||null;
 }
 function matBookEq(kind){const rx=MAT_BOOK_RX[kind];return rx?(equipment||[]).find(function(e){return rx.test(e.name);}):null;}
+// Safe Sitter® babysitting classes, including a custom title that aliases to
+// one. Grandparents keeps the ordinary large-class kit.
+function courseIsSafeSitterPack(course){
+  const name=String(course||'');
+  if(/grandparent/i.test(name))return false;
+  if(name==='Safe Sitter®'||name==='Safe Sitter® Babysitting Essentials')return true;
+  const key=matAliasCourse(name);
+  return key==='Safe Sitter®'||key==='Safe Sitter® Babysitting Essentials';
+}
+// Students still registered for this session. Cancelled, refunded, and waitlist
+// rows do not count. When the registration list is not loaded, the roster
+// passed into the kit plan is that count.
+function safeSitterRegisteredStudents(s, fallback){
+  if(s&&s.id&&typeof registrations!=='undefined'&&Array.isArray(registrations)){
+    if(typeof packingRegisteredCount==='function'){
+      try{return packingRegisteredCount(s);}catch(e){}
+    }
+    const live=(registrations||[]).filter(function(r){
+      if(!r||r.sessionId!==s.id)return false;
+      if(typeof countsTowardSeats==='function')return countsTowardSeats(r);
+      const st=String(r.payStatus||'').toLowerCase();
+      return st!=='waitlist'&&st!=='cancelled'&&st!=='canceled'&&st!=='refunded';
+    });
+    let per=1;
+    if(typeof seatsPerRegistration==='function'){
+      try{per=seatsPerRegistration(s.course);}catch(e){per=1;}
+    }
+    const n=Number(per);
+    return live.length*((isFinite(n)&&n>=1)?Math.floor(n):1);
+  }
+  const n=Number(fallback);
+  if(fallback!=null&&fallback!==''&&isFinite(n)&&n>=0)return Math.floor(n);
+  return matRegisteredHeadcount(s);
+}
+// Two more infant manikins and two more child manikins than the 8-or-fewer kit.
+function applySafeSitterExtraManikins(course, needs, students){
+  if(!needs||!courseIsSafeSitterPack(course))return needs;
+  if(!(Number(students)>MAT_LARGE_CLASS))return needs;
+  const base=matCourseNeeds(course)||{};
+  const out={};
+  Object.keys(needs).forEach(function(k){out[k]=needs[k];});
+  if(base.infant)out.infant=(Number(base.infant)||0)+2;
+  if(base.child)out.child=(Number(base.child)||0)+2;
+  return out;
+}
+function safeSitterLargeKitSentence(course, lines){
+  if(!courseIsSafeSitterPack(course))return '';
+  const base=matCourseNeeds(course)||{};
+  function need(kind){
+    const row=(lines||[]).find(function(l){return l&&l.kind===kind;});
+    return row?Number(row.need)||0:0;
+  }
+  const infant=need('infant'), child=need('child');
+  const wantI=base.infant?(Number(base.infant)||0)+2:0;
+  const wantC=base.child?(Number(base.child)||0)+2:0;
+  if(infant!==wantI||child!==wantC||!(wantI>0||wantC>0))return '';
+  const bits=[];
+  if(wantI>0)bits.push(infant+' infant manikin'+(infant===1?'':'s'));
+  if(wantC>0)bits.push(child+' child manikin'+(child===1?'':'s'));
+  return 'More than '+MAT_LARGE_CLASS+' students are registered, so this Safe Sitter class adds 2 infant and 2 child manikins ('+bits.join(' and ')+').';
+}
 // The {kind:qty} needs for one SESSION — null when nothing is needed
 // (virtual session, own-materials course, or a course not in the table above).
 function sessionMatNeeds(s,rosterCount){
@@ -15421,7 +15485,7 @@ function sessionMatNeeds(s,rosterCount){
   if(n===undefined&&matIsRcahCode(s.code))n=MAT_NEEDS['Adult & Pediatric First Aid/CPR/AED Certification'];
   if(!n||!Object.keys(n).length)return null;
   const count=(rosterCount!=null&&rosterCount!=='')?Math.max(0,Number(rosterCount)||0):matRegisteredHeadcount(s);
-  return matNeedsForHeadcount(n,count);
+  return applySafeSitterExtraManikins(s.course, matNeedsForHeadcount(n,count), safeSitterRegisteredStudents(s, count));
 }
 // Checkouts this person already has that overlap the session dates.
 function matPersonOverlaps(person,outDate,dueDate,excludeId){
@@ -16187,7 +16251,7 @@ var _matReuseTouched=false;
 var _matSeedQtys=null;
 var _sessionMatEditId=null;
 function sessionMaterialsPanelHtml(){
-  return '<div class="fg full" id="m-mat-panel" style="background:#f7f4ee;border:1px solid #e4dcc8;border-radius:var(--r-sm);padding:12px 14px"><label style="margin-bottom:4px">Materials for this session</label><div style="font-size:14px;color:var(--muted);margin-bottom:8px">Durable kit only. A new kit goes out one week before the class and is due back one week after. If this instructor already has the kit, keep it with them instead of booking a second one. More than 8 registered students reserves 2 infant and 2 child manikins. Handbooks and notebooks are counted from the roster and are not listed here.</div><div id="m-mat-body"></div></div>';
+  return '<div class="fg full" id="m-mat-panel" style="background:#f7f4ee;border:1px solid #e4dcc8;border-radius:var(--r-sm);padding:12px 14px"><label style="margin-bottom:4px">Materials for this session</label><div style="font-size:14px;color:var(--muted);margin-bottom:8px">Durable kit only. A new kit goes out one week before the class and is due back one week after. If this instructor already has the kit, keep it with them instead of booking a second one. More than 8 registered students reserves 2 infant and 2 child manikins. A Safe Sitter class with more than 8 registered students adds 2 infant and 2 child manikins to the usual one of each. Handbooks and notebooks are counted from the roster and are not listed here.</div><div id="m-mat-body"></div></div>';
 }
 function defaultMatPerson(){
   if(document.getElementById('m-owner')&&document.getElementById('m-owner').value==='yes')return 'Lindsay Karr (owner)';
@@ -16337,7 +16401,9 @@ function paintSessionMaterialsStatus(){
   }
   const bookNote=matBookBuySentence(plan);
   if(bookNote)html+='<div class="alert warn" style="margin:0 0 8px"><strong>'+escapeHtml(bookNote)+'</strong></div>';
-  if(plan.largeKit)html+='<div style="font-size:14px;color:var(--muted);margin:0 0 8px">More than '+MAT_LARGE_CLASS+' students are registered, so this class reserves 2 infant and 2 child manikins'+(plan.lines.some(function(l){return l.kind==='av';})?', plus the AV kit':'')+'.</div>';
+  const ssKit=safeSitterLargeKitSentence(draft.course, plan.lines);
+  if(ssKit)html+='<div style="font-size:14px;color:var(--muted);margin:0 0 8px">'+escapeHtml(ssKit)+'</div>';
+  else if(plan.largeKit)html+='<div style="font-size:14px;color:var(--muted);margin:0 0 8px">More than '+MAT_LARGE_CLASS+' students are registered, so this class reserves 2 infant and 2 child manikins'+(plan.lines.some(function(l){return l.kind==='av';})?', plus the AV kit':'')+'.</div>';
   if(plan.outDate&&plan.dueDate&&!plan.fullyCovered){
     const back=plan.holdUntil||plan.dueDate;
     html+='<div style="font-size:14px;color:var(--muted);margin:0 0 8px">New kit: out '+fd(plan.outDate)+' (one week before class), due back '+fd(back)+(back!==plan.dueDate?' (through the next class, plus one week).':'.')+'</div>';
