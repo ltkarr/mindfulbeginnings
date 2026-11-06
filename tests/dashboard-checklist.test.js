@@ -52,6 +52,10 @@ vm.runInContext(
     'preClassShowsStudentCount',
     'preClassTaskList',
     'preClassChecklistDone',
+    'dashPrepIsComplete',
+    'dashPrepPartition',
+    'dashPrepEmptyCopy',
+    'dashPrepViewFromKey',
     'dashSessionDayDiff',
     'dashUpcomingSessions',
     'dashChecklistSessions',
@@ -85,6 +89,9 @@ test('finished prep stays on the dashboard, and past or hold sessions do not', (
   assert.equal(sandbox.preClassChecklistDone(rows[2]), true);
   assert.deepEqual(sandbox.dashUpcomingSessions(rows, today).map((s) => s.id), ['done', 'soon', 'later']);
   assert.deepEqual(sandbox.dashChecklistSessions(rows, today).map((s) => s.id), ['done', 'soon', 'later']);
+  const split = sandbox.dashPrepPartition(sandbox.dashUpcomingSessions(rows, today));
+  assert.deepEqual(Array.from(split.complete, (s) => s.id), ['done', 'later']);
+  assert.deepEqual(Array.from(split.active, (s) => s.id), ['soon']);
 });
 
 test('dashboard no longer renders the removed widgets', () => {
@@ -128,6 +135,14 @@ test('all upcoming stays the default, and next 2 weeks is a filter that still ke
   assert.match(block, /dayDiff>=9&&dayDiff<=14/);
   assert.match(block, />2 weeks out</);
   assert.doesNotMatch(block, /Host reminder/);
+  assert.match(block, /PREP COMPLETE/);
+  assert.match(block, /Needs prep/);
+  assert.match(block, /role="tablist"/);
+  assert.match(block, /aria-selected/);
+  assert.match(block, /onDashPrepTabKey/);
+  assert.match(block, /dashPrepPartition\(rows\)/);
+  assert.match(block, /shown\.map/);
+  assert.match(block, /Print packing list/);
 });
 
 test('a finished checklist stays visible when the session is still upcoming', () => {
