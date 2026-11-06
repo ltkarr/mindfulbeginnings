@@ -93,6 +93,8 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 .person:nth-child(even) .photo,.person:nth-child(even) .shot{transform:rotate(2.5deg)}
 .card:hover .photo,.card:hover .shot{transform:rotate(0deg) scale(1.05)}
 .team-block .shot .photo{width:142%;height:142%;border:0;border-radius:0;box-shadow:none;transform:none}
+.team-block .shot.nudge-up .photo{width:100%;height:calc(100% + 4px);margin-left:0;margin-top:-4px}
+.bio-shot.is-nudge .bio-photo{width:100%;height:calc(100% + 4px);max-width:none;margin:-4px 0 0}
 .team-section h2 .mb-h2-script{font-size:.8em}
 @media (max-width:420px){
   .team-block .photo,.team-block .shot{width:118px;height:118px}
@@ -398,7 +400,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
 </div>
 <div class="person" data-section="Instructors" data-name="Yasmine Kamel">
 <button type="button" class="card" aria-haspopup="dialog" aria-controls="bio-dialog" data-role="Instructor">
-<img class="photo" src="/images/team/yasmine-kamel-3.jpg" alt="Yasmine Kamel" width="120" height="120">
+<span class="shot nudge-up"><img class="photo" src="/images/team/yasmine-kamel-3.jpg" alt="Yasmine Kamel" width="120" height="120"></span>
 <span class="name">Yasmine Kamel</span>
 <span class="credentials">M.Ed.</span>
 </button>
@@ -527,6 +529,7 @@ h1{margin:0;font-size:clamp(26px,3vw,32px);line-height:1.2;font-weight:800}
     photo.style.objectPosition = img.style.objectPosition || 'center center';
     var bioShot = document.getElementById('bio-shot');
     bioShot.classList.toggle('is-zoom', !!(img.parentElement && img.parentElement.classList.contains('is-zoom')));
+    bioShot.classList.toggle('is-nudge', !!(img.parentElement && img.parentElement.classList.contains('nudge-up')));
     nameEl.textContent = button.querySelector('.name').textContent;
     roleEl.textContent = button.getAttribute('data-role');
     if (cred && cred.textContent.trim()) {
