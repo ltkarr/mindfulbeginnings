@@ -40,10 +40,12 @@ test('secrets stay behind the portal PIN and are never printed on the public pag
   assert.doesNotMatch(page, /843 6676 4411/);
 });
 
-test('quiz has 20 questions, passes at 16, and posts to the shared submit endpoint', () => {
+test('quiz has 21 questions, passes at 17, and posts to the shared submit endpoint', () => {
   const questions = page.match(/lesson:\d+\}/g) || [];
-  assert.equal(questions.length, 20);
-  assert.match(page, /var PASS=16/);
+  assert.equal(questions.length, 21);
+  assert.match(page, /var PASS=17/);
+  assert.match(page, /21 questions/);
+  assert.match(page, /17 or more correct/);
   assert.match(page, /\/api\/evaluations\/submit/);
   assert.match(page, /form:'onboarding'/);
   assert.match(page, /ob-website/); // honeypot field
@@ -79,10 +81,11 @@ test('each onboarding item has three plausible choices and one in-range key', ()
     'When the course is complete, materials are returned, and evaluations are submitted',
     'Leave it to Mindful Beginnings, which sends raises in writing',
     'Leave the job posted and do not accept it',
-    'Claim host, then open the slides and share your screen'
+    'Claim host, then open the slides and share your screen',
+    'Give a raffle ticket now, and draw the gift card at the end'
   ];
-  const lessons = [1, 1, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 7, 7, 8, 8, 8, 8, 6];
-  assert.equal(questions.length, 20);
+  const lessons = [1, 1, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 7, 7, 8, 8, 8, 8, 6, 4];
+  assert.equal(questions.length, 21);
   assert.deepEqual(questions.map((item) => item.lesson), lessons);
   questions.forEach((item, index) => {
     assert.equal(item.options.length, 3, 'question ' + (index + 1) + ' does not have 3 choices');
@@ -110,22 +113,36 @@ test('each onboarding item has three plausible choices and one in-range key', ()
   });
 });
 
-test('pass stays 16 of 20, which is the server 80 percent rule', () => {
+test('pass stays 17 of 21, which is the server 80 percent rule', () => {
   const questions = quizQuestions(page);
   function scoreOf(picks) {
     return questions.reduce((score, item, index) => score + (picks[index] === item.answer ? 1 : 0), 0);
   }
   const correct = questions.map((item) => item.answer);
-  const sixteen = correct.map((answer, index) => index < 4 ? (answer + 1) % 3 : answer);
-  const fifteen = correct.map((answer, index) => index < 5 ? (answer + 1) % 3 : answer);
-  assert.equal(scoreOf(correct), 20);
+  const seventeen = correct.map((answer, index) => index < 4 ? (answer + 1) % 3 : answer);
+  const sixteen = correct.map((answer, index) => index < 5 ? (answer + 1) % 3 : answer);
+  assert.equal(scoreOf(correct), 21);
+  assert.equal(scoreOf(seventeen), 17);
   assert.equal(scoreOf(sixteen), 16);
-  assert.equal(scoreOf(fifteen), 15);
-  assert.equal(scoreOf(sixteen) >= 16, true);
-  assert.equal(scoreOf(fifteen) >= 16, false);
-  assert.equal(scoreOf(sixteen) / questions.length >= 0.8, true);
-  assert.equal(scoreOf(fifteen) / questions.length >= 0.8, false);
+  assert.equal(scoreOf(seventeen) >= 17, true);
+  assert.equal(scoreOf(sixteen) >= 17, false);
+  assert.equal(scoreOf(seventeen) / questions.length >= 0.8, true);
+  assert.equal(scoreOf(sixteen) / questions.length >= 0.8, false);
   assert.match(page, /id="ob-retake"/);
+});
+
+test('onboarding explains bingo and raffle prizes without making them universal', () => {
+  assert.match(page, /For classes using bingo prizes or a raffle/);
+  assert.match(page, /sometimes a gift card/);
+  assert.match(page, /Amazon gift card is one example, not a promise/);
+  assert.match(page, /may depend on the age group/);
+  assert.match(page, /give raffle tickets as prizes or for volunteering, then raffle the gift card at the end of class/);
+  assert.match(page, /Mindful Beginnings provides the raffle tickets/);
+  assert.match(page, /not required to buy prizes/);
+  assert.match(page, /No candy/);
+  assert.doesNotMatch(page, /grand prize is your responsibility/);
+  assert.doesNotMatch(page, /reimburs/);
+  assert.doesNotMatch(page, /every class gets a gift card/i);
 });
 
 test('submit endpoint recomputes the pass instead of trusting the client', () => {

@@ -87,7 +87,7 @@
 <div class="ob-steps">
 <div class="ob-step"><b>1. Learn the portal</b><span>How to log in, find open jobs, and accept a job.</span></div>
 <div class="ob-step"><b>2. Learn the essentials</b><span>The must-know rules from the Instructor Guide.</span></div>
-<div class="ob-step"><b>3. Pass the quiz</b><span>20 questions. You need 16 or more correct to pass, and you can retake it.</span></div>
+<div class="ob-step"><b>3. Pass the quiz</b><span>21 questions. You need 17 or more correct to pass, and you can retake it.</span></div>
 </div>
 
 <section class="ob-lesson" id="lesson-1">
@@ -149,7 +149,12 @@
 <li>Teach the <strong>CPR module before Life and Business Skills</strong> whenever you can, while students still have the energy for hands-on practice.</li>
 <li>If you finish everything early and evaluations are done, show the <strong>Babysitter Boss</strong> videos.</li>
 <li>Build in breaks, and pair the lunch break with a lecture-heavy module such as Child Care Skills. The host provides a meal or students bring their own; <strong>instructors bring their own meal</strong>.</li>
-<li>Mindful Beginnings provides small bingo prizes (you can also give them to volunteers). If you run a raffle instead, we supply the tickets and the grand prize is your responsibility.</li>
+</ul>
+<h3>Bingo prizes and raffles</h3>
+<p>For classes using bingo prizes or a raffle, Mindful Beginnings chooses the setup. It may be bingo prizes, or sometimes a gift card. An Amazon gift card is one example, not a promise that every class gets one. Mindful Beginnings decides the format and the items, and that choice may depend on the age group.</p>
+<ul>
+<li>When the setup is a raffle, you can give raffle tickets as prizes or for volunteering, then raffle the gift card at the end of class. Mindful Beginnings provides the raffle tickets.</li>
+<li>You are welcome to bring your own additional prizes, or a larger prize for the raffle. That is optional. You are not required to buy prizes. No candy.</li>
 </ul>
 <h3>Safe@Home</h3>
 <ul>
@@ -253,7 +258,7 @@
 
 <section class="ob-quiz" id="quiz">
 <h2>The quiz</h2>
-<p class="sub">20 questions from the lessons above. You need <strong>16 or more correct</strong> to pass. When you pass, your result is saved and Lindsay can see it in Admin. You can retake the quiz as many times as you need.</p>
+<p class="sub">21 questions from the lessons above. You need <strong>17 or more correct</strong> to pass. When you pass, your result is saved and Lindsay can see it in Admin. You can retake the quiz as many times as you need.</p>
 <div class="ob-error" id="quiz-error"></div>
 <form id="quiz-form" novalidate>
 <div class="ob-field"><label for="ob-name">Your full name</label><input id="ob-name" type="text" autocomplete="name" placeholder="First and last name"></div>
@@ -289,9 +294,10 @@ var QUESTIONS=[
 {q:'When is your pay issued?',options:['On the day of class, once teaching is finished','When you text Lindsay that the materials are back','When the course is complete, materials are returned, and evaluations are submitted'],answer:2,lesson:8},
 {q:'You want a higher pay rate. What is the right step?',options:['Leave it to Mindful Beginnings, which sends raises in writing','Ask Lindsay in person after your next class goes well','Email Lindsay a written request so the raise is on record'],answer:0,lesson:8},
 {q:'A job is posted with a custom flat rate you do not want. What should you do?',options:['Accept the job, then ask Lindsay to change the rate','Leave the job posted and do not accept it','Ask Lindsay to change the rate before you accept it'],answer:1,lesson:8},
-{q:'You join a virtual class on Zoom. What do you do first?',options:['Wait for Lindsay to start the meeting and share the slides','Admit the students, then claim host and share your screen','Claim host, then open the slides and share your screen'],answer:2,lesson:6}
+{q:'You join a virtual class on Zoom. What do you do first?',options:['Wait for Lindsay to start the meeting and share the slides','Admit the students, then claim host and share your screen','Claim host, then open the slides and share your screen'],answer:2,lesson:6},
+{q:'This class is using a gift-card raffle, and Mindful Beginnings supplied the tickets. A student volunteers to help. What should you do?',options:['Give a raffle ticket now, and draw the gift card at the end','Give the gift card now, and skip the drawing','Give candy now, and draw the gift card at the end'],answer:0,lesson:4}
 ];
-var PASS=16;
+var PASS=17;
 var wrap=document.getElementById('quiz-questions');
 QUESTIONS.forEach(function(item,qi){
   var div=document.createElement('div');div.className='ob-q';div.id='q'+qi;
