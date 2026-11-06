@@ -91,6 +91,8 @@ test('family reminder is the before-class pack and meal note', () => {
   assert.equal(missing.field, 'bcc');
   assert.equal(missing.subject, 'Reminder: Safe Sitter® class on October 10');
   assert.match(missing.body, /Please review the important details below as you prepare for the class:/);
+  assert.match(missing.body, /Can't wait for a great class!/);
+  assert.doesNotMatch(missing.body, /day of learning/);
   assert.match(missing.body, /What to Bring: Please send your child with a water bottle and a snack\./);
   assert.match(missing.body, /Edit before sending: “Your host is providing a meal for participants\.” OR “Please pack a lunch; the host will provide snacks and drinks\.”/);
   assert.match(missing.body, /Your instructor for the day will be Priya Shah\./);
@@ -119,6 +121,8 @@ test('family reminder is the before-class pack and meal note', () => {
   assert.equal(zoom.subject, 'Reminder: Zoom link for Safe@Home — Virtual on October 10');
   assert.match(zoom.body, /Your class is one week away\. Here is the Zoom link so you can join from home\./);
   assert.match(zoom.body, /Zoom link: https:\/\/zoom\.us\/j\/84366764411/);
+  assert.match(zoom.body, /Can't wait for a great class!/);
+  assert.doesNotMatch(zoom.body, /day of learning/);
   assert.doesNotMatch(zoom.body, /What to Bring/);
   assert.doesNotMatch(zoom.body, /Location:/);
 });
