@@ -260,18 +260,15 @@ test('a hold still prints as a class, with the hold called out', () => {
   assert.match(sheets.sheetHtml(model), /On hold/);
 });
 
-test('the print button is on the pre-class card, the materials row, and Manage', () => {
-  assert.match(admin, /<script src="\/js\/teaching-checklist\.js"><\/script>/);
-  const dash = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('// ─── SESSIONS'));
-  assert.match(dash, /printTeachingChecklist/);
-  assert.match(dash, /teachingPrintLabel\(s\)/);
+test('the live print path is the shared checklist module and skips virtual classes', () => {
+  assert.match(admin, /<script src="\/js\/teaching-checklists\.js"><\/script>/);
+  assert.doesNotMatch(admin, /<script src="\/js\/teaching-checklist\.js"><\/script>/);
+  assert.match(admin, /Virtual classes do not use a teaching checklist/);
+  assert.match(admin, /MBTeachingChecklists\.forSession\(s\)/);
   const menuStart = admin.indexOf('function openSessionMenu');
   const menu = admin.slice(menuStart, admin.indexOf('if(s.isHold){', menuStart));
   assert.match(menu, /printTeachingChecklist\('\$\{sessId\}'\)/);
-  assert.match(menu, /teachingPrintLabel\(s\)/);
-  const upcoming = admin.slice(admin.indexOf('function renderDashUpcoming'), admin.indexOf('// ─── SESSIONS'));
-  assert.match(upcoming, /printTeachingChecklist/);
-  assert.match(upcoming, /teachingPrintLabel\(s\)/);
+  assert.match(menu, /forSession\(s\)/);
   const apiDir = fs.readdirSync(path.join(root, 'api'));
   assert.equal(apiDir.some((name) => /teaching|checklist/i.test(name)), false);
 });

@@ -96,7 +96,7 @@ test('hero is just the script title now that the header carries the tagline', ()
 });
 
 test('team cards match the uploaded people, in section order, with exact bios', () => {
-  assert.equal(people.length, 28);
+  assert.equal(people.length, 29);
   const found = cards();
   assert.equal(found.length, people.length);
   const headings = [...page.matchAll(/<h2>([\s\S]*?)<\/h2>/g)].map((hit) => decode(hit[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()));
@@ -124,8 +124,8 @@ test('team cards match the uploaded people, in section order, with exact bios', 
 test('each person is a button that opens a bio dialog', () => {
   assert.doesNotMatch(page, /Expand all bios/);
   assert.doesNotMatch(page, /expand-bios/);
-  assert.equal((page.match(/class="bio" hidden/g) || []).length, 29);
-  assert.equal((page.match(/<button type="button" class="card"/g) || []).length, 29);
+  assert.equal((page.match(/class="bio" hidden/g) || []).length, 30);
+  assert.equal((page.match(/<button type="button" class="card"/g) || []).length, 30);
   assert.match(page, /<dialog class="bio-dialog" id="bio-dialog"/);
   assert.match(page, /<button type="button" class="bio-close">Close<\/button>/);
   assert.match(page, /dialog\.showModal\(\)/);
@@ -172,6 +172,33 @@ test('closing actions and footer sit together with no empty band', () => {
   const footerIndex = page.indexOf('<footer class="footer">');
   const between = page.slice(closeIndex, footerIndex);
   assert.equal((between.match(/<section/g) || []).length, 1);
+});
+
+test('Yasmine Kamel is listed with the Instructors, between Hodor and Plaza', () => {
+  const bio = 'Yasmine Kamel is an early childhood educator and reading specialist with more than a decade of experience in classrooms, childcare leadership, and teacher training. She holds a Master of Education in Curriculum and Instruction from the University of Maryland and a Bachelor of Science in Early Childhood Education from Towson University. A former Montgomery County kindergarten through second-grade teacher, she delivers professional development for childcare staff and brings a warm, literacy-focused approach to every course.';
+  assert.equal(bio.includes('\u2014'), false);
+  const found = cards();
+  const instructors = found.filter((card) => card.section === 'Instructors').map((card) => card.name);
+  const index = instructors.indexOf('Yasmine Kamel');
+  assert.ok(index > 0, 'Yasmine is in the Instructors section');
+  assert.equal(instructors[index - 1], 'Gaby Hodor');
+  assert.equal(instructors[index + 1], 'Abigail Plaza');
+  const card = found[found.findIndex((item) => item.name === 'Yasmine Kamel')];
+  assert.equal(card.dataRole, 'Instructor');
+  assert.equal(card.role, '');
+  assert.equal(card.credentials, 'M.Ed.');
+  assert.equal(card.photo, '/images/team/yasmine-kamel-initials.png');
+  assert.equal(card.button, true);
+  assert.deepEqual(card.bio, [bio]);
+  const person = people.find((item) => item.name === 'Yasmine Kamel');
+  assert.equal(person.section, 'Instructors');
+  assert.equal(person.credentials, 'M.Ed.');
+  assert.equal(person.role, '');
+  assert.equal(person.photo, '/images/team/yasmine-kamel-initials.png');
+  assert.deepEqual(person.bio, [bio]);
+  const block = page.slice(page.indexOf('data-name="Yasmine Kamel"'), page.indexOf('data-name="Abigail Plaza"'));
+  assert.match(block, /alt="Yasmine Kamel"/);
+  assert.equal(fs.existsSync(path.join(root, 'images/team/yasmine-kamel-initials.png')), true);
 });
 
 test('clean /about URL rewrites to the static page', () => {

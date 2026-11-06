@@ -96,7 +96,7 @@ test('dashboard no longer renders the removed widgets', () => {
   assert.match(admin, /id="reminder-alerts"/);
   assert.doesNotMatch(admin, /id="dash-materials"/);
   assert.doesNotMatch(admin, /id="org-billing"/);
-  assert.match(admin, /No upcoming sessions/);
+assert.match(admin, /No upcoming sessions/);
   assert.match(admin, /renderDashUpcoming\(now\)/);
   assert.doesNotMatch(admin, /dashChecklistSessions\(sessions, now\)\.filter\(function\(s\)\{return !preClassChecklistDone\(s\);\}/);
 });
