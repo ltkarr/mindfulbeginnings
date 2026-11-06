@@ -73,7 +73,7 @@ function loadInstructorMapper() {
   return sandbox;
 }
 
-test('instructor directions text keeps logistics and own-pay directions, and drops client notes', () => {
+test('directions text is only the dedicated column', () => {
   const shown = facing.directionsText({
     notes: PRIVATE_NOTE + ' ' + CLIENT_RATE,
     admin_private_notes: PRIVATE_NOTE,
@@ -81,7 +81,7 @@ test('instructor directions text keeps logistics and own-pay directions, and dro
     instructor_info: OWN_PAY
   });
   assert.match(shown, new RegExp(PARKING));
-  assert.match(shown, new RegExp(OWN_PAY));
+  assert.doesNotMatch(shown, new RegExp(OWN_PAY));
   assert.doesNotMatch(shown, new RegExp(PRIVATE_NOTE));
   assert.doesNotMatch(shown, new RegExp(CLIENT_RATE));
 });
@@ -122,7 +122,7 @@ test('the instructor mapper ignores generic notes and client financial columns',
   });
   const packed = JSON.stringify(session);
   assert.equal(session.instructorDirections, 'Parking: ' + PARKING);
-  assert.equal(session.instructorInfo, OWN_PAY);
+  assert.equal(session.instructorInfo, '');
   assert.equal(session.hostAddress, '100 Example Ave');
   assert.equal(session.notes, '');
   assert.equal(session.hostPhone, '');
@@ -143,11 +143,13 @@ test('the instructor mapper ignores generic notes and client financial columns',
   const card = notesHTML(session);
   assert.match(card, /Directions/);
   assert.match(card, new RegExp(PARKING));
-  assert.match(card, new RegExp(OWN_PAY));
+  assert.doesNotMatch(card, new RegExp(OWN_PAY));
   assert.doesNotMatch(card, new RegExp(PRIVATE_NOTE));
   assert.doesNotMatch(card, new RegExp(CLIENT_RATE));
   assert.equal(instructorDirectionsText(session).includes(PARKING), true);
   assert.equal(partnerNameOf({ notes: REG_NOTE + ' [Partner: Ada Example]', partner_name: 'Ada Example' }), 'Ada Example');
+  assert.equal(partnerNameOf({ notes: REG_NOTE, partner_name: 'Invoice the troop' }), '');
+  assert.equal(partnerNameOf({ notes: REG_NOTE, partner_name: 'Ada $165' }), '');
   assert.equal(partnerNameOf({ notes: REG_NOTE }), '');
 });
 
@@ -241,16 +243,26 @@ test('the migration projection separates client financials from instructor pay',
   assert.match(body, /revoke select \(notes\)[\s\S]*from anon, public/i);
 
   const list = selectList('instructor_list_sessions');
-  const listSelect = between(list, 'select id,', 'from public.sessions');
-  ['instructor_directions', 'instructor_info', 'host_address', 'instr_pay_override', 'teaching_hours', 'paid_travel_hours'].forEach(col => {
+  const listSelect = between(list, 'select s.id', 'from public.sessions s');
+  ['instructor_directions', 'host_address', 'instr_pay_override', 'teaching_hours', 'paid_travel_hours', 'city'].forEach(col => {
     assert.match(listSelect, new RegExp('\\b' + col + '\\b'));
   });
-  ['notes', 'admin_private_notes', 'price_override', 'org_portion', 'bill_to_org', 'billed_headcount', 'hold_payment', 'additional_costs', 'fee_received', 'origination_note', 'grant_tag', 'host_phone', 'wifi_info', 'zoom_link'].forEach(col => {
+  ['instructor_info', 'notes', 'admin_private_notes', 'price_override', 'org_portion', 'bill_to_org', 'billed_headcount', 'hold_payment', 'additional_costs', 'fee_received', 'origination_note', 'grant_tag', 'host_phone', 'wifi_info', 'zoom_link'].forEach(col => {
     assert.equal(listSelect.includes(col), false, col);
   });
+  assert.match(list, /v_active is distinct from true/);
+  assert.match(list, /second_instructor_id::text = v_id/);
+  assert.match(body, /^begin;/m);
+  assert.match(body, /^commit;/m);
+  assert.match(body, /402193d8-a9b7-4a7b-bdbb-b939c08dbd6d/);
+  assert.match(body, /private\.is_portal_admin\(\)/);
+  assert.doesNotMatch(body, /user_metadata/);
+  assert.match(body, /app_metadata/);
 
   const notesFn = selectList('instructor_session_notes');
   assert.match(notesFn, /s\.instructor_directions/);
+  assert.match(notesFn, /s\.instructor_id::text = v_id/);
+  assert.match(notesFn, /s\.second_instructor_id::text = v_id/);
   assert.doesNotMatch(notesFn, /s\.notes/);
   assert.doesNotMatch(notesFn, /admin_private_notes/);
 
@@ -262,7 +274,8 @@ test('the migration projection separates client financials from instructor pay',
 
   const roster = selectList('instructor_get_roster');
   assert.match(roster, /partner_name/);
-  assert.match(roster, /regexp_match\(r\.notes/);
+  assert.match(roster, /private\.partner_display_name\(r\.notes\)/);
+  assert.match(body, /function private\.partner_display_name/);
   assert.doesNotMatch(roster, /r\.pay_status/);
   const rosterReturns = between(roster, 'returns table', 'language plpgsql');
   assert.equal(rosterReturns.includes('notes'), false);
@@ -278,7 +291,8 @@ test('instructor pages do not ask for raw notes, and only admin signs in', () =>
   assert.doesNotMatch(instructor, /signInWithPassword/);
   assert.match(admin, /signInWithPassword/);
   assert.doesNotMatch(instructor, /instructor_session_notes/);
-  assert.doesNotMatch(instructor, /s\.notes/);
+  assert.doesNotMatch(instructor, /r\.notes/);
+  assert.match(instructor, /s\.notes=''/);
   instructor.split('\n').filter(line => line.includes('admin_private_notes')).forEach(line => {
     assert.match(line.trim(), /^\/\//);
   });
@@ -289,4 +303,76 @@ test('instructor pages do not ask for raw notes, and only admin signs in', () =>
   assert.match(email, /Directions: /);
   assert.doesNotMatch(email, /Notes: '\+s\.notes/);
   assert.doesNotMatch(email, /adminPrivateNotes/);
+  assert.doesNotMatch(email, /instructorInfo/);
+  const chunks = between(admin, 'function opsEmailInfo', 'function courseOverviewApi');
+  assert.doesNotMatch(chunks, /\[s\.notes/);
+  assert.doesNotMatch(chunks, /s\.instructorInfo/);
+  assert.match(chunks, /\[s\.instructorDirections\]/);
+});
+
+test('assigned instructors keep directions and own pay; other instructors do not', () => {
+  const DOOR = 'SYN-DOOR-9f3c';
+  const ZOOM = 'SYN-ZOOM-HOST-1a2b';
+  const INFO = 'SYN-INFO-DOLLAR';
+  const wide = {
+    id: 's1',
+    instructorId: 'inst-a',
+    secondInstructorId: 'inst-c',
+    instructorDirections: 'Door ' + DOOR + ' Zoom ' + ZOOM,
+    instructorInfo: INFO + ' hourly instruction',
+    notes: PRIVATE_NOTE + ' ' + CLIENT_RATE,
+    hostAddress: '100 Secret St',
+    city: 'Bethesda',
+    location: 'Community room',
+    instrPayOverride: 150,
+    teachingHours: 6,
+    paidTravelHours: 2
+  };
+  function copy() { return Object.assign({}, wide); }
+  const assignee = facing.restrictToViewer(copy(), 'inst-a');
+  const other = facing.restrictToViewer(copy(), 'inst-b');
+  const second = facing.restrictToViewer(copy(), 'inst-c');
+  const inactiveShape = facing.restrictToViewer(copy(), '');
+
+  assert.match(facing.directionsText(assignee), new RegExp(DOOR));
+  assert.match(facing.directionsText(assignee), new RegExp(ZOOM));
+  assert.equal(assignee.instrPayOverride, 150);
+  assert.equal(assignee.teachingHours, 6);
+  assert.equal(assignee.hostAddress, '100 Secret St');
+  assert.equal(assignee.city, 'Bethesda');
+
+  assert.equal(facing.directionsText(other), '');
+  assert.equal(other.instructorDirections, '');
+  assert.equal(other.instrPayOverride, null);
+  assert.equal(other.teachingHours, null);
+  assert.equal(other.paidTravelHours, null);
+  assert.equal(other.hostAddress, '');
+  assert.equal(other.city, 'Bethesda');
+  assert.equal(other.location, 'Community room');
+
+  assert.match(facing.directionsText(second), new RegExp(DOOR));
+  assert.equal(second.instrPayOverride, 150);
+
+  assert.equal(facing.directionsText(inactiveShape), '');
+  assert.equal(inactiveShape.instrPayOverride, null);
+
+  [assignee, other, second].forEach(row => {
+    const packed = JSON.stringify(row);
+    assert.equal(packed.includes(INFO), false);
+    assert.equal(packed.includes(PRIVATE_NOTE), false);
+    assert.equal(packed.includes(CLIENT_RATE), false);
+  });
+  assert.equal(facing.partnerDisplayName('Ada Example'), 'Ada Example');
+  assert.equal(facing.partnerDisplayName('Ada Example ' + CLIENT_RATE), '');
+  assert.equal(facing.partnerDisplayName('Paid in full'), '');
+});
+
+test('rollback script is guarded and the forward script is one transaction', () => {
+  const rollback = fs.readFileSync(path.join(root, 'migrations/20261106_instructor_directions_rollback.sql'), 'utf8');
+  const forward = sqlBody(sql);
+  assert.match(forward, /^begin;/m);
+  assert.match(forward, /^commit;/m);
+  assert.equal(forward.indexOf('begin;') < forward.indexOf('commit;'), true);
+  assert.match(rollback, /mb\.rollback_instructor_privacy/);
+  assert.match(rollback, /raise exception/i);
 });

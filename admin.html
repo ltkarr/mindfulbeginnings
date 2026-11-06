@@ -1106,7 +1106,7 @@ function instructorDirectionsFieldHtml(value, inputId){
   return `<div class="fg full" style="background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:10px 12px">
       <label for="${id}">Directions for instructors <span style="font-weight:400;color:var(--muted)">(parking, arrival, what to bring)</span></label>
       <textarea id="${id}" rows="4" placeholder="Parking, check-in, room number, what the venue provides, dress code. Do not put rates, invoices, or payment agreements here." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(value||'')}</textarea>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Instructors see this on the job board, the calendar file, the printed roster, and instructor emails. Session notes and private notes stay here.</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Only the assigned instructor, and a second instructor when there is one, see this. It can include a door code or a Zoom host key, so it stays off the open job board. Session notes and older instructor info stay here.</div>
     </div>`;
 }
 function readInstructorDirections(inputId){
@@ -1115,12 +1115,7 @@ function readInstructorDirections(inputId){
 }
 function instructorFacingDirections(s){
   if(typeof MBInstructorFacing!=='undefined'&&MBInstructorFacing.directionsText)return MBInstructorFacing.directionsText(s);
-  const parts=[];
-  [s&&s.instructorDirections,s&&s.instructorInfo].forEach(v=>{
-    const t=String(v||'').trim();
-    if(t&&parts.indexOf(t)<0)parts.push(t);
-  });
-  return parts.join('\n\n');
+  return String(s&&s.instructorDirections||'').trim();
 }
 // Blank clears the saved count. A missing input means this form does not edit it.
 // NaN is not a number Lindsay can save.
@@ -8386,6 +8381,7 @@ function sessionAboutBodyHtml(s){
   const when=sessionAboutWhenText(s);
   const priv=String((s&&s.adminPrivateNotes)||'').trim();
   const sessionNotes=String((s&&s.notes)||'').trim();
+  const legacyInfo=String((s&&s.instructorInfo)||'').trim();
   const job=sessionJobNotesText(s);
   const code=s.code&&!s.orgHandlesRegistration?`<div style="margin-top:6px"><span class="code-badge" style="cursor:default">${escapeHtml(s.code)}</span></div>`:'';
   return `<div class="about-title">${escapeHtml(s.course||(s.isCustomJob?'Custom job':'Session'))}</div>${code}
@@ -8398,7 +8394,9 @@ function sessionAboutBodyHtml(s){
       ${priv?`<div class="about-note private">${_aboutLinked(priv)}</div>`:'<div class="about-empty">None</div>'}
       <div class="about-note-label">Session notes <span>(admin only)</span></div>
       ${sessionNotes?`<div class="about-note private">${_aboutLinked(sessionNotes)}</div>`:'<div class="about-empty">None</div>'}
-      <div class="about-note-label">Directions for instructors <span>(what instructors see)</span></div>
+      <div class="about-note-label">Older instructor info <span>(admin only, not sent)</span></div>
+      ${legacyInfo?`<div class="about-note private">${_aboutLinked(legacyInfo)}</div>`:'<div class="about-empty">None</div>'}
+      <div class="about-note-label">Directions for instructors <span>(assigned instructors only — what instructors see after they are assigned)</span></div>
       ${job?`<div class="about-note">${_aboutLinked(job)}</div>`:'<div class="about-empty">None</div>'}
     </div>`;
 }
@@ -13522,7 +13520,7 @@ function opsEmailInfo(s){
   const hostName=nameOf(s.contactName)||hostRegs.map(r=>nameOf(r.parentName)||nameOf(r.studentName)).find(Boolean)||'';
   const mealChunks=[];
   const specialChunks=[];
-  [s.notes,s.instructorInfo,s.instructorDirections].forEach(chunk=>{
+  [s.instructorDirections].forEach(chunk=>{
     if(chunk){mealChunks.push(chunk);specialChunks.push(chunk);}
   });
   hostRegs.forEach(r=>{

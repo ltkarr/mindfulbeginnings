@@ -486,7 +486,7 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:'',hasHost:r.has_host!==false,contactName:'',maxStudentsOverride:r.max_students_override||null,participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:'',instructorDirections:r.instructor_directions||'',hostAddress:r.host_address||'',hostPhone:'',wifiInfo:'',contactDay:'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:'',hasHost:r.has_host!==false,contactName:'',maxStudentsOverride:r.max_students_override||null,participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:'',instructorDirections:r.instructor_directions||'',hostAddress:r.host_address||'',hostPhone:'',wifiInfo:'',contactDay:'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
   return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
@@ -738,7 +738,9 @@ function seatsPerRegistration(course){
 function filledSeats(s){return countRegs(s&&s.id)*seatsPerRegistration(s&&s.course);}
 function partnerNameOf(r){
   if(!r)return '';
-  return String(r.partner_name||'').trim();
+  const raw=String(r.partner_name||'').trim();
+  if(typeof MBInstructorFacing!=='undefined'&&MBInstructorFacing.partnerDisplayName)return MBInstructorFacing.partnerDisplayName(raw);
+  return '';
 }
 function rosterNameCell(r){
   const primary=(r&&(r.student_name||r.studentName))||'';
@@ -1134,16 +1136,27 @@ function locationHTML(s,showPrivate,priv,mapLink){
   }
   return`<div class="jc-section"><div class="jc-section-t">${s.isVirtual?'Format':'Where'}</div><div style="font-size:13px;line-height:1.7">${lines.join('')}</div></div>`;
 }
-// Directions Lindsay wrote for the instructor, plus older instructor_info text.
-// Session notes and private notes are not read here.
+// Dedicated directions only, and only after restrictInstructorSession has
+// cleared them for anyone who is not assigned to the job.
 function instructorDirectionsText(s){
   if(typeof MBInstructorFacing!=='undefined'&&MBInstructorFacing.directionsText)return MBInstructorFacing.directionsText(s);
-  const parts=[];
-  [s&&s.instructorDirections,s&&s.instructorInfo].forEach(v=>{
-    const t=String(v||'').trim();
-    if(t&&parts.indexOf(t)<0)parts.push(t);
-  });
-  return parts.join('\n\n');
+  return String(s&&s.instructorDirections||'').trim();
+}
+function restrictInstructorSession(s){
+  if(typeof MBInstructorFacing!=='undefined'&&MBInstructorFacing.restrictToViewer){
+    return MBInstructorFacing.restrictToViewer(s, me&&me.id);
+  }
+  s.notes='';
+  s.instructorInfo='';
+  const mine=!!(me&&(s.instructorId===me.id||s.secondInstructorId===me.id));
+  if(!mine){
+    s.instructorDirections='';
+    s.hostAddress='';
+    s.instrPayOverride=null;
+    s.teachingHours=null;
+    s.paidTravelHours=null;
+  }
+  return s;
 }
 function notesHTML(s){
   const n=instructorDirectionsText(s);
@@ -1523,9 +1536,9 @@ async function loadData(){
   // checks the same PIN as instructor_login and returns the board columns only.
   // Site details are fetched per-job through the instructor_session_private RPC once a
   // job is accepted. host_address and zoom_link stay on that RPC.
-  // Session notes, private notes, client prices, and grant tags are not selected.
-  // admin_private_notes is not granted to anon and must never be selected.
-  // instructor_directions and instructor_info are the only note text on this payload.
+  // Session notes, private notes, instructor_info, client prices, and grant tags
+  // are not kept. admin_private_notes is not granted to anon and must never be selected.
+  // Directions, street address, and session pay stay only when this instructor is assigned.
   let[s,j,r]=await Promise.all([
     (me&&me.pin)
       ? sb.rpc('instructor_list_sessions',{p_pin:me.pin})
@@ -1562,6 +1575,7 @@ async function loadData(){
       if('is_cancelled' in f)x.isCancelled=!!f.is_cancelled;
       if('cancel_reason' in f)x.cancelReason=f.cancel_reason||'';
     });
+    allSessions=allSessions.map(restrictInstructorSession);
     const sample=rows.length?rows[0]:null;
     RN_RESTRICTION_KNOWN=!sample||Object.prototype.hasOwnProperty.call(sample,'requires_rn');
     CANCEL_STATE_KNOWN=!sample||Object.prototype.hasOwnProperty.call(sample,'is_cancelled');

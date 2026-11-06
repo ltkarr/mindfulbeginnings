@@ -1,59 +1,50 @@
 -- ============================================================================
---  Instructor directions, separate from private notes and client financials.
---  Run in the Supabase SQL editor after this code is deployed, or in the
---  same release window. Until this runs, instructor_session_notes still
---  returns sessions.notes and instructor_get_roster still returns
---  registration notes and pay_status.
+--  Instructor privacy boundary. One transaction. Not applied by this repo.
 --
---  WHAT THIS DOES:
---    1. Adds sessions.instructor_directions. This is the only new note
---       instructors may see (parking, arrival, what to bring). It is empty
---       for existing rows. This script does not copy sessions.notes or
---       admin_private_notes into it.
---    2. instructor_list_sessions returns that column and stops returning
---       grant_tag. Instructor pay columns stay, because they are the
---       instructor's own compensation. Client prices, private notes, and
---       billing columns stay off the list.
---    3. instructor_session_notes returns instructor_directions only.
---       A valid PIN can no longer read sessions.notes through this function.
---    4. instructor_job_details no longer returns job_data.notes. Pay status,
---       pay date, the fee paid, and a referral bonus stay. Those are the
---       instructor's own payout record.
---    5. instructor_get_roster no longer returns registration notes or
---       pay_status. A couple's name is returned only from the [Partner: ]
---       tag the registration form writes. The rest of the note stays in
---       the database and is not part of the result.
+--  Until this commits in production, the live functions still return
+--  session notes, registration notes, and every session's pay fields.
+--  Deploying the pages first hides those fields in the portal. A direct
+--  call to the old functions still returns them. Run this in the same
+--  window as the page deploy. Do not treat this file as live protection.
 --
---  Does not update session rows, prices, payroll, or any host-rate agreement.
---  Does not grant the new column to anon. Does not GRANT anything on
---  job_data. job_data has an anon_read_job_board policy with USING (true),
---  but anon has no table privilege. Granting SELECT to anon would turn
---  that policy on. Leave it alone.
+--  Own pay is still waiting on Lindsay. This script does not delete pay
+--  columns or change amounts. It returns instr_pay_override, teaching_hours,
+--  and paid_travel_hours only when the active caller is that session's
+--  instructor_id or second_instructor_id. Everyone else gets null.
 --
---  instructor_info stays on the instructor list. It is the older
---  instructor-directions column and can also contain the instructor's own
---  pay instructions. It is not a client price, and this script does not
---  redact it. instr_pay_override, teaching_hours, paid_travel_hours,
---  pay_status, pay_date, paid_fee, and referral_bonus stay for the same
---  reason: they are the instructor's own compensation, not a client bill.
---  grant_tag is a subsidy label and comes off the instructor list.
+--  instructor_directions can hold door codes and Zoom host keys. The text
+--  is returned only to the assigned instructor and the second instructor.
+--  The open board keeps city, state, zip, and the venue name. It does not
+--  get the street address or the directions text. instructor_info is not
+--  selected. This script does not copy notes or instructor_info into
+--  instructor_directions.
 --
---  sessions RLS is enabled and not forced. The authenticated policy is
---  USING (true), so every authenticated role can read private columns.
---  In this app only admin.html calls signInWithPassword, and the project
---  currently has one Auth user. That is not a database guarantee. This
---  script does not replace that policy.
+--  Parent carryover, when reviewed, writes public.sessions.instructor_directions
+--  only. Null stays null. Flagged rows stay null until a person accepts them.
+--  Compare a fingerprint of the current notes and instructor_info before
+--  writing, and skip the row if the source changed. Do not grant anon.
 --
---  SAFE TO RE-RUN: the column add and grants are idempotent. The functions
---  are replaced. instructor_get_roster and instructor_session_notes are
---  dropped first because their result columns change.
+--  Admin gate: auth user 402193d8-a9b7-4a7b-bdbb-b939c08dbd6d, confirmed as
+--  the owner. Also accepts app_metadata.role = admin. Does not read
+--  user_metadata and does not treat the authenticated role as admin.
+--  service_role bypasses row level security and keeps server routes working.
+--
+--  job_data still has anon_read_job_board USING (true). anon has no table
+--  privilege. This script does not GRANT anon anything on job_data.
+--
+--  Rollback: migrations/20261106_instructor_directions_rollback.sql
+--  It refuses to run unless the session guard is set.
 -- ============================================================================
+
+begin;
+
+create schema if not exists private;
 
 alter table public.sessions
   add column if not exists instructor_directions text;
 
 comment on column public.sessions.instructor_directions is
-  'Directions instructors may see: parking, arrival, room, what to bring. Not session notes and not payment agreements. Do not grant this column to anon.';
+  'Reviewed logistics for the assigned instructor only. May contain door or Zoom host credentials. Not copied from notes or instructor_info. Not granted to anon. Not returned on the open board.';
 
 revoke select (instructor_directions), insert (instructor_directions), update (instructor_directions), references (instructor_directions)
   on table public.sessions from anon, public;
@@ -61,10 +52,168 @@ revoke select (instructor_directions), insert (instructor_directions), update (i
 grant select (instructor_directions), insert (instructor_directions), update (instructor_directions)
   on table public.sessions to authenticated;
 
--- Notes stay admin-only on the table. The functions below are what used to
--- bypass that grant.
+grant select (instructor_directions), insert (instructor_directions), update (instructor_directions)
+  on table public.sessions to service_role;
+
 revoke select (notes), insert (notes), update (notes), references (notes)
   on table public.sessions from anon, public;
+
+create table if not exists private.portal_admins (
+  user_id uuid primary key,
+  recorded_at timestamptz not null default now()
+);
+
+comment on table private.portal_admins is
+  'Auth users allowed through the admin Data API. Membership is not implied by the authenticated role.';
+
+revoke all on table private.portal_admins from public, anon, authenticated;
+
+insert into private.portal_admins (user_id)
+values ('402193d8-a9b7-4a7b-bdbb-b939c08dbd6d')
+on conflict (user_id) do nothing;
+
+create or replace function private.is_portal_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    coalesce(auth.role(), '') = 'service_role'
+    or coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') = 'admin'
+    or exists (
+      select 1
+      from private.portal_admins a
+      where a.user_id = auth.uid()
+    );
+$$;
+
+revoke all on function private.is_portal_admin() from public, anon;
+grant execute on function private.is_portal_admin() to authenticated, service_role;
+grant usage on schema private to authenticated, service_role;
+
+create or replace function private.partner_display_name(raw text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select case
+    when candidate is null or candidate = '' then null
+    when candidate ~ E'[\n\r$0-9]' then null
+    when candidate ~* '\y(invoice|payment|paid|rate|billing|bill|discount|venmo|zelle|paypal|balance|receipt|subsidy|agreement)\y' then null
+    when candidate ~ '^[A-Za-z]{2,40}$' then candidate
+    when candidate ~ '^([A-Za-z][A-Za-z .''’-]{0,78}[A-Za-z])$' then candidate
+    else null
+  end
+  from (
+    select btrim((regexp_match(raw, '\[Partner:[[:space:]]*([^]]{1,80})\]', 'i'))[1]) as candidate
+  ) parsed;
+$$;
+
+revoke all on function private.partner_display_name(text) from public, anon, authenticated;
+
+-- Authenticated policies below are allow-all today. Replace the ones that
+-- hold session notes, registration records, job records, or client money.
+-- Other allow-all policies (equipment, inventory, the instructors table)
+-- are unchanged and called out in the pull request.
+
+drop policy if exists "admin full access to sessions" on public.sessions;
+create policy "admin full access to sessions"
+  on public.sessions
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to registrations" on public.registrations;
+create policy "admin full access to registrations"
+  on public.registrations
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to job_data" on public.job_data;
+create policy "admin full access to job_data"
+  on public.job_data
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "invoices_admin_all" on public.invoices;
+create policy "invoices_admin_all"
+  on public.invoices
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to discount_codes" on public.discount_codes;
+create policy "admin full access to discount_codes"
+  on public.discount_codes
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to expenses" on public.expenses;
+create policy "admin full access to expenses"
+  on public.expenses
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to class_requests" on public.class_requests;
+create policy "admin full access to class_requests"
+  on public.class_requests
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to referral_commission_payouts" on public.referral_commission_payouts;
+create policy "admin full access to referral_commission_payouts"
+  on public.referral_commission_payouts
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to referral_commission_snapshots" on public.referral_commission_snapshots;
+create policy "admin full access to referral_commission_snapshots"
+  on public.referral_commission_snapshots
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to referral_overhead_rules" on public.referral_overhead_rules;
+create policy "admin full access to referral_overhead_rules"
+  on public.referral_overhead_rules
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin manages partner payouts" on public.partner_payouts;
+create policy "admin manages partner payouts"
+  on public.partner_payouts
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "auth all" on public.community_partner_payouts;
+create policy "auth all"
+  on public.community_partner_payouts
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
 
 create or replace function public.instructor_list_sessions(p_pin text)
 returns setof jsonb
@@ -74,29 +223,50 @@ security definer
 set search_path = public
 as $$
 declare
-  v_profile json;
+  v_id text;
+  v_active boolean;
 begin
-  select (to_jsonb(i) - 'pin')::json
-    into v_profile
+  select i.id::text, coalesce(i.is_active, true)
+    into v_id, v_active
   from public.instructors i
   where i.pin = p_pin
   limit 1;
 
-  if v_profile is null then
+  if v_id is null or v_active is distinct from true then
     raise exception 'invalid pin';
   end if;
 
   return query
   select to_jsonb(x) from (
-    select id, code, course, date, "time", location, city, state, zip,
-           owner_taught, host_taken, has_host, instructor_id,
-           second_instructor_id, instr_pay_override, teaching_hours, paid_travel_hours,
-           max_students_override, participants_expected,
-           is_custom_job, is_virtual, is_hold, is_cancelled, cancel_reason,
-           allow_waitlist, extra_dates, is_recurring, recur_pattern, recur_end_date,
-           extra_days, closures, instructor_info, instructor_directions,
-           requires_rn, requires_safe_sitter, requires_spanish, host_address
-    from public.sessions
+    select s.id, s.code, s.course, s.date, s."time", s.location, s.city, s.state, s.zip,
+           s.owner_taught, s.host_taken, s.has_host, s.instructor_id,
+           s.second_instructor_id,
+           case
+             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+               then s.instr_pay_override
+           end as instr_pay_override,
+           case
+             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+               then s.teaching_hours
+           end as teaching_hours,
+           case
+             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+               then s.paid_travel_hours
+           end as paid_travel_hours,
+           s.max_students_override, s.participants_expected,
+           s.is_custom_job, s.is_virtual, s.is_hold, s.is_cancelled, s.cancel_reason,
+           s.allow_waitlist, s.extra_dates, s.is_recurring, s.recur_pattern, s.recur_end_date,
+           s.extra_days, s.closures,
+           case
+             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+               then s.instructor_directions
+           end as instructor_directions,
+           s.requires_rn, s.requires_safe_sitter, s.requires_spanish,
+           case
+             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+               then s.host_address
+           end as host_address
+    from public.sessions s
   ) x;
 end;
 $$;
@@ -115,18 +285,25 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_id text;
+  v_active boolean;
 begin
-  if not exists (
-    select 1 from public.instructors i
-    where i.pin = p_pin
-      and coalesce(i.is_active, true)
-  ) then
+  select i.id::text, coalesce(i.is_active, true)
+    into v_id, v_active
+  from public.instructors i
+  where i.pin = p_pin
+  limit 1;
+
+  if v_id is null or v_active is distinct from true then
     return;
   end if;
 
   return query
   select s.id, s.instructor_directions
-  from public.sessions s;
+  from public.sessions s
+  where s.instructor_id::text = v_id
+     or s.second_instructor_id::text = v_id;
 end;
 $$;
 
@@ -152,13 +329,14 @@ set search_path = public
 as $$
 declare
   v_id text;
+  v_active boolean;
 begin
-  select i.id into v_id
+  select i.id::text, coalesce(i.is_active, true)
+    into v_id, v_active
   from public.instructors i
   where i.pin = p_pin
-    and coalesce(i.is_active, true)
   limit 1;
-  if v_id is null then
+  if v_id is null or v_active is distinct from true then
     return;
   end if;
 
@@ -172,12 +350,55 @@ begin
          j.referral_bonus,
          j.paid_fee
   from public.job_data j
-  where j.instructor_id = v_id;
+  where j.instructor_id::text = v_id;
 end;
 $$;
 
 revoke all on function public.instructor_job_details(text) from public;
 grant execute on function public.instructor_job_details(text) to anon, authenticated;
+
+create or replace function public.instructor_session_private(p_pin text, p_session_id text)
+returns table (
+  host_address text,
+  host_phone text,
+  wifi_info text,
+  contact_day text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_instr text;
+  v_active boolean;
+begin
+  select i.id::text, coalesce(i.is_active, true)
+    into v_instr, v_active
+  from public.instructors i
+  where i.pin = p_pin
+  limit 1;
+  if v_instr is null or v_active is distinct from true then
+    return;
+  end if;
+
+  return query
+  select s.host_address, s.host_phone, s.wifi_info, s.contact_day
+  from public.sessions s
+  where s.id::text = p_session_id
+    and (
+      s.instructor_id::text = v_instr
+      or s.second_instructor_id::text = v_instr
+      or exists (
+        select 1 from public.job_data j
+        where j.session_id = s.id
+          and j.instructor_id::text = v_instr
+      )
+    );
+end;
+$$;
+
+revoke all on function public.instructor_session_private(text, text) from public;
+grant execute on function public.instructor_session_private(text, text) to anon, authenticated;
 
 drop function if exists public.instructor_get_roster(text, text);
 
@@ -197,19 +418,30 @@ security definer
 set search_path = public
 as $$
 declare
-  v_instructor_id text;
+  v_id text;
+  v_active boolean;
 begin
-  select i.id into v_instructor_id
+  select i.id::text, coalesce(i.is_active, true)
+    into v_id, v_active
   from public.instructors i
   where i.pin = p_pin
   limit 1;
-  if v_instructor_id is null then
+  if v_id is null or v_active is distinct from true then
     return;
   end if;
   if not exists (
-    select 1 from public.job_data j
-    where j.session_id = p_session_id
-      and j.instructor_id = v_instructor_id
+    select 1
+    from public.sessions s
+    where s.id::text = p_session_id
+      and (
+        s.instructor_id::text = v_id
+        or s.second_instructor_id::text = v_id
+      )
+  ) and not exists (
+    select 1
+    from public.job_data j
+    where j.session_id::text = p_session_id
+      and j.instructor_id::text = v_id
   ) then
     return;
   end if;
@@ -222,9 +454,9 @@ begin
          r.cpr_permission,
          r.emergency_auth,
          r.waiver_signed,
-         nullif(btrim((regexp_match(r.notes, '\[Partner:\s*([^\]]+)\]', 'i'))[1]), '')
+         private.partner_display_name(r.notes)
   from public.registrations r
-  where r.session_id = p_session_id;
+  where r.session_id::text = p_session_id;
 end;
 $$;
 
@@ -232,3 +464,5 @@ revoke all on function public.instructor_get_roster(text, text) from public;
 grant execute on function public.instructor_get_roster(text, text) to anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+commit;
