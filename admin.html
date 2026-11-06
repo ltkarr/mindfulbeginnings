@@ -7587,7 +7587,7 @@ function renderDashUpcoming(now){
     }else if(typeof packingBringLine==='function'){
       const registered=typeof packingRegisteredCount==='function'?packingRegisteredCount(s):cnt;
       const packFor=typeof packingKitCount==='function'?packingKitCount(s, registered):registered;
-      kit=packingKitHtml({bring:packingBringLine(s, packFor), manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)});
+      kit=packingKitHtml({course:s.course, bring:packingBringLine(s, packFor), manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)});
     }
     const together=dashPacksWithAnother(s, list, today, people, jobs)?'<div class="pack-flag">Pack with another class within 8 days</div>':'';
     const prep=preClassChecklistDone(s)?'<div style="font-size:14px;color:var(--success);margin-top:4px">Prep complete</div>':'';
@@ -12242,8 +12242,10 @@ function packingBringLine(s, registered){
 function packingKitHtml(r){
   const bring=r&&r.bring?'<div class="pack-bring">'+escapeHtml(r.bring)+'</div>':'';
   const kit=r&&r.manikins?'<div class="pack-kit">Batteries + screwdriver</div>':'';
-  const shared=(typeof MBTeachingChecklists!=='undefined'&&MBTeachingChecklists&&MBTeachingChecklists.sharedSupply)
-    ?'<div class="pack-bring">'+escapeHtml(MBTeachingChecklists.sharedSupply)+'</div>':'';
+  const course=r&&r.course;
+  const api=(typeof MBTeachingChecklists!=='undefined')?MBTeachingChecklists:null;
+  const shared=(course&&api&&typeof api.usesSharedSupply==='function'&&api.usesSharedSupply(course))
+    ?'<div class="pack-bring">'+escapeHtml(api.sharedSupply)+'</div>':'';
   return bring+kit+shared;
 }
 function packingBuildModel(sessionList, instructorList, jobData, today, days, regList){

@@ -24,8 +24,11 @@
   'use strict';
 
   var ROOM = 'Return the room to its original condition: clear food and drinks, push in chairs, and take all materials.';
-  // One instructor item on every printed checklist. AND/OR means either is enough.
+  // Safe Sitter curriculum only. Essentials uses that same pack list.
+  // Safe@Home, Grandparents, and other Safe Sitter Inc products do not.
+  // AND/OR means either choice is enough.
   var SHARED_SUPPLY = 'Bingo prizes AND/OR raffle tickets for an Amazon gift card';
+  var PRIZE_SHEET = { 'safe-sitter': true, 'ss-essentials': true };
   var LOCKBOX = 'Return all materials within 24 hours unless teaching another course. Return them to the locked storage box.';
 
   function sec(title, items) {
@@ -1007,14 +1010,26 @@
     return 'Instructor: ' + who;
   }
 
+  function usesSharedSupply(courseOrSheet) {
+    var sheet, id;
+    if (!courseOrSheet) return false;
+    if (typeof courseOrSheet === 'object' && courseOrSheet.id && courseOrSheet.sections) {
+      return !!PRIZE_SHEET[courseOrSheet.id];
+    }
+    sheet = forCourse(typeof courseOrSheet === 'string' ? courseOrSheet : courseOrSheet.course);
+    id = sheet && sheet.id;
+    return !!PRIZE_SHEET[id];
+  }
+
   function printHtml(checklist, meta) {
-    var sections, note, foot, lines, when, sessionTitle, bits, session, sharedPlaced;
+    var sections, note, foot, lines, when, sessionTitle, bits, session, wantPrize, sharedPlaced;
     if (!checklist) return '';
     session = meta == null ? null : meta;
+    wantPrize = usesSharedSupply(checklist);
     sharedPlaced = false;
     sections = (checklist.sections || []).map(function (section) {
       var items = (section.items || []).slice();
-      if (!sharedPlaced && /supply|supplies|equipment|materials/i.test(section.title || '')) {
+      if (wantPrize && !sharedPlaced && /supply|supplies|equipment|materials/i.test(section.title || '')) {
         items.push(SHARED_SUPPLY);
         sharedPlaced = true;
       }
@@ -1022,7 +1037,7 @@
         return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(item) + '</span></li>';
       }).join('') + '</ul></section>';
     }).join('');
-    if (!sharedPlaced) {
+    if (wantPrize && !sharedPlaced) {
       sections += '<section class="teach-pdf-section"><h2>Instructor</h2><ul class="teach-items"><li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(SHARED_SUPPLY) + '</span></li></ul></section>';
     }
     note = checklist.note ? '<p class="teach-pdf-note">' + escapeHtml(checklist.note) + '</p>' : '';
@@ -1063,7 +1078,8 @@
     formatDate: formatDate,
     printHtml: printHtml,
     visibleText: visibleText,
-    sharedSupply: SHARED_SUPPLY
+    sharedSupply: SHARED_SUPPLY,
+    usesSharedSupply: usesSharedSupply
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

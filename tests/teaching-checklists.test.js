@@ -184,22 +184,64 @@ test('a session printout names the instructor, or says unassigned', () => {
   assert.doesNotMatch(escaped, /<Ann>/);
 });
 
-test('every offered checklist prints the shared bingo or raffle line once', () => {
+test('the bingo or raffle line is only on Safe Sitter and Essentials', () => {
   const line = 'Bingo prizes AND/OR raffle tickets for an Amazon gift card';
   assert.equal(sheets.sharedSupply, line);
+  const prizeIds = { 'safe-sitter': true, 'ss-essentials': true };
   sheets.list().forEach(function (sheet) {
     const html = sheets.printHtml(sheet, { date: '2026-11-14', instructor: 'Lindsay Karr' });
     const hits = html.split(line).length - 1;
-    assert.equal(hits, 1, sheet.id);
-    assert.equal(sheets.forSession({ course: sheet.title, isVirtual: true }), null);
+    assert.equal(hits, prizeIds[sheet.id] ? 1 : 0, sheet.id);
   });
+  ['Safe Sitter®', 'SafeSitter @Norwood', 'Safe Sitter at Beth El', 'Safe Sitter® Babysitting Essentials'].forEach(function (name) {
+    const sheet = sheets.forCourse(name);
+    assert.ok(sheet && prizeIds[sheet.id], name);
+    assert.equal(sheets.usesSharedSupply(name), true, name);
+    assert.equal(sheets.printHtml(sheet, null).split(line).length - 1, 1, name);
+  });
+  ['Safe@Home', 'Safe@Home — Series', 'Grandparents: Getting Started', 'Babysitting Grandkids Workshop', 'Care Ready', 'Baby Ready', 'Intro to Babysitting', 'Ready. Period.', 'Safe Sitter instructors'].forEach(function (name) {
+    assert.equal(sheets.usesSharedSupply(name), false, name);
+    const sheet = sheets.forCourse(name);
+    if (sheet) assert.equal(sheets.printHtml(sheet, null).split(line).length - 1, 0, name);
+  });
+  assert.equal(sheets.forSession({ course: 'Safe Sitter®', isVirtual: true }), null);
   const safe = sheets.printHtml(sheets.byId('safe-sitter'), null);
   assert.match(safe, /Game pouch \(blue zippered\)/);
   assert.match(safe, /Tape and a fake cell phone/);
   assert.doesNotMatch(safe, /raffle ticket pouch/);
   assert.doesNotMatch(safe, /Bingo prizes,/);
-  assert.match(admin, /MBTeachingChecklists\.sharedSupply/);
+  assert.match(admin, /usesSharedSupply\(course\)/);
+  assert.match(admin, /packingKitHtml\(\{course:s\.course/);
   assert.doesNotMatch(admin, /Bingo prizes AND\/OR raffle tickets for an Amazon gift card/);
+
+  function extractFunction(src, name) {
+    const start = src.indexOf('function ' + name + '(');
+    if (start < 0) throw new Error('missing ' + name);
+    let i = src.indexOf('{', start);
+    let depth = 0;
+    for (let j = i; j < src.length; j++) {
+      if (src[j] === '{') depth++;
+      else if (src[j] === '}') {
+        depth--;
+        if (depth === 0) return src.slice(start, j + 1);
+      }
+    }
+    throw new Error('unclosed ' + name);
+  }
+  const pack = { MBTeachingChecklists: sheets, escapeHtml: function (t) { return String(t == null ? '' : t); } };
+  vm.createContext(pack);
+  vm.runInContext(extractFunction(admin, 'packingKitHtml'), pack);
+  const rows = [
+    { course: 'Safe Sitter®', bring: 'Bring: 1 AV kit', manikins: true },
+    { course: 'Safe Sitter® Babysitting Essentials', bring: 'Bring: 1 AV kit', manikins: true },
+    { course: 'Safe@Home', bring: 'Bring: 1 AV kit', manikins: false },
+    { course: 'Grandparents: Getting Started', bring: 'Bring: 1 AV kit', manikins: true },
+    { course: 'Care Ready', bring: 'Bring: 1 infant manikin', manikins: true }
+  ];
+  const packed = rows.map(function (row) { return pack.packingKitHtml(row); }).join('\n');
+  assert.equal(packed.split(line).length - 1, 2);
+  assert.equal(pack.packingKitHtml({ bring: 'Bring: 1 AV kit', manikins: false }).split(line).length - 1, 0);
+  assert.match(pack.packingKitHtml(rows[0]), /Batteries \+ screwdriver/);
 });
 
 test('the admin dashboard can print a checklist the same way it prints a packing list', () => {
