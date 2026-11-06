@@ -17,11 +17,40 @@
    4-hour course, which does not include the CPR module.
    Baby Ready + CPR uses the Baby Ready sheet plus the certification
    lines the draft did record.
+   Virtual sessions are not printed. A class marked virtual, or a course
+   whose name says virtual, has no checklist.
 */
 (function (root) {
   'use strict';
 
   var ROOM = 'Return the room to its original condition: clear food and drinks, push in chairs, and take all materials.';
+  // Safe Sitter curriculum only. Essentials uses that same pack list.
+  // Safe@Home, Grandparents, and other Safe Sitter Inc products do not.
+  // AND/OR means either choice is enough.
+  var SHARED_SUPPLY = 'Bingo prizes AND/OR raffle tickets for an Amazon gift card';
+  var PRIZE_SHEET = { 'safe-sitter': true, 'ss-essentials': true };
+  // Pieces inside the one AV kit from the equipment table. Ready. Period. is not in this list.
+  var AV_PARTS = [
+    'Laptop, case, and speakers (Mindful Beginnings)',
+    'Projector, case, and remote (Mindful Beginnings). The host provides the wall or screen.',
+    'USB-C to HDMI adapter (in the AV kit)',
+    'Power strip or cord (in the AV kit)'
+  ];
+  var AV_SHEET = {
+    'safe-sitter': true,
+    'ss-essentials': true,
+    'grandparents': true,
+    'campus-ready': true,
+    'stay-ready': true,
+    'safe-at-home': true,
+    'safe-at-home-series': true,
+    'all-kids-welcome': true,
+    'season-ready': true,
+    'care-ready': true,
+    'baby-ready': true,
+    'baby-ready-cpr': true,
+    'rc-adult-peds': true
+  };
   var LOCKBOX = 'Return all materials within 24 hours unless teaching another course. Return them to the locked storage box.';
 
   function sec(title, items) {
@@ -143,10 +172,10 @@
         'Safe Sitter Important Information Note Pad, 1 per student',
         'Safe Sitter badges (Girl Scout and Boy Scout troops only)',
         'Student Evaluation Forms',
-        'Game pouch (blue zippered) and raffle ticket pouch',
-        'Bingo prizes, tape, and a fake cell phone',
+        'Game pouch (blue zippered)',
+        'Tape and a fake cell phone',
         'Soft-bodied dolls and disposable diapers',
-        'Infant manikin and child manikin (1 each for 8 or fewer students, 2 each above 8)',
+        'Infant manikin and child manikin (1 each for 8 or fewer students, 3 each above 8)',
         'Batteries and screwdriver',
         'CPR face shield protectors, 1 per participant'
       ]),
@@ -179,7 +208,7 @@
         'Safe Sitter Important Information Note Pad, 1 per student',
         'Student Evaluation Forms',
         'Soft-bodied dolls and disposable diapers',
-        'Infant manikin and child manikin for choking-rescue practice (1 each for 8 or fewer students, 2 each above 8)',
+        'Infant manikin and child manikin for choking-rescue practice (1 each for 8 or fewer students, 3 each above 8)',
         'Batteries and screwdriver',
         'CPR face shield protectors, 1 per participant',
         'Laptop, speaker, and projector if the site requires'
@@ -297,25 +326,6 @@
         'Return unused booklets, completion cards, parent pages, scenario cards, posters, station signs, phone props, and the AV kit',
         ROOM,
         LOCKBOX
-      ])
-    ]),
-
-    sheet('safe-at-home-virtual', 'Safe@Home virtual (60 minutes)', [
-      sec('Before class', [
-        'Review the roster emailed before class starts',
-        'Facilitator Guide (60-minute virtual) on a second screen or printed',
-        'Deck in presenter view. Share that window only.',
-        'Chat on for everyone, and reactions enabled',
-        'Quiz answer key handy',
-        'Plan for mailing or emailing completion cards'
-      ]),
-      sec('Teaching steps', [
-        'Have students complete the Safe@Home student evaluation',
-        'Follow the 60-minute virtual facilitator guide for the class script'
-      ]),
-      sec('After class', [
-        'Mail or email completion cards',
-        'Send parent pages home'
       ])
     ]),
 
@@ -681,33 +691,6 @@
       ])
     ]),
 
-    sheet('ready-period-virtual', 'Ready. Period. (virtual)', [
-      sec('Before class', [
-        'Review the roster emailed before class starts',
-        'Zoom, 60 minutes, solo nurse. Chat set to host only (the question box). Test it.',
-        'Waiting room on. Admit only roster names. Recording off. Participant sharing off, mute on entry, no breakouts.',
-        'Log in 15 minutes early. Check framing and the front light. Cover slide up before admitting.',
-        'Confirm with families: the girl joins with a first name, and has one pad, a glass of water, a large spoon, and a towel ready before class'
-      ]),
-      sec('Supplies and equipment', [
-        'Facilitator Guide (virtual)',
-        'Slide deck ready to share',
-        '1 of each product plus a spare: pad, liner, tampon with applicator, period underwear, and menstrual cup',
-        '2 to 3 tablespoons of tinted water sealed in a clear jar, and a tray or towel',
-        'Sample packed pouch',
-        'Blank note for pasting questions, and a silent timer',
-        'Roster and the troop leader\'s cell number'
-      ]),
-      sec('Teaching steps', [
-        'Follow the virtual facilitator guide for the run of show'
-      ]),
-      sec('After class', [
-        'Send the virtual letter home to families',
-        'Note unanswered questions for Lindsay',
-        'Return demo products, the jar, and the sample pouch to the locked storage box'
-      ])
-    ]),
-
     sheet('social-ready', 'Social Ready', [
       sec('Before class', [
         'Review the roster emailed before class starts',
@@ -930,7 +913,6 @@
     { id: 'safe-sitter', test: function (n) { return (/safesitter/.test(n) || /\bsafe sitter\b/.test(n)) && !/instructor/.test(n); } },
     { id: 'intro-babysitting', test: function (n) { return /intro to babysitting/.test(n) || /introduction to safe babysitting/.test(n); } },
     { id: 'safe-at-home-series', test: function (n) { return /safe@home|safe at home|safeathome/.test(n) && /series/.test(n); } },
-    { id: 'safe-at-home-virtual', test: function (n) { return /safe@home|safe at home|safeathome/.test(n) && /virtual/.test(n); } },
     { id: 'safe-at-home', test: function (n) { return /safe@home|safe at home|safeathome/.test(n); } },
     { id: 'stay-ready', test: function (n) { return /stay ready/.test(n) || /choking rescue/.test(n); } },
     { id: 'season-ready', test: function (n) { return /season ready/.test(n); } },
@@ -939,7 +921,6 @@
     { id: 'my-first-single', test: function (n) { return /my first babysitter/.test(n) && /single|workshop/.test(n); } },
     { id: 'my-first-club', test: function (n) { return /my first babysitter/.test(n); } },
     { id: 'little-medics', test: function (n) { return /little medic/.test(n); } },
-    { id: 'ready-period-virtual', test: function (n) { return /ready period/.test(n) && /virtual/.test(n); } },
     { id: 'ready-period', test: function (n) { return /ready period/.test(n); } },
     { id: 'social-ready', test: function (n) { return /social ready/.test(n); } },
     { id: 'baby-ready-cpr', test: function (n) { return /baby ready/.test(n) && /cpr/.test(n); } },
@@ -969,7 +950,7 @@
   function forCourse(course) {
     var n = normCourse(course);
     var i;
-    if (!n) return null;
+    if (!n || /\bvirtual\b/.test(n)) return null;
     for (i = 0; i < MATCH.length; i++) {
       if (MATCH[i].test(n)) return byId(MATCH[i].id);
     }
@@ -977,12 +958,8 @@
   }
 
   function forSession(s) {
-    var sheetFor;
-    if (!s) return null;
-    sheetFor = forCourse(s.course);
-    if (s.isVirtual && sheetFor && sheetFor.id === 'safe-at-home') return byId('safe-at-home-virtual');
-    if (s.isVirtual && sheetFor && sheetFor.id === 'ready-period') return byId('ready-period-virtual');
-    return sheetFor;
+    if (!s || s.isVirtual) return null;
+    return forCourse(s.course);
   }
 
   function list() {
@@ -1049,24 +1026,68 @@
     });
   }
 
+  function instructorLine(meta) {
+    var who = String(meta && meta.instructor || '').trim();
+    if (!who || who === 'TBD') who = 'Unassigned';
+    return 'Instructor: ' + who;
+  }
+
+  function usesSharedSupply(courseOrSheet) {
+    var sheet, id;
+    if (!courseOrSheet) return false;
+    if (typeof courseOrSheet === 'object' && courseOrSheet.id && courseOrSheet.sections) {
+      return !!PRIZE_SHEET[courseOrSheet.id];
+    }
+    sheet = forCourse(typeof courseOrSheet === 'string' ? courseOrSheet : courseOrSheet.course);
+    id = sheet && sheet.id;
+    return !!PRIZE_SHEET[id];
+  }
+
+  function usesAvKit(checklist) {
+    return !!(checklist && AV_SHEET[checklist.id]);
+  }
+
   function printHtml(checklist, meta) {
-    var sections, note, foot, lines, when, sessionTitle, bits;
+    var sections, note, foot, lines, when, sessionTitle, bits, session, wantPrize, wantAv, sharedPlaced, avPlaced;
     if (!checklist) return '';
-    meta = meta || {};
+    session = meta == null ? null : meta;
+    wantPrize = usesSharedSupply(checklist);
+    wantAv = usesAvKit(checklist);
+    sharedPlaced = false;
+    avPlaced = false;
     sections = (checklist.sections || []).map(function (section) {
-      var items = (section.items || []).map(function (item) {
+      var items = (section.items || []).slice();
+      if (wantAv && !avPlaced && /supply|supplies|equipment|materials/i.test(section.title || '')) {
+        AV_PARTS.forEach(function (part) {
+          if (items.indexOf(part) < 0) items.push(part);
+        });
+        avPlaced = true;
+      }
+      if (wantPrize && !sharedPlaced && /supply|supplies|equipment|materials/i.test(section.title || '')) {
+        items.push(SHARED_SUPPLY);
+        sharedPlaced = true;
+      }
+      return '<section class="teach-pdf-section"><h2>' + escapeHtml(section.title) + '</h2><ul class="teach-items">' + items.map(function (item) {
         return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(item) + '</span></li>';
-      }).join('');
-      return '<section class="teach-pdf-section"><h2>' + escapeHtml(section.title) + '</h2><ul class="teach-items">' + items + '</ul></section>';
+      }).join('') + '</ul></section>';
     }).join('');
+    if (wantAv && !avPlaced) {
+      sections += '<section class="teach-pdf-section"><h2>Supplies and equipment</h2><ul class="teach-items">' + AV_PARTS.map(function (part) {
+        return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(part) + '</span></li>';
+      }).join('') + '</ul></section>';
+    }
+    if (wantPrize && !sharedPlaced) {
+      sections += '<section class="teach-pdf-section"><h2>Instructor</h2><ul class="teach-items"><li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(SHARED_SUPPLY) + '</span></li></ul></section>';
+    }
     note = checklist.note ? '<p class="teach-pdf-note">' + escapeHtml(checklist.note) + '</p>' : '';
     foot = checklist.foot ? '<p class="teach-pdf-foot">' + escapeHtml(checklist.foot) + '</p>' : '';
     lines = [];
-    when = [formatDate(meta.date), String(meta.time || '').trim()].filter(Boolean).join(' · ');
+    if (session) lines.push(instructorLine(session));
+    when = [formatDate(session && session.date), String(session && session.time || '').trim()].filter(Boolean).join(' · ');
     if (when) lines.push(when);
-    if (String(meta.place || '').trim()) lines.push(String(meta.place).trim());
-    if (String(meta.code || '').trim()) lines.push('Code ' + String(meta.code).trim());
-    sessionTitle = String(meta.sessionTitle || '').trim();
+    if (session && String(session.place || '').trim()) lines.push(String(session.place).trim());
+    if (session && String(session.code || '').trim()) lines.push('Code ' + String(session.code).trim());
+    sessionTitle = String(session && session.sessionTitle || '').trim();
     bits = '<div class="teach-pdf"><header class="teach-pdf-head"><div class="teach-pdf-brand">Mindful Beginnings</div><div class="teach-pdf-rule"></div><p class="teach-pdf-kicker">Teaching checklist</p><h1>' + escapeHtml(checklist.title) + '</h1>';
     if (sessionTitle && sessionTitle !== checklist.title) bits += '<p class="teach-pdf-session">' + escapeHtml(sessionTitle) + '</p>';
     bits += note;
@@ -1095,7 +1116,11 @@
     upcoming: upcoming,
     formatDate: formatDate,
     printHtml: printHtml,
-    visibleText: visibleText
+    visibleText: visibleText,
+    sharedSupply: SHARED_SUPPLY,
+    usesSharedSupply: usesSharedSupply,
+    avParts: AV_PARTS,
+    usesAvKit: usesAvKit
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

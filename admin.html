@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261105-teaching-checklists';
+window.MB_ADMIN_BUILD='20261105-teach-instructor';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -502,6 +502,11 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .teach-item{display:flex;align-items:flex-start;gap:8px;margin:0;padding:4px 0;font-size:13.5px;line-height:1.4;break-inside:avoid;page-break-inside:avoid}
 .teach-box{width:13px;height:13px;border:1.5px solid #1E3161;border-radius:2px;flex:none;margin-top:2px}
 .teach-pdf-foot{margin:16px 0 0;font-size:12px;line-height:1.45;color:#3d4d73}
+.dash-up-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
+.dash-up-instructor{font-size:14px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.dash-up-instructor select{font:inherit;color:var(--text);padding:4px 8px}
+.btn.sm.dash-on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dash-pack-note{background:#eef6fb;border:1px solid #c5ddf0;border-radius:8px;padding:8px 10px;margin:0 0 8px;font-size:15px;line-height:1.4}
 @media print{
   body.teach-printing{background:#fff;min-height:0 !important;height:auto !important}
   body.teach-printing #app,
@@ -544,7 +549,6 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
     <div class="nav-items">
       <div class="nav-item active" title="Dashboard" onclick="showScreen('dashboard',this)"><span class="nav-icon">◈</span> <span class="nav-label">Dashboard</span></div>
       <div class="nav-item" title="Sessions" onclick="showScreen('sessions',this)"><span class="nav-icon">◷</span> <span class="nav-label">Sessions</span></div>
-      <div class="nav-item" title="Packing list" onclick="showScreen('packing',this)"><span class="nav-icon">▤</span> <span class="nav-label">Packing list</span></div>
       <div class="nav-item" id="nav-requests" title="Class requests" onclick="showScreen('requests',this)"><span class="nav-icon">✉</span> <span class="nav-label">Class requests</span></div>
       <div class="nav-item" title="Registrations" onclick="showScreen('registrations',this)"><span class="nav-icon">◻</span> <span class="nav-label">Registrations</span></div>
       <div class="nav-item" title="Finances" onclick="showScreen('finances',this)"><span class="nav-icon">◆</span> <span class="nav-label">Finances</span></div>
@@ -1467,6 +1471,10 @@ async function showApp(){
   document.getElementById('app').style.display='block';
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   document.getElementById('dash-metrics').innerHTML='<div style="color:var(--muted);font-size:16px;padding:8px">Loading data...</div>';
+  if((location.hash||'')==='#packing'){
+    dashUpcomingScope='14';
+    dashUpcomingInstructor='all';
+  }
   await loadData();
   renderDashboard();
   if((location.hash||'')==='#grant'){
@@ -1565,7 +1573,7 @@ function rerenderActiveScreen(){
   else if(name==='jobs'&&typeof renderJobs==='function')renderJobs();
   else if(name==='materials'&&typeof renderMaterials==='function')renderMaterials();
   else if(name==='reports')renderReports();
-  else if(name==='packing')renderPackingList();
+  else if(name==='packing')renderDashboard();
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshData();});
 window.addEventListener('focus',refreshData);
@@ -6058,6 +6066,12 @@ function exportPartnersCSV(){
 
 function showScreen(name,el){
   if(name==='referrals')name='partners';
+  if(name==='packing'){
+    dashUpcomingScope='14';
+    dashUpcomingInstructor='all';
+    name='dashboard';
+    el=document.querySelector('.nav-item[title="Dashboard"]');
+  }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -6084,7 +6098,6 @@ function showScreen(name,el){
   if(name==='materials'&&typeof renderMaterials==='function')renderMaterials();
   if(name==='reports')renderReports();
   if(name==='discounts')renderDiscountCodes();
-  if(name==='packing')renderPackingList();
 }
 
 // ─── REPORTS ─────────────────────────────────────────────────
@@ -6905,24 +6918,123 @@ function preClassTaskList(s){
 function preClassChecklistDone(s){
   return preClassTaskList(s).every(function(t){return t.done;});
 }
-// Classes still needing checklist work. A class with every box checked drops
-// off. The reminder window is the next 14 days; once those are done, the next
-// upcoming incomplete classes take their place (up to 5).
-function dashChecklistSessions(list, today){
+// Every future session stays on the dashboard. Finished prep does not remove it.
+// Holds and cancelled sessions stay off this list. Next 2 weeks is a filter, not the list.
+let dashUpcomingScope='all';
+let dashUpcomingInstructor='all';
+function dashSessionDayDiff(s, today){
   const now=today instanceof Date?today:new Date();
   const today0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  function dayDiff(s){
-    const sd=new Date(s.date+'T12:00:00');
-    const sd0=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate());
-    return Math.round((sd0-today0)/86400000);
+  if(!s||!s.date)return null;
+  const sd=new Date(String(s.date)+'T12:00:00');
+  if(isNaN(sd.getTime()))return null;
+  const sd0=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate());
+  return Math.round((sd0-today0)/86400000);
+}
+function dashUpcomingSessions(list, today){
+  return (list||[]).filter(function(s){
+    if(!s||s.isHold||s.isCancelled||!s.date)return false;
+    const d=dashSessionDayDiff(s, today);
+    return d!=null&&d>=0;
+  }).sort(function(a,b){
+    if(a.date<b.date)return -1;
+    if(a.date>b.date)return 1;
+    return String(a.id).localeCompare(String(b.id));
+  });
+}
+function dashChecklistSessions(list, today){
+  return dashUpcomingSessions(list, today);
+}
+// One slot per person. Owner-taught is Lindsay. A second instructor is a second slot.
+// The same session is still one session when a view counts it.
+function dashTeachingSlots(s, instructorList, jobData){
+  const people=instructorList||(typeof instructors!=='undefined'?instructors:[]);
+  const jobs=jobData||(typeof jobDataCache!=='undefined'?jobDataCache:{});
+  const slots=[];
+  const seen={};
+  function add(key, name){
+    if(!key||seen[key])return;
+    seen[key]=true;
+    slots.push({key:key, name:name});
   }
-  const upcoming=(list||[]).filter(function(s){
-    return !!(s&&!s.isHold&&!s.isCancelled&&s.date&&dayDiff(s)>=0);
-  }).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
-  const incomplete=upcoming.filter(function(s){return !preClassChecklistDone(s);});
-  const due=incomplete.filter(function(s){return dayDiff(s)<=14;});
-  if(due.length)return due;
-  return incomplete.slice(0,5);
+if(s&&s.ownerTaught)add('owner','Lindsay Karr (owner)');
+  const jd=(s&&jobs&&jobs[s.id])||{};
+  const primary=!s||s.ownerTaught?null:(s.instructorId||jd.instructorId||null);
+  const second=s&&s.secondInstructorId||null;
+  function named(id){
+    const inst=(people||[]).find(function(x){return x&&x.id===id;});
+    const name=inst&&String(inst.name||'').trim();
+    return name||'Instructor not on the roster';
+  }
+  if(primary)add('id:'+primary, named(primary));
+  if(second&&second!==primary)add('id:'+second, named(second));
+  if(!slots.length)add('none','Needs an instructor');
+  return slots;
+}
+function dashVisibleUpcoming(list, today, scope, instructorKey, instructorList, jobData){
+  let rows=dashUpcomingSessions(list, today);
+  if(scope==='14')rows=rows.filter(function(s){return dashSessionDayDiff(s, today)<=14;});
+  const key=instructorKey&&instructorKey!=='all'?String(instructorKey):'';
+  if(key){
+    rows=rows.filter(function(s){
+      return dashTeachingSlots(s, instructorList, jobData).some(function(slot){return slot.key===key;});
+    });
+  }
+  const seen={};
+  return rows.filter(function(s){
+    if(seen[s.id])return false;
+    seen[s.id]=true;
+    return true;
+  });
+}
+function dashFortnightLoad(list, today, instructorList, jobData){
+  const soon=dashUpcomingSessions(list, today).filter(function(s){
+    return !s.isVirtual&&dashSessionDayDiff(s, today)<=14;
+  });
+  const groups={};
+  soon.forEach(function(s){
+    dashTeachingSlots(s, instructorList, jobData).forEach(function(slot){
+      if(!groups[slot.key])groups[slot.key]={key:slot.key, name:slot.name, ids:[]};
+      if(groups[slot.key].ids.indexOf(s.id)<0)groups[slot.key].ids.push(s.id);
+    });
+  });
+  return Object.keys(groups).map(function(k){return groups[k];}).filter(function(g){return g.ids.length>=2;})
+    .sort(function(a,b){return b.ids.length-a.ids.length||a.name.localeCompare(b.name);});
+}
+function dashInstructorChoices(list, today, instructorList, jobData){
+  const by={};
+  dashUpcomingSessions(list, today).forEach(function(s){
+    dashTeachingSlots(s, instructorList, jobData).forEach(function(slot){
+      if(!by[slot.key])by[slot.key]={key:slot.key, name:slot.name, ids:[]};
+      if(by[slot.key].ids.indexOf(s.id)<0)by[slot.key].ids.push(s.id);
+    });
+  });
+  return Object.keys(by).map(function(k){
+    const row=by[k];
+    row.count=row.ids.length;
+    return row;
+  }).sort(function(a,b){
+    if(a.key==='none')return 1;
+    if(b.key==='none')return -1;
+    if(a.key==='owner')return -1;
+    if(b.key==='owner')return 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+function setDashUpcomingScope(scope){
+  dashUpcomingScope=scope==='14'?'14':'all';
+  renderDashboard();
+}
+function setDashUpcomingInstructor(key){
+  dashUpcomingInstructor=String(key||'all')||'all';
+  renderDashboard();
+}
+function openInstructorFortnight(key){
+  dashUpcomingInstructor=String(key||'all')||'all';
+  dashUpcomingScope='14';
+  renderDashboard();
+  const el=document.getElementById('reminder-alerts');
+  if(el&&el.scrollIntoView)el.scrollIntoView({block:'start'});
 }
 // A vendor fair is an instructor staffing a Mindful Beginnings table.
 // Teaching jobs and regular classes are not vendor fairs.
@@ -7246,7 +7358,7 @@ function renderDashTeachingChecks(now){
       +'<button type="button" class="btn sm" onclick="printTeachingChecklist(\''+id+'\')">Print</button></div>';
   }).join(''):'<div style="font-size:15px;color:var(--muted);padding:6px 0 10px">No upcoming class in the next 60 days has a teaching checklist.</div>';
   el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Teaching checklists</div>'
-    +'<div style="font-size:15px;color:var(--muted);line-height:1.45;margin:-2px 0 8px">Print the checklist for an upcoming class, or choose a course for a blank sheet. The print dialog can save a PDF.</div>'
+    +'<div style="font-size:15px;color:var(--muted);line-height:1.45;margin:-2px 0 8px">Print the checklist for an upcoming in-person class, or choose a course for a blank sheet. The print dialog can save a PDF.</div>'
     +body
     +'<div class="pack-actions" style="margin-top:12px"><label class="pack-range-label" for="teach-course-pick">Course</label>'
     +'<select id="teach-course-pick"><option value="">Choose a course</option>'+options+'</select>'
@@ -7379,83 +7491,133 @@ function renderDashboard(){
       </div>`;
     }
   }
-  // ── Pre-class action reminders (next 14 days) ──
-  // Completed classes drop off. If the next 14 days are all done, the next
-  // upcoming classes that still need work take their place.
-  const reminderEl=document.getElementById('reminder-alerts');
-  if(reminderEl){
-    const today0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-      // A class whose boxes are all green is removed here too, so a finished
-    // checklist cannot stay on the dashboard if the picker ever lets one through.
-    const upcoming=dashChecklistSessions(sessions, now).filter(function(s){return !preClassChecklistDone(s);});
-    const checklistHead='<div style="font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px">🔔 Pre-class checklist: reminders due in the next 2 weeks</div>';
-    if(!upcoming.length){
-      reminderEl.innerHTML=`<div class="card" style="padding:12px 16px">${checklistHead}<div style="font-size:15px;color:var(--muted)">All caught up — no upcoming class still needs checklist work.</div></div>`;
-    }
-    else{
-      const rows=upcoming.map(s=>{
-        const sd=new Date(s.date+'T12:00:00');
-        const sd0=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate());
-        const dayDiff=Math.round((sd0-today0)/86400000);
-        const d=fmtSessDate(s,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-        const cnt=registrations.filter(r=>r.sessionId===s.id&&isLiveReg(r)).length;
-        const jd=jobDataCache[s.id]||{};
-        // Milestone badge + accent
-        let badge='',accent='var(--border)';
-        if(dayDiff===0){badge='<span style="background:#fdf0ee;color:#c0392b;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">Today</span>';accent='#c0392b';}
-        else if(dayDiff===1){badge='<span style="background:#fdf0ee;color:#c0392b;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">Tomorrow · 1 day out</span>';accent='#c0392b';}
-        else if(dayDiff>=6&&dayDiff<=8){badge='<span style="background:#fff7e6;color:#b86a00;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">1 week out</span>';accent='#d98c2b';}
-        else badge=`<span style="color:var(--muted);font-size:14px">in ${dayDiff} days</span>`;
-        // Checklist item builder: checkbox + label on the left, optional "Send" button on the right.
-        const item=(checked,onchange,label,btn)=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0">
-          <label style="display:inline-flex;align-items:center;gap:7px;font-size:15px;color:${checked?'var(--success)':'var(--text)'};cursor:pointer">
-            <input type="checkbox" ${checked?'checked':''} onchange="${onchange}" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">${checked?'✓ ':''}${label}
-          </label>${btn||''}</div>`;
-        const sendBtn=(onclick,emoji,color,bg,border)=>`<button onclick="${onclick}" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid ${border};background:${bg};color:${color};cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;flex-shrink:0">${emoji} Send</button>`;
-        const items=preClassTaskList(s).map(function(t){
-          if(t.key==='materialsSent'){
-            const matStamp=materialsCheckedStamp(jd);
-            return item(!!jd.materialsSent,`toggleMaterialsFromDash('${s.id}',this.checked)`,preClassMaterialsLabel(s)+(matStamp?` <span class="lockbox-dash-when">${escapeHtml(matStamp)}</span>`:''),'');
-          }
-          if(t.key==='instrReminderSent'){
-            return item(!!jd.instrReminderSent,`toggleReminderFlag('${s.id}','instrReminderSent',this.checked)`,preClassInstrReminderLabel(s),sendBtn(`openInstructorReminder('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee'));
-          }
-          if(t.key==='instrFinalRosterSent'){
-            return item(!!jd.instrFinalRosterSent,`toggleReminderFlag('${s.id}','instrFinalRosterSent',this.checked)`,preClassFinalRosterLabel(s),sendBtn(`openInstructorFinalRoster('${s.id}')`,'📩','#1a5c8a','#d6e9f5','#b8d8ee'));
-          }
-          return item(!!jd.classReminderSent,`toggleReminderFlag('${s.id}','classReminderSent',this.checked)`,preClassStudentReminderLabel(s),sendBtn(`openClassReminder('${s.id}')`,'📧','#2d7a5e','#eaf5f0','#b9ddc8'));
-        });
-        const instrLabel=checklistInstructorLabel(s);
-        const hostLabel=checklistHostLabel(s);
-        const countBit=preClassShowsStudentCount(s)?` · ${cnt} student${cnt!==1?'s':''}`:'';
-        const teachBtn=(window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s))
-          ?`<button type="button" onclick="printTeachingChecklist('${s.id}')" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid #1E3161;background:#1E3161;color:#fff;cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;flex-shrink:0">Print checklist</button>`
-          :'';
-        const roleLine=(label,value,empty)=>`<span style="min-width:0"><span style="color:var(--muted)">${label}:</span> <span style="${value===empty?'color:var(--muted);font-style:italic':'font-weight:600'}">${escapeHtml(value)}</span></span>`;
-        return`<div style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid ${accent}">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:2px;flex-wrap:wrap">
-            <div style="font-size:15px;min-width:0">
-              <span style="font-weight:600">${s.course}</span>
-              <span style="color:var(--muted);margin-left:6px">${d}${countBit}</span>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap">${teachBtn}${badge}</div>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin:0 0 6px;font-size:15px;line-height:1.45">
-            ${roleLine('Instructor',instrLabel,'No instructor')}
-            ${roleLine(sessionIsOrganization(s)?'Organization':'Host',hostLabel,sessionIsOrganization(s)?'No organization':'No host')}
-            ${roleLine('Where',adminPlaceText(s)||'No location','No location')}
-          </div>
-          ${items.join('')}
-        </div>`;
-      }).join('');
-      reminderEl.innerHTML=`<div class="card" style="padding:12px 16px">
-        ${checklistHead}
-        ${rows}
-      </div>`;
-    }
-  }
+  renderDashUpcoming(now);
 }
 
+// ── Pre-class action reminders (all upcoming sessions, next 2 weeks is a filter) ──
+// Finished prep stays on the card. A session drops off only after its date has passed.
+function dashPacksWithAnother(s, list, today, instructorList, jobData){
+  if(!s||s.isVirtual)return false;
+  const mine=dashTeachingSlots(s, instructorList, jobData);
+  if(!mine.length)return false;
+  const day=dashSessionDayDiff(s, today);
+  return dashUpcomingSessions(list, today).some(function(other){
+    if(!other||other.id===s.id||other.isVirtual)return false;
+    const gap=Math.abs(dashSessionDayDiff(other, today)-day);
+    if(gap>8)return false;
+    const theirs=dashTeachingSlots(other, instructorList, jobData);
+    return mine.some(function(slot){return theirs.some(function(t){return t.key===slot.key;});});
+  });
+}
+function renderDashUpcoming(now){
+  const el=document.getElementById('reminder-alerts');
+  if(!el)return;
+  const today=now instanceof Date?now:new Date();
+  const people=typeof instructors!=='undefined'?instructors:[];
+  const jobs=typeof jobDataCache!=='undefined'?jobDataCache:{};
+  const list=typeof sessions!=='undefined'?sessions:[];
+  const scope=dashUpcomingScope==='14'?'14':'all';
+  const who=dashUpcomingInstructor||'all';
+  const allRows=dashUpcomingSessions(list, today);
+  const rows=dashVisibleUpcoming(list, today, scope, who, people, jobs);
+  const choices=dashInstructorChoices(list, today, people, jobs);
+  const loads=dashFortnightLoad(list, today, people, jobs);
+  const fortnightCount=allRows.filter(function(s){return dashSessionDayDiff(s, today)<=14;}).length;
+  const selected=choices.find(function(choice){return choice.key===who;});
+  const scopeButtons='<div class="dash-up-tools">'
+    +'<button type="button" class="btn sm'+(scope==='all'?' dash-on':'')+'" aria-pressed="'+(scope==='all'?'true':'false')+'" onclick="setDashUpcomingScope(\'all\')">All upcoming</button>'
+    +'<button type="button" class="btn sm'+(scope==='14'?' dash-on':'')+'" aria-pressed="'+(scope==='14'?'true':'false')+'" onclick="setDashUpcomingScope(\'14\')">Next 2 weeks</button>'
+    +'<label class="dash-up-instructor">Instructor <select aria-label="Instructor" onchange="setDashUpcomingInstructor(this.value)">'
+    +'<option value="all"'+(who==='all'?' selected':'')+'>All instructors</option>'
+    +choices.map(function(choice){
+      return '<option value="'+escapeHtml(choice.key)+'"'+(who===choice.key?' selected':'')+'>'+escapeHtml(choice.name)+' ('+choice.count+')</option>';
+    }).join('')
+    +'</select></label>'
+    +'<button type="button" class="btn sm" onclick="downloadPackingPdf()">Print packing list</button>'
+    +'</div>';
+  const loadNotes=loads.map(function(group){
+    const n=group.ids.length;
+    const label=n+' in-person session'+(n===1?'':'s')+' in the next 2 weeks';
+    if(who===group.key&&scope==='14')return '<p class="dash-pack-note">'+escapeHtml(group.name)+' has '+label+'.</p>';
+    return '<p class="dash-pack-note">'+escapeHtml(group.name)+' has '+label+'. <button type="button" class="btn sm" onclick="openInstructorFortnight(\''+String(group.key).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Show these</button></p>';
+  }).join('');
+  const whoName=selected?selected.name:'this instructor';
+  const inViewFortnight=rows.filter(function(s){return dashSessionDayDiff(s, today)<=14;}).length;
+  const countLine=scope==='14'
+    ? (rows.length+' session'+(rows.length===1?'':'s')+' in the next 2 weeks'+(who==='all'?'':(' for '+whoName))+'.')
+    : (who==='all'
+      ? (allRows.length+' upcoming session'+(allRows.length===1?'':'s')+'. '+fortnightCount+' in the next 2 weeks.')
+      : (rows.length+' upcoming session'+(rows.length===1?'':'s')+' for '+whoName+'. '+inViewFortnight+' in the next 2 weeks.'));
+  const cards=rows.map(function(s){
+    const dayDiff=dashSessionDayDiff(s, today);
+    const d=fmtSessDate(s,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    const cnt=registrations.filter(function(r){return r.sessionId===s.id&&isLiveReg(r);}).length;
+    const jd=jobDataCache[s.id]||{};
+    let badge='',accent='var(--border)';
+    if(dayDiff===0){badge='<span style="background:#fdf0ee;color:#c0392b;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">Today</span>';accent='#c0392b';}
+    else if(dayDiff===1){badge='<span style="background:#fdf0ee;color:#c0392b;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">Tomorrow · 1 day out</span>';accent='#c0392b';}
+    else if(dayDiff>=6&&dayDiff<=8){badge='<span style="background:#fff7e6;color:#b86a00;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">1 week out</span>';accent='#d98c2b';}
+    else if(dayDiff>=9&&dayDiff<=14){badge='<span style="background:#d6e9f5;color:#1a5c8a;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">2 weeks out</span>';accent='#4a8fc4';}
+    else badge='<span style="color:var(--muted);font-size:14px">in '+dayDiff+' days</span>';
+    const item=(checked,onchange,label,btn)=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0">'
+      +'<label style="display:inline-flex;align-items:center;gap:7px;font-size:15px;color:'+(checked?'var(--success)':'var(--text)')+';cursor:pointer">'
+      +'<input type="checkbox" '+(checked?'checked':'')+' onchange="'+onchange+'" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer">'+(checked?'✓ ':'')+label
+      +'</label>'+(btn||'')+'</div>';
+    const sendBtn=(onclick,emoji,color,bg,border)=>'<button onclick="'+onclick+'" style="padding:3px 9px;font-size:14px;font-weight:500;border-radius:5px;border:1px solid '+border+';background:'+bg+';color:'+color+';cursor:pointer;white-space:nowrap;font-family:\'Montserrat\',sans-serif;flex-shrink:0">'+emoji+' Send</button>';
+    const items=preClassTaskList(s).map(function(t){
+      if(t.key==='materialsSent'){
+        const matStamp=materialsCheckedStamp(jd);
+        return item(!!jd.materialsSent,'toggleMaterialsFromDash(\''+s.id+'\',this.checked)',preClassMaterialsLabel(s)+(matStamp?' <span class="lockbox-dash-when">'+escapeHtml(matStamp)+'</span>':''),'');
+      }
+      if(t.key==='instrReminderSent'){
+        return item(!!jd.instrReminderSent,'toggleReminderFlag(\''+s.id+'\',\'instrReminderSent\',this.checked)',preClassInstrReminderLabel(s),sendBtn('openInstructorReminder(\''+s.id+'\')','📩','#1a5c8a','#d6e9f5','#b8d8ee'));
+      }
+      if(t.key==='instrFinalRosterSent'){
+        return item(!!jd.instrFinalRosterSent,'toggleReminderFlag(\''+s.id+'\',\'instrFinalRosterSent\',this.checked)',preClassFinalRosterLabel(s),sendBtn('openInstructorFinalRoster(\''+s.id+'\')','📩','#1a5c8a','#d6e9f5','#b8d8ee'));
+      }
+      return item(!!jd.classReminderSent,'toggleReminderFlag(\''+s.id+'\',\'classReminderSent\',this.checked)',preClassStudentReminderLabel(s),sendBtn('openClassReminder(\''+s.id+'\')','📧','#2d7a5e','#eaf5f0','#b9ddc8'));
+    });
+    const instrLabel=checklistInstructorLabel(s);
+    const hostLabel=checklistHostLabel(s);
+    const countBit=preClassShowsStudentCount(s)?(' · '+cnt+' student'+(cnt!==1?'s':'')):'';
+    const roleLine=(label,value,empty)=>'<span style="min-width:0"><span style="color:var(--muted)">'+label+':</span> <span style="'+(value===empty?'color:var(--muted);font-style:italic':'font-weight:600')+'">'+escapeHtml(value)+'</span></span>';
+    let kit='';
+    if(s.isVirtual){
+      kit='<div class="pack-bring">On Zoom. No kit to pack.</div>';
+    }else if(typeof packingBringLine==='function'){
+      const registered=typeof packingRegisteredCount==='function'?packingRegisteredCount(s):cnt;
+      const packFor=typeof packingKitCount==='function'?packingKitCount(s, registered):registered;
+      kit=packingKitHtml({course:s.course, bring:packingBringLine(s, packFor), manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)});
+    }
+    const together=dashPacksWithAnother(s, list, today, people, jobs)?'<div class="pack-flag">Pack with another class within 8 days</div>':'';
+    const prep=preClassChecklistDone(s)?'<div style="font-size:14px;color:var(--success);margin-top:4px">Prep complete</div>':'';
+    return '<div style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid '+accent+'">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">'
+      +'<div style="font-size:15px;min-width:0"><span style="font-weight:600">'+escapeHtml(s.course)+'</span>'
+      +'<span style="color:var(--muted);margin-left:6px">'+d+countBit+'</span></div>'
+      +'<div style="flex-shrink:0">'+badge+'</div></div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin:0 0 6px;font-size:15px;line-height:1.45">'
+      +roleLine('Instructor',instrLabel,'No instructor')
+      +roleLine(sessionIsOrganization(s)?'Organization':'Host',hostLabel,sessionIsOrganization(s)?'No organization':'No host')
+      +roleLine('Where',adminPlaceText(s)||'No location','No location')
+      +'</div>'
+      +kit+together
+      +items.join('')
+      +prep
+      +((window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s))
+        ?`<div style="margin-top:8px"><button type="button" class="btn sm" onclick="printTeachingChecklist('${s.id}')">Print checklist</button></div>`
+        :'')
+      +'</div>';
+  }).join('');
+  const empty=rows.length?'':('<div style="font-size:15px;color:var(--muted)">'+(who==='all'?'No upcoming sessions.':'No upcoming sessions for this instructor.')+'</div>');
+  el.innerHTML='<div class="card" style="padding:12px 16px">'
+    +'<div style="font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px">Upcoming sessions</div>'
+    +scopeButtons
+    +'<div style="font-size:15px;color:var(--muted);margin:0 0 8px">'+escapeHtml(countLine)+'</div>'
+    +loadNotes
+    +(cards||empty)
+    +'</div>';
+}
 
 // ─── SESSIONS ────────────────────────────────────────────────
 function toggleSessionSort(){
@@ -7946,8 +8108,8 @@ function openSessionMenu(ev,sessId){
   const items=[];
   // Skim location, time, who is teaching, and both note fields without opening Edit.
   items.push({label:'ℹ️ About',act:`openSessionAbout('${sessId}')`});
-  if(window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s)){
-    items.push({label:'🖨️ Print teaching checklist',act:`printTeachingChecklist('${sessId}')`});
+if(window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s)){
+    items.push({label:'Print teaching checklist',act:`printTeachingChecklist('${sessId}')`});
   }
   // Troop and organization jobs: a draft the host forwards to families.
   // Holds and custom jobs included. Home classes with no bill-to name are not.
@@ -12080,7 +12242,11 @@ function packingBringLine(s, registered){
 function packingKitHtml(r){
   const bring=r&&r.bring?'<div class="pack-bring">'+escapeHtml(r.bring)+'</div>':'';
   const kit=r&&r.manikins?'<div class="pack-kit">Batteries + screwdriver</div>':'';
-  return bring+kit;
+  const course=r&&r.course;
+  const api=(typeof MBTeachingChecklists!=='undefined')?MBTeachingChecklists:null;
+  const shared=(course&&api&&typeof api.usesSharedSupply==='function'&&api.usesSharedSupply(course))
+    ?'<div class="pack-bring">'+escapeHtml(api.sharedSupply)+'</div>':'';
+  return bring+kit+shared;
 }
 function packingBuildModel(sessionList, instructorList, jobData, today, days, regList){
   const span=packingRangeDaysValue(days);
@@ -12416,37 +12582,72 @@ function materialsChecklistRows(list, today){
     };
   });
 }
-function renderDashMatChecklist(now){
+function renderDashMatChecklist(){
   const el=document.getElementById('dash-mat-check');
-  if(!el)return;
-  const rows=materialsChecklistRows(typeof sessions==='undefined'?[]:sessions, now instanceof Date?now:new Date());
-  if(!rows.length){el.innerHTML='';return;}
-  const body=rows.map(function(r){
-    const when=packingDayParts(r.date).full;
-    const kit=packingKitHtml(r);
-    const id=String(r.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);cursor:pointer">'
-      +'<input type="checkbox" aria-label="Materials in lock box" onchange="toggleMaterialsFromDash(\''+id+'\',this.checked)" style="margin-top:4px;width:16px;height:16px;accent-color:var(--success);cursor:pointer">'
-      +'<span style="min-width:0;font-size:15px;line-height:1.45"><span style="font-weight:650">'+escapeHtml(r.course)+'</span>'
-      +' <span style="color:var(--muted)">'+escapeHtml(when)+'</span>'
-      +'<span style="display:block;color:var(--muted)">'+escapeHtml(r.instructor)+'</span>'
-      +kit+'</span></label>';
-  }).join('');
-  el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Materials checklist</div>'
-    +'<div style="font-size:15px;color:var(--muted);line-height:1.45;margin:-2px 0 4px">In-person classes in the next 2 weeks. The box is the same as Materials in lock box.</div>'
-    +body+'</div>';
+  if(el)el.innerHTML='';
 }
 // Same-page print, not a new window: iPhone Safari blocks pop-up PDFs, and the
 // print dialog can save a PDF on both iPhone and a computer. The pack-printing
 // class is what swaps in the clean sheet; other tabs print as they did before.
+function dashPackPrintModel(now){
+  const when=now instanceof Date?now:new Date();
+  const today=fmtYMD(when);
+  const people=typeof instructors!=='undefined'?instructors:[];
+  const jobs=typeof jobDataCache!=='undefined'?jobDataCache:{};
+  const regs=typeof registrations!=='undefined'?registrations:[];
+  const source=dashVisibleUpcoming(typeof sessions!=='undefined'?sessions:[], when, dashUpcomingScope, dashUpcomingInstructor, people, jobs).filter(function(s){return s&&!s.isVirtual;});
+  let maxDay=dashUpcomingScope==='14'?14:1;
+  const mapped=source.map(function(s){
+    const diff=dashSessionDayDiff(s, when);
+    if(diff!=null&&diff>maxDay)maxDay=diff;
+    const group=packingInstructorGroup(s, people, jobs);
+    const jd=(jobs&&s.id&&jobs[s.id])||{};
+    const registered=packingRegisteredCount(s, regs);
+    return {
+      id:s.id,
+      date:s.date,
+      time:String(s.time||'').trim(),
+      course:String(s.course||'').trim()||'Class',
+      place:packingPlace(s),
+      groupId:group.id,
+      groupName:group.name,
+      materialsSent:!!jd.materialsSent,
+      materialsSentAt:jd.materialsSentAt||null,
+      materialsOutAt:jd.materialsOutAt||null,
+      registered:registered,
+      expected:participantsExpectedCount(s),
+      troopPhrase:packingTroopPhrase(s),
+      bring:packingBringLine(s, packingKitCount(s, registered)),
+      manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)
+    };
+  });
+  const grouped={};
+  mapped.forEach(function(r){
+    if(!grouped[r.groupId])grouped[r.groupId]={id:r.groupId, name:r.groupName, rows:[]};
+    grouped[r.groupId].rows.push(r);
+  });
+  const groups=Object.keys(grouped).map(function(k){
+    const g=grouped[k];
+    g.rows=packingMarkTogether(g.rows);
+    return g;
+  });
+  const end=mapped.length?mapped[mapped.length-1].date:today;
+  return {today:today, days:dashUpcomingScope==='14'?14:maxDay, end:end, rows:mapped, groups:groups, busy:packingBusyDays(mapped)};
+}
 function teachingChecklistMeta(s){
   if(!s)return null;
+  let instructor='';
+  if(typeof sessionInstructorNames==='function'){
+    instructor=String(sessionInstructorNames(s,'')||'').trim();
+    if(instructor==='TBD')instructor='';
+  }
   return {
     date:s.date||'',
     time:s.time||'',
     place:s.isVirtual?'Virtual':(adminPlaceText(s)||''),
     code:s.code||'',
-    sessionTitle:s.course||''
+    sessionTitle:s.course||'',
+    instructor:instructor
   };
 }
 function openTeachingChecklistPrint(sheet, meta){
@@ -12480,6 +12681,10 @@ function printTeachingChecklist(sessId){
   const s=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x.id===sessId;});
   const api=window.MBTeachingChecklists;
   if(!s||!api)return;
+  if(s.isVirtual){
+    showToast('Virtual classes do not use a teaching checklist.');
+    return;
+  }
   const sheet=api.forSession(s);
   if(!sheet){
     showToast('This course does not have a teaching checklist yet.');
@@ -12500,11 +12705,14 @@ function printSelectedTeachingChecklist(){
     return;
   }
   printTeachingChecklistById(sel.value);
+
 }
 function downloadPackingPdf(){
-  renderPackingList();
+  const sheet=document.getElementById('pack-print-sheet');
+  if(sheet)sheet.innerHTML=packingPrintHtml(dashPackPrintModel(new Date()), new Date());
   const prevTitle=document.title;
   document.title='Mindful Beginnings packing list';
+  document.body.classList.remove('teach-printing');
   document.body.classList.add('pack-printing');
   let cleared=false;
   function clearPackPrint(){
