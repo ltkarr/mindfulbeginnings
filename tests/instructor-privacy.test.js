@@ -236,7 +236,7 @@ test('admin still stores private notes and does not copy them into instructor di
 test('the migration projection separates client financials from instructor pay', () => {
   const body = sqlBody(sql);
   assert.match(body, /add column if not exists instructor_directions text/i);
-  assert.doesNotMatch(body, /update\s+public\.sessions/i);
+  assert.doesNotMatch(body, /update\s+public\.sessions\s+set\s+(notes|admin_private_notes|instructor_directions|instructor_info|price_override|org_portion)/i);
   assert.doesNotMatch(body, /grant[\s\S]{0,200}job_data/i);
   assert.doesNotMatch(body, /anon_read_job_board/i);
   assert.match(body, /revoke select \(instructor_directions\)[\s\S]*from anon, public/i);
@@ -416,6 +416,64 @@ test('only the owner auth identity can pass the admin gate', () => {
   assert.doesNotMatch(roster, /from public\.job_data/);
   assert.match(priv, /is_cancelled/);
   assert.doesNotMatch(priv, /from public\.job_data/);
+});
+
+test('primary release drops only that instructor; a second instructor cannot release', () => {
+  const DOOR = 'SYN-DOOR-9f3c';
+  const base = {
+    session: {
+      instructorId: 'inst-a',
+      secondInstructorId: 'inst-b',
+      instructorDirections: DOOR,
+      hostAddress: '100 Example Ave',
+      isCancelled: false
+    },
+    job: { instructorId: 'inst-a', paidFee: 150, payStatus: 'paid', referralBonus: 0 }
+  };
+  const primary = facing.releaseAssignment(base, 'inst-a');
+  assert.equal(primary.ok, true);
+  assert.equal(primary.session.instructorId, null);
+  assert.equal(primary.session.secondInstructorId, 'inst-b');
+  assert.equal(primary.job.instructorId, null);
+  assert.equal(primary.job.paidFee, 150);
+  assert.equal(primary.job.payStatus, 'paid');
+  assert.equal(facing.currentClaim(primary.session, 'inst-a'), false);
+  assert.equal(facing.directionsText(facing.restrictToViewer(Object.assign({}, primary.session), 'inst-a')), '');
+  assert.equal(facing.directionsText(facing.restrictToViewer(Object.assign({}, primary.session), 'inst-b')), DOOR);
+
+  const second = facing.releaseAssignment(base, 'inst-b');
+  assert.equal(second.ok, false);
+  assert.equal(second.session.instructorId, 'inst-a');
+  assert.equal(second.session.secondInstructorId, 'inst-b');
+  assert.equal(second.job.instructorId, 'inst-a');
+  assert.equal(second.job.paidFee, 150);
+  assert.equal(facing.directionsText(facing.restrictToViewer(Object.assign({}, second.session), 'inst-a')), DOOR);
+
+  const stale = facing.releaseAssignment({
+    session: { instructorId: 'inst-c', secondInstructorId: 'inst-b', instructorDirections: DOOR },
+    job: { instructorId: 'inst-a', paidFee: 80, payStatus: 'paid', referralBonus: 10 }
+  }, 'inst-a');
+  assert.equal(stale.ok, true);
+  assert.equal(stale.session.instructorId, 'inst-c');
+  assert.equal(stale.session.secondInstructorId, 'inst-b');
+  assert.equal(stale.job.instructorId, null);
+  assert.equal(stale.job.paidFee, 80);
+  assert.equal(stale.job.referralBonus, 10);
+  assert.equal(facing.directionsText(facing.restrictToViewer(Object.assign({}, stale.session), 'inst-c')), DOOR);
+  assert.equal(facing.directionsText(facing.restrictToViewer(Object.assign({}, stale.session), 'inst-a')), '');
+
+  const cancelSql = selectList('instructor_cancel_job');
+  assert.match(cancelSql, /v_second = v_id/);
+  assert.match(cancelSql, /return false/);
+  assert.match(cancelSql, /and instructor_id::text = v_id/);
+  assert.doesNotMatch(cancelSql, /paid_fee\s*=/);
+  assert.doesNotMatch(cancelSql, /pay_status\s*=/);
+  assert.doesNotMatch(cancelSql, /referral_bonus\s*=/);
+  const portal = instructor.slice(instructor.indexOf('async function cancelJob'), instructor.indexOf('function ensurePrivate'));
+  assert.match(portal, /Ask her to take you off this class/);
+  const successAt = portal.indexOf('Cancellation noted');
+  const guardAt = portal.indexOf('if(error||!ok)');
+  assert.ok(guardAt >= 0 && successAt > guardAt);
 });
 
 test('rollback script is guarded and the forward script is one transaction', () => {

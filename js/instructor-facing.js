@@ -98,10 +98,36 @@
     return '';
   }
 
+  // Mirrors instructor_cancel_job. A second instructor assigned only in
+  // second_instructor_id cannot release; the office removes that assignment.
+  // A primary release clears only that caller's own ids and leaves pay fields.
+  function releaseAssignment(state, callerId) {
+    var session = Object.assign({}, (state && state.session) || {});
+    var job = Object.assign({}, (state && state.job) || {});
+    var paidFee = job.paidFee;
+    var payStatus = job.payStatus;
+    var referralBonus = job.referralBonus;
+    var primary = session.instructorId || null;
+    var second = session.secondInstructorId || null;
+    var jobInstructor = job.instructorId || null;
+    var secondOnly = second === callerId && primary !== callerId && jobInstructor !== callerId;
+    if (!callerId || secondOnly || (jobInstructor !== callerId && primary !== callerId)) {
+      return { ok: false, session: session, job: job };
+    }
+    if (jobInstructor === callerId) job.instructorId = null;
+    if (primary === callerId) session.instructorId = null;
+    if (second === callerId) session.secondInstructorId = null;
+    job.paidFee = paidFee;
+    job.payStatus = payStatus;
+    job.referralBonus = referralBonus;
+    return { ok: true, session: session, job: job };
+  }
+
   var api = {
     assignedTo: assignedTo,
     currentClaim: currentClaim,
     portalAdmin: portalAdmin,
+    releaseAssignment: releaseAssignment,
     directionsText: directionsText,
     restrictToViewer: restrictToViewer,
     partnerDisplayName: partnerDisplayName

@@ -597,6 +597,88 @@ $$;
 revoke all on function public.instructor_get_roster(text, text) from public;
 grant execute on function public.instructor_get_roster(text, text) to anon, authenticated;
 
+-- Release is the accepted-job path only. A second instructor is an office
+-- assignment and this function returns false for that caller without
+-- writing. A primary release nulls only that caller's instructor_id on the
+-- job row and on the session. It does not clear the other instructor, and
+-- it does not change paid_fee, pay_status, or referral_bonus.
+create or replace function public.instructor_cancel_job(p_pin text, p_session_id text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id text;
+  v_active boolean;
+  v_job_instructor text;
+  v_primary text;
+  v_second text;
+  v_released boolean := false;
+begin
+  select i.id::text, coalesce(i.is_active, true)
+    into v_id, v_active
+  from public.instructors i
+  where i.pin = p_pin
+  limit 1;
+  if v_id is null or v_active is distinct from true then
+    return false;
+  end if;
+
+  select s.instructor_id::text, s.second_instructor_id::text
+    into v_primary, v_second
+  from public.sessions s
+  where s.id::text = p_session_id;
+  if not found then
+    return false;
+  end if;
+
+  select j.instructor_id::text
+    into v_job_instructor
+  from public.job_data j
+  where j.session_id::text = p_session_id;
+
+  if v_second = v_id
+     and v_primary is distinct from v_id
+     and v_job_instructor is distinct from v_id then
+    return false;
+  end if;
+
+  if v_job_instructor is distinct from v_id and v_primary is distinct from v_id then
+    return false;
+  end if;
+
+  if v_job_instructor = v_id then
+    update public.job_data
+       set instructor_id = null
+     where session_id::text = p_session_id
+       and instructor_id::text = v_id;
+    v_released := true;
+  end if;
+
+  if v_primary = v_id then
+    update public.sessions
+       set instructor_id = null
+     where id::text = p_session_id
+       and instructor_id::text = v_id;
+    v_released := true;
+  end if;
+
+  if v_second = v_id then
+    update public.sessions
+       set second_instructor_id = null
+     where id::text = p_session_id
+       and second_instructor_id::text = v_id;
+    v_released := true;
+  end if;
+
+  return v_released;
+end;
+$$;
+
+revoke all on function public.instructor_cancel_job(text, text) from public;
+grant execute on function public.instructor_cancel_job(text, text) to anon, authenticated;
+
 notify pgrst, 'reload schema';
 
 commit;

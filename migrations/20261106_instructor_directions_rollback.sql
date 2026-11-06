@@ -231,4 +231,31 @@ begin
 end;
 $$;
 
+create or replace function public.instructor_cancel_job(p_pin text, p_session_id text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_instructor_id text;
+begin
+  select id into v_instructor_id from public.instructors where pin = p_pin limit 1;
+  if v_instructor_id is null then
+    return false;
+  end if;
+  update public.job_data
+     set instructor_id = null
+   where session_id = p_session_id
+     and instructor_id = v_instructor_id;
+  if not found then
+    return false;
+  end if;
+  update public.sessions
+     set instructor_id = null
+   where id = p_session_id;
+  return true;
+end;
+$$;
+
 commit;

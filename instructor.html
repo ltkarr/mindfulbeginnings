@@ -2171,6 +2171,14 @@ async function acceptJob(sessId){
 }
 
 async function cancelJob(sessId){
+  const held=allSessions.find(x=>x.id===sessId);
+  const heldJob=jobDataCache[sessId]||{};
+  // The second instructor is assigned in the office. Release only removes the
+  // person who accepted. Do not tell a second instructor the release worked.
+  if(held&&me&&held.secondInstructorId===me.id&&held.instructorId!==me.id&&heldJob.instructorId!==me.id){
+    showToast('Lindsay assigns the second instructor. Ask her to take you off this class.');
+    return;
+  }
   if(!confirm('Cancel your acceptance of this job?'))return;
   // Capture session details BEFORE we clear local state, so the email has the right info
   const sessSnapshot=allSessions.find(x=>x.id===sessId);
@@ -2178,8 +2186,12 @@ async function cancelJob(sessId){
     const{data:ok,error}=await sb.rpc('instructor_cancel_job',{p_pin:me.pin,p_session_id:sessId});
     if(error||!ok){showToast('Could not cancel. Please try again.');return;}
   }catch(e){console.error(e);showToast('Connection error.');return;}
-  if(jobDataCache[sessId])jobDataCache[sessId].instructorId=null;
-  const s=allSessions.find(x=>x.id===sessId);if(s)s.instructorId=null;
+  if(jobDataCache[sessId]&&jobDataCache[sessId].instructorId===me.id)jobDataCache[sessId].instructorId=null;
+  const s=allSessions.find(x=>x.id===sessId);
+  if(s){
+    if(s.instructorId===me.id)s.instructorId=null;
+    if(s.secondInstructorId===me.id)s.secondInstructorId=null;
+  }
   if(sessSnapshot)sendJobCancelledNotification(sessSnapshot);
   refreshJobViews();
   showToast('Cancellation noted. Lindsay has been emailed. The job is open to every eligible instructor.');
