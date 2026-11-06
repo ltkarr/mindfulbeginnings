@@ -67,7 +67,7 @@ test('Babysitter Training, Baby Ready, workplace CPR, and Safe@Home keep the gui
   assert.equal(cfg.getSessionBasePrice('Adult & Pediatric First Aid/CPR/AED Certification', '2026-12-01', now), 125);
   assert.equal(cfg.MAX_STUDENTS['My First Babysitters Club'], 16);
   assert.equal(cfg.MAX_STUDENTS['My First Babysitters Club — Single Session'], 16);
-  assert.equal(cfg.COURSES['My First Babysitters Club'].audience, 'Grades 4 to 5 · 8-week series');
+  assert.equal(cfg.COURSES['My First Babysitters Club'].audience, 'Grades 4 to 6 · 8-week series');
   assert.equal(cfg.COURSES['My First Babysitters Club — Single Session'].audience, 'Grades 4 to 5 · 2.5-hour workshop');
   assert.equal(cfg.COURSES['Steady and Ready'].hours, 1);
   assert.equal(cfg.getSessionBasePrice('Babysitting Grandkids Workshop', '2026-12-01', now), 75);
@@ -91,9 +91,12 @@ test('the public catalog shows both Safe@Home prices and drops couple pricing', 
   assert.match(catalog, /Also offered as online plus classroom/);
   // 2026-10-30: the clubs page deliberately omits series length, group size,
   // and minimums (Lindsay's direction) so schools ask for what they want.
+  // 2026-11-06: clubs are now grades K to 6 and the page states the tailoring
+  // (before or after school, day-off workshops, PTA meetings, any number of
+  // weeks) instead of any fixed series length.
   assert.doesNotMatch(clubs, /8-week series/);
   assert.doesNotMatch(clubs, /8-10 weeks/);
-  assert.match(clubs, /Grades 4 to 5/);
+  assert.match(clubs, /Grades 4 to 6/);
   assert.doesNotMatch(clubs, /8-16 kids/);
   assert.doesNotMatch(clubs, /minimum 6/);
 });

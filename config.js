@@ -159,7 +159,7 @@ const COURSES={
   // short courses. (Corrected from $10, Aug 30 2026, to match admin.html.)
   // Company class profit does not subtract matCost. Handbook orders are overhead
   // expenses in admin. The rate is only the partner-share allowance there.
-  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:16,minStudents:6,audience:'Grades 4 to 5 · 8-week series'},
+  'My First Babysitters Club':{price:40,price2027:50,priceNew:165,priceNew2027:165,matCost:30,hours:1,maxStudents:16,minStudents:6,audience:'Grades 4 to 6 · 8-week series'},
   // My First Babysitters Club — Single Session: the 2.5-hour workshop, $165
   // for sessions created on/after Oct 19 2026. priceNew stays $95 so sessions
   // created before that cutover do not reprice. Separate from the 8-week series
@@ -245,14 +245,14 @@ const COURSES={
   // week. 8 weeks is standard and can be customized for schools. Cap 16,
   // minimum 6. My First Babysitters Club is the same series price (above).
   'Little Medics':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 5 to 8 · 8-week series'},
-  'Pet Sitter\'s Club':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 8 to 11 · 8-week series'},
-  'Snack Squad':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 7 to 11 · 8-week series'},
-  'Kid Boss Club':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 9 to 11 · 8-week series'},
-  'Middle School, Here I Come':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 10 to 11 · 8-week series'},
+  'Pet Sitter\'s Club':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 8 to 12 · 8-week series'},
+  'Snack Squad':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 7 to 12 · 8-week series'},
+  'Kid Boss Club':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 9 to 12 · 8-week series'},
+  'Middle School, Here I Come':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 10 to 12 · 8-week series'},
   'Big Sibling Club':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 5 to 9 · 8-week series'},
-  'My First Phone':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 9 to 11 · 8-week series'},
-  'Walk and Roll Ready':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 7 to 11 · 8-week series'},
-  'Calm and Ready':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 5 to 11 · 8-week series'}
+  'My First Phone':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 9 to 12 · 8-week series'},
+  'Walk and Roll Ready':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 7 to 12 · 8-week series'},
+  'Calm and Ready':{price:200,price2027:200,priceNew:200,priceNew2027:200,matCost:10,hours:1,maxStudents:16,minStudents:6,audience:'Ages 5 to 12 · 8-week series'}
 };
 
 // Previous stored names. Existing sessions keep these strings. Lookups use
