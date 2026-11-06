@@ -192,18 +192,18 @@ test('Yasmine Kamel is listed with the Instructors, between Hodor and Plaza', ()
   assert.equal(card.dataRole, 'Instructor');
   assert.equal(card.role, '');
   assert.equal(card.credentials, 'M.Ed.');
-  assert.equal(card.photo, '/images/team/yasmine-kamel-initials.png');
+  assert.equal(card.photo, '/images/team/yasmine-kamel.jpg');
   assert.equal(card.button, true);
   assert.deepEqual(card.bio, [bio]);
   const person = people.find((item) => item.name === 'Yasmine Kamel');
   assert.equal(person.section, 'Instructors');
   assert.equal(person.credentials, 'M.Ed.');
   assert.equal(person.role, '');
-  assert.equal(person.photo, '/images/team/yasmine-kamel-initials.png');
+  assert.equal(person.photo, '/images/team/yasmine-kamel.jpg');
   assert.deepEqual(person.bio, [bio]);
   const block = page.slice(page.indexOf('data-name="Yasmine Kamel"'), page.indexOf('data-name="Abigail Plaza"'));
   assert.match(block, /alt="Yasmine Kamel"/);
-  assert.equal(fs.existsSync(path.join(root, 'images/team/yasmine-kamel-initials.png')), true);
+  assert.equal(fs.existsSync(path.join(root, 'images/team/yasmine-kamel.jpg')), true);
 });
 
 test('clean /about URL rewrites to the static page', () => {
