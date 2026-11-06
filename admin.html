@@ -498,6 +498,8 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .teach-pdf-session{margin:6px 0 0;font-size:15px;font-weight:650;line-height:1.4}
 .teach-pdf-note{margin:8px 0 0;font-size:14px;line-height:1.45}
 .teach-pdf-meta{margin:8px 0 0;font-size:14px;line-height:1.45;color:#3d4d73}
+.teach-pdf-counts{margin:10px 0 0;padding:8px 10px;border:1.5px solid #1E3161;border-left:4px solid #C7A24A;font-size:16px;line-height:1.45;color:#1E3161}
+.teach-pdf-counts strong{font-weight:700}
 .teach-pdf-section{margin-top:16px}
 .teach-pdf-section h2{font-weight:700;font-size:16px;margin:0 0 6px;padding-bottom:3px;border-bottom:2px solid #C7A24A;break-after:avoid;page-break-after:avoid}
 .teach-items{list-style:none;margin:0;padding:0}
@@ -7244,9 +7246,10 @@ function renderDashTeachingChecks(now){
     const bits=[when, s.time, place, code].filter(function(p){return String(p||'').trim();});
     const qty=(typeof sessionQuantityView==='function')?sessionQuantityView(s):null;
     const qtyLine=qty&&qty.packNow?'<span style="display:block;font-size:14px;line-height:1.45;margin-top:2px">'+escapeHtml(qty.packNow)+'</span>':'';
+    const heads=checklistHeadcountHtml(s);
     return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border)">'
       +'<div style="min-width:0;font-size:15px;line-height:1.45"><span style="font-weight:650">'+escapeHtml(s.course||'Class')+'</span>'
-      +'<span style="display:block;color:var(--muted)">'+escapeHtml(bits.join(' · '))+'</span>'+qtyLine+'</div>'
+      +'<span style="display:block;color:var(--muted)">'+escapeHtml(bits.join(' · '))+'</span>'+heads+qtyLine+'</div>'
       +'<button type="button" class="btn sm" onclick="printTeachingChecklist(\''+id+'\')">Print</button></div>';
   }).join(''):'<div style="font-size:15px;color:var(--muted);padding:6px 0 10px">No upcoming class in the next 60 days has a teaching checklist.</div>';
   el.innerHTML='<div class="card" style="padding:14px 16px"><div class="card-title">Teaching checklists</div>'
@@ -7452,6 +7455,7 @@ function renderDashboard(){
             ${roleLine(sessionIsOrganization(s)?'Organization':'Host',hostLabel,sessionIsOrganization(s)?'No organization':'No host')}
             ${roleLine('Where',adminPlaceText(s)||'No location','No location')}
           </div>
+          ${checklistHeadcountHtml(s)}
           ${(function(){const qty=(typeof sessionQuantityView==='function')?sessionQuantityView(s):null;return qty&&qty.packNow?'<div style="font-size:14px;line-height:1.45;margin:0 0 6px">'+escapeHtml(qty.packNow)+'</div>':'';})()}
           ${items.join('')}
         </div>`;
@@ -12514,6 +12518,22 @@ function renderDashMatChecklist(now){
 // Same-page print, not a new window: iPhone Safari blocks pop-up PDFs, and the
 // print dialog can save a PDF on both iPhone and a computer. The pack-printing
 // class is what swaps in the clean sheet; other tabs print as they did before.
+function teachingChecklistApi(){
+  if(typeof MBTeachingChecklists!=='undefined'&&MBTeachingChecklists)return MBTeachingChecklists;
+  if(typeof window!=='undefined'&&window.MBTeachingChecklists)return window.MBTeachingChecklists;
+  return null;
+}
+function teachingChecklistAttendance(s){
+  const api=teachingChecklistApi();
+  const anticipated=api&&api.anticipatedFromSession?api.anticipatedFromSession(s):null;
+  const registered=(typeof packingRegisteredCount==='function')?packingRegisteredCount(s):0;
+  return {anticipated:anticipated, registered:registered};
+}
+function checklistHeadcountHtml(s){
+  const api=teachingChecklistApi();
+  if(!api||!api.forSession(s)||!api.attendanceHtml)return '';
+  return api.attendanceHtml(teachingChecklistAttendance(s));
+}
 function teachingChecklistMeta(s){
   if(!s)return null;
   let instructor='';
@@ -12527,7 +12547,8 @@ function teachingChecklistMeta(s){
     place:s.isVirtual?'Virtual':(adminPlaceText(s)||''),
     code:s.code||'',
     sessionTitle:s.course||'',
-    instructor:instructor
+    instructor:instructor,
+    attendance:teachingChecklistAttendance(s)
   };
 }
 function openPrintedHtml(html, title){
@@ -12589,7 +12610,7 @@ function teachPackPlan(s, refresh){
     today:typeof matToday==='function'?matToday():fmtYMD(new Date()),
     checkouts:packCheckoutSources(),
     equipment:typeof equipment!=='undefined'?equipment:[],
-    expected:typeof participantsExpectedCount==='function'?participantsExpectedCount(s):null,
+    expected:(typeof teachingChecklistApi==='function'&&teachingChecklistApi()&&teachingChecklistApi().anticipatedFromSession)?teachingChecklistApi().anticipatedFromSession(s):null,
     refresh:refresh||{ok:false,message:'Registrations could not be rechecked. This count is from the list already on screen, and it was not rechecked.'}
   });
 }

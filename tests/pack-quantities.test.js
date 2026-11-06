@@ -25,6 +25,17 @@ function line(plan, id) {
   return plan.lines.filter(function (row) { return row.id === id; })[0];
 }
 
+test('an anticipated count does not lower or raise the registered pack quantity', () => {
+  const eight = ssPlan(8, { expected: 15 });
+  assert.equal(line(eight, 'ssHandbook').required, 8);
+  assert.match(eight.basis, /These quantities use registrations/);
+  const ten = ssPlan(10, { expected: 8 });
+  assert.equal(line(ten, 'ssHandbook').required, 10);
+  assert.doesNotMatch(ten.basis, /These quantities use registrations/);
+  const missing = ssPlan(8, { expected: null });
+  assert.equal(line(missing, 'ssHandbook').required, 8);
+});
+
 test('six paid Safe Sitter registrations pack 6 handbooks and 6 note pads', () => {
   const plan = pack.forChecklist({
     checklistId: 'safe-sitter',

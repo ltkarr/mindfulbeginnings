@@ -230,6 +230,8 @@ test('admin sends the assigned instructor names onto the printed sheet', () => {
   vm.runInContext([
     extractFunction(admin, 'sessionInstructorList'),
     extractFunction(admin, 'sessionInstructorNames'),
+    extractFunction(admin, 'teachingChecklistApi'),
+    extractFunction(admin, 'teachingChecklistAttendance'),
     extractFunction(admin, 'teachingChecklistMeta')
   ].join('\n'), sandbox);
   const named = sandbox.teachingChecklistMeta({
@@ -268,4 +270,113 @@ test('admin sends the assigned instructor names onto the printed sheet', () => {
   });
   assert.equal(none.instructor, '');
   assert.match(sheets.printHtml(sheets.byId('care-ready'), none), /Instructor: Unassigned/);
+});
+
+test('teaching checklists show anticipated and registered counts, and virtual classes stay out', () => {
+  function view(anticipated, registered) {
+    return sheets.attendanceView({ anticipated: anticipated, registered: registered });
+  }
+  const higher = view(15, 8);
+  assert.equal(higher.anticipatedLabel, 'Anticipated participants: 15');
+  assert.equal(higher.registeredLabel, 'Registered participants: 8');
+  assert.equal(higher.over, false);
+
+  const missing = view(null, 8);
+  assert.equal(missing.anticipatedLabel, 'Anticipated participants: Not provided');
+  assert.equal(missing.registeredLabel, 'Registered participants: 8');
+  assert.equal(view('', 0).anticipatedLabel, 'Anticipated participants: Not provided');
+  assert.equal(view('', 0).registeredLabel, 'Registered participants: 0');
+  assert.equal(view(0, 0).anticipatedLabel, 'Anticipated participants: 0');
+  assert.notEqual(view(0, 0).anticipatedLabel, view(null, 0).anticipatedLabel);
+
+  const over = view(8, 10);
+  assert.equal(over.anticipatedLabel, 'Anticipated participants: 8');
+  assert.equal(over.registeredLabel, 'Registered participants: 10');
+  assert.match(over.overNote, /already above the anticipated count/);
+  assert.match(over.overNote, /stay with the registered count/);
+  assert.doesNotMatch(over.overNote, /pack fewer|fewer than/i);
+
+  function sheet(attendance) {
+    return sheets.printHtml(sheets.byId('safe-sitter'), {
+      date: '2026-11-13',
+      time: '9:00 AM',
+      place: 'Sample host home',
+      code: 'SS-SAMPLE',
+      instructor: 'Priya Shah',
+      attendance: attendance,
+      adminPrivateNotes: 'Private referral note should never print',
+      wifiInfo: 'network secret',
+      notes: 'Door code 1234'
+    });
+  }
+  const html15 = sheet({ anticipated: 15, registered: 8 });
+  assert.match(html15, /class="teach-pdf-counts"/);
+  assert.match(html15, /Anticipated participants: 15/);
+  assert.match(html15, /Registered participants: 8/);
+  assert.doesNotMatch(html15, /Private referral|network secret|Door code|1234/);
+  const htmlMissing = sheet({ anticipated: null, registered: 0 });
+  assert.match(htmlMissing, /Anticipated participants: Not provided/);
+  assert.match(htmlMissing, /Registered participants: 0/);
+  assert.doesNotMatch(htmlMissing, /Anticipated participants: 0/);
+  const htmlZero = sheet({ anticipated: 0, registered: 0 });
+  assert.match(htmlZero, /Anticipated participants: 0/);
+  const htmlOver = sheet({ anticipated: 8, registered: 10 });
+  assert.match(htmlOver, /Anticipated participants: 8/);
+  assert.match(htmlOver, /Registered participants: 10/);
+  assert.match(htmlOver, /Packing quantities stay with the registered count/);
+  const blank = sheets.printHtml(sheets.byId('safe-sitter'), null);
+  assert.doesNotMatch(blank, /Anticipated participants/);
+  assert.equal(sheets.forSession({ course: 'Safe Sitter®', isVirtual: true, participantsExpected: 15 }), null);
+  assert.equal(sheets.forCourse('Safe Sitter® — Virtual'), null);
+  assert.equal(sheets.anticipatedFromSession({ participantsExpected: 15, maxStudentsOverride: 16, adminPrivateNotes: 'Expected participants: 4' }), 15);
+  assert.equal(sheets.anticipatedFromSession({ participantsExpected: 0, maxStudentsOverride: 16 }), 0);
+  assert.equal(sheets.anticipatedFromSession({ participantsExpected: null, maxStudentsOverride: 8, notes: 'Expected participants: 6' }), null);
+  assert.equal(sheets.anticipatedFromSession({ maxStudentsOverride: 16 }), null);
+  assert.match(admin, /function checklistHeadcountHtml/);
+  assert.match(admin, /checklistHeadcountHtml\(s\)/);
+  assert.match(admin, /anticipatedFromSession/);
+  assert.doesNotMatch(admin.slice(admin.indexOf('function teachingChecklistAttendance'), admin.indexOf('function teachingChecklistMeta')), /adminPrivateNotes|wifiInfo|maxStudentsOverride/);
+  const sandbox = {
+    MBTeachingChecklists: sheets,
+    adminPlaceText: function () { return 'Sample host home'; },
+    packingRegisteredCount: function (s) {
+      return (s && s._registered) || 0;
+    }
+  };
+  vm.createContext(sandbox);
+  function extractFunction(src, name) {
+    const start = src.indexOf('function ' + name + '(');
+    let i = src.indexOf('{', start);
+    let depth = 0;
+    for (let j = i; j < src.length; j++) {
+      if (src[j] === '{') depth++;
+      else if (src[j] === '}') {
+        depth--;
+        if (depth === 0) return src.slice(start, j + 1);
+      }
+    }
+    throw new Error('unclosed ' + name);
+  }
+  vm.runInContext([
+    extractFunction(admin, 'teachingChecklistApi'),
+    extractFunction(admin, 'teachingChecklistAttendance'),
+    extractFunction(admin, 'checklistHeadcountHtml'),
+    extractFunction(admin, 'teachingChecklistMeta')
+  ].join('\n'), sandbox);
+  const meta = sandbox.teachingChecklistMeta({
+    course: 'Safe Sitter®',
+    isVirtual: false,
+    participantsExpected: 15,
+    maxStudentsOverride: 16,
+    adminPrivateNotes: 'Private referral note',
+    wifiInfo: 'network secret',
+    notes: 'Door code 9999',
+    _registered: 8
+  });
+  assert.equal(meta.attendance.anticipated, 15);
+  assert.equal(meta.attendance.registered, 8);
+  assert.doesNotMatch(JSON.stringify(meta), /Private referral|network secret|Door code|9999|maxStudents/);
+  assert.equal(sandbox.checklistHeadcountHtml({ course: 'Safe Sitter®', isVirtual: true, participantsExpected: 15, _registered: 8 }), '');
+  assert.match(sandbox.checklistHeadcountHtml({ course: 'Safe Sitter®', isVirtual: false, participantsExpected: 0, _registered: 0 }), /Anticipated participants: 0/);
+  assert.match(sandbox.checklistHeadcountHtml({ course: 'Safe Sitter®', isVirtual: false, participantsExpected: null, _registered: 3 }), /Not provided/);
 });

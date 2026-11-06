@@ -1077,6 +1077,45 @@
     return 'Instructor: ' + who;
   }
 
+  // Saved participantsExpected only. Null and blank are missing. Zero stays zero.
+  // Room capacity, notes, and private notes are not an anticipated count.
+  function anticipatedFromSession(session) {
+    if (!session || session.participantsExpected == null || session.participantsExpected === '') return null;
+    var n = Number(session.participantsExpected);
+    if (!isFinite(n) || n < 0) return null;
+    return Math.floor(n);
+  }
+
+  function attendanceView(attendance) {
+    var raw, missing, anticipated, registered, over;
+    if (!attendance) return null;
+    raw = attendance.anticipated;
+    missing = raw == null || raw === '';
+    anticipated = missing ? null : Math.floor(Number(raw));
+    if (!missing && (!isFinite(anticipated) || anticipated < 0)) {
+      missing = true;
+      anticipated = null;
+    }
+    registered = attendance.registered;
+    registered = (registered == null || registered === '') ? 0 : Math.floor(Number(registered));
+    if (!isFinite(registered) || registered < 0) registered = 0;
+    over = !missing && registered > anticipated;
+    return {
+      anticipatedLabel: missing ? 'Anticipated participants: Not provided' : ('Anticipated participants: ' + anticipated),
+      registeredLabel: 'Registered participants: ' + registered,
+      over: over,
+      overNote: over ? 'Registered participants are already above the anticipated count. Packing quantities stay with the registered count.' : ''
+    };
+  }
+
+  function attendanceHtml(attendance) {
+    var view = attendanceView(attendance);
+    var note = '';
+    if (!view) return '';
+    if (view.overNote) note = '<br><span class="teach-pdf-note">' + escapeHtml(view.overNote) + '</span>';
+    return '<p class="teach-pdf-counts"><strong>' + escapeHtml(view.anticipatedLabel) + '</strong><br><strong>' + escapeHtml(view.registeredLabel) + '</strong>' + note + '</p>';
+  }
+
   function printHtml(checklist, meta) {
     var sections, note, foot, lines, when, sessionTitle, bits, session, pack, covered;
     if (!checklist) return '';
@@ -1116,6 +1155,7 @@
     if (sessionTitle && sessionTitle !== checklist.title) bits += '<p class="teach-pdf-session">' + escapeHtml(sessionTitle) + '</p>';
     bits += note;
     if (lines.length) bits += '<p class="teach-pdf-meta">' + lines.map(escapeHtml).join('<br>') + '</p>';
+    if (session && session.attendance) bits += attendanceHtml(session.attendance);
     bits += '</header>' + packSectionHtml(pack) + sections + foot + '</div>';
     return bits;
   }
@@ -1140,7 +1180,10 @@
     upcoming: upcoming,
     formatDate: formatDate,
     printHtml: printHtml,
-    visibleText: visibleText
+    visibleText: visibleText,
+    anticipatedFromSession: anticipatedFromSession,
+    attendanceView: attendanceView,
+    attendanceHtml: attendanceHtml
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
