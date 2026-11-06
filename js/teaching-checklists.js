@@ -29,6 +29,28 @@
   // AND/OR means either choice is enough.
   var SHARED_SUPPLY = 'Bingo prizes AND/OR raffle tickets for an Amazon gift card';
   var PRIZE_SHEET = { 'safe-sitter': true, 'ss-essentials': true };
+  // Pieces inside the one AV kit from the equipment table. Ready. Period. is not in this list.
+  var AV_PARTS = [
+    'Laptop, case, and speakers (Mindful Beginnings)',
+    'Projector, case, and remote (Mindful Beginnings). The host provides the wall or screen.',
+    'USB-C to HDMI adapter (in the AV kit)',
+    'Power strip or cord (in the AV kit)'
+  ];
+  var AV_SHEET = {
+    'safe-sitter': true,
+    'ss-essentials': true,
+    'grandparents': true,
+    'campus-ready': true,
+    'stay-ready': true,
+    'safe-at-home': true,
+    'safe-at-home-series': true,
+    'all-kids-welcome': true,
+    'season-ready': true,
+    'care-ready': true,
+    'baby-ready': true,
+    'baby-ready-cpr': true,
+    'rc-adult-peds': true
+  };
   var LOCKBOX = 'Return all materials within 24 hours unless teaching another course. Return them to the locked storage box.';
 
   function sec(title, items) {
@@ -153,7 +175,7 @@
         'Game pouch (blue zippered)',
         'Tape and a fake cell phone',
         'Soft-bodied dolls and disposable diapers',
-        'Infant manikin and child manikin (1 each for 8 or fewer students, 2 each above 8)',
+        'Infant manikin and child manikin (1 each for 8 or fewer students, 3 each above 8)',
         'Batteries and screwdriver',
         'CPR face shield protectors, 1 per participant'
       ]),
@@ -186,7 +208,7 @@
         'Safe Sitter Important Information Note Pad, 1 per student',
         'Student Evaluation Forms',
         'Soft-bodied dolls and disposable diapers',
-        'Infant manikin and child manikin for choking-rescue practice (1 each for 8 or fewer students, 2 each above 8)',
+        'Infant manikin and child manikin for choking-rescue practice (1 each for 8 or fewer students, 3 each above 8)',
         'Batteries and screwdriver',
         'CPR face shield protectors, 1 per participant',
         'Laptop, speaker, and projector if the site requires'
@@ -1021,14 +1043,26 @@
     return !!PRIZE_SHEET[id];
   }
 
+  function usesAvKit(checklist) {
+    return !!(checklist && AV_SHEET[checklist.id]);
+  }
+
   function printHtml(checklist, meta) {
-    var sections, note, foot, lines, when, sessionTitle, bits, session, wantPrize, sharedPlaced;
+    var sections, note, foot, lines, when, sessionTitle, bits, session, wantPrize, wantAv, sharedPlaced, avPlaced;
     if (!checklist) return '';
     session = meta == null ? null : meta;
     wantPrize = usesSharedSupply(checklist);
+    wantAv = usesAvKit(checklist);
     sharedPlaced = false;
+    avPlaced = false;
     sections = (checklist.sections || []).map(function (section) {
       var items = (section.items || []).slice();
+      if (wantAv && !avPlaced && /supply|supplies|equipment|materials/i.test(section.title || '')) {
+        AV_PARTS.forEach(function (part) {
+          if (items.indexOf(part) < 0) items.push(part);
+        });
+        avPlaced = true;
+      }
       if (wantPrize && !sharedPlaced && /supply|supplies|equipment|materials/i.test(section.title || '')) {
         items.push(SHARED_SUPPLY);
         sharedPlaced = true;
@@ -1037,6 +1071,11 @@
         return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(item) + '</span></li>';
       }).join('') + '</ul></section>';
     }).join('');
+    if (wantAv && !avPlaced) {
+      sections += '<section class="teach-pdf-section"><h2>Supplies and equipment</h2><ul class="teach-items">' + AV_PARTS.map(function (part) {
+        return '<li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(part) + '</span></li>';
+      }).join('') + '</ul></section>';
+    }
     if (wantPrize && !sharedPlaced) {
       sections += '<section class="teach-pdf-section"><h2>Instructor</h2><ul class="teach-items"><li class="teach-item"><span class="teach-box" aria-hidden="true"></span><span>' + escapeHtml(SHARED_SUPPLY) + '</span></li></ul></section>';
     }
@@ -1079,7 +1118,9 @@
     printHtml: printHtml,
     visibleText: visibleText,
     sharedSupply: SHARED_SUPPLY,
-    usesSharedSupply: usesSharedSupply
+    usesSharedSupply: usesSharedSupply,
+    avParts: AV_PARTS,
+    usesAvKit: usesAvKit
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -244,6 +244,33 @@ test('the bingo or raffle line is only on Safe Sitter and Essentials', () => {
   assert.match(pack.packingKitHtml(rows[0]), /Batteries \+ screwdriver/);
 });
 
+test('AV kit pieces print on AV courses, and Safe Sitter above 8 is three of each', () => {
+  const parts = sheets.avParts;
+  assert.deepEqual(parts, [
+    'Laptop, case, and speakers (Mindful Beginnings)',
+    'Projector, case, and remote (Mindful Beginnings). The host provides the wall or screen.',
+    'USB-C to HDMI adapter (in the AV kit)',
+    'Power strip or cord (in the AV kit)'
+  ]);
+  sheets.list().forEach(function (sheet) {
+    const html = sheets.printHtml(sheet, null);
+    parts.forEach(function (part) {
+      const hits = html.split(part).length - 1;
+      assert.equal(hits, sheets.usesAvKit(sheet) ? 1 : 0, sheet.id + ' ' + part);
+    });
+  });
+  assert.equal(sheets.usesAvKit(sheets.byId('ready-period')), false);
+  assert.equal(sheets.usesAvKit(sheets.byId('gs-first-aid')), false);
+  assert.equal(sheets.usesAvKit(sheets.byId('intro-babysitting')), false);
+  assert.match(sheets.printHtml(sheets.byId('safe-sitter'), null), /1 each for 8 or fewer students, 3 each above 8/);
+  assert.match(sheets.printHtml(sheets.byId('ss-essentials'), null), /3 each above 8/);
+  assert.doesNotMatch(sheets.printHtml(sheets.byId('safe-sitter'), null), /2 each above 8/);
+  assert.doesNotMatch(sheets.printHtml(sheets.byId('ss-essentials'), null), /2 each above 8/);
+  assert.match(sheets.printHtml(sheets.byId('grandparents'), null), /2 each above 8/);
+  assert.equal(sheets.forSession({ course: 'Safe Sitter®', isVirtual: true }), null);
+  assert.equal(sheets.forSession({ course: 'Ready. Period.', isVirtual: true }), null);
+});
+
 test('the admin dashboard can print a checklist the same way it prints a packing list', () => {
   assert.match(admin, /<script src="\/js\/teaching-checklists\.js"><\/script>/);
   assert.match(admin, /id="dash-teach-checks"/);
