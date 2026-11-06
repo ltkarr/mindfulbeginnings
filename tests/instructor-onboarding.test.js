@@ -49,6 +49,85 @@ test('quiz has 20 questions, passes at 16, and posts to the shared submit endpoi
   assert.match(page, /ob-website/); // honeypot field
 });
 
+function quizQuestions(html) {
+  const code = extractInlineScripts(html).find((script) => script.includes('var QUESTIONS='));
+  assert.ok(code, 'quiz question bank was not found');
+  const start = code.indexOf('var QUESTIONS=');
+  const end = code.indexOf('];', start);
+  return Function(code.slice(start, end + 2) + '\nreturn QUESTIONS;')();
+}
+
+test('each onboarding item has three plausible choices and one in-range key', () => {
+  const questions = quizQuestions(page);
+  const keyed = [
+    'The Open jobs tab',
+    'Text Lindsay for your PIN',
+    'The host\u2019s cell number and WiFi',
+    'Up to three days before, unless Lindsay agrees to earlier',
+    'As soon as you get the kit, at least one day before',
+    'Check every compartment of every bag against the checklist',
+    'Text Lindsay right away, before the day of class',
+    '15 minutes early, so you can set up and test the technology',
+    'Only on the manikins, never on another person',
+    'On the floor, kneeling beside it',
+    'Introduction first, and CPR before Life and Business Skills when you can',
+    'The Safe@Home student evaluation',
+    'Teach the course without slides, using your instructor guide',
+    'Contact the instructor sub list yourself, right away',
+    'You are paid in full, whether or not you had arrived',
+    'Keep the kit for next week\u2019s class',
+    'When the course is complete, materials are returned, and evaluations are submitted',
+    'Leave it to Mindful Beginnings, which sends raises in writing',
+    'Leave the job posted and do not accept it',
+    'Claim host, then open the slides and share your screen'
+  ];
+  const lessons = [1, 1, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 7, 7, 8, 8, 8, 8, 6];
+  assert.equal(questions.length, 20);
+  assert.deepEqual(questions.map((item) => item.lesson), lessons);
+  questions.forEach((item, index) => {
+    assert.equal(item.options.length, 3, 'question ' + (index + 1) + ' does not have 3 choices');
+    assert.equal(new Set(item.options).size, 3, 'question ' + (index + 1) + ' repeats a choice');
+    assert.equal(Number.isInteger(item.answer) && item.answer >= 0 && item.answer < item.options.length, true);
+    assert.equal(item.options[item.answer], keyed[index], 'question ' + (index + 1) + ' key changed');
+    item.options.forEach((option) => {
+      assert.doesNotMatch(option, /all of the above|none of the above/i);
+      assert.equal(option.includes("'"), false, 'question ' + (index + 1) + ' has a straight apostrophe');
+    });
+  });
+  const bank = questions.map((item) => item.q + ' ' + item.options.join(' ')).join('\n');
+  [
+    'Ask another instructor for theirs',
+    'pillows and cushions',
+    'Buy the item yourself',
+    'Teach without it and say nothing',
+    'Ask the host to make up',
+    'Every Friday',
+    'Once a month',
+    'On the instructor',
+    'Record the session'
+  ].forEach((phrase) => {
+    assert.equal(bank.includes(phrase), false, phrase);
+  });
+});
+
+test('pass stays 16 of 20, which is the server 80 percent rule', () => {
+  const questions = quizQuestions(page);
+  function scoreOf(picks) {
+    return questions.reduce((score, item, index) => score + (picks[index] === item.answer ? 1 : 0), 0);
+  }
+  const correct = questions.map((item) => item.answer);
+  const sixteen = correct.map((answer, index) => index < 4 ? (answer + 1) % 3 : answer);
+  const fifteen = correct.map((answer, index) => index < 5 ? (answer + 1) % 3 : answer);
+  assert.equal(scoreOf(correct), 20);
+  assert.equal(scoreOf(sixteen), 16);
+  assert.equal(scoreOf(fifteen), 15);
+  assert.equal(scoreOf(sixteen) >= 16, true);
+  assert.equal(scoreOf(fifteen) >= 16, false);
+  assert.equal(scoreOf(sixteen) / questions.length >= 0.8, true);
+  assert.equal(scoreOf(fifteen) / questions.length >= 0.8, false);
+  assert.match(page, /id="ob-retake"/);
+});
+
 test('submit endpoint recomputes the pass instead of trusting the client', () => {
   assert.match(api, /ONBOARDING_PASS_FRACTION = 0\.8/);
   assert.match(api, /passed: score \/ total >= ONBOARDING_PASS_FRACTION/);
