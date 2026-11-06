@@ -64,7 +64,7 @@ test('each onboarding item has three plausible choices and one in-range key', ()
   const keyed = [
     'The Open jobs tab',
     'Text Lindsay for your PIN',
-    'The host\u2019s cell number and WiFi',
+    'The host\u2019s cell number',
     'Up to three days before, unless Lindsay agrees to earlier',
     'As soon as you get the kit, at least one day before',
     'Check every compartment of every bag against the checklist',
