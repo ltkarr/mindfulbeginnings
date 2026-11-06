@@ -508,6 +508,17 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .dash-up-instructor select{font:inherit;color:var(--text);padding:4px 8px}
 .btn.sm.dash-on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .dash-pack-note{background:#eef6fb;border:1px solid #c5ddf0;border-radius:8px;padding:8px 10px;margin:0 0 8px;font-size:15px;line-height:1.4}
+.dash-prep-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.dash-prep-tab{min-height:40px}
+.dash-prep-count{display:inline-block;min-width:1.25em;margin-left:4px;padding:0 6px;border-radius:100px;background:#eef2f8;color:var(--navy);font-weight:700;font-size:13px;line-height:1.6;text-align:center}
+.dash-prep-tab.dash-on .dash-prep-count{background:rgba(255,255,255,.22);color:#fff}
+.dash-prep-tab:focus-visible,.dash-prep-panel:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+.dash-prep-viewcount{font-size:15px;color:var(--muted);margin:0 0 8px}
+.dash-prep-empty{font-size:15px;color:var(--muted);padding:4px 0 8px}
+@media(max-width:768px){
+  .dash-prep-tabs{display:grid;grid-template-columns:1fr 1fr}
+  .dash-prep-tab{width:100%;min-height:44px;white-space:normal;text-align:center;line-height:1.2}
+}
 @media print{
   body.teach-printing{background:#fff;min-height:0 !important;height:auto !important}
   body.teach-printing #app,
@@ -6944,10 +6955,59 @@ function preClassTaskList(s){
 function preClassChecklistDone(s){
   return preClassTaskList(s).every(function(t){return t.done;});
 }
-// Every future session stays on the dashboard. Finished prep does not remove it.
+// Prep is complete when every task on the pre-class checklist is done.
+// The lock-box checkbox is one of those tasks, not a shortcut for the rest.
+// Nothing new is saved: the tab reads the same job_data checks the cards already
+// store. A checklist with no tasks is already done under preClassChecklistDone
+// (there is nothing left to check). This uses that same rule.
+function dashPrepIsComplete(s){
+  return preClassChecklistDone(s);
+}
+function dashPrepPartition(rows){
+  const active=[];
+  const complete=[];
+  (rows||[]).forEach(function(s){
+    if(dashPrepIsComplete(s))complete.push(s);
+    else active.push(s);
+  });
+  return {active:active, complete:complete};
+}
+function dashPrepEmptyCopy(view, instructorFiltered, anyUpcoming){
+  if(!anyUpcoming)return instructorFiltered?'No upcoming sessions for this instructor.':'No upcoming sessions.';
+  if(view==='complete'){
+    return instructorFiltered?'No sessions for this instructor have prep complete.':'No sessions in this view have prep complete.';
+  }
+  return instructorFiltered?'No sessions for this instructor still need prep.':'No sessions in this view still need prep.';
+}
+function dashPrepViewFromKey(current, key){
+  const order=['active','complete'];
+  const cur=current==='complete'?'complete':'active';
+  const i=order.indexOf(cur);
+  if(key==='ArrowRight'||key==='ArrowDown')return order[(i+1)%order.length];
+  if(key==='ArrowLeft'||key==='ArrowUp')return order[(i-1+order.length)%order.length];
+  if(key==='Home')return order[0];
+  if(key==='End')return order[order.length-1];
+  return '';
+}
+function setDashPrepView(view){
+  dashPrepView=view==='complete'?'complete':'active';
+  renderDashboard();
+  const btn=document.getElementById(dashPrepView==='complete'?'dash-prep-tab-complete':'dash-prep-tab-active');
+  if(btn&&typeof btn.focus==='function')btn.focus();
+}
+function onDashPrepTabKey(ev){
+  if(!ev)return;
+  const next=dashPrepViewFromKey(dashPrepView, ev.key);
+  if(!next||next===dashPrepView)return;
+  ev.preventDefault();
+  setDashPrepView(next);
+}
+// Every future session stays in the upcoming set used by these filters and the
+// packing list. Finished prep leaves the Needs prep tab and shows under PREP COMPLETE.
 // Holds and cancelled sessions stay off this list. Next 2 weeks is a filter, not the list.
 let dashUpcomingScope='all';
 let dashUpcomingInstructor='all';
+let dashPrepView='active';
 function dashSessionDayDiff(s, today){
   const now=today instanceof Date?today:new Date();
   const today0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
@@ -7521,7 +7581,7 @@ function renderDashboard(){
 }
 
 // ── Pre-class action reminders (all upcoming sessions, next 2 weeks is a filter) ──
-// Finished prep stays on the card. A session drops off only after its date has passed.
+// Finished prep moves to the PREP COMPLETE tab. A session leaves both tabs only after its date has passed.
 function dashPacksWithAnother(s, list, today, instructorList, jobData){
   if(!s||s.isVirtual)return false;
   const mine=dashTeachingSlots(s, instructorList, jobData);
@@ -7574,7 +7634,22 @@ function renderDashUpcoming(now){
     : (who==='all'
       ? (allRows.length+' upcoming session'+(allRows.length===1?'':'s')+'. '+fortnightCount+' in the next 2 weeks.')
       : (rows.length+' upcoming session'+(rows.length===1?'':'s')+' for '+whoName+'. '+inViewFortnight+' in the next 2 weeks.'));
-  const cards=rows.map(function(s){
+  const split=dashPrepPartition(rows);
+  const view=dashPrepView==='complete'?'complete':'active';
+  const shown=view==='complete'?split.complete:split.active;
+  const tabBtn=function(id, tab, label, count){
+    const on=view===tab;
+    return '<button type="button" class="btn sm dash-prep-tab'+(on?' dash-on':'')+'" role="tab" id="'+id+'" aria-selected="'+(on?'true':'false')+'" aria-controls="dash-prep-panel" tabindex="'+(on?'0':'-1')+'" onclick="setDashPrepView(\''+tab+'\')" onkeydown="onDashPrepTabKey(event)">'+label+' <span class="dash-prep-count">'+count+'</span></button>';
+  };
+  const tabs='<div class="dash-prep-tabs" id="dash-prep-tabs" role="tablist" aria-label="Prep status">'
+    +tabBtn('dash-prep-tab-active','active','Needs prep',split.active.length)
+    +tabBtn('dash-prep-tab-complete','complete','PREP COMPLETE',split.complete.length)
+    +'</div>';
+  const viewCount=shown.length;
+  const viewLine=view==='complete'
+    ?(viewCount+' with prep complete.')
+    :(viewCount===1?'1 still needs prep.':(viewCount+' still need prep.'));
+  const cards=shown.map(function(s){
     const dayDiff=dashSessionDayDiff(s, today);
     const d=fmtSessDate(s,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
     const cnt=registrations.filter(function(r){return r.sessionId===s.id&&isLiveReg(r);}).length;
@@ -7616,7 +7691,7 @@ function renderDashUpcoming(now){
       kit=packingKitHtml({course:s.course, bring:packingBringLine(s, packFor), manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)});
     }
     const together=dashPacksWithAnother(s, list, today, people, jobs)?'<div class="pack-flag">Pack with another class within 8 days</div>':'';
-    const prep=preClassChecklistDone(s)?'<div style="font-size:14px;color:var(--success);margin-top:4px">Prep complete</div>':'';
+    const prep=dashPrepIsComplete(s)?'<div style="font-size:14px;color:var(--success);margin-top:4px">Prep complete</div>':'';
     return '<div style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid '+accent+'">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">'
       +'<div style="font-size:15px;min-width:0"><span style="font-weight:600">'+escapeHtml(s.course)+'</span>'
@@ -7635,14 +7710,17 @@ function renderDashUpcoming(now){
         :'')
       +'</div>';
   }).join('');
-  const empty=rows.length?'':('<div style="font-size:15px;color:var(--muted)">'+(who==='all'?'No upcoming sessions.':'No upcoming sessions for this instructor.')+'</div>');
+  const empty='<div class="dash-prep-empty">'+escapeHtml(dashPrepEmptyCopy(view, who!=='all', rows.length>0))+'</div>';
   el.innerHTML='<div class="card" style="padding:12px 16px">'
     +'<div style="font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px">Upcoming sessions</div>'
     +scopeButtons
     +'<div style="font-size:15px;color:var(--muted);margin:0 0 8px">'+escapeHtml(countLine)+'</div>'
     +loadNotes
+    +tabs
+    +'<div id="dash-prep-panel" class="dash-prep-panel" role="tabpanel" tabindex="0" aria-labelledby="'+(view==='complete'?'dash-prep-tab-complete':'dash-prep-tab-active')+'" data-prep-view="'+view+'">'
+    +'<div class="dash-prep-viewcount">'+escapeHtml(viewLine)+'</div>'
     +(cards||empty)
-    +'</div>';
+    +'</div></div>';
 }
 
 // ─── SESSIONS ────────────────────────────────────────────────
