@@ -175,8 +175,13 @@ test('closing actions and footer sit together with no empty band', () => {
 });
 
 test('Yasmine Kamel is listed with the Instructors, between Hodor and Plaza', () => {
-  const bio = 'Yasmine Kamel is an early childhood educator and reading specialist with more than a decade of experience in classrooms, childcare leadership, and teacher training. She holds a Master of Education in Curriculum and Instruction from the University of Maryland and a Bachelor of Science in Early Childhood Education from Towson University. A former Montgomery County kindergarten through second-grade teacher, she delivers professional development for childcare staff and brings a warm, literacy-focused approach to every course.';
+  const bio = 'Yasmine Kamel is an early childhood educator and reading specialist with more than a decade of experience in classrooms, childcare leadership, and teacher training. She holds a Master of Education in Curriculum and Instruction from the University of Maryland and a Bachelor of Science in Early Childhood Education from Towson University. A former Montgomery County kindergarten through second-grade teacher, she delivers professional development for childcare staff and brings a warm, practical approach to safety education.';
   assert.equal(bio.includes('\u2014'), false);
+  assert.equal(bio.includes('literacy-focused'), false);
+  assert.match(bio, /reading specialist/);
+  assert.match(bio, /warm, practical approach to safety education\.$/);
+  assert.equal(page.includes('literacy-focused'), false);
+  assert.equal(JSON.stringify(people).includes('literacy-focused'), false);
   const found = cards();
   const instructors = found.filter((card) => card.section === 'Instructors').map((card) => card.name);
   const index = instructors.indexOf('Yasmine Kamel');
@@ -187,18 +192,18 @@ test('Yasmine Kamel is listed with the Instructors, between Hodor and Plaza', ()
   assert.equal(card.dataRole, 'Instructor');
   assert.equal(card.role, '');
   assert.equal(card.credentials, 'M.Ed.');
-  assert.equal(card.photo, '/images/team/yasmine-kamel-initials.png');
+  assert.equal(card.photo, '/images/team/yasmine-kamel.jpg');
   assert.equal(card.button, true);
   assert.deepEqual(card.bio, [bio]);
   const person = people.find((item) => item.name === 'Yasmine Kamel');
   assert.equal(person.section, 'Instructors');
   assert.equal(person.credentials, 'M.Ed.');
   assert.equal(person.role, '');
-  assert.equal(person.photo, '/images/team/yasmine-kamel-initials.png');
+  assert.equal(person.photo, '/images/team/yasmine-kamel.jpg');
   assert.deepEqual(person.bio, [bio]);
   const block = page.slice(page.indexOf('data-name="Yasmine Kamel"'), page.indexOf('data-name="Abigail Plaza"'));
   assert.match(block, /alt="Yasmine Kamel"/);
-  assert.equal(fs.existsSync(path.join(root, 'images/team/yasmine-kamel-initials.png')), true);
+  assert.equal(fs.existsSync(path.join(root, 'images/team/yasmine-kamel.jpg')), true);
 });
 
 test('clean /about URL rewrites to the static page', () => {
