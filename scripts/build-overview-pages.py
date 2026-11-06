@@ -57,9 +57,9 @@ MANIFEST = [
      "1i5vo6u1pRxPogFi_7j1Nl3dMYT6jHjW_Usy3NfpMrew",
      "Nannies & Caregivers"),
     ("my-first-babysitters-club", "My First Babysitter's Club", "gdoc",
-     "1TKrl7gMDQ5zdParko8sZM0Plyg_ydvGLhslJXwBQBQ0", "Before or After School Clubs"),
+     "1TKrl7gMDQ5zdParko8sZM0Plyg_ydvGLhslJXwBQBQ0", "School Clubs"),
     ("little-medics", "Little Medics", "docx",
-     "1SOhw4J0oqVzu6p-g6XxpYUmuegqQSBHa", "Before or After School Clubs"),
+     "1SOhw4J0oqVzu6p-g6XxpYUmuegqQSBHa", "School Clubs"),
     ("first-aid-badge-workshop", "First Aid Badge Workshop", "docx",
      "1YqoS1N0zH7kZWoGt4Ze8LYQ0tKFwmMx7", "Girl Scouts"),
 ]

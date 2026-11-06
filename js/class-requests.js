@@ -55,11 +55,11 @@
     { key: 'rc-adult-peds-hybrid', course: 'Adult & Pediatric First Aid/CPR/AED Certification (Online + Classroom)', abbr: 'RCAH', price: 125, hours: '2 hours online + 2 hours in person', audience: 'Ages 13 and up', where: 'hybrid', requiresLeadTeacher: true, host: true, org: true, label: 'Adult & Pediatric First Aid/CPR/AED Online + Classroom (American Red Cross) · Ages 13 and up · 2 hours online + 2 hours in person' },
     { key: 'rc-bls-hybrid', course: 'Basic Life Support (BLS) Certification (Hybrid)', abbr: 'BLSH', price: 125, hours: '2 hours online + 2 hours in person', audience: 'Healthcare providers', where: 'hybrid', requiresLeadTeacher: true, host: true, org: true, label: 'Basic Life Support (BLS) Hybrid (American Red Cross) — 2 hours online + 2 hours in person' },
     { key: 'group-cpr', course: 'Group CPR Certification for Workplaces', abbr: 'GCP', price: null, hours: '4 hours', audience: 'Workplaces, custom quote, no fixed group size', where: 'in person', requiresLeadTeacher: true, host: false, org: false, label: 'Group CPR Certification for Workplaces — 4 hours · custom quote' },
-    // Before or After School Clubs: $200 per participant. Fully tailored for
+    // School Clubs: $200 per participant. Fully tailored for
     // schools: before or after school, day-off workshops, or during PTA
     // meetings, any number of weeks, sessions any length. 8-16 kids,
     // minimum 6. Organization form only.
-    { key: 'after-school-clubs', course: 'Before or After School Clubs', abbr: 'ASC', price: 200, hours: 'Tailored to the school: before or after school, day-off workshops, or during PTA meetings, any number of weeks, sessions any length', audience: 'Grades K to 6 clubs, 8-16 kids, minimum 6', where: 'in person', host: false, org: true, label: 'Before or After School Clubs — tailored to your school · In person' },
+    { key: 'after-school-clubs', course: 'School Clubs', abbr: 'ASC', price: 200, hours: 'Tailored to the school: before or after school, day-off workshops, or during PTA meetings, any number of weeks, sessions any length', audience: 'Grades K to 6 clubs, 8-16 kids, minimum 6', where: 'in person', host: false, org: true, label: 'School Clubs — tailored to your school · In person' },
     { key: 'unsure', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: true, org: false, label: 'Not sure yet: I would like guidance' },
     { key: 'custom', course: '', abbr: '', price: null, hours: '', audience: '', where: '', placeholder: true, host: false, org: true, label: 'Custom course: Mindful Beginnings will follow up with pricing' }
   ];

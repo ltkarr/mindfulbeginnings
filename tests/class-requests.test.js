@@ -160,10 +160,10 @@ test('After School Clubs is a $200-in-the-model organization option with a club 
   const asc = model.coursesFor('organization').find(function (c) { return c.key === 'after-school-clubs'; });
   assert.ok(asc, 'catalog has after-school-clubs for organizations');
   assert.equal(asc.price, 200);
-  assert.equal(asc.course, 'Before or After School Clubs');
+  assert.equal(asc.course, 'School Clubs');
   assert.ok(!model.coursesFor('host').some(function (c) { return c.key === 'after-school-clubs'; }), 'not on the home host form');
   assert.match(orgPage, /value="after-school-clubs"/);
-  assert.match(orgPage, /Before or After School Clubs — tailored to your school · In person/);
+  assert.match(orgPage, /School Clubs — tailored to your school · In person/);
   assert.doesNotMatch(orgPage, /\$200 per person/);
   assert.match(orgPage, /id="clubs-wrap"/);
   ['My First Babysitter\'s Club', 'Little Medics', 'Pet Sitter\'s Club', 'Snack Squad', 'Kid Boss Club',
