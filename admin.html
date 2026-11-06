@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261105-teach-instructor';
+window.MB_ADMIN_BUILD='20261106-instructor-privacy';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -43,6 +43,7 @@ window.MB_ADMIN_BUILD='20261105-teach-instructor';
 <script src="/js/class-requests-admin.js"></script>
 <script src="/js/invoice-payments.js"></script>
 <script src="/js/session-place.js"></script>
+<script src="/js/instructor-facing.js"></script>
 <script src="/js/county-disclaimer.js"></script>
 <script src="/js/duplicate-sessions.js"></script>
 <script src="/js/srf-grant.js"></script>
@@ -992,7 +993,7 @@ function closuresFromDB(r){
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
   const closures=closuresFromDB(r);
-  return{closures,instructorInfo:r.instructor_info||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),troopLevel:r.troop_level||null,countyDisclaimer:r.county_disclaimer===true?true:(r.county_disclaimer===false?false:null),grantTag:r.grant_tag||'',extraDays,extraDates:extraDays.map(d=>d.date)};
+  return{closures,instructorInfo:r.instructor_info||'',instructorDirections:r.instructor_directions||'',id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',hostAddress:r.host_address||'',city:r.city||'',state:r.state||'',zip:r.zip||'',contactName:r.contact_name||'',hostPhone:r.host_phone||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,hasHost:r.has_host!==false,instructorId:r.instructor_id||null,secondInstructorId:r.second_instructor_id||null,maxStudentsOverride:r.max_students_override||null,notes:r.notes||'',additionalCosts:r.additional_costs||[],createdAt:r.created_at==null?null:Number(r.created_at),wifiInfo:r.wifi_info||'',priceOverride:r.price_override==null?null:Number(r.price_override),instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isVirtual:r.is_virtual||false,zoomLink:r.zoom_link||'',externalRegistrationUrl:r.external_registration_url||'',adminPrivateNotes:r.admin_private_notes||'',referralPartnerId:r.referral_partner_id||null,isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',cancelledAt:r.cancelled_at||null,allowWaitlist:r.allow_waitlist!==false,reservedSeats:r.reserved_seats||null,holdTerm:r.hold_term||'',holdPayment:r.hold_payment||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',billToOrg:r.bill_to_org||'',billedHeadcount:r.billed_headcount==null?null:Number(r.billed_headcount),orgPortion:r.org_portion==null||r.org_portion===''?null:Number(r.org_portion),orgHandlesRegistration:r.org_handles_registration===true,isPrivate:r.is_private===true,originatedBy:r.originated_by||null,originationNote:r.origination_note||'',hostedFor:r.hosted_for||null,feeReceived:r.fee_received===true?true:(r.fee_received===false?false:null),participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),troopLevel:r.troop_level||null,countyDisclaimer:r.county_disclaimer===true?true:(r.county_disclaimer===false?false:null),grantTag:r.grant_tag||'',extraDays,extraDates:extraDays.map(d=>d.date)};
 }
 // Set to false automatically if the database is missing the extra_dates / extra_days column.
 // (Run in the Supabase SQL editor:
@@ -1049,11 +1050,14 @@ let CANCEL_COLS=true;
 // The grant is required. Anon SELECT on sessions is column-level, so a missing
 // grant fails the whole public session query.)
 let EXTERNAL_URL_COL=true;
-// Lindsay's private notes. Separate from sessions.notes, which instructors see.
+// Lindsay's private notes. Separate from session notes and from instructor directions.
+// Instructors do not see sessions.notes. They see instructor_directions and
+// any older instructor_info text. Anon is not granted the private column.
 // Anon is not granted this column (see migrations/admin_private_notes.sql).
 // Set false automatically if that SQL has not been run yet, so the rest of
 // the session still saves.
 let ADMIN_PRIVATE_NOTES_COL=true;
+let INSTR_DIRECTIONS_COL=true;
 const PRIVATE_NOTES_SQL_TOAST='⚠️ Saved, but WITHOUT private notes — run migrations/admin_private_notes.sql in the Supabase SQL editor, then re-save this session.';
 // Per-participant amount an organization pays on top of (or instead of repeating) the
 // family checkout price. Anon is not granted this column — public registration
@@ -1096,6 +1100,22 @@ function adminPrivateNotesFieldHtml(value){
 function readAdminPrivateNotes(){
   const el=document.getElementById('m-private-notes');
   return el?(el.value||''):'';
+}
+function instructorDirectionsFieldHtml(value, inputId){
+  const id=inputId||'m-instructor-directions';
+  return `<div class="fg full" style="background:#eef6f2;border:1px solid #bcdccb;border-radius:var(--r-sm);padding:10px 12px">
+      <label for="${id}">Directions for instructors <span style="font-weight:400;color:var(--muted)">(parking, arrival, what to bring)</span></label>
+      <textarea id="${id}" rows="4" placeholder="Parking, check-in, room number, what the venue provides, dress code. Do not put rates, invoices, or payment agreements here." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(value||'')}</textarea>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Only the assigned instructor, and a second instructor when there is one, see this. It can include a door code or a Zoom host key, so it stays off the open job board. Session notes and older instructor info stay here.</div>
+    </div>`;
+}
+function readInstructorDirections(inputId){
+  const el=document.getElementById(inputId||'m-instructor-directions');
+  return el?(el.value||''):'';
+}
+function instructorFacingDirections(s){
+  if(typeof MBInstructorFacing!=='undefined'&&MBInstructorFacing.directionsText)return MBInstructorFacing.directionsText(s);
+  return String(s&&s.instructorDirections||'').trim();
 }
 // Blank clears the saved count. A missing input means this form does not edit it.
 // NaN is not a number Lindsay can save.
@@ -1164,6 +1184,9 @@ function sessionToDB(s){
   if(EXTRA_DAYS_COL)o.extra_days=(s.extraDays||[]).filter(x=>x&&x.date).map(x=>({date:x.date,time:x.time||''}));
   if(CLOSURES_COL)o.closures=(s.closures||[]).filter(x=>x&&x.date).map(x=>({date:x.date,reason:x.reason||''}));
   if(INSTR_INFO_COL)o.instructor_info=s.instructorInfo||null;
+  if((typeof INSTR_DIRECTIONS_COL==='undefined'||INSTR_DIRECTIONS_COL)&&s.instructorDirections!==undefined){
+    o.instructor_directions=s.instructorDirections?String(s.instructorDirections):null;
+  }
   // Only sent once the pay-hours columns exist. A session object that never
   // loaded them must not blank a value already stored.
   if((typeof TEACHING_HOURS_COL==='undefined'||TEACHING_HOURS_COL)&&s.teachingHours!==undefined)o.teaching_hours=s.teachingHours==null||s.teachingHours===''?null:Number(s.teachingHours);
@@ -1215,6 +1238,7 @@ function sessionUpsertRejectColumn(msg){
   if(EXTRA_DATES_COL&&/extra_dates/i.test(msg))return 'extra_dates';
   if(CLOSURES_COL&&/closures/i.test(msg))return 'closures';
   if(INSTR_INFO_COL&&/instructor_info/i.test(msg))return 'instructor_info';
+  if((typeof INSTR_DIRECTIONS_COL==='undefined'||INSTR_DIRECTIONS_COL)&&/instructor_directions/i.test(msg))return 'instructor_directions';
   if((typeof PAID_TRAVEL_HOURS_COL==='undefined'||PAID_TRAVEL_HOURS_COL)&&/paid_travel_hours/i.test(msg))return 'paid_travel';
   if((typeof TEACHING_HOURS_COL==='undefined'||TEACHING_HOURS_COL)&&/teaching_hours/i.test(msg))return 'teaching_hours';
   if((typeof PARTICIPANTS_EXPECTED_COL==='undefined'||PARTICIPANTS_EXPECTED_COL)&&/participants_expected/i.test(msg))return 'participants_expected';
@@ -1239,6 +1263,7 @@ function applySessionUpsertReject(which,flags){
   else if(which==='extra_dates'){EXTRA_DATES_COL=false;flags.missingDays=true;}
   else if(which==='closures'){CLOSURES_COL=false;flags.missingDetail=true;}
   else if(which==='instructor_info'){INSTR_INFO_COL=false;flags.missingDetail=true;}
+  else if(which==='instructor_directions'){INSTR_DIRECTIONS_COL=false;flags.missingDirections=true;}
   else if(which==='paid_travel'){PAID_TRAVEL_HOURS_COL=false;flags.missingPaidTravel=true;}
   else if(which==='teaching_hours'){TEACHING_HOURS_COL=false;flags.missingTeachingHours=true;}
   else if(which==='participants_expected'){PARTICIPANTS_EXPECTED_COL=false;flags.missingParticipantsExpected=true;}
@@ -1248,7 +1273,7 @@ function applySessionUpsertReject(which,flags){
   return !!which;
 }
 function blankSessionUpsertFlags(){
-  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingPaidTravel:false,missingTeachingHours:false,missingParticipantsExpected:false,missingTroopLevel:false,missingCountyDisclaimer:false,missingGrantTag:false};
+  return{missingRnCol:false,missingSsCol:false,missingSpanishCol:false,missingExternalUrl:false,missingPrivateNotes:false,missingOrgPortion:false,missingFeeReceived:false,missingOrgReg:false,missingHostedFor:false,missingOrigin:false,missingDays:false,missingDetail:false,missingDirections:false,missingPaidTravel:false,missingTeachingHours:false,missingParticipantsExpected:false,missingTroopLevel:false,missingCountyDisclaimer:false,missingGrantTag:false};
 }
 // Every session write goes through here: course sessions, custom jobs, holds,
 // publish, cancel. One unknown column used to abort custom-job and hold saves
@@ -1294,6 +1319,7 @@ function sessionOptionalColToast(f){
   if(f.missingCountyDisclaimer)return '⚠️ Saved, but WITHOUT the Montgomery County disclaimer setting. Run migrations/20261102_county_disclaimer.sql in the Supabase SQL editor, then re-save this session.';
   if(f.missingGrantTag)return GRANT_TAG_SQL_TOAST;
   if(f.missingDetail)return "⚠️ Saved, but WITHOUT closures / instructor job details — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists closures jsonb default '[]'; alter table sessions add column if not exists instructor_info text;";
+  if(f.missingDirections)return '⚠️ Saved, but WITHOUT directions for instructors — run migrations/20261106_instructor_directions.sql in the Supabase SQL editor, then re-save this session.';
   if(f.missingDays)return "⚠️ Saved, but WITHOUT some additional-class-day info — run this once in the Supabase SQL editor, then re-save: alter table sessions add column if not exists extra_dates jsonb default '[]'; alter table sessions add column if not exists extra_days jsonb default '[]';";
   return '';
 }
@@ -8202,10 +8228,7 @@ if(window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s)){
 // Instructor-facing notes and the older "job details" box both showed on the
 // job board, so they are one block here, the same way the edit form folds them.
 function sessionJobNotesText(s){
-  const n=String((s&&s.notes)||'').trim();
-  const info=String((s&&s.instructorInfo)||'').trim();
-  if(n&&info&&n!==info)return n+'\n\n'+info;
-  return n||info;
+  return instructorFacingDirections(s);
 }
 function sessionAboutWhereText(s){
   if(!s)return '';
@@ -8357,6 +8380,8 @@ function sessionAboutBodyHtml(s){
   const where=sessionAboutWhereText(s);
   const when=sessionAboutWhenText(s);
   const priv=String((s&&s.adminPrivateNotes)||'').trim();
+  const sessionNotes=String((s&&s.notes)||'').trim();
+  const legacyInfo=String((s&&s.instructorInfo)||'').trim();
   const job=sessionJobNotesText(s);
   const code=s.code&&!s.orgHandlesRegistration?`<div style="margin-top:6px"><span class="code-badge" style="cursor:default">${escapeHtml(s.code)}</span></div>`:'';
   return `<div class="about-title">${escapeHtml(s.course||(s.isCustomJob?'Custom job':'Session'))}</div>${code}
@@ -8367,7 +8392,11 @@ function sessionAboutBodyHtml(s){
     <div class="about-block"><div class="about-kicker">Notes to me</div>
       <div class="about-note-label">Private notes <span>(admin only)</span></div>
       ${priv?`<div class="about-note private">${_aboutLinked(priv)}</div>`:'<div class="about-empty">None</div>'}
-      <div class="about-note-label">Notes / job description <span>(what instructors see)</span></div>
+      <div class="about-note-label">Session notes <span>(admin only)</span></div>
+      ${sessionNotes?`<div class="about-note private">${_aboutLinked(sessionNotes)}</div>`:'<div class="about-empty">None</div>'}
+      <div class="about-note-label">Older instructor info <span>(admin only, not sent)</span></div>
+      ${legacyInfo?`<div class="about-note private">${_aboutLinked(legacyInfo)}</div>`:'<div class="about-empty">None</div>'}
+      <div class="about-note-label">Directions for instructors <span>(assigned instructors only — what instructors see after they are assigned)</span></div>
       ${job?`<div class="about-note">${_aboutLinked(job)}</div>`:'<div class="about-empty">None</div>'}
     </div>`;
 }
@@ -8772,8 +8801,9 @@ function openAddSession(){
       </div>
     </div>
     ${paidHoursFieldsHtml(null)}
-    <div class="fg full"><label>Notes for instructors <span style="font-weight:400;color:var(--muted)">(shown on the job board)</span></label>
-      <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea>
+    ${instructorDirectionsFieldHtml('')}
+    <div class="fg full"><label>Session notes <span style="font-weight:400;color:var(--muted)">(admin only — instructors do not see this)</span></label>
+      <textarea id="m-notes" rows="4" placeholder="Optional — your own notes. Rates and payment agreements belong in Private notes." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea>
       <div style="font-size:14px;color:var(--muted);margin-top:4px">Anything an instructor needs in order to decide and prepare. Visible before they accept, so leave host phone numbers out — those are shared automatically once the job is claimed.</div>
     </div>
     ${adminPrivateNotesFieldHtml('')}
@@ -8920,8 +8950,9 @@ function openAddCustomJob(){
       <select id="cj-instr" style="width:100%"><option value="">— Post as open job (instructors self-assign) —</option></select>
     </div>
     ${externalRegistrationFieldHtml(null)}
-    <div class="fg full"><label>Notes / job description <span style="font-weight:400;color:var(--muted)">(optional — what the instructor needs to know)</span></label>
-      <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
+    ${instructorDirectionsFieldHtml('','cj-instructor-directions')}
+    <div class="fg full"><label>Session notes <span style="font-weight:400;color:var(--muted)">(admin only — instructors do not see this)</span></label>
+      <textarea id="cj-notes" rows="4" placeholder="Your notes for this job. Parking and what to bring go in Directions for instructors." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical"></textarea></div>
     ${participantsExpectedFieldHtml(null,'cj-expected')}
     ${troopLevelFieldHtml(null,'cj-troop-level')}
     ${grantTagFieldHtml(null,'cj-grant-tag')}
@@ -9049,7 +9080,7 @@ async function saveCustomJob(){
   const troopLevel=readTroopLevel('cj-troop-level');
   if(_savingSession)return; _savingSession=true;
   try{
-  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,orgHandlesRegistration,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg,feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
+  const s={id:sid(),course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),code,orgHandlesRegistration,ownerTaught:false,hasHost:false,hostTaken:false,instructorId:preInstrId,secondInstructorId:null,maxStudentsOverride:null,notes:document.getElementById('cj-notes').value,instructorDirections:readInstructorDirections('cj-instructor-directions'),adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,additionalCosts:[],createdAt:Date.now(),wifiInfo:'',priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instrPayOverride:Number(payRaw),isVirtual:false,zoomLink:'',isCustomJob:true,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,isRecurring,recurPattern,recurEndDate,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,billToOrg,feeReceived:readFeeReceived('cj-fee-received',null),billedHeadcount:null,originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),...customJobDayFields(date)};
   if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
   if(troopLevel!==undefined)s.troopLevel=troopLevel;
   const countyDisclaimer=readCountyDisclaimer();
@@ -9207,8 +9238,9 @@ ${lockboxFieldHtml(s)}
       <button type="button" class="btn sm" onclick="revealTeachLimit('cj-cred-row','cj-cred-reveal','sess-job-instr')">Limit who can teach</button>
     </div>
     ${externalRegistrationFieldHtml(s)}
-    <div class="fg full"><label>Notes / job description</label>
-      <textarea id="cj-notes" rows="4" placeholder="e.g. Wear MB shirt, check in at volunteer tent, bring ID" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea></div>
+    ${instructorDirectionsFieldHtml(s.instructorDirections,'cj-instructor-directions')}
+    <div class="fg full"><label>Session notes <span style="font-weight:400;color:var(--muted)">(admin only — instructors do not see this)</span></label>
+      <textarea id="cj-notes" rows="4" placeholder="Your notes for this job. Parking and what to bring go in Directions for instructors." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea></div>
     ${participantsExpectedFieldHtml(s,'cj-expected')}
     ${troopLevelFieldHtml(s,'cj-troop-level')}
     ${grantTagFieldHtml(s,'cj-grant-tag')}
@@ -9271,7 +9303,7 @@ async function saveEditCustomJob(id){
   if(Number.isNaN(participantsExpected)){alert('Participants expected needs to be blank, or a whole number of 1 or more.');return;}
   const troopLevel=readTroopLevel('cj-troop-level');
   const prevSnapshot={...s};
-  Object.assign(s,{code,orgHandlesRegistration,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg,feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
+  Object.assign(s,{code,orgHandlesRegistration,isRecurring,recurPattern,recurEndDate,requiresRN:!!(document.getElementById('cj-rnonly')||{}).checked,requiresSS:!!(document.getElementById('cj-ssonly')||{}).checked,requiresSpanish:!!(document.getElementById('cj-spanishonly')||{}).checked,allowWaitlist:document.getElementById('cj-waitlist')?.checked!==false,course:title,date,time:document.getElementById('cj-time').value,location:document.getElementById('cj-loc').value,hostAddress:document.getElementById('cj-addr').value,city:document.getElementById('cj-city').value,state:document.getElementById('cj-state').value,zip:document.getElementById('cj-zip').value,contactName:(document.getElementById('cj-cname')?.value||'').trim(),hostPhone:(document.getElementById('cj-cphone')?.value||'').trim(),instrPayOverride:Number(payRaw),priceOverride:(()=>{const v=document.getElementById('cj-orgfee')?.value;return v===''||v==null?null:Number(v);})(),instructorId:preInstrId,notes:document.getElementById('cj-notes').value,instructorDirections:readInstructorDirections('cj-instructor-directions'),adminPrivateNotes:readAdminPrivateNotes(),externalRegistrationUrl,billToOrg,feeReceived:readFeeReceived('cj-fee-received',s.feeReceived),originatedBy:readOriginatedBy(),originationNote:readOriginationNote(),hostedFor:readHostedFor(),isHold,reservedSeats,holdTerm,holdPayment,...customJobDayFields(date)});
   if(participantsExpected!==undefined)s.participantsExpected=participantsExpected;
   if(troopLevel!==undefined)s.troopLevel=troopLevel;
   const countyDisclaimer=readCountyDisclaimer();
@@ -9567,15 +9599,10 @@ ${lockboxFieldHtml(s)}
     <div class="fg full"><label>WiFi info <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input type="text" id="m-wifi" value="${s.wifiInfo||''}" placeholder="e.g. Network: HomeWifi · Password: abc123"></div>
     ${externalRegistrationFieldHtml(s)}
     ${partnerOriginFieldHtml(s)}${orgPartnerFieldHtml(s)}
-    <div class="fg full"><label>Notes for instructors <span style="font-weight:400;color:var(--muted)">(shown on the job board)</span></label>
-      <textarea id="m-notes" rows="4" placeholder="Optional — parking, check-in, room number, what the venue provides, dress code, the week-by-week dates of a series." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${(()=>{
-        // Notes and the old "Job details for instructors" box both displayed on the same
-        // job board, so they are one field now. Any legacy instructor_info text is folded
-        // into this textarea; saving writes it back as Notes and clears the old column.
-        const _n=(s.notes||'').trim(), _i=(s.instructorInfo||'').trim();
-        return (_n&&_i?_n+'\n\n'+_i:_n||_i).replace(/</g,'&lt;');
-      })()}</textarea>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">Anything an instructor needs in order to decide and prepare. Visible before they accept, so leave host phone numbers out — those are shared automatically once the job is claimed.</div>
+    ${instructorDirectionsFieldHtml(s.instructorDirections)}
+    <div class="fg full"><label>Session notes <span style="font-weight:400;color:var(--muted)">(admin only — instructors do not see this)</span></label>
+      <textarea id="m-notes" rows="4" placeholder="Optional — your own notes. Rates and payment agreements belong in Private notes." style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:16px;font-family:'Montserrat',sans-serif;outline:none;background:white;resize:vertical">${escapeHtml(s.notes||'')}</textarea>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Kept for you. It is not on the instructor job board, in instructor emails, or on a printed roster. Older job details already saved for instructors stay on the board until you replace them in Directions for instructors.</div>
     </div>
     ${adminPrivateNotesFieldHtml(s.adminPrivateNotes)}
     ${sessionCostsFieldHtml()}
@@ -9701,10 +9728,7 @@ async function saveSession(editId){
     .filter(x=>x&&x.date&&!_seenClosures.has(x.date)&&!!_seenClosures.add(x.date))
     .map(x=>({date:x.date,reason:(x.reason||'').trim()}))
     .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
-  // The "Job details for instructors" box is retired — it and Notes both showed on the
-  // same job board. The edit form pre-fills Notes with both, so saving folds any legacy
-  // text into notes and blanks the old column. Nothing is lost; it just moves.
-  const instructorInfo='';
+  const instructorDirections=readInstructorDirections();
   const feeReceived=readFeeReceived('m-fee-received', editId?(sessions.find(x=>x.id===editId)||{}).feeReceived:null);
   const markInKind=document.getElementById('m-inkind')?.checked||false;
   const requiresRN=!!((document.getElementById('m-rnonly')||{}).checked||(COURSES[course]||{}).requiresRN);
@@ -9722,9 +9746,9 @@ async function saveSession(editId){
   if(editId){
     s=sessions.find(x=>x.id===editId);
     prevSnapshot={...s}; // snapshot for rollback if the DB save fails
-    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,paidTravelHours,teachingHours,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish});
+    Object.assign(s,{course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',notes:document.getElementById('m-notes').value,instructorDirections,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,paidTravelHours,teachingHours,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish});
   }else{
-    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,paidTravelHours,teachingHours,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,instructorInfo,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish};
+    s={id:sid(),course,date,time:document.getElementById('m-time').value,location:document.getElementById('m-loc').value,hostAddress:document.getElementById('m-haddr').value,city:document.getElementById('m-city').value,state:document.getElementById('m-state').value,zip:document.getElementById('m-zip').value,contactName:document.getElementById('m-cname').value,hostPhone:document.getElementById('m-hphone').value,code,orgHandlesRegistration,ownerTaught:isOwner,hasHost:document.getElementById('m-hashost').value==='yes',hostTaken:false,instructorId:preInstrId,secondInstructorId,maxStudentsOverride,notes:document.getElementById('m-notes').value,instructorDirections,adminPrivateNotes:readAdminPrivateNotes(),additionalCosts,createdAt:Date.now(),wifiInfo:document.getElementById('m-wifi').value,priceOverride,instrPayOverride,paidTravelHours,teachingHours,isVirtual,zoomLink,isHold,reservedSeats,holdTerm,holdPayment,billToOrg,billedHeadcount,orgPortion,allowWaitlist,feeReceived,extraDates,extraDays,closures,originatedBy,originationNote,hostedFor,externalRegistrationUrl,requiresRN,requiresSS,requiresSpanish};
     sessions.push(s);
   }
   const matChoice=sessionMaterialsFromForm(editId);
@@ -13496,7 +13520,7 @@ function opsEmailInfo(s){
   const hostName=nameOf(s.contactName)||hostRegs.map(r=>nameOf(r.parentName)||nameOf(r.studentName)).find(Boolean)||'';
   const mealChunks=[];
   const specialChunks=[];
-  [s.notes,s.instructorInfo].forEach(chunk=>{
+  [s.instructorDirections].forEach(chunk=>{
     if(chunk){mealChunks.push(chunk);specialChunks.push(chunk);}
   });
   hostRegs.forEach(r=>{
@@ -19407,8 +19431,9 @@ function openInstructorReminder(sessId,specificInstrId){
   }
   detailLines.push('Session code: '+s.code);
   detailLines.push(rosterCountPhrase(s.course, regs));
-  // Instructor-facing notes only. adminPrivateNotes is never included in email.
-  if(s.notes)detailLines.push('Notes: '+s.notes);
+  // Instructor directions only. Session notes and private notes stay off this email.
+  const instructorDirections=instructorFacingDirections(s);
+  if(instructorDirections)detailLines.push('Directions: '+instructorDirections);
   const where=s.isVirtual?'Virtual (Zoom)':(s.location?(s.location+(s.city?', '+s.city:'')):'TBD');
   const virtual=!!s.isVirtual;
   const draft=virtual?opsDraft('instructorZoomReminder', s, {instructor:instr.name||''}):null;

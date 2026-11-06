@@ -123,8 +123,9 @@ test('instructor, public, and reminder surfaces never select the private column'
   assert.equal(privacy.slice(selectAt, end).includes('admin_private_notes'), false);
 });
 
-test('instructor reminder email keeps using the public notes field only', () => {
-  assert.match(admin, /if\(s\.notes\)detailLines\.push\('Notes: '\+s\.notes\)/);
+test('instructor reminder email uses instructor directions and not private notes', () => {
+  assert.match(admin, /detailLines\.push\('Directions: '\+instructorDirections\)/);
+  assert.doesNotMatch(admin, /detailLines\.push\('Notes: '\+s\.notes\)/);
   assert.doesNotMatch(admin, /detailLines\.push\([^;\n]*adminPrivateNotes/);
   assert.doesNotMatch(admin, /EMAIL_(BODY|INTRO|CLOSING|SUBJECT)[^;]{0,400}adminPrivateNotes/);
 });

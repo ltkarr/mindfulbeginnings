@@ -284,7 +284,7 @@ test('the admin dashboard can print a checklist the same way it prints a packing
   assert.match(admin, /window\.print\(\)/);
   const build = admin.match(/window\.MB_ADMIN_BUILD='([^']+)'/);
   assert.equal(build && build[1], buildFile);
-  assert.match(buildFile, /teach-instructor/);
+  assert.match(buildFile, /instructor-privacy/);
   assert.match(admin, /instructor:instructor/);
   assert.match(admin, /sessionInstructorNames\(s,''\)/);
   assert.match(admin, /Virtual classes do not use a teaching checklist/);

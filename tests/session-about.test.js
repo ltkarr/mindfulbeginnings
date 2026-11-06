@@ -63,6 +63,7 @@ function loadAbout() {
       extractFn(admin, 'sessionInstructorPayAmount'),
       extractFn(admin, 'sessionRequiresRN'),
       extractFn(admin, 'sessionRequiresSafeSitter'),
+      extractFn(admin, 'instructorFacingDirections'),
       extractFn(admin, 'sessionJobNotesText'),
       extractFn(admin, 'sessionAboutWhereText'),
       extractFn(admin, 'sessionEndTime'),
@@ -177,7 +178,9 @@ test('owner-taught, virtual, hold, and custom-job notes all render', () => {
   assert.match(owner, /https:\/\/zoom\.us\/j\/123/);
   assert.match(owner, /Fall 2026/);
   assert.match(owner, /10:00 AM/);
-  assert.match(owner, /Park behind the school\n\nBring the banner/);
+  assert.match(owner, /Park behind the school/);
+  assert.match(owner, /Bring the banner/);
+  assert.doesNotMatch(owner, /Park behind the school\\n\\nBring the banner|Park behind the school\n\nBring the banner/);
   assert.match(owner, /Org rate is private/);
 
   const job = api.sessionAboutBodyHtml({
