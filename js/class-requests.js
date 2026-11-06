@@ -751,6 +751,18 @@
     return '';
   }
 
+  // Parking, arrival, equipment, and the meal plan are typed in their own
+  // fields. Free-text notes and the billing sentence stay off this result.
+  function instructorDirections(n) {
+    var lines = [];
+    if (n.parking) lines.push('Parking: ' + n.parking);
+    if (n.arrival) lines.push('Arrival and access: ' + n.arrival);
+    if (n.av && n.av.length) lines.push('AV on site: ' + n.av.join(', '));
+    var meal = foodSentence(n.food);
+    if (meal) lines.push('Food: ' + meal);
+    return lines.join('\n').slice(0, 20000);
+  }
+
   function instructorNotes(n) {
     var lines = [];
     lines.push('From the class request form.');
@@ -759,7 +771,6 @@
     if (n.badge) lines.push('Girl Scout badge: ' + n.badge);
     if (n.instructorRequest) lines.push('Instructor request: ' + n.instructorRequest);
     if (n.spanishRequested) lines.push('Requested in Spanish. A Spanish-speaking instructor is required.');
-    if (n.billing && n.billing.mode) lines.push('Billing: ' + billingSentence(n));
     var meal = foodSentence(n.food);
     if (meal) lines.push('Food: ' + meal);
     if (n.checklistAnswer === 'questions' && n.checklistQuestions) lines.push('Host checklist questions: ' + n.checklistQuestions);
@@ -829,6 +840,7 @@
       has_host: !!n.billing.hasHost,
       instructor_id: null,
       notes: instructorNotes(n),
+      instructor_directions: instructorDirections(n) || null,
       additional_costs: [],
       created_at: ids.createdAt || Date.now(),
       wifi_info: null,

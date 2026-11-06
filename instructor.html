@@ -19,6 +19,7 @@
      config.js carries prices, material costs and promo codes. Keep business data OUT
      of config-instructor.js. If the file is missing, the built-in table below is used. -->
 <script src="/config-instructor.js"></script>
+<script src="/js/instructor-facing.js"></script>
 <script src="/js/course-booking.js"></script>
 <script src="/js/session-place.js"></script>
 <script src="/js/srf-grant.js"></script>
@@ -485,13 +486,13 @@ function closuresFromDB(r){
 }
 function sessionFromDB(r){
   const extraDays=extraDaysFromDB(r);
-  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:r.zoom_link||'',hasHost:r.has_host!==false,contactName:r.contact_name||'',maxStudentsOverride:r.max_students_override||null,participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:r.notes||'',hostAddress:r.host_address||'',hostPhone:r.host_phone||'',wifiInfo:r.wifi_info||'',contactDay:r.contact_day||'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,grantTag:r.grant_tag||'',extraDates:extraDays.map(d=>d.date)};
+  return{extraDays,closures:closuresFromDB(r),instructorInfo:r.instructor_info||'',isRecurring:r.is_recurring||false,recurPattern:r.recur_pattern||'',recurEndDate:r.recur_end_date||'',state:r.state||'',zip:r.zip||'',zoomLink:'',hasHost:r.has_host!==false,contactName:'',maxStudentsOverride:r.max_students_override||null,participantsExpected:r.participants_expected==null||r.participants_expected===''?null:Number(r.participants_expected),secondInstructorId:r.second_instructor_id||null,id:r.id,code:r.code,course:r.course,date:r.date||'',time:r.time||'',location:r.location||'',city:r.city||'',ownerTaught:r.owner_taught||false,hostTaken:r.host_taken||false,instructorId:r.instructor_id||null,notes:'',instructorDirections:r.instructor_directions||'',hostAddress:r.host_address||'',hostPhone:'',wifiInfo:'',contactDay:'',instrPayOverride:r.instr_pay_override==null?null:Number(r.instr_pay_override),teachingHours:r.teaching_hours==null||r.teaching_hours===''?null:Number(r.teaching_hours),paidTravelHours:r.paid_travel_hours==null||r.paid_travel_hours===''?null:Number(r.paid_travel_hours),isCustomJob:r.is_custom_job||false,requiresRN:r.requires_rn||false,requiresSS:r.requires_safe_sitter||false,requiresSpanish:r.requires_spanish||false,isVirtual:r.is_virtual||false,isHold:r.is_hold||false,isCancelled:r.is_cancelled||false,cancelReason:r.cancel_reason||'',allowWaitlist:r.allow_waitlist!==false,extraDates:extraDays.map(d=>d.date)};
 }
 function jobFromDB(r){
-  return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,notes:r.notes||'',referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
+  return{instructorId:r.instructor_id||null,waitlist:r.waitlist||[],materialsMethod:r.materials_method||'',materialsSent:r.materials_sent||false,evalReceived:r.eval_received||false,payStatus:r.pay_status||null,payDate:r.pay_date||null,referralBonus:r.referral_bonus||0,reopenedAt:r.reopened_at||null,paidFee:r.paid_fee==null?null:Number(r.paid_fee)};
 }
 function jobToDB(sessId,j){
-  return{session_id:sessId,instructor_id:j.instructorId||null,waitlist:j.waitlist||[],materials_method:j.materialsMethod||null,materials_sent:j.materialsSent||false,eval_received:j.evalReceived||false,pay_status:j.payStatus||null,pay_date:j.payDate||null,notes:j.notes||''};
+  return{session_id:sessId,instructor_id:j.instructorId||null,waitlist:j.waitlist||[],materials_method:j.materialsMethod||null,materials_sent:j.materialsSent||false,eval_received:j.evalReceived||false,pay_status:j.payStatus||null,pay_date:j.payDate||null};
 }
 
 // ─── CONSTANTS ───────────────────────────────────────────────
@@ -736,11 +737,8 @@ function seatsPerRegistration(course){
 }
 function filledSeats(s){return countRegs(s&&s.id)*seatsPerRegistration(s&&s.course);}
 function partnerNameOf(r){
-  const booking=(typeof window!=='undefined'&&window.MBCourseBooking)||null;
-  if(booking)return booking.partnerNameOf(r);
   if(!r)return '';
-  const m=String(r.notes||'').match(/\[Partner:\s*([^\]]+)\]/i);
-  return m?m[1].trim():'';
+  return String(r.partner_name||'').trim();
 }
 function rosterNameCell(r){
   const primary=(r&&(r.student_name||r.studentName))||'';
@@ -1136,12 +1134,21 @@ function locationHTML(s,showPrivate,priv,mapLink){
   }
   return`<div class="jc-section"><div class="jc-section-t">${s.isVirtual?'Format':'Where'}</div><div style="font-size:13px;line-height:1.7">${lines.join('')}</div></div>`;
 }
-// Lindsay's notes on the session, shown to instructors verbatim. This is often where
-// the week-by-week dates of a series are written out, so it sits high on the card.
+// Directions Lindsay wrote for the instructor, plus older instructor_info text.
+// Session notes and private notes are not read here.
+function instructorDirectionsText(s){
+  if(typeof MBInstructorFacing!=='undefined'&&MBInstructorFacing.directionsText)return MBInstructorFacing.directionsText(s);
+  const parts=[];
+  [s&&s.instructorDirections,s&&s.instructorInfo].forEach(v=>{
+    const t=String(v||'').trim();
+    if(t&&parts.indexOf(t)<0)parts.push(t);
+  });
+  return parts.join('\n\n');
+}
 function notesHTML(s){
-  const n=(s.notes||'').trim();
+  const n=instructorDirectionsText(s);
   if(!n)return'';
-  return`<div class="jc-section"><div class="jc-section-t">Notes</div>
+  return`<div class="jc-section"><div class="jc-section-t">Directions</div>
     <div class="notes-box">${escapeHtml(n).replace(/\n/g,'<br>')}</div></div>`;
 }
 // Safe@Home classes (SAH- and SAHV- codes, plus every Safe@Home course name)
@@ -1197,7 +1204,6 @@ function safeAtHomeClassChecklistHTML(s){
 function goodToKnowHTML(s){
   const c=COURSES[s.course]||{};
   const bits=[];
-  if(s.instructorInfo)bits.push(escapeHtml(s.instructorInfo).replace(/\n/g,'<br>'));
   const facts=[];
   if(sessionRequiresRN(s)&&sessionRequiresSpanish(s))facts.push('<strong>Registered nurses who speak Spanish only</strong>');
   else if(sessionRequiresRN(s))facts.push('<strong>Registered nurses only</strong>');
@@ -1517,7 +1523,9 @@ async function loadData(){
   // checks the same PIN as instructor_login and returns the board columns only.
   // Site details are fetched per-job through the instructor_session_private RPC once a
   // job is accepted. host_address and zoom_link stay on that RPC.
+  // Session notes, private notes, client prices, and grant tags are not selected.
   // admin_private_notes is not granted to anon and must never be selected.
+  // instructor_directions and instructor_info are the only note text on this payload.
   let[s,j,r]=await Promise.all([
     (me&&me.pin)
       ? sb.rpc('instructor_list_sessions',{p_pin:me.pin})
@@ -1578,7 +1586,6 @@ async function loadData(){
           cur.evalReceived=!!row.eval_received;
           cur.payStatus=row.pay_status||null;
           cur.payDate=row.pay_date||null;
-          cur.notes=row.notes||'';
           cur.referralBonus=row.referral_bonus||0;
           cur.paidFee=row.paid_fee==null?null:Number(row.paid_fee);
           jobDataCache[row.session_id]=cur;
@@ -1587,16 +1594,6 @@ async function loadData(){
         console.warn('instructor job details failed:',priv.error);
       }
     }catch(e){console.warn('instructor job details failed:',e);}
-    try{
-      const noteRows=await sb.rpc('instructor_session_notes',{p_pin:me.pin});
-      if(noteRows&&!noteRows.error){
-        const map={};
-        (noteRows.data||[]).forEach(row=>{if(row&&row.session_id)map[row.session_id]=row.notes||'';});
-        allSessions.forEach(s=>{if(Object.prototype.hasOwnProperty.call(map,s.id))s.notes=map[s.id];});
-      }else if(noteRows&&noteRows.error){
-        console.warn('instructor session notes failed:',noteRows.error);
-      }
-    }catch(e){console.warn('instructor session notes failed:',e);}
   }
   if(!r.error){regCountMap={};(r.data||[]).forEach(x=>{regCountMap[x.session_id]=Number(x.cnt)||0;});}
   lastFetch=Date.now();
@@ -2086,19 +2083,6 @@ function renderOnboardingGate(el){
   return true;
 }
 
-// Funding label for a tagged job. The award amount stays in admin Finances.
-function grantJobNote(s){
-  const tag=String(s&&s.grantTag||'').trim();
-  if(tag==='dd-council-2027')return 'Grant-funded: Maryland Developmental Disabilities Council';
-  if(tag)return 'Grant-funded';
-  return '';
-}
-function grantJobHtml(s){
-  const note=grantJobNote(s);
-  if(!note)return '';
-  return '<div class="jc-when"><span class="pill pill-grant">'+escapeHtml(note)+'</span></div>';
-}
-
 // ─── OPEN JOBS ───────────────────────────────────────────────
 // Upcoming sessions the instructor can act on: unclaimed postings they are
 // eligible to teach. Excludes jobs they already hold (those live in My jobs),
@@ -2133,7 +2117,7 @@ function renderOpen(){
     const mapQ=portalMaps(s);
     const mapLink=mapQ?` <a href="${escapeHtml(mapQ)}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">View on map ↗</a>`:'';
     return`<div class="job-card">
-      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${grantJobHtml(s)}${whenLineHTML(s)}</div>${pill}</div>
+      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>${pill}</div>
       ${heroStripHTML(s,fee)}
       ${fitChecksHTML(s,idx)}
       ${notesHTML(s)}
@@ -2263,7 +2247,7 @@ function renderMyJobs(){
     const mapQ=portalMaps(s,priv0);
     const mapLink=mapQ?` <a href="${escapeHtml(mapQ)}" target="_blank" rel="noopener" style="font-size:14px;color:var(--gold-d)">Directions ↗</a>`:'';
     return`<div class="job-card">
-      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${grantJobHtml(s)}${whenLineHTML(s)}</div>
+      <div class="jc-head"><div><div class="jc-course">${escapeHtml(s.course)}${credentialPill(s)}</div>${whenLineHTML(s)}</div>
       <span class="pill ${cx?'pill-taken':(upcoming?'pill-accepted':'pill-taken')}">${cx?'Cancelled':(upcoming?'Upcoming':'Completed')}</span></div>
       ${cxBanner}
       ${upcoming?heroStripHTML(s,fee):`<div class="jc-details">
@@ -2285,7 +2269,6 @@ function renderMyJobs(){
       ${cx?'':((typeof srfGrantSurveyHTML==='function')?srfGrantSurveyHTML(s):'')}
       <div style="height:14px"></div>
       ${payHtml}
-      ${jdi.notes?`<div style="font-size:14px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:var(--r-sm)">📝 ${escapeHtml(jdi.notes)}</div>`:''}
       <div class="jc-actions" style="margin-top:12px">
         ${(s.isCustomJob||cx)?'':`<button class="btn" onclick="printRoster('${s.id}')">Print roster</button>`}
         ${(upcoming&&!cx)?`<button class="btn" onclick="cancelJob('${s.id}')">Cancel my acceptance</button>`:''}
@@ -2661,6 +2644,8 @@ async function printRoster(sessId){
     priv.contactDay?`<div><span style="color:#6b7a99">Day of contact:</span><br><strong>${escapeHtml(priv.contactDay)}</strong></div>`:'',
     priv.wifiInfo?`<div style="grid-column:1/-1"><span style="color:#6b7a99">WiFi info:</span><br><strong>${escapeHtml(priv.wifiInfo)}</strong></div>`:'',
   ].filter(Boolean).join('');
+  const directions=instructorDirectionsText(s);
+  const directionRow=directions?`<div style="grid-column:1/-1"><span style="color:#6b7a99">Directions:</span><br><strong>${escapeHtml(directions).replace(/\n/g,'<br>')}</strong></div>`:'';
 
   const html=`<!DOCTYPE html><html><head><title>${escapeHtml(rosterTitle)}</title>
   <style>
@@ -2700,6 +2685,7 @@ async function printRoster(sessId){
     <div class="info-box">
       <div class="info-box-label">Session Info</div>
       ${infoRows||'<div style="color:#aaa;font-size:14px;grid-column:1/-1">No host or site details on file — contact Lindsay if needed.</div>'}
+      ${directionRow}
       <div class="lindsay-row">
         <span style="color:#6b7a99">Questions? Contact Lindsay Karr:</span> <strong>703-987-5979</strong>
       </div>
@@ -2756,7 +2742,9 @@ function printJobsCalendar(){
       const d=new Date(it.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
       if(!it.cls)return`<tr style="color:#b86a00"><td style="white-space:nowrap">${d}</td><td colspan="4"><em>No class${it.reason?' — '+escapeHtml(it.reason):''}</em></td></tr>`;
       const label=escapeHtml(s.course)+(days.length>1?` <span style="color:#6b7a99">(class ${it.n} of ${days.length})</span>`:'');
-      return`<tr><td style="white-space:nowrap">${d}</td><td>${escapeHtml(it.time||s.time||'TBD')}</td><td>${label}</td><td>${idx===0?loc:'<span style="color:#aaa">↑ same</span>'}</td><td>${filledSeats(s)}</td></tr>`;
+      const directions=idx===0?instructorDirectionsText(s):'';
+      const place=idx===0?(loc+(directions?`<div style="color:#6b7a99;margin-top:4px">${escapeHtml(directions).replace(/\n/g,'<br>')}</div>`:'')):'<span style="color:#aaa">↑ same</span>';
+      return`<tr><td style="white-space:nowrap">${d}</td><td>${escapeHtml(it.time||s.time||'TBD')}</td><td>${label}</td><td>${place}</td><td>${filledSeats(s)}</td></tr>`;
     }).join('');
   }).join('');
   const printTitle='Upcoming Jobs - '+escapeHtml(me.name);
@@ -2862,9 +2850,10 @@ function downloadJobsICS(){
     const loc=portalPlace(s,priv)||'';
     const fee=instrFeeForJob(s,jdi)+(jdi.referralBonus||0);
     const closureNote=sessClosures(s).map(c=>'No class '+new Date(c.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})+(c.reason?' ('+c.reason+')':'')).join('; ');
+    const directions=instructorDirectionsText(s);
     const desc=`Mindful Beginnings teaching job.\n${isAdultCourse(s.course)?'Participants':'Students'} registered: ${filledSeats(s)}\nYour fee: ${fmt(fee)}`
       +(closureNote?`\nClosures: ${closureNote}`:'')
-      +(s.instructorInfo?`\n\n${s.instructorInfo}`:'');
+      +(directions?`\n\n${directions}`:'');
     days.forEach((day,idx)=>{
       const dateStr=day.date;
       const tr=parseTimeRange(day.time||s.time);

@@ -84,7 +84,7 @@ test('instructor portal does not select session notes or every job column', () =
   assert.doesNotMatch(instructor, /\.from\('sessions'\)/);
   assert.match(instructor, /session_id,instructor_id,waitlist/);
   assert.match(instructor, /instructor_job_details/);
-  assert.match(instructor, /instructor_session_notes/);
+  assert.doesNotMatch(instructor, /instructor_session_notes/);
   assert.match(instructor, /instructor_list_sessions/);
   const privacy = fs.readFileSync(path.join(root, 'migrations/20261013_sessions_privacy_lockdown.sql'), 'utf8');
   const start = privacy.indexOf('function public.instructor_list_sessions');

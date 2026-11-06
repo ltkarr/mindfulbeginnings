@@ -111,16 +111,18 @@ test('the grant tag round-trips through the session DB mapping', () => {
   assert.match(admin, /o\.grant_tag=s\.grantTag\?String\(s\.grantTag\):null/);
 });
 
-test('admin session rows and instructor job posts show the grant tag', () => {
+test('the grant tag stays on admin finances and off instructor job posts', () => {
   assert.match(admin, /MD DD Council grant/);
   assert.match(admin, /grantPill/);
   const instructor = fs.readFileSync(path.join(__dirname, '..', 'instructor.html'), 'utf8');
-  assert.match(instructor, /grantTag:r\.grant_tag\|\|''/);
-  assert.match(instructor, /Grant-funded: Maryland Developmental Disabilities Council/);
-  assert.match(instructor, /grantJobHtml\(s\)/);
-  const sql = fs.readFileSync(path.join(__dirname, '..', 'migrations/20261103_instructor_grant_tag.sql'), 'utf8');
-  assert.match(sql, /grant_tag/);
-  assert.doesNotMatch(sql, /admin_private_notes/);
+  assert.doesNotMatch(instructor, /grantTag:r\.grant_tag/);
+  assert.doesNotMatch(instructor, /Grant-funded: Maryland Developmental Disabilities Council/);
+  assert.doesNotMatch(instructor, /grantJobHtml\(s\)/);
+  const sql = fs.readFileSync(path.join(__dirname, '..', 'migrations/20261106_instructor_directions.sql'), 'utf8');
+  const start = sql.indexOf('function public.instructor_list_sessions');
+  const selectAt = sql.indexOf('select id, code, course', start);
+  const end = sql.indexOf('from public.sessions', selectAt);
+  assert.equal(sql.slice(selectAt, end).includes('grant_tag'), false);
 });
 
 test('the Finances screen has a grants mount point and renders it', () => {
