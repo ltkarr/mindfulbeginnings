@@ -22,6 +22,23 @@ test('onboarding page is hidden from search and teaches the portal flow', () => 
   assert.match(page, /My jobs/);
 });
 
+test('school clubs copy lets the school choose before or after school and the series length', () => {
+  const section = page.slice(page.indexOf('<h3>School Clubs</h3>'), page.indexOf('</ul>', page.indexOf('<h3>School Clubs</h3>')));
+  assert.match(section, /one hour a week, before school or after dismissal/);
+  assert.match(section, /whichever the school chooses/);
+  assert.match(section, /before-school arrival or after-school dismissal to you/);
+  assert.match(section, /certified teachers and registered nurses/);
+  assert.match(section, /series length that fits their calendar, such as a <strong>6-, 8-, or 10-week series<\/strong>/);
+  assert.match(section, /My First Babysitter&rsquo;s Club is 8 to 12 kids/);
+  assert.match(section, /The other clubs are 8 to 16 kids/);
+  assert.match(section, /minimum of 6 students/);
+  assert.match(section, /Every club is also offered in Spanish/);
+  assert.doesNotMatch(section, /right after dismissal/);
+  assert.doesNotMatch(section, /8-week series only/);
+  assert.doesNotMatch(section, /8 or 10 weeks/);
+  assert.doesNotMatch(section, /—/);
+});
+
 test('onboarding page teaches the guide essentials', () => {
   assert.match(page, /15 minutes early/);
   assert.match(page, /no more than three days before/);

@@ -20,7 +20,11 @@ test('instructor guide class sizes follow the program guide and owner overrides'
   assert.match(guide, /Baby Ready.{0,20}3 hours/);
   assert.match(guide, /All Kids Welcome.{0,80}in person or virtual/);
   assert.match(guide, /Girl Scout badge workshops are custom-scheduled/);
-  assert.match(guide, /There is no 10-week series/);
+  assert.match(guide, /The school chooses the series length, such as 6, 8, or 10 weeks/);
+  assert.match(guide, /before school or after dismissal, whichever the school chooses/);
+  assert.doesNotMatch(guide, /There is no 10-week series/);
+  assert.doesNotMatch(guide, /8-week series only/);
+  assert.doesNotMatch(guide, /8 or 10 weeks/);
   assert.match(guide, /\$200 per participant/);
   assert.match(guide, /workshop is \$165/);
   assert.doesNotMatch(guide, /1 instructor up to/);
