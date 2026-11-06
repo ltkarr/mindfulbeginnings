@@ -78,11 +78,11 @@ test('each onboarding item has three plausible choices and one in-range key', ()
     'Contact the instructor sub list yourself, right away',
     'You are paid in full, whether or not you had arrived',
     'Keep the kit for next week\u2019s class',
-    'When the course is complete, materials are returned, and evaluations are submitted',
+    'When the course is done, materials are returned, and evaluations are in',
     'Leave it to Mindful Beginnings, which sends raises in writing',
     'Leave the job posted and do not accept it',
     'Claim host, then open the slides and share your screen',
-    'Give a raffle ticket now, and draw the gift card at the end'
+    'Draw one ticket at the end of class'
   ];
   const lessons = [1, 1, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 7, 7, 8, 8, 8, 8, 6, 4];
   assert.equal(questions.length, 21);
@@ -107,9 +107,12 @@ test('each onboarding item has three plausible choices and one in-range key', ()
     'Every Friday',
     'Once a month',
     'On the instructor',
-    'Record the session'
+    'Record the session',
+    'candy',
+    'skip the drawing',
+    'pillows'
   ].forEach((phrase) => {
-    assert.equal(bank.includes(phrase), false, phrase);
+    assert.equal(bank.toLowerCase().includes(phrase.toLowerCase()), false, phrase);
   });
 });
 
@@ -132,17 +135,29 @@ test('pass stays 17 of 21, which is the server 80 percent rule', () => {
 });
 
 test('onboarding explains bingo and raffle prizes without making them universal', () => {
-  assert.match(page, /For classes using bingo prizes or a raffle/);
-  assert.match(page, /sometimes a gift card/);
-  assert.match(page, /Amazon gift card is one example, not a promise/);
-  assert.match(page, /may depend on the age group/);
-  assert.match(page, /give raffle tickets as prizes or for volunteering, then raffle the gift card at the end of class/);
-  assert.match(page, /Mindful Beginnings provides the raffle tickets/);
-  assert.match(page, /not required to buy prizes/);
+  assert.match(page, /For classes using bingo prizes or a raffle, Mindful Beginnings chooses the setup/);
+  assert.match(page, /sometimes a gift card, such as an Amazon gift card/);
+  assert.match(page, /The choice can depend on the age group/);
+  assert.match(page, /give raffle tickets as prizes or for volunteering, then draw the gift card at the end of class/);
+  assert.match(page, /Mindful Beginnings provides the tickets/);
+  assert.match(page, /You do not have to buy anything/);
   assert.match(page, /No candy/);
   assert.doesNotMatch(page, /grand prize is your responsibility/);
   assert.doesNotMatch(page, /reimburs/);
-  assert.doesNotMatch(page, /every class gets a gift card/i);
+  assert.doesNotMatch(page, /not a promise that every class/);
+});
+
+test('Safe Sitter guide prize notes match onboarding and do not assign the grand prize to the instructor', () => {
+  const guide = fs.readFileSync(path.join(root, 'instructor.html'), 'utf8');
+  const prizes = guide.slice(guide.indexOf("{sub:'Prizes'"), guide.indexOf("{sub:'Videos'"));
+  assert.match(prizes, /For a class using bingo prizes or a raffle, Mindful Beginnings chooses the setup/);
+  assert.match(prizes, /sometimes a gift card, such as an Amazon gift card/);
+  assert.match(prizes, /The choice can depend on the age group/);
+  assert.match(prizes, /Give raffle tickets as prizes or for volunteering, then draw the gift card at the end of class/);
+  assert.match(prizes, /Mindful Beginnings provides the tickets/);
+  assert.match(prizes, /You do not have to buy anything\. No candy\./);
+  assert.doesNotMatch(prizes, /grand prize is your responsibility/);
+  assert.equal(guide.split('grand prize is your responsibility').length, 1);
 });
 
 test('submit endpoint recomputes the pass instead of trusting the client', () => {
