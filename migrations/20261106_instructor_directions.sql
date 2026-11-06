@@ -215,6 +215,134 @@ create policy "auth all"
   using (private.is_portal_admin())
   with check (private.is_portal_admin());
 
+-- Identity credentials and the remaining owner business records. A second
+-- Auth user must not read instructor or partner PINs, cash settings, or
+-- these notes. duplicate_dismissals, milestone_acks, and source-label
+-- tables stay as they are: they do not hold PINs, private notes, or money.
+
+drop policy if exists "admin full access to instructors" on public.instructors;
+create policy "admin full access to instructors"
+  on public.instructors
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin manages partners" on public.partners;
+create policy "admin manages partners"
+  on public.partners
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to referral_partners" on public.referral_partners;
+create policy "admin full access to referral_partners"
+  on public.referral_partners
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to partner_portal" on public.partner_portal;
+create policy "admin full access to partner_portal"
+  on public.partner_portal
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "auth all" on public.community_partners;
+create policy "auth all"
+  on public.community_partners
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to admin_settings" on public.admin_settings;
+create policy "admin full access to admin_settings"
+  on public.admin_settings
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to inventory_items" on public.inventory_items;
+create policy "admin full access to inventory_items"
+  on public.inventory_items
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to inventory_purchases" on public.inventory_purchases;
+create policy "admin full access to inventory_purchases"
+  on public.inventory_purchases
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin full access to course_inventory_use" on public.course_inventory_use;
+create policy "admin full access to course_inventory_use"
+  on public.course_inventory_use
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "admin read course_evaluations" on public.course_evaluations;
+create policy "admin read course_evaluations"
+  on public.course_evaluations
+  for select
+  to authenticated
+  using (private.is_portal_admin());
+
+drop policy if exists "admin delete course_evaluations" on public.course_evaluations;
+create policy "admin delete course_evaluations"
+  on public.course_evaluations
+  for delete
+  to authenticated
+  using (private.is_portal_admin());
+
+drop policy if exists "admin read onboarding_results" on public.onboarding_results;
+create policy "admin read onboarding_results"
+  on public.onboarding_results
+  for select
+  to authenticated
+  using (private.is_portal_admin());
+
+drop policy if exists "admin delete onboarding_results" on public.onboarding_results;
+create policy "admin delete onboarding_results"
+  on public.onboarding_results
+  for delete
+  to authenticated
+  using (private.is_portal_admin());
+
+drop policy if exists "admin read srf_grant_responses" on public.srf_grant_responses;
+create policy "admin read srf_grant_responses"
+  on public.srf_grant_responses
+  for select
+  to authenticated
+  using (private.is_portal_admin());
+
+drop policy if exists "Admin full access" on public.equipment;
+create policy "Admin full access"
+  on public.equipment
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
+drop policy if exists "Admin full access" on public.equipment_checkouts;
+create policy "Admin full access"
+  on public.equipment_checkouts
+  for all
+  to authenticated
+  using (private.is_portal_admin())
+  with check (private.is_portal_admin());
+
 create or replace function public.instructor_list_sessions(p_pin text)
 returns setof jsonb
 language plpgsql
@@ -242,15 +370,18 @@ begin
            s.owner_taught, s.host_taken, s.has_host, s.instructor_id,
            s.second_instructor_id,
            case
-             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+             when coalesce(s.is_cancelled, false) = false
+              and (s.instructor_id::text = v_id or s.second_instructor_id::text = v_id)
                then s.instr_pay_override
            end as instr_pay_override,
            case
-             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+             when coalesce(s.is_cancelled, false) = false
+              and (s.instructor_id::text = v_id or s.second_instructor_id::text = v_id)
                then s.teaching_hours
            end as teaching_hours,
            case
-             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+             when coalesce(s.is_cancelled, false) = false
+              and (s.instructor_id::text = v_id or s.second_instructor_id::text = v_id)
                then s.paid_travel_hours
            end as paid_travel_hours,
            s.max_students_override, s.participants_expected,
@@ -258,12 +389,14 @@ begin
            s.allow_waitlist, s.extra_dates, s.is_recurring, s.recur_pattern, s.recur_end_date,
            s.extra_days, s.closures,
            case
-             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+             when coalesce(s.is_cancelled, false) = false
+              and (s.instructor_id::text = v_id or s.second_instructor_id::text = v_id)
                then s.instructor_directions
            end as instructor_directions,
            s.requires_rn, s.requires_safe_sitter, s.requires_spanish,
            case
-             when s.instructor_id::text = v_id or s.second_instructor_id::text = v_id
+             when coalesce(s.is_cancelled, false) = false
+              and (s.instructor_id::text = v_id or s.second_instructor_id::text = v_id)
                then s.host_address
            end as host_address
     from public.sessions s
@@ -302,8 +435,11 @@ begin
   return query
   select s.id, s.instructor_directions
   from public.sessions s
-  where s.instructor_id::text = v_id
-     or s.second_instructor_id::text = v_id;
+  where coalesce(s.is_cancelled, false) = false
+    and (
+      s.instructor_id::text = v_id
+      or s.second_instructor_id::text = v_id
+    );
 end;
 $$;
 
@@ -350,7 +486,13 @@ begin
          j.referral_bonus,
          j.paid_fee
   from public.job_data j
-  where j.instructor_id::text = v_id;
+  join public.sessions s on s.id::text = j.session_id::text
+  where j.instructor_id::text = v_id
+    and coalesce(s.is_cancelled, false) = false
+    and (
+      s.instructor_id::text = v_id
+      or s.second_instructor_id::text = v_id
+    );
 end;
 $$;
 
@@ -385,14 +527,10 @@ begin
   select s.host_address, s.host_phone, s.wifi_info, s.contact_day
   from public.sessions s
   where s.id::text = p_session_id
+    and coalesce(s.is_cancelled, false) = false
     and (
       s.instructor_id::text = v_instr
       or s.second_instructor_id::text = v_instr
-      or exists (
-        select 1 from public.job_data j
-        where j.session_id = s.id
-          and j.instructor_id::text = v_instr
-      )
     );
 end;
 $$;
@@ -433,15 +571,11 @@ begin
     select 1
     from public.sessions s
     where s.id::text = p_session_id
+      and coalesce(s.is_cancelled, false) = false
       and (
         s.instructor_id::text = v_id
         or s.second_instructor_id::text = v_id
       )
-  ) and not exists (
-    select 1
-    from public.job_data j
-    where j.session_id::text = p_session_id
-      and j.instructor_id::text = v_id
   ) then
     return;
   end if;

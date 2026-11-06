@@ -367,6 +367,57 @@ test('assigned instructors keep directions and own pay; other instructors do not
   assert.equal(facing.partnerDisplayName('Paid in full'), '');
 });
 
+test('a current claim is the live assignment, not a stale job row or a cancelled class', () => {
+  const DOOR = 'SYN-DOOR-9f3c';
+  const session = {
+    instructorId: 'inst-a',
+    secondInstructorId: null,
+    instructorDirections: DOOR,
+    hostAddress: '100 Example Ave',
+    city: 'Bethesda',
+    instrPayOverride: 150,
+    isCancelled: false
+  };
+  const held = facing.restrictToViewer(Object.assign({}, session), 'inst-a');
+  assert.equal(facing.directionsText(held), DOOR);
+  assert.equal(held.instrPayOverride, 150);
+
+  const released = facing.restrictToViewer(Object.assign({}, session, { instructorId: null }), 'inst-a');
+  assert.equal(facing.directionsText(released), '');
+  assert.equal(released.instrPayOverride, null);
+  assert.equal(facing.currentClaim({ instructorId: null, jobInstructorId: 'inst-a' }, 'inst-a'), false);
+
+  const cancelled = facing.restrictToViewer(Object.assign({}, session, { isCancelled: true }), 'inst-a');
+  assert.equal(facing.directionsText(cancelled), '');
+  assert.equal(cancelled.hostAddress, '');
+  assert.equal(cancelled.city, 'Bethesda');
+
+  const waiting = facing.restrictToViewer(Object.assign({}, session, { instructorId: null, secondInstructorId: null }), 'inst-a');
+  assert.equal(facing.directionsText(waiting), '');
+});
+
+test('only the owner auth identity can pass the admin gate', () => {
+  const owner = '402193d8-a9b7-4a7b-bdbb-b939c08dbd6d';
+  assert.equal(facing.portalAdmin({ role: 'authenticated', userId: owner, appRole: '', userMetaRole: 'admin' }), true);
+  assert.equal(facing.portalAdmin({ role: 'service_role', userId: 'someone-else' }), true);
+  assert.equal(facing.portalAdmin({ role: 'authenticated', userId: 'someone-else', appRole: 'admin' }), true);
+  assert.equal(facing.portalAdmin({ role: 'authenticated', userId: 'someone-else', appRole: '', userMetaRole: 'admin' }), false);
+  assert.equal(facing.portalAdmin({ role: 'authenticated', userId: 'someone-else' }), false);
+  assert.equal(facing.portalAdmin({ role: 'anon', userId: owner }), false);
+  const body = sqlBody(sql);
+  ['instructors', 'partners', 'referral_partners', 'partner_portal', 'community_partners', 'admin_settings'].forEach(function (table) {
+    assert.match(body, new RegExp('on public\\.' + table + '[\\s\\S]{0,400}private\\.is_portal_admin\\(\\)'));
+  });
+  assert.doesNotMatch(body, /grant\s+select[^;]*instructors[^;]*to\s+anon/i);
+  assert.doesNotMatch(body, /user_metadata/);
+  const roster = selectList('instructor_get_roster');
+  const priv = selectList('instructor_session_private');
+  assert.match(roster, /is_cancelled/);
+  assert.doesNotMatch(roster, /from public\.job_data/);
+  assert.match(priv, /is_cancelled/);
+  assert.doesNotMatch(priv, /from public\.job_data/);
+});
+
 test('rollback script is guarded and the forward script is one transaction', () => {
   const rollback = fs.readFileSync(path.join(root, 'migrations/20261106_instructor_directions_rollback.sql'), 'utf8');
   const forward = sqlBody(sql);

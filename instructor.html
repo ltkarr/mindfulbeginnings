@@ -1148,7 +1148,8 @@ function restrictInstructorSession(s){
   }
   s.notes='';
   s.instructorInfo='';
-  const mine=!!(me&&(s.instructorId===me.id||s.secondInstructorId===me.id));
+  const cancelled=!!(s.isCancelled||s.is_cancelled);
+  const mine=!cancelled&&!!(me&&(s.instructorId===me.id||s.secondInstructorId===me.id));
   if(!mine){
     s.instructorDirections='';
     s.hostAddress='';

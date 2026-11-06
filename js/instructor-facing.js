@@ -1,9 +1,9 @@
 /* What an instructor portal may keep from a session payload.
    Full directions, street address, and session pay fields are kept only
    when this viewer is the assigned instructor or the second instructor.
-   instructor_info and generic notes are never kept. This file does not
-   read the database and does not decide whether own pay should stay
-   visible. That choice is still open. */
+   instructor_info and generic notes are never kept. A cancelled session
+   or a stale job row is not a current claim. Own pay stays only for the
+   instructor who currently holds the job. */
 (function (root) {
   'use strict';
 
@@ -24,6 +24,23 @@
     return sameId(id, viewerId) || sameId(second, viewerId);
   }
 
+  // Release clears both session instructor ids. A job_data row alone, a
+  // waitlist entry, or a cancelled session is not enough.
+  function currentClaim(session, viewerId) {
+    var row = session || {};
+    if (row.isCancelled === true || row.is_cancelled === true) return false;
+    return assignedTo(row, viewerId);
+  }
+
+  // Mirrors private.is_portal_admin(). The authenticated role is not enough.
+  function portalAdmin(actor) {
+    var who = actor || {};
+    if (who.role === 'service_role') return true;
+    if (who.role !== 'authenticated') return false;
+    if (who.appRole === 'admin') return true;
+    return who.userId === '402193d8-a9b7-4a7b-bdbb-b939c08dbd6d';
+  }
+
   // Only the dedicated directions column. Never instructor_info or notes.
   function directionsText(session) {
     var row = session || {};
@@ -41,7 +58,7 @@
   // here. A narrow SQL payload is left narrow.
   function restrictToViewer(session, viewerId) {
     var row = session || {};
-    var mine = assignedTo(row, viewerId);
+    var mine = currentClaim(row, viewerId);
     row.notes = '';
     row.instructorInfo = '';
     row.instructor_info = '';
@@ -83,6 +100,8 @@
 
   var api = {
     assignedTo: assignedTo,
+    currentClaim: currentClaim,
+    portalAdmin: portalAdmin,
     directionsText: directionsText,
     restrictToViewer: restrictToViewer,
     partnerDisplayName: partnerDisplayName

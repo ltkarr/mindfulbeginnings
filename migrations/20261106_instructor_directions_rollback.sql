@@ -54,6 +54,54 @@ create policy "admin manages partner payouts" on public.partner_payouts for all 
 drop policy if exists "auth all" on public.community_partner_payouts;
 create policy "auth all" on public.community_partner_payouts for all to authenticated using (true) with check (true);
 
+drop policy if exists "admin full access to instructors" on public.instructors;
+create policy "admin full access to instructors" on public.instructors for all to authenticated using (true) with check (true);
+
+drop policy if exists "admin manages partners" on public.partners;
+create policy "admin manages partners" on public.partners for all to authenticated using (true) with check (true);
+
+drop policy if exists "admin full access to referral_partners" on public.referral_partners;
+create policy "admin full access to referral_partners" on public.referral_partners for all to authenticated using (true) with check (true);
+
+drop policy if exists "admin full access to partner_portal" on public.partner_portal;
+create policy "admin full access to partner_portal" on public.partner_portal for all to authenticated using (true) with check (true);
+
+drop policy if exists "auth all" on public.community_partners;
+create policy "auth all" on public.community_partners for all to authenticated using (true) with check (true);
+
+drop policy if exists "admin full access to admin_settings" on public.admin_settings;
+create policy "admin full access to admin_settings" on public.admin_settings for all to authenticated using (true) with check (true);
+
+drop policy if exists "admin full access to inventory_items" on public.inventory_items;
+create policy "admin full access to inventory_items" on public.inventory_items for all to authenticated using (true) with check (true);
+
+drop policy if exists "admin full access to inventory_purchases" on public.inventory_purchases;
+create policy "admin full access to inventory_purchases" on public.inventory_purchases for all to authenticated using (true) with check (true);
+
+drop policy if exists "admin full access to course_inventory_use" on public.course_inventory_use;
+create policy "admin full access to course_inventory_use" on public.course_inventory_use for all to authenticated using (true) with check (true);
+
+drop policy if exists "admin read course_evaluations" on public.course_evaluations;
+create policy "admin read course_evaluations" on public.course_evaluations for select to authenticated using (true);
+
+drop policy if exists "admin delete course_evaluations" on public.course_evaluations;
+create policy "admin delete course_evaluations" on public.course_evaluations for delete to authenticated using (true);
+
+drop policy if exists "admin read onboarding_results" on public.onboarding_results;
+create policy "admin read onboarding_results" on public.onboarding_results for select to authenticated using (true);
+
+drop policy if exists "admin delete onboarding_results" on public.onboarding_results;
+create policy "admin delete onboarding_results" on public.onboarding_results for delete to authenticated using (true);
+
+drop policy if exists "admin read srf_grant_responses" on public.srf_grant_responses;
+create policy "admin read srf_grant_responses" on public.srf_grant_responses for select to authenticated using (true);
+
+drop policy if exists "Admin full access" on public.equipment;
+create policy "Admin full access" on public.equipment for all to authenticated using (true) with check (true);
+
+drop policy if exists "Admin full access" on public.equipment_checkouts;
+create policy "Admin full access" on public.equipment_checkouts for all to authenticated using (true) with check (true);
+
 -- Previous instructor_list_sessions body from migrations/20261103_instructor_grant_tag.sql.
 create or replace function public.instructor_list_sessions(p_pin text)
 returns setof jsonb
