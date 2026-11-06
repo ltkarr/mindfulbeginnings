@@ -19427,7 +19427,8 @@ function openInstructorReminder(sessId,specificInstrId){
     if(fullAddress&&street&&placeLine.toLowerCase().indexOf(street.toLowerCase())===-1)detailLines.push('Address: '+fullAddress);
     else if(fullAddress&&!street)detailLines.push('Address: '+fullAddress);
     if(contactBits)detailLines.push(contactLabel+': '+contactBits);
-    if(s.wifiInfo)detailLines.push('WiFi: '+s.wifiInfo);
+    if(s.wifiInfo)detailLines.push('Wi-Fi note on file: '+s.wifiInfo);
+    detailLines.push('Wi-Fi: The host will provide Wi-Fi details when you arrive on site. Please ask the host for the network name and password.');
   }
   detailLines.push('Session code: '+s.code);
   detailLines.push(rosterCountPhrase(s.course, regs));

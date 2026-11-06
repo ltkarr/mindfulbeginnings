@@ -1028,7 +1028,7 @@ function whatHappensHTML(s){
     'Lindsay is emailed straight away and the job moves to your <strong>My jobs</strong> tab.',
     s.isCustomJob?'':'Your teaching materials are arranged — either shipped to the host or ready to pick up. You will see which on the job card.',
     s.isCustomJob?'':'Print your student roster from the job card any time before the first class.',
-    s.isVirtual?'The Zoom link is sent to you and to registered families before the first class.':'The host\'s cell number and WiFi unlock on your job card once you accept. The street address is already on this card.',
+    s.isVirtual?'The Zoom link is sent to you and to registered families before the first class.':'The host\'s cell number unlocks on your job card once you accept. The street address is already on this card. '+HOST_WIFI_ON_ARRIVAL,
     s.isCustomJob
       ?`Payment of <strong>${fmt(instrFee(s))}</strong> is sent by Zelle after the event.`
       :(hoursNote
@@ -1100,7 +1100,10 @@ function scheduleHTML(s){
   </div>`;
 }
 // Where the class happens. The street address is visible before a job is accepted.
-// Host cell, day-of contact, and WiFi stay private until the instructor holds the job.
+// Host cell and day-of contact stay private until the instructor holds the job.
+// A Wi-Fi note on file stays private the same way. Accepting a job does not
+// create one: the host gives the network name and password on arrival.
+const HOST_WIFI_ON_ARRIVAL='The host will provide Wi-Fi details when you arrive on site. Please ask the host for the network name and password.';
 function portalPlace(s,priv){
   const merged=Object.assign({},s||{});
   if(priv&&priv.hostAddress)merged.hostAddress=priv.hostAddress;
@@ -1127,11 +1130,13 @@ function locationHTML(s,showPrivate,priv,mapLink){
     if(showPrivate){
       if(priv&&priv.hostPhone)lines.push(`<div style="margin-top:6px;font-size:14px"><span style="color:var(--muted)">Host cell:</span> ${escapeHtml(priv.hostPhone)}</div>`);
       if(priv&&priv.contactDay)lines.push(`<div style="font-size:14px"><span style="color:var(--muted)">Day-of contact:</span> ${escapeHtml(priv.contactDay)}</div>`);
-      if(priv&&priv.wifiInfo)lines.push(`<div style="font-size:14px"><span style="color:var(--muted)">WiFi:</span> ${escapeHtml(priv.wifiInfo)}</div>`);
+      if(priv&&priv.wifiInfo)lines.push(`<div style="font-size:14px"><span style="color:var(--muted)">Wi-Fi note on file:</span> ${escapeHtml(priv.wifiInfo)}</div>`);
       if(priv===undefined)lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">Loading site details…</div>`);
       else if(!place&&!(priv&&priv.hostPhone))lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">No street address or host contact on file yet — text Lindsay at 703-987-5979 if you need it.</div>`);
+      lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">${escapeHtml(HOST_WIFI_ON_ARRIVAL)}</div>`);
     }else{
-      lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">The host's cell number and WiFi are shared as soon as you accept this job.</div>`);
+      lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">The host's cell number is shared as soon as you accept this job.</div>`);
+      lines.push(`<div style="font-size:14px;color:var(--muted);margin-top:6px">${escapeHtml(HOST_WIFI_ON_ARRIVAL)}</div>`);
     }
   }
   return`<div class="jc-section"><div class="jc-section-t">${s.isVirtual?'Format':'Where'}</div><div style="font-size:13px;line-height:1.7">${lines.join('')}</div></div>`;
@@ -2669,8 +2674,9 @@ async function printRoster(sessId){
     (priv.hostAddress&&portalPlace(s,priv).toLowerCase().indexOf(String(priv.hostAddress).toLowerCase())===-1)?`<div><span style="color:#6b7a99">Host / site address:</span><br><strong>${escapeHtml(priv.hostAddress)}</strong></div>`:'',
     priv.hostPhone?`<div><span style="color:#6b7a99">Host cell:</span><br><strong>${escapeHtml(priv.hostPhone)}</strong></div>`:'',
     priv.contactDay?`<div><span style="color:#6b7a99">Day of contact:</span><br><strong>${escapeHtml(priv.contactDay)}</strong></div>`:'',
-    priv.wifiInfo?`<div style="grid-column:1/-1"><span style="color:#6b7a99">WiFi info:</span><br><strong>${escapeHtml(priv.wifiInfo)}</strong></div>`:'',
+    priv.wifiInfo?`<div style="grid-column:1/-1"><span style="color:#6b7a99">Wi-Fi note on file:</span><br><strong>${escapeHtml(priv.wifiInfo)}</strong></div>`:'',
   ].filter(Boolean).join('');
+  const wifiPolicy=s.isVirtual?'':`<div style="grid-column:1/-1"><span style="color:#6b7a99">Wi-Fi:</span><br>${escapeHtml(HOST_WIFI_ON_ARRIVAL)}</div>`;
   const directions=instructorDirectionsText(s);
   const directionRow=directions?`<div style="grid-column:1/-1"><span style="color:#6b7a99">Directions:</span><br><strong>${escapeHtml(directions).replace(/\n/g,'<br>')}</strong></div>`:'';
 
@@ -2712,6 +2718,7 @@ async function printRoster(sessId){
     <div class="info-box">
       <div class="info-box-label">Session Info</div>
       ${infoRows||'<div style="color:#aaa;font-size:14px;grid-column:1/-1">No host or site details on file — contact Lindsay if needed.</div>'}
+      ${wifiPolicy}
       ${directionRow}
       <div class="lindsay-row">
         <span style="color:#6b7a99">Questions? Contact Lindsay Karr:</span> <strong>703-987-5979</strong>
@@ -3679,9 +3686,10 @@ const FAQ_SECTIONS=[
     ['Chest does not rise.','The lung bag is most likely seated incorrectly. Reseat it, or omit rescue breaths and have students perform compressions while stating aloud that they are delivering breaths.']
   ]},
   {sub:'AV and WiFi',items:[
+    ['Where do I get the Wi-Fi?','The host will provide Wi-Fi details when you arrive on site. Please ask the host for the network name and password. Accepting a job does not add a Wi-Fi code to your job card.'],
     ['Who handles what.','Mindful Beginnings arranges whether AV is needed at a site, so that is not your concern. Knowing how the on-site equipment works before class begins is.'],
     ['Accessing presentations.','Safe Sitter\u00ae presentations require an active internet connection and your instructor account. Access Safe Sitter\u00ae digital resources through YUDU. All MB modules are shared with you and open by logging into your email on the company laptop.'],
-    ['Test first.','Log in and open your presentation before students arrive. If the WiFi fails, verify your credentials, restart the laptop, and try again.'],
+    ['Test first.','Log in and open your presentation before students arrive. If the Wi-Fi fails, ask the host to confirm the network name and password, then restart the laptop and try again.'],
     ['Chromebook display.','Casting to the host television is easiest when the television is on their network: open the presentation, click the three dots at the top of the screen, select Cast, and choose the device. If casting is unavailable, connect to the projector with the USB-C to HDMI adapter cable. If the screen does not display correctly, click the clock in the bottom corner, go to Device, and adjust the mirror display setting.'],
     ['Total tech failure.','Teach the course cleanly without slides. Rely on your instructor guide, stay calm, and keep the class moving.']
   ]}
