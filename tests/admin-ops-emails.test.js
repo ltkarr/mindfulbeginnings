@@ -124,7 +124,55 @@ test('family reminder is the before-class pack and meal note', () => {
   assert.match(zoom.body, /Can't wait for a great class!/);
   assert.doesNotMatch(zoom.body, /day of learning/);
   assert.doesNotMatch(zoom.body, /What to Bring/);
+  assert.doesNotMatch(zoom.body, /What to have ready/);
+  assert.doesNotMatch(zoom.body, /one pad/);
+  assert.doesNotMatch(zoom.body, /large spoon/);
   assert.doesNotMatch(zoom.body, /Location:/);
+  assert.match(zoom.body, /Warmly,/);
+  assert.doesNotMatch(zoom.body, /^Best,/m);
+});
+
+test('Ready. Period. virtual family reminder lists the four at-home items and other virtual reminders do not', () => {
+  const period = emails.draft('classReminder', sample({
+    course: 'Ready. Period.',
+    virtual: true,
+    zoomLink: 'https://zoom.us/j/87287606991',
+    address: 'Virtual (Zoom)'
+  }));
+  assert.equal(period.field, 'bcc');
+  assert.equal(period.subject, 'Reminder: Zoom link for Ready. Period. on October 10');
+  assert.match(period.body, /Your class is one week away\. Here is the Zoom link so you can join from home\./);
+  assert.match(period.body, /Zoom link: https:\/\/zoom\.us\/j\/87287606991/);
+  assert.match(period.body, /What to have ready: For Ready\. Period\., please have one pad, a glass of water, a large spoon, and a towel ready before class\./);
+  assert.match(period.body, /Can't wait for a great class!/);
+  assert.match(period.body, /^Best,$/m);
+  assert.doesNotMatch(period.body, /Warmly,/);
+  assert.doesNotMatch(period.body, /What to Bring: Please send your child/);
+  assert.doesNotMatch(period.body, /period pouch/i);
+  assert.doesNotMatch(period.body, /product table/i);
+  assert.doesNotMatch(period.body, /\u2014/);
+  assert.match(period.body, /course-overviews\/ready-period\?format=virtual/);
+
+  const inPerson = emails.draft('classReminder', sample({ course: 'Ready. Period.', virtual: false }));
+  assert.doesNotMatch(inPerson.body, /one pad/);
+  assert.doesNotMatch(inPerson.body, /large spoon/);
+  assert.match(inPerson.body, /What to Bring: Please send your child with a water bottle and a snack\./);
+  assert.match(inPerson.body, /Warmly,/);
+
+  ['Safe@Home — Virtual', 'Stay Ready: Choking Rescue and CPR', 'Season Ready: Safety Skills, Fueling, and Injury Prevention for Student Athletes', 'Social Ready'].forEach(function (course) {
+    const draft = emails.draft('classReminder', sample({
+      course: course,
+      virtual: true,
+      zoomLink: 'https://zoom.us/j/111'
+    }));
+    assert.doesNotMatch(draft.body, /one pad/, course);
+    assert.doesNotMatch(draft.body, /glass of water/, course);
+    assert.doesNotMatch(draft.body, /large spoon/, course);
+    assert.doesNotMatch(draft.body, /towel/, course);
+    assert.doesNotMatch(draft.body, /What to have ready/, course);
+    assert.match(draft.body, /Warmly,/, course);
+    assert.doesNotMatch(draft.body, /^Best,$/m, course);
+  });
 });
 
 test('zoom instructor drafts are a week-before Zoom link plus roster and a day-before final roster', () => {
@@ -283,7 +331,11 @@ test('overview page urls map courses to their overview pages', () => {
   assert.equal(overviews.urlFor('Safe Sitter® Babysitting Essentials'), base + 'safe-sitter-babysitting');
   assert.equal(overviews.urlFor('Safe Sitter® Grandparents: Getting Started'), base + 'grandparents-getting-started');
   assert.equal(overviews.urlFor('Intro to Babysitting'), base + 'intro-to-safe-babysitting');
-  assert.equal(overviews.urlFor('Safe@Home — Virtual'), base + 'safe-at-home');
+  assert.equal(overviews.urlFor('Safe@Home — Virtual'), base + 'safe-at-home?format=virtual');
+  assert.equal(overviews.urlFor('Safe@Home'), base + 'safe-at-home');
+  assert.equal(overviews.urlFor('Stay Ready™: Choking Rescue, CPR, and Seizure Response', { virtual: true }), base + 'stay-ready?format=virtual');
+  assert.equal(overviews.urlFor('Ready. Period.', { virtual: true }), base + 'ready-period?format=virtual');
+  assert.equal(overviews.urlFor('Ready. Period.', { virtual: false }), base + 'ready-period');
   assert.equal(overviews.urlFor('Stay Ready™: Choking Rescue, CPR, and Seizure Response'), base + 'stay-ready');
   assert.equal(overviews.urlFor('Baby Ready + CPR Certification'), base + 'baby-ready');
   assert.equal(overviews.urlFor("My First Babysitter's Club, 8-week series"), base + 'my-first-babysitters-club');

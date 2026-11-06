@@ -1712,9 +1712,10 @@ function sessionUsesSpanish(s){
 }
 function overviewUrlForSession(s){
   const api=window.MBCourseOverviews;
-  if(!api)return '';
-  if(sessionUsesSpanish(s)&&typeof api.urlForLang==='function')return api.urlForLang(s.course,'es')||'';
-  return (typeof api.urlFor==='function')?(api.urlFor(s&&s.course)||''):'';
+  if(!api||!s)return '';
+  const opts={virtual:typeof api.isVirtualSession==='function'?api.isVirtualSession(s):!!(s.isVirtual||s.is_virtual)};
+  if(sessionUsesSpanish(s)&&typeof api.urlForLang==='function')return api.urlForLang(s.course,'es',opts)||'';
+  return (typeof api.urlFor==='function')?(api.urlFor(s.course,opts)||''):'';
 }
 function setBanner(id){
   if(window.MBSrfGrant&&typeof MBSrfGrant.applyPage==='function')MBSrfGrant.applyPage(document,'en');

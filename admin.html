@@ -13538,7 +13538,7 @@ function opsEmailInfo(s){
     priceText:price,
     virtual:!!s.isVirtual,
     zoomLink:s.zoomLink||'',
-    overviewUrl:(function(){var o=courseOverviewApi();return o&&o.urlFor?o.urlFor(s.course):'';})(),
+    overviewUrl:(function(){var o=courseOverviewApi();if(!o||typeof o.urlFor!=='function')return '';var virtual=typeof o.isVirtualSession==='function'?o.isVirtualSession(s):!!s.isVirtual;return o.urlFor(s.course,{virtual:virtual});})(),
     regLink:REG_PAGE+'?code='+(s.code||''),
     hasHostSpot:s.hasHost!==false,
     expectedCount:(s.billToOrg&&s.billedHeadcount)?s.billedHeadcount:''

@@ -109,12 +109,17 @@
 
   // The course's public overview page, when one exists. Admin passes it in
   // on the info object; fall back to the shared course-overviews module.
+  function isReadyPeriodCourse(course) {
+    return /ready\.?\s*period/i.test(String(course || ''));
+  }
+
   function overviewUrl(info) {
     var u = val(info, 'overviewUrl', '');
     if (u) return u;
     var api = root.MBCourseOverviews;
     if (api && typeof api.urlFor === 'function') {
-      return api.urlFor(val(info, 'course', ''));
+      var virtual = api.isVirtualSession ? api.isVirtualSession(info) : !!(info && info.virtual);
+      return api.urlFor(val(info, 'course', ''), { virtual: virtual });
     }
     return '';
   }
@@ -231,6 +236,9 @@
       lines.push('\u2022 Date and Time: ' + dateLong + ', ' + time);
       if (info.virtual) {
         lines.push('\u2022 Zoom link: ' + (info.zoomLink || 'We will send the Zoom link before class.'));
+        if (isReadyPeriodCourse(course)) {
+          lines.push('\u2022 What to have ready: For Ready. Period., please have one pad, a glass of water, a large spoon, and a towel ready before class.');
+        }
       } else {
         lines.push('\u2022 Location: ' + address);
         lines.push('\u2022 What to Bring: Please send your child with a water bottle and a snack.');
@@ -254,7 +262,11 @@
       }
       lines.push('Please let us know if you have any questions in the meantime. Can\'t wait for a great class!');
       lines.push('');
-      lines.push('Warmly,');
+      if (info.virtual && isReadyPeriodCourse(course)) {
+        lines.push('Best,');
+      } else {
+        lines.push('Warmly,');
+      }
       lines.push('Lindsay');
       lines.push('Mindful Beginnings');
       return {

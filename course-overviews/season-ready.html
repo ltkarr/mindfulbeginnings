@@ -26,7 +26,12 @@
 .ov-band p{margin:0 auto 18px;font-size:16.5px;line-height:1.6;max-width:620px}
 .ov-band .mb-btn{margin:4px}
 .ov-back{display:inline-block;margin-top:22px;font-weight:700;color:var(--navy);text-decoration:none}
+html:not([data-overview-format="virtual"]) .ov-virtual{display:none}
+html[data-overview-format="virtual"] .ov-inperson{display:none}
 </style>
+<script>
+(function(){try{if(new URLSearchParams(location.search).get('format')==='virtual'){document.documentElement.setAttribute('data-overview-format','virtual');}}catch(e){}})();
+</script>
 </head>
 <body>
 <header class="mb-header">
@@ -54,16 +59,20 @@
 <table class="ov-table"><tr><th scope="row"></th></tr></table>
 <p class="ov-p"><strong>Safety Skills, Fueling, and Injury Prevention for Student Athletes</strong>
 </p>
-<p class="ov-p">Most of what limits a young athlete is not talent. It is an underfueled body, a lack of recovery, and a culture that treats reporting pain as weakness. <strong>Season Ready</strong> is a 60 minute, hands-on workshop taught by a Registered Nurse to help middle and high school athletes stay healthy, perform at their peak, and handle critical emergencies.
+<p class="ov-p ov-inperson">Most of what limits a young athlete is not talent. It is an underfueled body, a lack of recovery, and a culture that treats reporting pain as weakness. <strong>Season Ready</strong> is a 60 minute, hands-on workshop taught by a Registered Nurse to help middle and high school athletes stay healthy, perform at their peak, and handle critical emergencies.
 </p>
-<p class="ov-p">Our RNs bring all materials directly to your team, athletic department, club, or parent hosted group. Every student practices hands-on. Nobody just watches.
+<p class="ov-p ov-virtual">Most of what limits a young athlete is not talent. It is an underfueled body, a lack of recovery, and a culture that treats reporting pain as weakness. <strong>Season Ready</strong> is a 60 minute live Zoom class taught by a Registered Nurse to help middle and high school athletes stay healthy, perform at their peak, and know how to respond in an emergency.
+</p>
+<p class="ov-p ov-inperson">Our RNs bring all materials directly to your team, athletic department, club, or parent hosted group. Every student practices hands-on. Nobody just watches.
+</p>
+<p class="ov-p ov-virtual"><strong>Virtual class.</strong> Students join from home with a device and a camera. The nurse teaches on Zoom. Students do not bring class materials.
 </p>
 <h3 class="ov-h3"><strong>WHAT ATHLETES LEARN AND PRACTICE</strong>
 </h3>
-<table class="ov-table"><tr><th scope="row"></th><td>Performance and Recovery Smart pre and post training fueling with no calorie counting or weigh-ins, hydration tracking, science backed warmups, and why sleep is actual training.</td></tr><tr><th scope="row"></th><td>Injury Awareness How to tell the difference between normal muscle soreness and injury pain that needs to be reported.</td></tr><tr><th scope="row"></th><td>Emergency Response Hands-on practice with hands-only CPR manikins, AED trainers, rapid cooling for heat stroke, and real world concussion scenarios.</td></tr></table>
+<table class="ov-table"><tr><th scope="row"></th><td>Performance and Recovery Smart pre and post training fueling with no calorie counting or weigh-ins, hydration tracking, science backed warmups, and why sleep is actual training.</td></tr><tr><th scope="row"></th><td>Injury Awareness How to tell the difference between normal muscle soreness and injury pain that needs to be reported.</td></tr><tr><th scope="row"></th><td><span class="ov-inperson">Emergency Response Hands-on practice with hands-only CPR manikins, AED trainers, rapid cooling for heat stroke, and real world concussion scenarios.</span><span class="ov-virtual">Emergency Response The nurse teaches how to recognize cardiac arrest, heat stroke, and concussion, and walks through the response steps on screen.</span></td></tr></table>
 <h3 class="ov-h3"><strong>COURSE DETAILS</strong>
 </h3>
-<table class="ov-table"><tr><th scope="row">FORMAT</th><td>60 minute interactive workshop</td></tr><tr><th scope="row">INSTRUCTOR</th><td>Registered Nurse</td></tr><tr><th scope="row">AUDIENCE</th><td>Middle and high school athletes: teams, clubs, and schools</td></tr><tr><th scope="row">GROUP SIZE</th><td>Up to 20 participants</td></tr><tr><th scope="row">LOCATION</th><td>We come to you</td></tr></table>
+<table class="ov-table"><tr><th scope="row">FORMAT</th><td><span class="ov-inperson">60 minute interactive workshop</span><span class="ov-virtual">60 minute live Zoom class. A device and a camera. No class materials.</span></td></tr><tr><th scope="row">INSTRUCTOR</th><td>Registered Nurse</td></tr><tr><th scope="row">AUDIENCE</th><td>Middle and high school athletes: teams, clubs, and schools</td></tr><tr><th scope="row">GROUP SIZE</th><td>Up to 20 participants</td></tr><tr><th scope="row">LOCATION</th><td><span class="ov-inperson">We come to you</span><span class="ov-virtual">Live on Zoom</span></td></tr></table>
 <table class="ov-table"><tr><th scope="row"></th><td>Please note: Season Ready is an interactive skills and education workshop. It is not a formal credentialing or certified CPR and AED course.</td></tr></table>
 <table class="ov-table"><tr><th scope="row">BOOK SEASON READY FOR YOUR TEAM lindsay@mindfulbeginnings.org · 703.987.5979 Mindful Beginnings LLC · Bethesda, MD · Serving the DC, Maryland, and Virginia area</th></tr></table>
 <a class="ov-back" href="/course-overviews">See all course overviews</a>

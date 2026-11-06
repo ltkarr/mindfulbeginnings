@@ -26,7 +26,12 @@
 .ov-band p{margin:0 auto 18px;font-size:16.5px;line-height:1.6;max-width:620px}
 .ov-band .mb-btn{margin:4px}
 .ov-back{display:inline-block;margin-top:22px;font-weight:700;color:var(--navy);text-decoration:none}
+html:not([data-overview-format="virtual"]) .ov-virtual{display:none}
+html[data-overview-format="virtual"] .ov-inperson{display:none}
 </style>
+<script>
+(function(){try{if(new URLSearchParams(location.search).get('format')==='virtual'){document.documentElement.setAttribute('data-overview-format','virtual');}}catch(e){}})();
+</script>
 </head>
 <body>
 <header class="mb-header">
@@ -51,6 +56,8 @@
 </div>
 </section>
 <main class="ov-main">
+<p class="ov-p ov-virtual"><strong>Virtual class.</strong> Students join from home with a device and a camera. They do not bring class materials. A parent or organizer stays on the call.
+</p>
 <p class="ov-p"><strong>Social Ready: Safety Skills for Life Online</strong>
 </p>
 <p class="ov-p">A workshop for grades 4 to 8, in person or live on Zoom
@@ -61,7 +68,7 @@
 </p>
 <h2 class="ov-h2"><strong>AT A GLANCE</strong>
 </h2>
-<table class="ov-table"><tr><th scope="row">FORMAT</th><td>60 minute interactive workshop, in person or live on Zoom</td></tr><tr><th scope="row">INSTRUCTOR</th><td>Mindful Beginnings certified educator</td></tr><tr><th scope="row">AUDIENCE</th><td>Grades 4 to 8: schools, PTAs, scout troops, faith communities, and friend groups</td></tr><tr><th scope="row">IN PERSON</th><td>We come to you anywhere within 60 miles of Washington, DC, and we bring everything</td></tr><tr><th scope="row">VIRTUAL</th><td>Students join from home with a device and a camera. A parent or organizer stays on the call.</td></tr><tr><th scope="row">TAKE HOME</th><td>Every student leaves with the Social Ready Family Tech Agreement</td></tr></table>
+<table class="ov-table"><tr><th scope="row">FORMAT</th><td>60 minute interactive workshop, in person or live on Zoom</td></tr><tr><th scope="row">INSTRUCTOR</th><td>Mindful Beginnings certified educator</td></tr><tr><th scope="row">AUDIENCE</th><td>Grades 4 to 8: schools, PTAs, scout troops, faith communities, and friend groups</td></tr><tr class="ov-inperson"><th scope="row">IN PERSON</th><td>We come to you anywhere within 60 miles of Washington, DC, and we bring everything</td></tr><tr><th scope="row">VIRTUAL</th><td>Students join from home with a device and a camera. A parent or organizer stays on the call.</td></tr><tr><th scope="row">TAKE HOME</th><td>Every student leaves with the Social Ready Family Tech Agreement</td></tr></table>
 <h2 class="ov-h2"><strong>WHAT STUDENTS LEARN AND PRACTICE</strong>
 </h2>
 <table class="ov-table"><tr><th scope="row">Part</th><td>What students learn</td><td>What they do</td></tr><tr><th scope="row">1. Post</th><td>What is public, what is permanent, and why a screenshot lasts forever</td><td>The Toothpaste Test and a move around game of Post or Pass</td></tr><tr><th scope="row">2. Protect</th><td>Private accounts, location sharing, strong passwords, and the details that never go online</td><td>Photo Detective: find every clue a stranger could pull from one ordinary post</td></tr><tr><th scope="row">3. Verify</th><td>Fake accounts, scams, and pressure to send photos or keep secrets</td><td>Red Flag, Green Flag with real message examples, plus the three steps: Stop, Save, Tell</td></tr><tr><th scope="row">4. Respect</th><td>Kindness in group chats, what to do when a chat turns mean, and when to leave</td><td>Group Chat Rescue: choose a move and rewrite a message that hurts</td></tr><tr><th scope="row">5. Balance</th><td>How apps are built to keep you scrolling, and limits that actually work</td><td>Spot the Hook: match each app feature to the trick behind it</td></tr><tr><th scope="row">6. Speak Up</th><td>What to do when something feels off, and how to tell an adult without fear</td><td>Real scenarios and practice saying the first sentence out loud</td></tr></table>
