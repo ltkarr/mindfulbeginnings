@@ -412,7 +412,7 @@ header{padding-top:calc(16px + env(safe-area-inset-top))}
       </div>
       <div class="acct-section" id="acct-myprofile">
         <div class="section-title" style="font-size:19px;margin-bottom:2px">My profile</div>
-        <div class="section-sub" style="margin-bottom:14px">Documents, contact details, and sweatshirt size.</div>
+        <div class="section-sub" style="margin-bottom:14px">Documents, contact details, and apparel size.</div>
         <div id="myprofile-content"></div>
         <div id="myinfo-content" style="margin-top:18px"></div>
       </div>
@@ -4016,10 +4016,10 @@ function renderMyInfo(){
     <div style="font-size:14px;color:var(--muted);margin-top:8px;line-height:1.6">Your credentials determine which courses appear on your Open jobs board. If a credential is missing or looks wrong, contact Lindsay.</div>
     ${jobAlertsOptInHtml('account')}
     <div class="info-card" style="margin-top:14px">
-      <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">🎽 Sweatshirt Size</div>
-      <div style="font-size:13px;color:var(--text);margin-bottom:12px">Please select your sweatshirt size.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
-        ${sizes.map(sz=>`<button onclick="selectSweatshirt('${sz}')" id="sz-${sz}" style="padding:8px 16px;border-radius:var(--r-sm);border:1.5px solid ${me.sweatshirtSize===sz?'var(--navy)':'var(--border)'};background:${me.sweatshirtSize===sz?'var(--navy)':'white'};color:${me.sweatshirtSize===sz?'white':'var(--text)'};font-size:13px;font-family:inherit;cursor:pointer;font-weight:${me.sweatshirtSize===sz?'600':'400'};transition:all .15s">${sz}</button>`).join('')}
+      <div id="apparel-size-label" style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">Apparel size</div>
+      <div style="font-size:13px;color:var(--text);margin-bottom:12px">Please select your apparel size.</div>
+      <div role="group" aria-labelledby="apparel-size-label" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        ${sizes.map(sz=>`<button type="button" onclick="selectSweatshirt('${sz}')" id="sz-${sz}" aria-pressed="${me.sweatshirtSize===sz?'true':'false'}" style="padding:8px 16px;border-radius:var(--r-sm);border:1.5px solid ${me.sweatshirtSize===sz?'var(--navy)':'var(--border)'};background:${me.sweatshirtSize===sz?'var(--navy)':'white'};color:${me.sweatshirtSize===sz?'white':'var(--text)'};font-size:13px;font-family:inherit;cursor:pointer;font-weight:${me.sweatshirtSize===sz?'600':'400'};transition:all .15s">${sz}</button>`).join('')}
       </div>
       ${me.sweatshirtSize?`<div style="font-size:13px;color:var(--success);font-weight:500">✓ Size on file: ${me.sweatshirtSize}</div>`:`<div style="font-size:14px;color:var(--muted)">No size selected yet.</div>`}
     </div>
@@ -4038,7 +4038,7 @@ async function selectSweatshirt(size){
     return;
   }
   me.sweatshirtSize=size;
-  showToast('✓ Sweatshirt size saved: '+size);
+  showToast('✓ Apparel size saved: '+size);
   renderMyInfo();
 }
 
