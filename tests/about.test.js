@@ -203,6 +203,10 @@ test('Yasmine Kamel is listed with the Instructors, between Hodor and Plaza', ()
   assert.deepEqual(person.bio, [bio]);
   const block = page.slice(page.indexOf('data-name="Yasmine Kamel"'), page.indexOf('data-name="Abigail Plaza"'));
   assert.match(block, /alt="Yasmine Kamel"/);
+  assert.match(block, /<span class="shot nudge-up"><img class="photo" src="\/images\/team\/yasmine-kamel-3\.jpg" alt="Yasmine Kamel"/);
+  assert.equal((page.match(/class="shot nudge-up"/g) || []).length, 1);
+  assert.match(page, /\.team-block \.shot\.nudge-up \.photo\{width:100%;height:calc\(100% \+ 4px\);margin-left:0;margin-top:-4px\}/);
+  assert.match(page, /classList\.toggle\('is-nudge', !!\(img\.parentElement && img\.parentElement\.classList\.contains\('nudge-up'\)\)\)/);
   assert.equal(fs.existsSync(path.join(root, 'images/team/yasmine-kamel-3.jpg')), true);
 });
 
