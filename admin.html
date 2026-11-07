@@ -575,6 +575,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
       </div>
       <div id="class-request-banner"></div>
       <div id="reminder-alerts" style="margin-bottom:16px"></div>
+      <div id="dash-low-stock" style="margin-bottom:16px"></div>
       <div id="dash-teach-checks" style="margin-bottom:16px"></div>
       <div class="metrics" id="dash-metrics"></div>
       <div id="dash-mat-check" style="margin-bottom:16px"></div>
@@ -7517,6 +7518,7 @@ function renderDashboard(){
       </div>`;
     }
   }
+  renderDashLowStock();
   renderDashUpcoming(now);
 }
 
@@ -8404,10 +8406,113 @@ function openSessionAbout(id){
   const s=sessions.find(x=>x.id===id);if(!s)return;
   const editLabel=s.isCustomJob?'Edit job':'Edit session';
   showModal(`<div class="modal-head"><h3>About</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-  <div class="modal-body">${lockboxFieldHtml(s)}${sessionAboutBodyHtml(s)}</div>
+  <div class="modal-body">${lockboxFieldHtml(s)}${sessionAboutBodyHtml(s)}<div id="about-extras">${sessionProcessHtml(s)}${sessionPackListHtml(s)}</div></div>
   <div class="modal-foot"><button class="btn" onclick="closeModal()">Close</button><button class="btn primary" onclick="openEditSession('${s.id}')">${editLabel}</button></div>`);
   const box=document.querySelector('#modal-root .modal');
   if(box)box.classList.add('about-modal');
+}
+
+// ─── SESSION PROCESS CHECKLIST (in the About view) ───────────
+// The session's own process flags, in the order the work happens, in one
+// place. Steps and labels come from the lists the rest of the admin already
+// uses: preClassTaskList for before class, wrapReportTasks plus the
+// post-course letter for after class, and isInstructorPaymentDone for pay.
+// Every box writes through the same toggle the dashboard, lock box, and
+// wrap-up already use (toggleMaterialsFromDash, toggleReminderFlag,
+// toggleWrapField), so this list can never disagree with those screens.
+// Nothing new is stored. The host reminder is deliberately not a step:
+// the pre-class checklist already leaves it out on purpose.
+function sessionProcessSteps(s){
+  const jd=(typeof jobDataCache!=='undefined'&&jobDataCache&&jobDataCache[s.id])||{};
+  const steps=[];
+  const refresh=';refreshAboutExtras(\''+s.id+'\')';
+  steps.push({kind:'ro',label:s.ownerTaught?'You are teaching this session':'Instructor assigned',done:!!(s.ownerTaught||jd.instructorId||s.instructorId)});
+  if(typeof preClassTaskList==='function'){
+    preClassTaskList(s).forEach(function(t){
+      if(t.key==='materialsSent')steps.push({kind:'toggle',label:preClassMaterialsLabel(s),done:!!jd.materialsSent,fn:'toggleMaterialsFromDash(\''+s.id+'\',this.checked)'+refresh});
+      else if(t.key==='instrReminderSent')steps.push({kind:'toggle',label:preClassInstrReminderLabel(s),done:!!jd.instrReminderSent,fn:'toggleReminderFlag(\''+s.id+'\',\'instrReminderSent\',this.checked)'+refresh});
+      else if(t.key==='classReminderSent')steps.push({kind:'toggle',label:preClassStudentReminderLabel(s),done:!!jd.classReminderSent,fn:'toggleReminderFlag(\''+s.id+'\',\'classReminderSent\',this.checked)'+refresh});
+      else if(t.key==='instrFinalRosterSent')steps.push({kind:'toggle',label:preClassFinalRosterLabel(s),done:!!jd.instrFinalRosterSent,fn:'toggleReminderFlag(\''+s.id+'\',\'instrFinalRosterSent\',this.checked)'+refresh});
+    });
+  }
+  const fair=typeof isVendorFairSession==='function'&&isVendorFairSession(s);
+  if(!fair)steps.push({kind:'toggle',label:'Course evaluation received',done:!!jd.evalReceived,fn:'toggleWrapField(\''+s.id+'\',\'evalReceived\',this.checked)'+refresh});
+  if(typeof wrapReportTasks==='function'){
+    wrapReportTasks(s).forEach(function(t){
+      steps.push({kind:'toggle',label:t.label,done:!!jd[t.field],fn:'toggleWrapField(\''+s.id+'\',\''+t.field+'\',this.checked)'+refresh});
+    });
+  }
+  if(!fair)steps.push({kind:'toggle',label:'Sent post-course letter to families',done:!!jd.parentLetterSent,fn:'toggleWrapField(\''+s.id+'\',\'parentLetterSent\',this.checked)'+refresh});
+  steps.push({kind:'pay',label:'Instructor paid',done:typeof isInstructorPaymentDone==='function'?isInstructorPaymentDone(s,jd):jd.payStatus==='paid'});
+  return steps;
+}
+function sessionProcessHtml(s){
+  if(!s||!s.id||s.isCancelled)return '';
+  const steps=sessionProcessSteps(s);
+  const done=steps.filter(function(x){return x.done;}).length;
+  const next=steps.find(function(x){return !x.done;});
+  const rows=steps.map(function(st){
+    const mark='<span style="width:15px;text-align:center;flex-shrink:0">'+(st.done?'✓':'○')+'</span>';
+    if(st.kind==='toggle'){
+      return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:15px;cursor:pointer;color:'+(st.done?'var(--success)':'var(--text)')+'"><input type="checkbox" '+(st.done?'checked':'')+' onchange="'+st.fn+'" style="width:15px;height:15px;accent-color:var(--success);cursor:pointer;flex-shrink:0"><span>'+(st.done?'✓ ':'')+st.label+'</span></label>';
+    }
+    if(st.kind==='pay'){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:15px;color:'+(st.done?'var(--success)':'var(--text)')+'">'+mark+'<span style="flex:1">'+st.label+'</span>'+(st.done?'':'<button type="button" class="btn sm" onclick="openWrapup(\''+s.id+'\')">Open wrap-up</button>')+'</div>';
+    }
+    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:15px;color:'+(st.done?'var(--success)':'var(--text)')+'">'+mark+'<span>'+st.label+'</span></div>';
+  }).join('');
+  const head='<div style="font-size:15px;color:var(--muted);margin-bottom:4px">'+done+' of '+steps.length+' done'+(next?' · Next: <strong style="color:var(--text)">'+next.label+'</strong>':' · All done 🎉')+'</div>';
+  return '<div class="about-block"><div class="about-kicker">Session checklist</div>'+head+rows+'</div>';
+}
+
+// ─── PACK LIST (in the About view) ───────────────────────────
+// What to pull for this one class, from the two places that already know:
+// the course's inventory use (units per student × students enrolled, the
+// same lines session profit is charged for) and the equipment checkouts
+// tied to this session. The boxes are a packing aid only: ticking one
+// stores nothing, and the list is rebuilt fresh every time it opens.
+function packCheckoutStatus(c){
+  const who=String(c.person||'').trim();
+  let st='';
+  if(c.returnedDate)st='returned '+matShortDate(c.returnedDate);
+  else if(coIsOverdue(c))st='OVERDUE: due back '+matShortDate(c.dueDate);
+  else st='out '+(c.outDate?matShortDate(c.outDate):'')+(c.dueDate?' · due back '+matShortDate(c.dueDate):'');
+  return (who?who+' · ':'')+st;
+}
+function sessionPackListHtml(s){
+  if(!s||!s.id||s.isVirtual||s.isCancelled)return '';
+  const parts=[];
+  const uses=(typeof courseMaterialUsesFor==='function')?courseMaterialUsesFor(s.course):[];
+  if(uses.length){
+    const inv=(typeof inventoryCostForSession==='function')?inventoryCostForSession(s):{lines:[],students:0};
+    const rows=(inv.lines||[]).map(function(l){
+      return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:15px;cursor:pointer"><input type="checkbox" style="width:15px;height:15px;accent-color:var(--success);flex-shrink:0"><span><strong>'+fmtQty(l.qty)+' ×</strong> '+escapeHtml(l.name||'Item')+' <span style="color:var(--muted)">('+fmtQty(l.per)+' per student × '+inv.students+' student'+(inv.students===1?'':'s')+')</span></span></label>';
+    }).join('');
+    parts.push(rows||'<div style="font-size:15px;color:var(--muted)">Nothing to pack for this course.</div>');
+    if(!inv.students)parts.push('<div style="font-size:14px;color:var(--muted)">No students enrolled yet. Quantities grow as families register.</div>');
+  }else{
+    parts.push('<div style="font-size:15px;color:var(--muted)">No materials configured for this course.</div>');
+  }
+  const cos=(typeof matCheckouts!=='undefined'?matCheckouts:[]).filter(function(c){return c&&c.sessionId===s.id;});
+  if(cos.length){
+    const rows=cos.map(function(c){
+      return '<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:15px;cursor:pointer"><input type="checkbox" style="width:15px;height:15px;accent-color:var(--success);flex-shrink:0;margin-top:2px"><span>'+escapeHtml(coItemsLabel(c))+' <span style="color:var(--muted)">· '+escapeHtml(packCheckoutStatus(c))+'</span></span></label>';
+    }).join('');
+    parts.push('<div style="margin-top:10px"><div style="font-weight:600;font-size:14px;margin-bottom:2px">Equipment for this session</div>'+rows+'</div>');
+  }else{
+    parts.push('<div style="font-size:15px;color:var(--muted);margin-top:8px">No equipment checked out for this session yet.</div>');
+  }
+  return '<div class="about-block"><div class="about-kicker">Pack list</div>'+parts.join('')+'</div>';
+}
+// After a checklist box is ticked in the About view, redraw just the two
+// added sections so the done count and Next line stay true. The toggle
+// itself has already saved through its usual path.
+function refreshAboutExtras(sessId){
+  const host=document.getElementById('about-extras');
+  if(!host)return;
+  const s=(typeof sessions!=='undefined'?sessions:[]).find(function(x){return x&&x.id===sessId;});
+  if(!s)return;
+  host.innerHTML=sessionProcessHtml(s)+sessionPackListHtml(s);
 }
 
 // ─── ADDITIONAL COSTS HELPERS ────────────────────────────────
@@ -15317,6 +15422,49 @@ async function applyInventoryExpenseIntent(e, intent){
   inventoryPurchases.unshift({id:id,itemId:itemId,expenseId:e.id,quantity:intent.qty,amount:Number(e.amount)||0,purchasedOn:purchasedOn,notes:''});
   return true;
 }
+// ─── LOW STOCK ───────────────────────────────────────────────
+// One warning list, shared by the Dashboard card and the Finances inventory
+// card, so the two never disagree. Built from the same rollup the Finances
+// card shows: on hand is bought minus used by classes that have met, and
+// scheduled is what upcoming classes will use at the students enrolled now.
+// An item warns when scheduled classes need more than is on hand (shortfall),
+// or when classes have used it down to zero (or below). That is how stock
+// quietly runs out mid-season. An item nothing has ever touched stays quiet.
+function inventoryLowStockRows(){
+  if(!inventoryTablesReady||typeof inventoryItemRollup!=='function')return [];
+  const rows=[];
+  (inventoryItems||[]).forEach(function(item){
+    if(!item||!item.active)return;
+    const roll=inventoryItemRollup(item.id);
+    const shortfall=roll.scheduled-roll.onHand;
+    const usedUp=roll.onHand<=0&&roll.used>0;
+    if(!(shortfall>0||usedUp))return;
+    rows.push({id:item.id,name:item.name,onHand:roll.onHand,scheduled:roll.scheduled,used:roll.used,shortfall:Math.max(0,shortfall)});
+  });
+  rows.sort(function(a,b){return (b.shortfall-a.shortfall)||String(a.name).localeCompare(String(b.name));});
+  return rows;
+}
+function lowStockBits(r){
+  const bits=['on hand '+fmtQty(r.onHand)];
+  if(r.scheduled>0)bits.push(fmtQty(r.scheduled)+' needed for scheduled classes');
+  if(r.shortfall>0)bits.push('short '+fmtQty(r.shortfall));
+  else bits.push('none left');
+  return bits.join(' · ');
+}
+function renderDashLowStock(){
+  const el=document.getElementById('dash-low-stock');
+  if(!el)return;
+  const rows=inventoryLowStockRows();
+  if(!rows.length){el.innerHTML='';return;}
+  const lines=rows.map(function(r){
+    return '<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:0.5px solid var(--border)"><span style="font-weight:600">'+escapeHtml(r.name)+'</span><span style="color:var(--danger);font-weight:600;text-align:right">'+escapeHtml(lowStockBits(r))+'</span></div>';
+  }).join('');
+  el.innerHTML='<div class="card" style="padding:12px 16px;border-left:3px solid var(--danger)">'
+    +'<div style="font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--danger);margin-bottom:6px">⚠ Low stock: order soon</div>'
+    +lines
+    +'<div style="margin-top:10px"><button class="btn sm" type="button" onclick="showScreen(\'finances\')">Open Finances</button></div>'
+    +'</div>';
+}
 function renderInventory(){
   const host=document.getElementById('fin-inventory');
   if(!host)return;
@@ -15325,17 +15473,20 @@ function renderInventory(){
     return;
   }
   const items=(inventoryItems||[]).slice().sort((a,b)=>(a.sort-b.sort)||String(a.name).localeCompare(String(b.name)));
+  const lowRows=inventoryLowStockRows();
+  const lowById={};lowRows.forEach(r=>{lowById[r.id]=r;});
   const itemRows=items.map(item=>{
     const roll=inventoryItemRollup(item.id);
     const hand=roll.onHand;
     const handStyle=hand<0?'color:var(--danger);font-weight:650':'font-weight:650';
+    const low=lowById[item.id];
     return `<tr>
-      <td style="font-weight:500">${escapeHtml(item.name)}${item.active?'':' <span class="tag pending">Inactive</span>'}</td>
+      <td style="font-weight:500">${escapeHtml(item.name)}${item.active?'':' <span class="tag pending">Inactive</span>'}${low?' <span style="color:var(--danger);font-weight:700">⚠ Low stock</span>':''}</td>
       <td>${roll.purchased?fmtUnit(roll.unit):'<span style="color:var(--muted)">No quantity yet</span>'}</td>
       <td>${fmtQty(roll.purchased)}</td>
       <td>${fmtQty(roll.used)}</td>
       <td>${fmtQty(roll.scheduled)}</td>
-      <td style="${handStyle}">${fmtQty(hand)}</td>
+      <td style="${handStyle}">${fmtQty(hand)}${low&&low.shortfall>0?` <span style="font-size:13px">(short ${fmtQty(low.shortfall)})</span>`:''}</td>
       <td>${fmtSigned(roll.valueOnHand)}</td>
       <td><button class="btn sm" type="button" onclick="openInventoryPurchase(null,'${item.id}')">Add purchase</button></td>
     </tr>`;
@@ -15376,6 +15527,7 @@ function renderInventory(){
   }).join('');
   host.innerHTML=`<div class="card" style="margin-top:16px">
     <div class="card-title">Inventory and true session profit</div>
+    ${lowRows.length?`<div class="alert danger" style="margin:0 0 12px"><span>⚠ <strong>Low stock:</strong> ${lowRows.map(r=>escapeHtml(r.name)+': '+escapeHtml(lowStockBits(r))).join('; ')}</span></div>`:''}
     <div style="font-size:15px;color:var(--muted);line-height:1.55;margin:-4px 0 12px">
       Cash spent is every card charge, including a bulk handbook or certification order. That order sits in inventory until classes use it.
       Overhead is what is left: costs with no session that are not inventory.
