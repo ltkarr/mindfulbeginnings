@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261106-instructor-privacy';
+window.MB_ADMIN_BUILD='20261107-grant-applications';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -675,6 +675,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
         </div>
       </div>
       <div id="fin-grants"></div>
+      <div id="fin-grant-apps"></div>
       <div id="legacy-cost-banner"></div>
       <div id="profit-session-tools"></div>
       <div class="card" style="padding:0"><div class="tbl-wrap"><table id="fin-table"></table></div></div>
@@ -691,7 +692,7 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
           <option value="">All categories</option>
           <option>Business Development</option>
           <option>Equipment</option><option>Instructor Training</option><option>Insurance</option><option>Supplies</option>
-          <option>Marketing</option><option>Software</option><option>Travel</option><option>Charitable Donation</option><option>Curriculum Development</option><option>Rentals</option><option>Teacher Appreciation</option><option>American Red Cross</option><option>Other</option>
+          <option>Marketing</option><option>Software</option><option>Travel</option><option>Charitable Donation</option><option>Curriculum Development</option><option>Rentals</option><option>Teacher Appreciation</option><option>American Red Cross</option><option>Grants</option><option>Other</option>
         </select>
         <select id="ef-link" onchange="renderExpenses()">
           <option value="">All expenses</option>
@@ -1997,6 +1998,7 @@ const INSTR_RATE=50,INSTR_TRAVEL=50;
 const INSTR_EXTRA_HOURS=0.5;
 
 let sessions=[],registrations=[],instructors=[],jobDataCache={},expenses=[],invoices=[],finView='monthly',sessionSortAsc=true;
+let grantApplications=[],grantApplicationsReady=true;
 let inventoryItems=[],inventoryPurchases=[],courseMaterialUses=[],inventoryTablesReady=false;
 let equipment=[],matCheckouts=[],equipmentTablesReady=true;
 // Community Partnerships Liaisons and their monthly commission payouts.
@@ -2637,6 +2639,10 @@ async function loadData(){
     jobDataCache={};
     (j.data||[]).forEach(row=>{jobDataCache[row.session_id]=jobFromDB(row);});
     expenses=(e.data||[]).map(expenseFromDB);
+    const ga=await fetchAll('grant_applications',q=>q.order('name',{ascending:true}));
+    grantApplicationsReady=!ga.error;
+    if(ga.error)console.warn('Grant applications table not loaded (run migrations/20261107_grant_applications.sql):',ga.error);
+    grantApplications=(ga.data||[]).map(grantApplicationFromDB);
     invoices=(inv.data||[]).map(invoiceFromDB);
     equipmentTablesReady=!eq.error&&!co.error;
     if(eq.error)console.warn('Equipment table not loaded (run the Materials setup SQL if you haven\'t):',eq.error);
@@ -10916,6 +10922,10 @@ function renderFinances(){
   const years=[...new Set([
     ...sessions.map(s=>{const slot=sessionRevenueSlot(s, nowFin);return slot?slot.year:NaN;}),
     ...expenses.map(e=>new Date(e.date+'T12:00:00').getFullYear()),
+    ...(typeof grantApplications==='undefined'?[]:grantApplications).map(g=>{
+      const date=typeof grantIncomeDate==='function'?grantIncomeDate(g):'';
+      return date?new Date(date+'T12:00:00').getFullYear():NaN;
+    }),
     nowFin.getFullYear()
   ])].filter(y=>!isNaN(y)).sort((a,b)=>b-a);
   const yrSel=document.getElementById('report-year');
@@ -10924,6 +10934,7 @@ function renderFinances(){
   if(moSel){const curMo=(moSel.value!==''&&moSel.value!=null)?moSel.value:new Date().getMonth();moSel.innerHTML=Array.from({length:12},(_,m)=>`<option value="${m}" ${m==curMo?'selected':''}>${new Date(2000,m,1).toLocaleDateString('en-US',{month:'long'})}</option>`).join('');}
   renderLegacyCostBanner();
   if(typeof renderGrantFunds==='function')renderGrantFunds();
+  if(typeof renderGrantApplications==='function')renderGrantApplications();
   renderPaidWith();
   if(finView==='session'){
     renderProfitBySession();
@@ -10945,13 +10956,15 @@ function renderFinances(){
     buckets[k].comm=round2((buckets[k].comm||0)+commByMonth[mk]);
     buckets[k].cost=round2(buckets[k].cost+commByMonth[mk]);
   });
+  if(typeof applyGrantIncome==='function')applyGrantIncome(buckets, finView);
   const yearly=finView==='yearly';
   Object.values(buckets).forEach(b=>{
+    const grantIn=Number(b.grantIncome)||0;
     if(yearly){
       const fig=financeYearFigures(b.rev,b.fee,b.cost);
-      b.gross=fig.gross;b.expenses=fig.expenses;b.profit=fig.profit;
+      b.gross=fig.gross;b.expenses=fig.expenses;b.profit=round2(fig.profit+grantIn);
     }else{
-      b.gross=b.rev;b.expenses=b.cost;b.profit=b.rev-b.cost;
+      b.gross=b.rev;b.expenses=b.cost;b.profit=round2(b.rev-b.cost+grantIn);
     }
   });
   const keys=Object.keys(buckets).sort().reverse();
@@ -10959,8 +10972,8 @@ function renderFinances(){
   if(tools)tools.innerHTML='';
   const sub=document.getElementById('fin-page-sub');
   if(sub)sub.textContent=yearly
-    ?'Gross payments, with PayPal, Venmo, and card fees as their own cost. Profit subtracts those fees once. Each expense is counted once. Inventory purchases are cash spent, not overhead. Classes take the cost of the units they use. Cancelled sessions leave out unpaid estimates.'
-    :'Class profit is revenue minus instructor pay, class expenses, inventory used, and liaison commission. Company overhead is on the yearly view. A bulk handbook order is not overhead and not a session expense.';
+    ?'Gross payments, with PayPal, Venmo, and card fees as their own cost. Profit subtracts those fees once. Each expense is counted once. Inventory purchases are cash spent, not overhead. Classes take the cost of the units they use. Cancelled sessions leave out unpaid estimates. Awarded grants are income on the decision date. Application fees are Grants expenses.'
+    :'Class profit is revenue minus instructor pay, class expenses, inventory used, and liaison commission. Company overhead, grant application fees, and awarded grant income are on the yearly view. A bulk handbook order is not overhead and not a session expense.';
   const feeTitle=yearly
     ?'PayPal, Venmo, and card processing fees. A cost, included once in Total expenses. Revenue on this view is gross payments before these fees.'
     :'PayPal processing fees skimmed off online payments, already deducted from net revenue, not part of expenses';
@@ -10968,6 +10981,7 @@ function renderFinances(){
   const t=document.getElementById('fin-table');
   const sumKey=key=>keys.reduce((a,k)=>a+(Number(buckets[k]&&buckets[k][key])||0),0);
   const optCols=[
+    {show:sumKey('grantIncome')!==0,head:'<th title="Awarded grant amounts. Income on the decision date, with no card fee. Included in net profit, not in gross payments.">Grant income</th>',cell:b=>`<td style="color:var(--success)">${fmt(b.grantIncome||0)}</td>`},
     {show:sumKey('fee')!==0,head:`<th title="${feeTitle}">Processing fees</th>`,cell:b=>`<td style="color:${yearly?'var(--danger)':'var(--muted)'}" title="${feeCell}">${fmt(b.fee||0)}</td>`},
     {show:sumKey('instr')!==0,head:'<th>Instructor fees</th>',cell:b=>`<td style="color:var(--danger)"${b.instrEstimated?` title="${INSTR_EST_TITLE}"`:''}>${estPrefix(fmt(b.instr||0), !!b.instrEstimated)}</td>`},
     {show:sumKey('linked')!==0,head:'<th title="Finances expenses linked to a session, placed on the expense date. Counted once. Inventory purchases are not included.">Session-linked expenses</th>',cell:b=>`<td style="color:var(--danger)">${fmt(b.linked||0)}</td>`},
@@ -12590,6 +12604,288 @@ function renderGrantFunds(){
     const migNote=GRANT_TAG_COL?'':'<div style="margin-top:10px;font-size:14px;color:var(--warn)">Grant tagging is off until migrations/20261103_session_grant_tag.sql runs in the Supabase SQL editor.</div>';
     return `<div class="card" style="margin-bottom:16px"><div class="card-title">Grant funds — ${escapeHtml(g.name)} (${escapeHtml(g.funder)})</div><div style="display:flex;flex-wrap:wrap;gap:18px;margin-top:6px">${statsHtml}</div>${rowsHtml}${migNote}</div>`;
   }).join('');
+}
+// ---- Grant applications --------------------------------------------------
+// The pipeline of grants Lindsay is researching or has sent in. Separate from
+// the awarded-program drawdown above, which tags class costs to a funder.
+// Owner and admin only. The instructor portal never loads this table: anon
+// has no privilege, and this page is the admin login. A fee above zero is
+// also an expenses row in category Grants, so yearly finance totals count it
+// once. An awarded amount is income on the yearly view, on the decision date.
+const GRANT_APP_STATUSES=[['researching','Researching'],['applied','Applied'],['awarded','Awarded'],['declined','Declined']];
+function grantStatus(v){
+  const raw=String(v==null?'':v).trim().toLowerCase();
+  return GRANT_APP_STATUSES.some(([k])=>k===raw)?raw:'researching';
+}
+function grantApplicationFromDB(r){
+  const num=v=>v==null||v===''?null:Number(v);
+  const day=v=>v?String(v).slice(0,10):'';
+  return {
+    id:r.id,
+    name:r.name||'',
+    funder:r.funder||'',
+    link:r.link||'',
+    amountRequested:num(r.amount_requested),
+    applicationFeePaid:num(r.application_fee_paid),
+    dateApplied:day(r.date_applied),
+    dueDate:day(r.due_date),
+    decisionDate:day(r.decision_date),
+    status:grantStatus(r.status),
+    amountAwarded:num(r.amount_awarded),
+    notes:r.notes||'',
+    expenseId:r.expense_id||null
+  };
+}
+function grantApplicationSummary(list){
+  const rows=list||[];
+  let fees=0,awarded=0,pending=0;
+  rows.forEach(g=>{
+    const fee=Number(g&&g.applicationFeePaid);
+    if(isFinite(fee)&&fee>0)fees+=fee;
+    if(g&&g.status==='awarded'){
+      const amt=Number(g.amountAwarded);
+      if(isFinite(amt)&&amt>0)awarded+=amt;
+    }
+    if(g&&(g.status==='researching'||g.status==='applied'))pending++;
+  });
+  const round=typeof round2==='function'?round2:n=>Math.round((Number(n)||0)*100)/100;
+  return {fees:round(fees),awarded:round(awarded),pending:pending};
+}
+function grantIncomeDate(g){
+  if(!g||g.status!=='awarded')return '';
+  const amt=Number(g.amountAwarded);
+  if(!isFinite(amt)||amt<=0)return '';
+  const decision=String(g.decisionDate||'').slice(0,10);
+  if(decision)return decision;
+  return String(g.dateApplied||'').slice(0,10);
+}
+function grantIncomePosts(year){
+  const rows=[];
+  (typeof grantApplications==='undefined'?[]:grantApplications).forEach(g=>{
+    const date=grantIncomeDate(g);
+    if(!date)return;
+    const d=new Date(date+'T12:00:00');
+    if(isNaN(d.getTime()))return;
+    if(year!=null&&d.getFullYear()!==Number(year))return;
+    rows.push({month:d.getMonth(),year:d.getFullYear(),amount:Number(g.amountAwarded)||0,name:g.name||'Grant'});
+  });
+  return rows;
+}
+function applyGrantIncome(buckets, view){
+  if(!buckets||view==='monthly')return buckets;
+  grantIncomePosts(null).forEach(p=>{
+    const k=String(p.year);
+    if(!buckets[k])buckets[k]=typeof emptyRevBucket==='function'?emptyRevBucket():{rev:0,fee:0,cost:0,profit:0,sess:0,students:0};
+    buckets[k].grantIncome=round2((buckets[k].grantIncome||0)+p.amount);
+  });
+  return buckets;
+}
+function grantFeeDescription(g){
+  const name=String(g&&g.name||'').trim()||'Grant';
+  return name+' application fee';
+}
+function grantApplicationRows(list){
+  const rank={applied:0,researching:1,awarded:2,declined:3};
+  return (list||[]).slice().sort((a,b)=>{
+    const d=(rank[a.status]??9)-(rank[b.status]??9);
+    if(d)return d;
+    const ad=a.dueDate||'9999-99-99';
+    const bd=b.dueDate||'9999-99-99';
+    if(ad!==bd)return ad<bd?-1:1;
+    return String(a.name||'').localeCompare(String(b.name||''));
+  });
+}
+function grantDateLabel(ymd){
+  const s=String(ymd||'').slice(0,10);
+  if(!s)return '';
+  const d=new Date(s+'T12:00:00');
+  if(isNaN(d.getTime()))return '';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+function grantMoneyText(n){
+  if(n==null||n==='')return '';
+  const v=Number(n);
+  if(!isFinite(v))return '';
+  return fmt(v);
+}
+function grantStatusTag(status){
+  const label=(GRANT_APP_STATUSES.find(([k])=>k===status)||['','Researching'])[1];
+  const bg=status==='awarded'?'#e7f0ea':status==='declined'?'#fdf0ee':status==='applied'?'#eef3f8':'#f7f4ee';
+  const color=status==='awarded'?'#1d6b45':status==='declined'?'#c0392b':status==='applied'?'#1a5c8a':'#7a5c1e';
+  return '<span class="tag" style="background:'+bg+';color:'+color+'">'+escapeHtml(label)+'</span>';
+}
+function grantLinkHtml(url){
+  const raw=String(url||'').trim();
+  if(!raw)return '';
+  if(!/^https?:\/\//i.test(raw))return '<div style="font-size:13px;font-weight:500">'+escapeHtml(raw)+'</div>';
+  return '<div style="font-size:13px;font-weight:500"><a href="'+escapeHtml(raw)+'" target="_blank" rel="noopener noreferrer">Application link</a></div>';
+}
+function grantApplicationToDB(g){
+  return {
+    name:g.name,
+    funder:g.funder||null,
+    link:g.link||null,
+    amount_requested:g.amountRequested,
+    application_fee_paid:g.applicationFeePaid,
+    date_applied:g.dateApplied||null,
+    due_date:g.dueDate||null,
+    decision_date:g.decisionDate||null,
+    status:grantStatus(g.status),
+    amount_awarded:g.amountAwarded,
+    notes:g.notes||null,
+    expense_id:g.expenseId||null
+  };
+}
+function readGrantMoney(id){
+  const el=document.getElementById(id);
+  if(!el)return null;
+  const raw=String(el.value==null?'':el.value).trim();
+  if(!raw)return null;
+  const n=Number(raw);
+  if(!isFinite(n)||n<0)return NaN;
+  return round2(n);
+}
+async function syncGrantFeeExpense(g){
+  const fee=Number(g.applicationFeePaid);
+  const hasFee=isFinite(fee)&&fee>0;
+  if(!hasFee){
+    if(!g.expenseId)return;
+    const id=g.expenseId;
+    g.expenseId=null;
+    expenses=expenses.filter(e=>e.id!==id);
+    await dbWrite(sb.from('expenses').delete().eq('id',id),'Grant fee delete');
+    return;
+  }
+  let e=g.expenseId?(expenses||[]).find(x=>x.id===g.expenseId):null;
+  const date=g.dateApplied||(e&&e.date)||fmtYMD(new Date());
+  if(!e){
+    e={id:sid(),description:grantFeeDescription(g),amount:round2(fee),date:date,category:'Grants',paymentMethod:'',sessionId:null,createdAt:Date.now(),recurrence:'',recurUntil:'',recurActive:true};
+    expenses.unshift(e);
+    g.expenseId=e.id;
+    await writeExpenseRow('insert',e,'Grant fee');
+    return;
+  }
+  e.amount=round2(fee);
+  e.category='Grants';
+  if(g.dateApplied)e.date=g.dateApplied;
+  if(!e.description)e.description=grantFeeDescription(g);
+  await writeExpenseRow('update',e,'Grant fee');
+}
+function grantFormHtml(g){
+  const status=grantStatus(g&&g.status);
+  const opts=GRANT_APP_STATUSES.map(([k,label])=>'<option value="'+k+'"'+(k===status?' selected':'')+'>'+label+'</option>').join('');
+  const money=n=>n==null||n===''?'':String(n);
+  return `<div class="form-grid">
+    <div class="fg full"><label for="m-gname">Grant name *</label><input type="text" id="m-gname" value="${g?escapeHtml(g.name):''}" placeholder="e.g. HerRise MicroGrant"></div>
+    <div class="fg"><label for="m-gfunder">Funder</label><input type="text" id="m-gfunder" value="${g?escapeHtml(g.funder):''}"></div>
+    <div class="fg"><label for="m-glink">Link</label><input type="url" id="m-glink" value="${g?escapeHtml(g.link):''}" placeholder="https://"></div>
+    <div class="fg"><label for="m-greq">Amount requested</label><input type="number" id="m-greq" min="0" step="0.01" value="${g?money(g.amountRequested):''}"></div>
+    <div class="fg"><label for="m-gfee">Application fee paid</label><input type="number" id="m-gfee" min="0" step="0.01" value="${g?money(g.applicationFeePaid):''}"></div>
+    <div class="fg"><label for="m-gapplied">Date applied</label><input type="date" id="m-gapplied" value="${g&&g.dateApplied?g.dateApplied:''}"></div>
+    <div class="fg"><label for="m-gdue">Due date</label><input type="date" id="m-gdue" value="${g&&g.dueDate?g.dueDate:''}"></div>
+    <div class="fg"><label for="m-gdecision">Decision date</label><input type="date" id="m-gdecision" value="${g&&g.decisionDate?g.decisionDate:''}"></div>
+    <div class="fg"><label for="m-gstatus">Status</label><select id="m-gstatus">${opts}</select></div>
+    <div class="fg"><label for="m-gaward">Amount awarded</label><input type="number" id="m-gaward" min="0" step="0.01" value="${g?money(g.amountAwarded):''}"></div>
+    <div class="fg full"><label for="m-gnotes">Notes</label><textarea id="m-gnotes" rows="3">${g?escapeHtml(g.notes):''}</textarea></div>
+    <div class="fg full" style="font-size:14px;color:var(--muted);line-height:1.5">A fee above zero is saved as an expense in category Grants and counted once on the yearly totals. An awarded amount is income on the yearly view, on the decision date, or on the date applied if the decision date is blank. This list is not shown to instructors.</div>
+  </div>`;
+}
+function openAddGrantApplication(){
+  showModal(`<div class="modal-head"><h3>Add grant</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">${grantFormHtml(null)}</div>
+  <div class="modal-foot"><button class="btn" type="button" onclick="closeModal()">Cancel</button><button class="btn primary" type="button" onclick="saveGrantApplication('')">Add grant</button></div>`);
+}
+function openEditGrantApplication(id){
+  const g=(grantApplications||[]).find(x=>x.id===id);if(!g)return;
+  showModal(`<div class="modal-head"><h3>Edit grant</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div class="modal-body">${grantFormHtml(g)}</div>
+  <div class="modal-foot"><button class="btn" type="button" onclick="closeModal()">Cancel</button><button class="btn primary" type="button" data-id="${escapeHtml(g.id)}" onclick="saveGrantApplication(this.getAttribute('data-id'))">Save changes</button></div>`);
+}
+async function saveGrantApplication(id){
+  const nameEl=document.getElementById('m-gname');
+  const name=nameEl?(nameEl.value||'').trim():'';
+  if(!name){alert('Please enter the grant name.');return;}
+  const requested=readGrantMoney('m-greq');
+  const fee=readGrantMoney('m-gfee');
+  const awarded=readGrantMoney('m-gaward');
+  if([requested,fee,awarded].some(n=>typeof n==='number'&&isNaN(n))){alert('Amounts must be zero or more.');return;}
+  const existing=id?(grantApplications||[]).find(g=>g.id===id):null;
+  const row=existing||{id:sid(),expenseId:null};
+  row.name=name;
+  row.funder=((document.getElementById('m-gfunder')||{}).value||'').trim();
+  row.link=((document.getElementById('m-glink')||{}).value||'').trim();
+  row.amountRequested=requested;
+  row.applicationFeePaid=fee;
+  row.dateApplied=String(((document.getElementById('m-gapplied')||{}).value)||'').slice(0,10);
+  row.dueDate=String(((document.getElementById('m-gdue')||{}).value)||'').slice(0,10);
+  row.decisionDate=String(((document.getElementById('m-gdecision')||{}).value)||'').slice(0,10);
+  row.status=grantStatus(((document.getElementById('m-gstatus')||{}).value));
+  row.amountAwarded=awarded;
+  row.notes=((document.getElementById('m-gnotes')||{}).value||'').trim();
+  if(!existing)grantApplications.unshift(row);
+  await syncGrantFeeExpense(row);
+  closeModal();
+  renderGrantApplications();renderExpenses();renderFinances();
+  const payload=grantApplicationToDB(row);
+  const q=sb.from('grant_applications');
+  const write=existing?q.update(payload).eq('id',row.id):q.insert(Object.assign({id:row.id},payload));
+  const ok=await dbWrite(write,'Grant');
+  if(!ok&&!existing){
+    grantApplications=grantApplications.filter(g=>g.id!==row.id);
+    renderGrantApplications();renderExpenses();renderFinances();
+  }
+}
+async function deleteGrantApplication(id){
+  const g=(grantApplications||[]).find(x=>x.id===id);if(!g)return;
+  const fee=Number(g.applicationFeePaid)||0;
+  if(!confirm(fee>0?'Delete this grant? Its application fee will also be removed from expenses.':'Delete this grant?'))return;
+  grantApplications=grantApplications.filter(x=>x.id!==id);
+  const expenseId=g.expenseId;
+  if(expenseId)expenses=expenses.filter(e=>e.id!==expenseId);
+  renderGrantApplications();renderExpenses();renderFinances();
+  if(expenseId)await dbWrite(sb.from('expenses').delete().eq('id',expenseId),'Grant fee delete');
+  await dbWrite(sb.from('grant_applications').delete().eq('id',id),'Grant delete');
+}
+function renderGrantApplications(){
+  const el=document.getElementById('fin-grant-apps');
+  if(!el)return;
+  if(!grantApplicationsReady){
+    el.innerHTML='<div class="card" style="margin-bottom:16px"><div class="card-title">Grant applications</div><div class="alert info">Grant applications are not in the database yet. Run <strong>migrations/20261107_grant_applications.sql</strong> in Supabase, then refresh this page.</div></div>';
+    return;
+  }
+  const sum=grantApplicationSummary(grantApplications);
+  const rows=grantApplicationRows(grantApplications);
+  const body=rows.length?rows.map(g=>{
+    const applied=grantDateLabel(g.dateApplied);
+    const due=grantDateLabel(g.dueDate);
+    const decision=grantDateLabel(g.decisionDate);
+    const awardNote=g.status==='awarded'&&(Number(g.amountAwarded)>0)&&!g.decisionDate&&!g.dateApplied?'<div style="font-size:13px;color:var(--warn)">Add a decision date so this award counts in that year.</div>':'';
+    const idAttr=escapeHtml(g.id);
+    return '<tr>'
+      +'<td style="font-weight:500">'+escapeHtml(g.name)+grantLinkHtml(g.link)+(g.notes?'<div style="font-size:13px;font-weight:500;color:var(--muted)">'+escapeHtml(g.notes)+'</div>':'')+awardNote+'</td>'
+      +'<td>'+(g.funder?escapeHtml(g.funder):'<span style="color:var(--muted)">—</span>')+'</td>'
+      +'<td>'+grantStatusTag(g.status)+'</td>'
+      +'<td>'+(grantMoneyText(g.amountRequested)||'<span style="color:var(--muted)">—</span>')+'</td>'
+      +'<td style="color:var(--danger)">'+(grantMoneyText(g.applicationFeePaid)||'<span style="color:var(--muted)">—</span>')+'</td>'
+      +'<td style="white-space:nowrap">'+(applied?escapeHtml(applied):'<span style="color:var(--muted)">—</span>')+'</td>'
+      +'<td style="white-space:nowrap">'+(due?escapeHtml(due):'<span style="color:var(--muted)">—</span>')+'</td>'
+      +'<td style="white-space:nowrap">'+(decision?escapeHtml(decision):'<span style="color:var(--muted)">—</span>')+'</td>'
+      +'<td style="color:var(--success);font-weight:500">'+(g.status==='awarded'?(grantMoneyText(g.amountAwarded)||'<span style="color:var(--muted);font-weight:400">—</span>'):'<span style="color:var(--muted);font-weight:400">—</span>')+'</td>'
+      +'<td><div class="btn-row"><button class="btn sm" type="button" data-id="'+idAttr+'" onclick="openEditGrantApplication(this.getAttribute(\'data-id\'))">Edit</button><button class="btn sm danger" type="button" data-id="'+idAttr+'" onclick="deleteGrantApplication(this.getAttribute(\'data-id\'))">Delete</button></div></td>'
+      +'</tr>';
+  }).join(''):'<tr class="empty-row"><td colspan="10">No grants yet.</td></tr>';
+  el.innerHTML='<div class="card" style="margin-bottom:16px">'
+    +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">'
+    +'<div><div class="card-title">Grant applications</div>'
+    +'<div style="font-size:15px;color:var(--muted);line-height:1.55;margin:-4px 0 12px">Owner only. Instructors do not see this list. Application fees are expenses in category Grants and count on the yearly totals. Awarded amounts are grant income on the yearly view.</div></div>'
+    +'<button class="btn primary" type="button" onclick="openAddGrantApplication()">+ Add grant</button></div>'
+    +'<div class="metrics" style="margin-bottom:12px">'
+    +'<div class="metric"><div class="m-label">Application fees paid</div><div class="m-val red">'+fmt(sum.fees)+'</div><div class="m-sub">Category Grants</div></div>'
+    +'<div class="metric"><div class="m-label">Total awarded</div><div class="m-val" style="color:var(--success)">'+fmt(sum.awarded)+'</div><div class="m-sub">Awarded grants only</div></div>'
+    +'<div class="metric"><div class="m-label">Pending</div><div class="m-val">'+sum.pending+'</div><div class="m-sub">Researching or applied</div></div>'
+    +'</div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Grant</th><th>Funder</th><th>Status</th><th>Requested</th><th>Fee paid</th><th>Applied</th><th>Due</th><th>Decision</th><th>Awarded</th><th></th></tr></thead><tbody>'+body+'</tbody></table></div>'
+    +'</div>';
 }
 function troopLevelFieldHtml(s, inputId){
   const id=inputId||'m-troop-level';
@@ -14286,7 +14582,7 @@ function downloadAllWaivers(){
 }
 
 // ─── EXPENSES ────────────────────────────────────────────────
-const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Curriculum Development','Rentals','Teacher Appreciation','American Red Cross','Other'];
+const EXP_CATS=['Business Development','Equipment','Instructor Training','Insurance','Supplies','Marketing','Software','Travel','Charitable Donation','Curriculum Development','Rentals','Teacher Appreciation','American Red Cross','Grants','Other'];
 // Stable swatch for each known category on the annual expense chart.
 // Labels that are not expense categories (instructor fees, card fees, and so on)
 // fall through to the chart palette.
@@ -14304,6 +14600,7 @@ const EXP_CAT_COLORS={
   'Rentals':'#c46b2d',
   'Teacher Appreciation':'#d4a017',
   'American Red Cross':'#ED1B2E',
+  'Grants':'#1d6b45',
   'Other':'#888'
 };
 // How an overhead expense was paid. Stored lowercase; the label is what shows
@@ -15177,13 +15474,21 @@ async function stopExpenseRecurrence(id){
 }
 
 async function deleteExpense(id){
-  if(!confirm('Delete this expense?'))return;
+  const linkedGrant=(typeof grantApplications!=='undefined'&&grantApplications||[]).find(g=>g&&g.expenseId===id);
+  const msg=linkedGrant?('Delete this expense? It is the application fee for '+linkedGrant.name+', so that fee will be cleared on the grant too.'):'Delete this expense?';
+  if(!confirm(msg))return;
   const lot=(typeof inventoryPurchaseForExpense==='function')?inventoryPurchaseForExpense(id):null;
   expenses=expenses.filter(e=>e.id!==id);
   if(lot)inventoryPurchases=inventoryPurchases.filter(p=>p.id!==lot.id);
   renderExpenses();renderDashboard();renderFinances();
   const ok=await dbWrite(sb.from('expenses').delete().eq('id',id),'Expense delete');
   if(ok&&lot)await dbWrite(sb.from('inventory_purchases').delete().eq('id',lot.id),'Inventory delete');
+  if(ok&&linkedGrant){
+    linkedGrant.expenseId=null;
+    linkedGrant.applicationFeePaid=null;
+    await dbWrite(sb.from('grant_applications').update({expense_id:null,application_fee_paid:null}).eq('id',linkedGrant.id),'Grant fee clear');
+    if(typeof renderGrantApplications==='function')renderGrantApplications();
+  }
 }
 
 // ─── INVENTORY COST (handbooks and certifications) ───────────
@@ -18952,6 +19257,11 @@ function printYearReport(){
     else{months[mi].overhead+=amt;months[mi].cost+=amt;}
    });
   });
+  if(typeof grantIncomePosts==='function'){
+    grantIncomePosts(year).forEach(p=>{
+      months[p.month].grantIncome=(months[p.month].grantIncome||0)+p.amount;
+    });
+  }
   invalidateCommissionCache();
   partnerCommissionMonths(year).forEach((amt,mi)=>{
     if(!amt)return;
@@ -18959,7 +19269,7 @@ function printYearReport(){
   });
   months.forEach(m=>{
     const fig=financeYearFigures(m.rev,m.fee,m.cost);
-    m.gross=fig.gross;m.expenses=fig.expenses;m.profit=fig.profit;
+    m.gross=fig.gross;m.expenses=fig.expenses;m.profit=round2(fig.profit+(Number(m.grantIncome)||0));
   });
   const undatedFig=financeYearFigures(undatedHold.rev,undatedHold.fee,undatedHold.cost);
   undatedHold.gross=undatedFig.gross;undatedHold.expenses=undatedFig.expenses;undatedHold.profit=undatedFig.profit;
@@ -18969,8 +19279,9 @@ function printYearReport(){
     rev:acc.rev+m.rev,fee:acc.fee+m.fee,mat:acc.mat+m.mat,instr:acc.instr+m.instr,
     comm:acc.comm+m.comm,ship:acc.ship+m.ship,overhead:acc.overhead+m.overhead,
     linked:acc.linked+(m.linked||0),legacy:acc.legacy+(m.legacy||0),inventory:acc.inventory+(m.inventory||0),cost:acc.cost+m.cost,
+    grantIncome:acc.grantIncome+(m.grantIncome||0),
     profit:0,sess:acc.sess+m.sess,students:acc.students+m.students
-  }),{rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,linked:0,legacy:0,inventory:0,cost:0,profit:0,sess:0,students:0});
+  }),{rev:0,fee:0,mat:0,instr:0,comm:0,ship:0,overhead:0,linked:0,legacy:0,inventory:0,grantIncome:0,cost:0,profit:0,sess:0,students:0});
   const undatedLive=!!(undatedHold.sess||undatedHold.rev||undatedHold.cost||undatedHold.fee||undatedHold.instr||undatedHold.legacy);
   if(undatedLive){
     tot.rev+=undatedHold.rev;tot.fee+=undatedHold.fee;tot.mat+=undatedHold.mat;tot.instr+=undatedHold.instr;
@@ -18979,7 +19290,7 @@ function printYearReport(){
     tot.sess+=undatedHold.sess;tot.students+=undatedHold.students;
   }
   const yearFig=financeYearFigures(tot.rev,tot.fee,tot.cost);
-  tot.gross=yearFig.gross;tot.expenses=yearFig.expenses;tot.profit=yearFig.profit;
+  tot.gross=yearFig.gross;tot.expenses=yearFig.expenses;tot.profit=round2(yearFig.profit+(Number(tot.grantIncome)||0));
 
   // Course breakdown, including undated paid holds that belong to this year.
   const courseBuckets=courseRevenueForYear(year, nowRep);
@@ -18997,7 +19308,9 @@ function printYearReport(){
   const fmtS=n=>(n<0?'-':'')+fmtN(n);
   const profitColor=n=>n>=0?'#2d7a5e':'#c0392b';
 
-  const monthActive=m=>!!(m.sess||m.rev||m.fee||m.instr||m.legacy||m.linked||m.inventory||m.overhead||m.comm||m.cost);
+  const monthActive=m=>!!(m.sess||m.rev||m.fee||m.instr||m.legacy||m.linked||m.inventory||m.overhead||m.comm||m.cost||m.grantIncome);
+  const grantHead=(tot.grantIncome||0)?'<th style="text-align:right">Grant income</th>':'';
+  const grantCell=n=>(tot.grantIncome||0)?`<td style="text-align:right;color:#2d7a5e">${cell(n)}</td>`:'';
   const cell=n=>n?fmtN(n):'-';
   let monthRows=months.map(m=>`
     <tr style="${monthActive(m)?'':'color:#aaa'}">
@@ -19005,6 +19318,7 @@ function printYearReport(){
       <td style="text-align:center">${m.sess||'-'}</td>
       <td style="text-align:center">${m.students||'-'}</td>
       <td style="text-align:right;font-weight:500">${m.gross?fmtN(m.gross):'-'}</td>
+      ${grantCell(m.grantIncome)}
       <td style="text-align:right;color:#c0392b">${m.instr&&m.instrEstimated?('est. '+cell(m.instr)):cell(m.instr)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.linked)}</td>
       <td style="text-align:right;color:#c0392b">${cell(m.inventory)}</td>
@@ -19021,6 +19335,7 @@ function printYearReport(){
       <td style="text-align:center">${undatedHold.sess||'-'}</td>
       <td style="text-align:center">${undatedHold.students||'-'}</td>
       <td style="text-align:right;font-weight:500">${undatedHold.gross?fmtN(undatedHold.gross):'-'}</td>
+      ${grantCell(0)}
       <td style="text-align:right;color:#c0392b">${undatedHold.instr&&undatedHold.instrEstimated?('est. '+cell(undatedHold.instr)):cell(undatedHold.instr)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.linked)}</td>
       <td style="text-align:right;color:#c0392b">${cell(undatedHold.inventory)}</td>
@@ -19111,6 +19426,7 @@ function printYearReport(){
       <thead><tr>
         <th>Month</th><th style="text-align:center">Sessions</th><th style="text-align:center">Students</th>
         <th style="text-align:right">Gross payments</th>
+        ${grantHead}
         <th style="text-align:right">Instructor</th><th style="text-align:right">Session-linked</th>
         <th style="text-align:right">Inventory</th>
         <th style="text-align:right">Older costs</th>
@@ -19125,6 +19441,7 @@ function printYearReport(){
         <td style="text-align:center">${tot.sess}</td>
         <td style="text-align:center">${tot.students}</td>
         <td style="text-align:right">${fmtN(tot.gross)}</td>
+        ${(tot.grantIncome||0)?`<td style="text-align:right;color:#2d7a5e">${fmtN(tot.grantIncome)}</td>`:''}
         <td style="text-align:right;color:#c0392b">${(months.some(m=>m.instrEstimated)||undatedHold.instrEstimated)&&tot.instr?('est. '+fmtN(tot.instr)):fmtN(tot.instr)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.linked)}</td>
         <td style="text-align:right;color:#c0392b">${fmtN(tot.inventory||0)}</td>
@@ -19137,6 +19454,7 @@ function printYearReport(){
       </tr></tfoot>
     </table>
     ${undatedLive?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">On-hold sessions with no class date are listed on their own row when their year is not the current year. Their revenue is in the year total and is not assigned to a calendar month until a date is saved. Paid costs on a cancelled session with no date stay on that row too.</p>':''}
+    ${(tot.grantIncome||0)?'<p style="font-size:14px;color:#6b7a99;margin-top:6px">Grant income is awarded money on the decision date. It is included in net profit and is not part of gross payments. Application fees are in Other expenses, category Grants.</p>':''}
 
     <h2>Revenue by course</h2>
     <table>
