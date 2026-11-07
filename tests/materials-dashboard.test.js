@@ -391,6 +391,19 @@ test('a kept kit says it is already with the instructor and does not repeat quan
   sandbox.equipment = [];
 });
 
+test('inventory cards say what is reserved and what is already used or out', () => {
+  const src = admin.slice(admin.indexOf('function matInventoryOutLabel'), admin.indexOf('function matUpcomingForPerson'));
+  assert.match(src, /Reserved for upcoming classes/);
+  assert.match(src, /Used in past classes/);
+  assert.match(src, /Out with instructors/);
+  assert.match(src, /matReservedAhead\(eq\.id\)/);
+  assert.match(src, /matPhysicallyOut\(eq\.id\)/);
+  assert.match(src, /matInventoryOutLabel\(eq\)/);
+  assert.doesNotMatch(src, /Given out/);
+  assert.doesNotMatch(src, /Checked out/);
+  assert.doesNotMatch(src, /reserved ahead/);
+});
+
 test('the equipment screen has no checkout calendar', () => {
   assert.doesNotMatch(admin, /Checkout calendar/);
   assert.doesNotMatch(admin, /id="mat-cal"/);
