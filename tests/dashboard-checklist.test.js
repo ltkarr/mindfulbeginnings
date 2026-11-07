@@ -456,3 +456,257 @@ test('an unsent host reminder does not keep a class on the checklist', () => {
   assert.equal(sandbox.preClassChecklistDone(noHost), false);
   assert.deepEqual(sandbox.dashUpcomingSessions([ready, noHost], today).map((s) => s.id), ['ready', 'no-host']);
 });
+
+test('each upcoming card has a read-only left prep mark from the existing rule', () => {
+  const statusFns = [
+    'dashPrepStatusHtml',
+    'escapeHtml',
+    'adminPlaceText',
+    'fmtSessDate',
+    'sessionInstructorList',
+    'sessionInstructorNames',
+    'sessionIsOrganization',
+    'sessionHostDisplayName',
+    'checklistInstructorLabel',
+    'checklistHostLabel',
+    'isLiveReg',
+    'preClassMaterialsLabel',
+    'preClassInstrReminderLabel',
+    'preClassStudentReminderLabel',
+    'preClassFinalRosterLabel',
+    'preClassShowsStudentCount',
+    'preClassLiveStudentCount',
+    'preClassNeedsStudentReminder',
+    'preClassTaskList',
+    'preClassChecklistDone',
+    'dashSessionDayDiff',
+    'dashUpcomingSessions',
+    'dashTeachingSlots',
+    'dashVisibleUpcoming',
+    'dashInstructorChoices',
+    'dashFortnightLoad',
+    'dashPacksWithAnother',
+    'materialsCheckedStamp',
+    'renderDashUpcoming',
+    'setMaterialsSent',
+    'toggleMaterialsFromDash',
+    'toggleReminderFlag'
+  ];
+  const alerts = { innerHTML: '' };
+  const box = {
+    Date,
+    String,
+    Number,
+    Math,
+    Object,
+    Array,
+    isNaN,
+    document: { getElementById(id) { return id === 'reminder-alerts' ? alerts : null; } },
+    MBTeachingChecklists: { forSession(s) { return s && !s.isVirtual ? { id: 'sheet' } : null; } },
+    dashUpcomingScope: 'all',
+    dashUpcomingInstructor: 'all',
+    instructors: [
+      { id: 'bela', name: 'Bela Spooner' },
+      { id: 'kim', name: 'Kim Varner' },
+      { id: 'abby', name: 'Abby Chen' }
+    ],
+    orgPartners: [],
+    registrations: [],
+    sessions: [],
+    jobDataCache: {},
+    saved: [],
+    toasts: []
+  };
+  box.window = { MBTeachingChecklists: box.MBTeachingChecklists };
+  box.paintLockboxRow = function () {};
+  box.upsertJobData = function (id) { box.saved.push(id); return Promise.resolve(true); };
+  box.showToast = function (msg) { box.toasts.push(msg); };
+  box.renderJobs = function () {};
+  box.renderDashboard = function () { box.renderDashUpcoming(new Date(2026, 10, 7)); };
+  vm.createContext(box);
+  vm.runInContext(statusFns.map((n) => extractFunction(admin, n)).join('\n'), box);
+
+  const completeMark = box.dashPrepStatusHtml(true);
+  const openMark = box.dashPrepStatusHtml(false);
+  assert.match(completeMark, /class="dash-prep-status is-complete"/);
+  assert.match(completeMark, /data-prep-status="complete"/);
+  assert.match(completeMark, /Prep complete/);
+  assert.match(completeMark, /<path /);
+  assert.match(completeMark, /fill="currentColor"/);
+  assert.doesNotMatch(completeMark, /<input|onclick|onchange|button/);
+  assert.match(openMark, /class="dash-prep-status is-open"/);
+  assert.match(openMark, /data-prep-status="open"/);
+  assert.match(openMark, /Not complete/);
+  assert.match(openMark, /fill="none"/);
+  assert.doesNotMatch(openMark, /<path |Prep complete|<input|onclick|onchange|button|checked/);
+
+  const block = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('// ─── SESSIONS'));
+  assert.match(block, /dashPrepStatusHtml\(preClassChecklistDone\(s\)\)/);
+  assert.doesNotMatch(block, /margin-top:4px">Prep complete/);
+  assert.match(block, /class="dash-prep-card"/);
+  assert.match(block, /printTeachingChecklist\('\$\{s\.id\}'\)/);
+  assert.match(block, /toggleMaterialsFromDash/);
+  assert.match(block, /toggleReminderFlag/);
+  assert.match(extractFunction(admin, 'preClassChecklistDone'), /preClassTaskList\(s\)\.every/);
+  assert.match(admin, /@media\(max-width:480px\)\{[\s\S]*?\.dash-prep-status\{/);
+  assert.doesNotMatch(admin, /\.dash-prep-status\{[^}]*display:\s*none/);
+  assert.match(admin, /body\.teach-printing \.main-content\{display:none !important\}/);
+  assert.match(admin, /function printTeachingChecklist\(sessId\)/);
+
+  function cardFor(id) {
+    const parts = alerts.innerHTML.split('<div class="dash-prep-card"').slice(1);
+    const hit = parts.find((part) => part.includes("'" + id + "'"));
+    assert.ok(hit, 'missing card ' + id);
+    return '<div class="dash-prep-card"' + hit;
+  }
+  function statusOf(card) {
+    const end = card.indexOf('<div class="dash-prep-body"');
+    assert.ok(end > 0, 'missing card body');
+    return card.slice(0, end);
+  }
+  function inputFor(card, token) {
+    const at = card.indexOf(token);
+    assert.ok(at > 0, 'missing ' + token);
+    const start = card.lastIndexOf('<input', at);
+    return card.slice(start, card.indexOf('>', at) + 1);
+  }
+
+  const carlin = sess('carlin', '2026-11-12', {
+    course: 'Carlin Springs Moms Group — FREE Bilingual Infant & Child Choking Rescue',
+    isCustomJob: true,
+    hasHost: false,
+    contactName: 'Carol Sabatino, Community School Coordinator',
+    instructorId: 'bela',
+    location: 'Carlin Springs Elementary School',
+    hostAddress: '5995 5th Rd S',
+    city: 'Arlington',
+    state: 'VA'
+  });
+  const library = sess('library', '2026-11-14', {
+    course: 'Fixture Library Visit — Infant Safety Talk',
+    isCustomJob: true,
+    hasHost: false,
+    contactName: 'Fixture Host',
+    instructorId: 'bela',
+    location: 'Fixture Library'
+  });
+  const raphael = sess('raphael', '2026-11-19', {
+    course: "Represent us at St. Raphael School's Girls Night Out!",
+    isCustomJob: true,
+    hasHost: false,
+    contactName: 'St. Raphael School',
+    instructorId: 'kim',
+    location: 'St. Raphael School'
+  });
+  const sitter = sess('sitter', '2026-11-21', {
+    course: 'Safe Sitter®',
+    isCustomJob: false,
+    hasHost: true,
+    contactName: 'Dana Rivera',
+    instructorId: 'kim',
+    location: 'Community center'
+  });
+  const zoom = sess('zoom', '2026-11-09', {
+    course: 'Safe@Home — Virtual',
+    isVirtual: true,
+    hasHost: false,
+    instructorId: 'abby',
+    location: ''
+  });
+  box.sessions = [carlin, library, raphael, sitter, zoom];
+  box.jobDataCache = {
+    carlin: {
+      materialsSent: true,
+      instrReminderSent: true,
+      hostReminderSent: false,
+      classReminderSent: false,
+      materialsSentAt: '2026-11-06T00:40:00.000Z',
+      materialsOutAt: '2026-11-06T00:40:00.000Z'
+    },
+    library: { materialsSent: true, instrReminderSent: false, materialsSentAt: '2026-11-06T15:00:00.000Z' },
+    raphael: { materialsSent: true, instrReminderSent: true, materialsSentAt: '2026-11-06T19:00:00.000Z' },
+    sitter: {
+      materialsSent: true,
+      instrReminderSent: true,
+      classReminderSent: false,
+      hostReminderSent: false,
+      materialsSentAt: '2026-11-04T15:00:00.000Z'
+    },
+    zoom: { materialsSent: true, instrReminderSent: true, instrFinalRosterSent: false }
+  };
+  box.renderDashboard();
+
+  assert.equal(box.preClassChecklistDone(carlin), true);
+  assert.equal(box.preClassChecklistDone(library), false);
+  assert.equal(box.preClassChecklistDone(raphael), true);
+  assert.equal(box.preClassChecklistDone(sitter), false);
+  assert.equal(box.preClassChecklistDone(zoom), false);
+  assert.deepEqual([...box.preClassTaskList(zoom)].map((t) => t.key), ['instrReminderSent', 'instrFinalRosterSent']);
+
+  const carlinCard = cardFor('carlin');
+  const carlinStatus = statusOf(carlinCard);
+  assert.match(carlinStatus, /data-prep-status="complete"/);
+  assert.match(carlinStatus, /Prep complete/);
+  assert.doesNotMatch(carlinStatus, /<input|onclick|onchange/);
+  const carlinStamp = box.materialsCheckedStamp(box.jobDataCache.carlin);
+  assert.match(carlinCard, /Put out materials for the instructor/);
+  assert.match(carlinCard, /Send reminder to instructor/);
+  assert.match(carlinCard, new RegExp(carlinStamp.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(carlinCard, /printTeachingChecklist\('carlin'\)/);
+  assert.doesNotMatch(carlinCard, /Family reminder|Host reminder|Day before/);
+  assert.equal((carlinCard.match(/type="checkbox"/g) || []).length, 2);
+  assert.match(inputFor(carlinCard, "toggleMaterialsFromDash('carlin'"), / checked/);
+  assert.match(inputFor(carlinCard, "toggleReminderFlag('carlin','instrReminderSent'"), / checked/);
+
+  const libraryCard = cardFor('library');
+  assert.match(statusOf(libraryCard), /data-prep-status="open"/);
+  assert.match(statusOf(libraryCard), /Not complete/);
+  assert.doesNotMatch(statusOf(libraryCard), /<path /);
+  assert.match(libraryCard, /Put out materials for the instructor/);
+  assert.match(inputFor(libraryCard, "toggleMaterialsFromDash('library'"), / checked/);
+  assert.doesNotMatch(inputFor(libraryCard, "toggleReminderFlag('library','instrReminderSent'"), / checked/);
+
+  const sitterCard = cardFor('sitter');
+  assert.match(statusOf(sitterCard), /data-prep-status="open"/);
+  assert.match(sitterCard, /Family reminder — before class/);
+  assert.doesNotMatch(sitterCard, /Host reminder/);
+  assert.equal((sitterCard.match(/type="checkbox"/g) || []).length, 3);
+
+  const zoomCard = cardFor('zoom');
+  assert.match(statusOf(zoomCard), /data-prep-status="open"/);
+  assert.match(zoomCard, /Day before — send final roster to instructor/);
+  assert.doesNotMatch(zoomCard, /Put out handbooks|Put out materials/);
+  assert.doesNotMatch(zoomCard, /printTeachingChecklist/);
+
+  const stamp = box.jobDataCache.carlin.materialsSentAt;
+  box.toggleReminderFlag('carlin', 'instrReminderSent', false);
+  assert.equal(box.jobDataCache.carlin.materialsSent, true);
+  assert.equal(box.jobDataCache.carlin.materialsSentAt, stamp);
+  assert.equal(box.jobDataCache.carlin.instrReminderSent, false);
+  assert.equal(box.preClassChecklistDone(carlin), false);
+  const afterOff = cardFor('carlin');
+  assert.match(statusOf(afterOff), /data-prep-status="open"/);
+  assert.match(statusOf(afterOff), /Not complete/);
+  assert.doesNotMatch(statusOf(afterOff), /<path /);
+  assert.match(afterOff, new RegExp(carlinStamp.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(inputFor(afterOff, "toggleMaterialsFromDash('carlin'"), / checked/);
+  assert.doesNotMatch(inputFor(afterOff, "toggleReminderFlag('carlin','instrReminderSent'"), / checked/);
+
+  box.toggleReminderFlag('carlin', 'instrReminderSent', true);
+  assert.equal(box.preClassChecklistDone(carlin), true);
+  assert.match(statusOf(cardFor('carlin')), /data-prep-status="complete"/);
+  assert.equal(box.jobDataCache.carlin.materialsSentAt, stamp);
+
+  const sitterStamp = box.jobDataCache.sitter.materialsSentAt;
+  box.toggleReminderFlag('sitter', 'classReminderSent', true);
+  assert.equal(box.preClassChecklistDone(sitter), true);
+  assert.match(statusOf(cardFor('sitter')), /data-prep-status="complete"/);
+  assert.equal(box.jobDataCache.sitter.hostReminderSent, false);
+  assert.equal(box.jobDataCache.sitter.materialsSentAt, sitterStamp);
+
+  box.toggleReminderFlag('zoom', 'instrFinalRosterSent', true);
+  assert.equal(box.preClassChecklistDone(zoom), true);
+  assert.match(statusOf(cardFor('zoom')), /data-prep-status="complete"/);
+  assert.equal(box.jobDataCache.zoom.materialsSent, true);
+  assert.doesNotMatch(cardFor('zoom'), /Put out materials|Put out handbooks/);
+});
