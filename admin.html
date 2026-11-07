@@ -11,7 +11,7 @@
 // Bump MB_ADMIN_BUILD in this file and in /admin-build.txt together.
 // An admin tab left open compares that file and reloads when a deploy changes it,
 // so a save cannot keep running the previous page.
-window.MB_ADMIN_BUILD='20261107-prep-collapse';
+window.MB_ADMIN_BUILD='20261107-prep-sections';
 (function(){
   var build=window.MB_ADMIN_BUILD;
   function checkAdminBuild(){
@@ -508,26 +508,42 @@ tr.instr-inactive td:first-child{border-left:3px solid var(--muted)}
 .dash-up-instructor select{font:inherit;color:var(--text);padding:4px 8px}
 .btn.sm.dash-on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .dash-pack-note{background:#eef6fb;border:1px solid #c5ddf0;border-radius:8px;padding:8px 10px;margin:0 0 8px;font-size:15px;line-height:1.4}
-.prep-section{margin-top:8px;padding-top:2px;border-top:1px solid var(--border)}
-.prep-section-toggle,.prep-row,.prep-card-head,.prep-hide{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer;text-align:left}
-.prep-section-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;margin:0;padding:8px 2px;border-radius:8px}
-.prep-section-toggle:hover,.prep-row:hover,.prep-card-head:hover{background:#f7fbfe}
-.prep-section-toggle:focus-visible,.prep-row:focus-visible,.prep-card-head:focus-visible,.prep-hide:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
-.prep-section-title{font-size:14px;font-weight:650;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
-.prep-section-action{font-size:13px;font-weight:650;color:#1a5c8a;white-space:nowrap}
-.prep-row{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;width:100%;min-height:44px;margin:0;padding:8px 2px 8px 10px;border-bottom:0.5px solid var(--border);border-left:3px solid var(--border);border-radius:0}
+.prep-block{margin-top:16px;border-radius:12px;overflow:hidden}
+.prep-block-needs{background:#fff4e6;border:2px solid #e09a2b}
+.prep-block-ready{background:#e8f6ef;border:2px solid #1d6b45}
+.prep-block-head{box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin:0;padding:14px 16px;font-family:inherit;font-size:22px;font-weight:800;letter-spacing:.5px;line-height:1.2;text-align:left;border:none}
+h3.prep-block-head{cursor:default}
+button.prep-block-head{cursor:pointer}
+.prep-block-needs .prep-block-head{background:#b86a00;color:#fff}
+.prep-block-ready .prep-block-head{background:#1d6b45;color:#fff}
+.prep-block-action{font-size:16px;font-weight:700;letter-spacing:0;text-decoration:underline;white-space:nowrap}
+.prep-block-head:focus-visible,.prep-row:focus-visible,.prep-card-head:focus-visible,.prep-hide:focus-visible{outline:3px solid #1a2744;outline-offset:2px}
+.prep-block-body{padding:8px 10px 12px}
+.prep-block-empty{margin:6px 6px 8px;font-size:16px;line-height:1.4;color:#1a2744}
+.prep-card{background:#fff;border-radius:10px;margin:8px 0;padding:12px 14px}
+.prep-card-head{display:block;width:100%;margin:0;padding:0;background:none;border:none;font-family:inherit;color:inherit;cursor:pointer;text-align:left}
+.prep-card-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.prep-card-name{min-width:0;font-size:17px;line-height:1.35}
+.prep-card-name strong{font-weight:800}
+.prep-card-when{flex:none}
+.prep-missing{margin:8px 0 10px;font-size:18px;font-weight:800;line-height:1.35;color:#9a3412}
+.prep-check{flex:none;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;line-height:1;color:#1d6b45}
+.prep-row{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;margin:8px 0;padding:10px 12px;background:#fff;border:none;border-radius:10px;font-family:inherit;color:inherit;cursor:pointer;text-align:left}
+.prep-row:hover,.prep-card-head:hover{background:#f7fbfe}
 .prep-row-main{min-width:0;flex:1 1 12rem}
-.prep-row-name{display:block;font-size:15px;font-weight:650;line-height:1.35;overflow-wrap:anywhere}
-.prep-chevron{color:var(--muted);font-size:12px;margin-right:4px}
-.prep-row-meta{display:block;margin-top:1px;font-size:13px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
-.prep-row-badges{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;align-items:center;flex:0 1 auto}
-.prep-done-badge{background:var(--success-bg);color:var(--success);font-size:12px;font-weight:700;letter-spacing:.2px;padding:2px 7px;border-radius:100px;white-space:nowrap}
-.prep-card-head{display:block;width:100%;margin:0;padding:0}
-.prep-complete-line{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:var(--success);margin-top:4px}
-.prep-hide{margin:0;padding:6px 0;font-size:13px;font-weight:650;color:#1a5c8a;min-height:32px}
+.prep-row-name{display:block;font-size:17px;font-weight:800;line-height:1.3;overflow-wrap:anywhere}
+.prep-row-meta{display:block;margin-top:2px;font-size:15px;color:#3d4d73;line-height:1.35;overflow-wrap:anywhere}
+.prep-when{font-size:15px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#3d4d73;white-space:nowrap}
+.prep-when-now{color:#c0392b}
+.prep-when-soon{color:#9a4d00}
+.prep-hide{margin:8px 0 0;padding:6px 0;background:none;border:none;font-family:inherit;font-size:15px;font-weight:700;color:#1a5c8a;cursor:pointer}
 @media(max-width:640px){
-  .prep-row,.prep-section-toggle{flex-wrap:wrap;align-items:flex-start}
-  .prep-row-badges{justify-content:flex-start}
+  .prep-block-head{font-size:18px;padding:12px;flex-wrap:wrap}
+  .prep-block-action{font-size:15px}
+  .prep-missing{font-size:17px}
+  .prep-row{flex-wrap:wrap;align-items:flex-start}
+  .prep-card-title{flex-wrap:wrap}
+  .prep-when{white-space:normal}
 }
 @media print{
   body.teach-printing{background:#fff;min-height:0 !important;height:auto !important}
@@ -7587,18 +7603,33 @@ function renderDashboard(){
 }
 
 // ── Pre-class action reminders (all upcoming sessions, next 2 weeks is a filter) ──
-// Finished prep stays on the list, folded under Prep complete. A session drops off
-// only after its last date has passed. Multi-day classes and series use that last date.
+// Needs prep stays open on top. Finished prep is folded under Ready to go.
+// A session drops off only after its last date has passed. Multi-day classes
+// and series use that last date.
 function dashJsAttr(id){
   return String(id==null?'':id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 }
 function dashUrgencyBadge(dayDiff){
-  if(dayDiff===0)return {accent:'#c0392b',badge:'<span style="background:#fdf0ee;color:#c0392b;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">Today</span>'};
-  if(dayDiff===1)return {accent:'#c0392b',badge:'<span style="background:#fdf0ee;color:#c0392b;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">Tomorrow · 1 day out</span>'};
-  if(dayDiff>=6&&dayDiff<=8)return {accent:'#d98c2b',badge:'<span style="background:#fff7e6;color:#b86a00;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">1 week out</span>'};
-  if(dayDiff>=9&&dayDiff<=14)return {accent:'#4a8fc4',badge:'<span style="background:#d6e9f5;color:#1a5c8a;font-size:13px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:100px;text-transform:uppercase">2 weeks out</span>'};
-  if(dayDiff==null)return {accent:'var(--border)',badge:''};
-  return {accent:'var(--border)',badge:'<span style="color:var(--muted);font-size:14px">in '+dayDiff+' days</span>'};
+  if(dayDiff===0)return {accent:'#c0392b',badge:'<span class="prep-when prep-when-now">Today</span>'};
+  if(dayDiff===1)return {accent:'#c0392b',badge:'<span class="prep-when prep-when-now">Tomorrow</span>'};
+  if(dayDiff>=6&&dayDiff<=8)return {accent:'#9a4d00',badge:'<span class="prep-when prep-when-soon">1 week out</span>'};
+  if(dayDiff>=9&&dayDiff<=14)return {accent:'#1a5c8a',badge:'<span class="prep-when">2 weeks out</span>'};
+  if(dayDiff==null)return {accent:'transparent',badge:''};
+  return {accent:'#3d4d73',badge:'<span class="prep-when">in '+dayDiff+' days</span>'};
+}
+function dashPrepStepShort(s, key){
+  if(key==='materialsSent')return (s&&s.isCustomJob)?'materials':'supplies';
+  if(key==='instrReminderSent')return (s&&s.isVirtual)?'instructor Zoom link':'instructor reminder';
+  if(key==='classReminderSent')return (s&&s.isVirtual)?'family Zoom link':'family reminder';
+  if(key==='instrFinalRosterSent')return 'final roster';
+  return 'step';
+}
+function dashPrepMissingNames(s){
+  return preClassTaskList(s).filter(function(t){return !t.done;}).map(function(t){return dashPrepStepShort(s, t.key);});
+}
+function dashPrepMissingLine(s){
+  const names=dashPrepMissingNames(s);
+  return names.length?('Missing: '+names.join(', ')):'';
 }
 function dashPrepCity(s){
   if(!s)return '';
@@ -7655,10 +7686,11 @@ function dashPrepCompactRow(s, today){
   const urg=dashUrgencyBadge(dashSessionDayDiff(s, today));
   const city=dashPrepCity(s);
   const meta=[dashPrepDateLabel(s), checklistInstructorLabel(s), city].filter(function(p){return String(p||'').trim();}).join(' · ');
-  return '<button type="button" class="prep-row" style="border-left-color:'+urg.accent+'" aria-expanded="false" onclick="toggleDashPrepRow(\''+dashJsAttr(s.id)+'\')">'
-    +'<span class="prep-row-main"><span class="prep-row-name"><span class="prep-chevron" aria-hidden="true">▸</span>'+escapeHtml(s.course||'Session')+'</span>'
+  return '<button type="button" class="prep-row" aria-expanded="false" aria-label="Show details for '+escapeHtml(s.course||'session')+'" onclick="toggleDashPrepRow(\''+dashJsAttr(s.id)+'\')">'
+    +'<span class="prep-check" aria-hidden="true">✓</span>'
+    +'<span class="prep-row-main"><span class="prep-row-name">'+escapeHtml(s.course||'Session')+'</span>'
     +'<span class="prep-row-meta">'+escapeHtml(meta)+'</span></span>'
-    +'<span class="prep-row-badges"><span class="prep-done-badge">Prep complete</span>'+urg.badge+'</span>'
+    +'<span class="prep-row-when">'+urg.badge+'</span>'
     +'</button>';
 }
 function dashPacksWithAnother(s, list, today, instructorList, jobData){
@@ -7686,7 +7718,6 @@ function renderDashUpcoming(now){
   const allRows=dashUpcomingSessions(list, today);
   const rows=dashVisibleUpcoming(list, today, scope, who, people, jobs);
   const choices=dashInstructorChoices(list, today, people, jobs);
-  const loads=dashFortnightLoad(list, today, people, jobs);
   const fortnightCount=allRows.filter(function(s){return dashSessionDayDiff(s, today)<=14;}).length;
   const selected=choices.find(function(choice){return choice.key===who;});
   const scopeButtons='<div class="dash-up-tools">'
@@ -7700,12 +7731,6 @@ function renderDashUpcoming(now){
     +'</select></label>'
     +'<button type="button" class="btn sm" onclick="downloadPackingPdf()">Print packing list</button>'
     +'</div>';
-  const loadNotes=loads.map(function(group){
-    const n=group.ids.length;
-    const label=n+' in-person session'+(n===1?'':'s')+' in the next 2 weeks';
-    if(who===group.key&&scope==='14')return '<p class="dash-pack-note">'+escapeHtml(group.name)+' has '+label+'.</p>';
-    return '<p class="dash-pack-note">'+escapeHtml(group.name)+' has '+label+'. <button type="button" class="btn sm" onclick="openInstructorFortnight(\''+String(group.key).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">Show these</button></p>';
-  }).join('');
   const whoName=selected?selected.name:'this instructor';
   const inViewFortnight=rows.filter(function(s){return dashSessionDayDiff(s, today)<=14;}).length;
   const countLine=scope==='14'
@@ -7716,7 +7741,7 @@ function renderDashUpcoming(now){
   function upcomingCard(s, collapsible){
     const dayDiff=dashSessionDayDiff(s, today);
     const urg=dashUrgencyBadge(dayDiff);
-    const badge=urg.badge,accent=urg.accent;
+    const badge=urg.badge;
     const d=fmtSessDate(s,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
     const cnt=registrations.filter(function(r){return r.sessionId===s.id&&isLiveReg(r);}).length;
     const jd=jobDataCache[s.id]||{};
@@ -7751,28 +7776,29 @@ function renderDashUpcoming(now){
       kit=packingKitHtml({course:s.course, bring:packingBringLine(s, packFor), manikins:typeof sessionUsesManikins==='function'&&sessionUsesManikins(s)});
     }
     const together=dashPacksWithAnother(s, list, today, people, jobs)?'<div class="pack-flag">Pack with another class within 8 days</div>':'';
-    const prep=preClassChecklistDone(s)
-      ?(collapsible
-        ?'<div class="prep-complete-line"><span>Prep complete</span><button type="button" class="prep-hide" aria-expanded="true" onclick="toggleDashPrepRow(\''+dashJsAttr(s.id)+'\')">Hide details</button></div>'
-        :'<div style="font-size:14px;color:var(--success);margin-top:4px">Prep complete</div>')
-      :'';
-    const titleInner='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">'
-      +'<div style="font-size:15px;min-width:0"><span style="font-weight:600">'+escapeHtml(s.course)+'</span>'
-      +'<span style="color:var(--muted);margin-left:6px">'+d+countBit+'</span></div>'
-      +'<div style="flex-shrink:0">'+badge+'</div></div>';
+    const missing=dashPrepMissingLine(s);
+    const missingHtml=(!collapsible&&missing)?'<p class="prep-missing">'+escapeHtml(missing)+'</p>':'';
+    const check=collapsible?'<span class="prep-check" aria-hidden="true">✓</span>':'';
+    const hide=collapsible?'<button type="button" class="prep-hide" aria-expanded="true" onclick="toggleDashPrepRow(\''+dashJsAttr(s.id)+'\')">Hide</button>':'';
+    const titleInner='<div class="prep-card-title">'
+      +check
+      +'<div class="prep-card-name"><strong>'+escapeHtml(s.course)+'</strong>'
+      +'<span style="color:var(--muted);font-weight:500;margin-left:6px">'+d+countBit+'</span></div>'
+      +'<div class="prep-card-when">'+badge+'</div></div>';
     const title=collapsible
       ?'<button type="button" class="prep-card-head" aria-expanded="true" onclick="toggleDashPrepRow(\''+dashJsAttr(s.id)+'\')">'+titleInner+'</button>'
       :titleInner;
-    return '<div'+(collapsible?' class="prep-card-open"':'')+' style="padding:10px 0 10px 12px;border-bottom:0.5px solid var(--border);border-left:3px solid '+accent+'">'
+    return '<div class="prep-card'+(collapsible?' prep-card-open':'')+'">'
       +title
-      +'<div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin:0 0 6px;font-size:15px;line-height:1.45">'
+      +missingHtml
+      +'<div style="display:flex;flex-wrap:wrap;gap:2px 16px;margin:0 0 6px;font-size:16px;line-height:1.45">'
       +roleLine('Instructor',instrLabel,'No instructor')
       +roleLine(sessionIsOrganization(s)?'Organization':'Host',hostLabel,sessionIsOrganization(s)?'No organization':'No host')
       +roleLine('Where',adminPlaceText(s)||'No location','No location')
       +'</div>'
       +kit+together
       +items.join('')
-      +prep
+      +hide
       +((window.MBTeachingChecklists&&MBTeachingChecklists.forSession(s))
         ?`<div style="margin-top:8px"><button type="button" class="btn sm" onclick="printTeachingChecklist('${s.id}')">Print checklist</button></div>`
         :'')
@@ -7780,21 +7806,25 @@ function renderDashUpcoming(now){
   }
   const groups=dashPrepPartition(rows, today);
   dashPrepDoneIds=groups.done.map(function(s){return String(s.id);});
-  const openCards=groups.needs.map(function(s){return upcomingCard(s,false);}).join('');
+  const needsCards=groups.needs.length
+    ?groups.needs.map(function(s){return upcomingCard(s,false);}).join('')
+    :'<p class="prep-block-empty">Nothing is waiting.</p>';
+  const needsSection='<section class="prep-block prep-block-needs"><h3 class="prep-block-head">NEEDS PREP ('+groups.needs.length+')</h3><div class="prep-block-body">'+needsCards+'</div></section>';
   const doneOpen=groups.done.length>0&&groups.done.every(function(s){return !!dashPrepOpen[String(s.id)];});
   const doneCards=groups.done.map(function(s){
     return dashPrepOpen[String(s.id)]?upcomingCard(s,true):dashPrepCompactRow(s, today);
   }).join('');
-  const doneSection=groups.done.length
-    ?'<div class="prep-section"><button type="button" class="prep-section-toggle" aria-expanded="'+(doneOpen?'true':'false')+'" onclick="toggleDashPrepSection()"><span class="prep-section-title">Prep complete ('+groups.done.length+')</span><span class="prep-section-action">'+(doneOpen?'Hide details':'Show details')+'</span></button>'+doneCards+'</div>'
-    :'';
-  const empty=rows.length?'':('<div style="font-size:15px;color:var(--muted)">'+(who==='all'?'No upcoming sessions.':'No upcoming sessions for this instructor.')+'</div>');
-  const body=rows.length?(openCards+doneSection):empty;
+  const readyHead=groups.done.length
+    ?'<button type="button" class="prep-block-head" aria-expanded="'+(doneOpen?'true':'false')+'" onclick="toggleDashPrepSection()"><span>READY TO GO ('+groups.done.length+')</span><span class="prep-block-action">'+(doneOpen?'Hide details':'Show details')+'</span></button>'
+    :'<h3 class="prep-block-head">READY TO GO (0)</h3>';
+  const readyBody=groups.done.length?doneCards:'<p class="prep-block-empty">None finished yet.</p>';
+  const readySection='<section class="prep-block prep-block-ready">'+readyHead+'<div class="prep-block-body">'+readyBody+'</div></section>';
+  const empty=rows.length?'':('<div style="font-size:16px;color:var(--muted)">'+(who==='all'?'No upcoming sessions.':'No upcoming sessions for this instructor.')+'</div>');
+  const body=rows.length?(needsSection+readySection):empty;
   el.innerHTML='<div class="card" style="padding:12px 16px">'
     +'<div style="font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px">Upcoming sessions</div>'
     +scopeButtons
     +'<div style="font-size:15px;color:var(--muted);margin:0 0 8px">'+escapeHtml(countLine)+'</div>'
-    +loadNotes
     +body
     +'</div>';
 }

@@ -57,6 +57,9 @@ vm.runInContext(
     'dashSessionDayDiff',
     'dashPrepCity',
     'dashPrepDateLabel',
+    'dashPrepStepShort',
+    'dashPrepMissingNames',
+    'dashPrepMissingLine',
     'dashPrepPartition',
     'dashUpcomingSessions',
     'dashChecklistSessions',
@@ -127,7 +130,9 @@ test('all upcoming stays the default, and next 2 weeks is a filter that still ke
   assert.match(block, /setDashUpcomingScope\(\\'all\\'\)/);
   assert.match(block, /setDashUpcomingScope\(\\'14\\'\)/);
   assert.match(block, /setDashUpcomingInstructor/);
-  assert.match(block, /openInstructorFortnight/);
+  assert.doesNotMatch(block, /openInstructorFortnight/);
+  assert.doesNotMatch(block, /Show these/);
+  assert.doesNotMatch(block, /in-person sessions in the next 2 weeks/);
   assert.match(block, /On Zoom\. No kit to pack\./);
   assert.match(block, /printTeachingChecklist/);
   assert.match(block, /dayDiff>=9&&dayDiff<=14/);
@@ -505,13 +510,28 @@ test('finished prep is grouped under sessions that still need a step, and All up
   const groups = sandbox.dashPrepPartition(visible, today);
   assert.deepEqual(Array.from(groups.needs, (s) => s.id), ['needs']);
   assert.deepEqual(Array.from(groups.done, (s) => s.id), ['sooner', 'later']);
+  assert.deepEqual(Array.from(sandbox.dashPrepMissingNames(rows[1])), ['supplies']);
+  assert.equal(sandbox.dashPrepMissingLine(rows[1]), 'Missing: supplies');
+  const booth = sess('booth', '2026-11-09', { isCustomJob: true, instructorId: 'i1' });
+  sandbox.jobDataCache.booth = { materialsSent: false, instrReminderSent: false };
+  assert.deepEqual(Array.from(sandbox.dashPrepMissingNames(booth)), ['materials', 'instructor reminder']);
+  assert.equal(sandbox.dashPrepMissingLine(booth), 'Missing: materials, instructor reminder');
+  sandbox.jobDataCache.booth = { materialsSent: true, instrReminderSent: true };
+  assert.equal(sandbox.dashPrepMissingLine(booth), '');
 
   const block = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('// ─── SESSIONS'));
   const render = extractFunction(admin, 'renderDashUpcoming');
-  assert.ok(render.indexOf('groups.needs') < render.indexOf('Prep complete ('), 'action cards stay above Prep complete');
-  assert.match(block, /Prep complete \(/);
+  assert.ok(render.indexOf('NEEDS PREP (') < render.indexOf('READY TO GO ('), 'needs prep stays above ready to go');
+  assert.match(block, /NEEDS PREP \(/);
+  assert.match(block, /READY TO GO \(/);
+  assert.match(block, /class="prep-missing"/);
+  assert.match(block, /dashPrepMissingLine\(s\)/);
+  assert.match(block, /class="prep-check"/);
   assert.match(block, /class="prep-row"/);
-  assert.match(block, /class="prep-done-badge">Prep complete</);
+  assert.doesNotMatch(block, /prep-done-badge/);
+  assert.doesNotMatch(block, /Prep complete/);
+  assert.doesNotMatch(block, /border-left:3px solid/);
+  assert.doesNotMatch(block, /Show these/);
   assert.match(block, /toggleDashPrepRow/);
   assert.match(block, /toggleDashPrepSection/);
   assert.match(block, /dashPrepCompactRow/);
