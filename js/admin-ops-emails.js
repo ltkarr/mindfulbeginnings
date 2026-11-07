@@ -246,7 +246,7 @@
       }
       lines.push('');
       lines.push('CLASS DETAILS');
-      lines.push('\u2022 Instructor: Your instructor for the day will be ' + (instructor || 'To be confirmed') + '. You can learn more about our full team here: https://mindfulbeginnings.org/our-team');
+      lines.push('\u2022 Instructor: Your instructor for the day will be ' + (instructor || 'To be confirmed') + '. You can learn more about our full team here: https://mindfulbeginnings.org/about');
       var reminderOverviewUrl = overviewUrl(info);
       if (reminderOverviewUrl) lines.push('\u2022 Course Overview: ' + reminderOverviewUrl);
       lines.push('');
