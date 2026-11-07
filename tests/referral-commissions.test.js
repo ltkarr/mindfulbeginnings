@@ -307,7 +307,7 @@ test('admin commissions view is the liaison statement and does not replace login
   assert.match(admin, /Marketing sources/);
   assert.match(admin, /function registrationReferralCredit/);
   assert.doesNotMatch(admin, /sendEmail\(/);
-  assert.match(admin, /window\.MB_ADMIN_BUILD='20261106-instructor-privacy'/);
+  assert.match(admin, /window\.MB_ADMIN_BUILD='20261107-inventory-labels'/);
 });
 
 test('the instructor portal uses the liaison statement and does not open a second referral login', () => {
