@@ -52,7 +52,12 @@ vm.runInContext(
     'preClassShowsStudentCount',
     'preClassTaskList',
     'preClassChecklistDone',
+    'dashYMD',
+    'dashSessionDates',
     'dashSessionDayDiff',
+    'dashPrepCity',
+    'dashPrepDateLabel',
+    'dashPrepPartition',
     'dashUpcomingSessions',
     'dashChecklistSessions',
     'dashTeachingSlots',
@@ -455,4 +460,67 @@ test('an unsent host reminder does not keep a class on the checklist', () => {
   sandbox.jobDataCache['no-host'] = { materialsSent: true, instrReminderSent: true, hostReminderSent: false, classReminderSent: false };
   assert.equal(sandbox.preClassChecklistDone(noHost), false);
   assert.deepEqual(sandbox.dashUpcomingSessions([ready, noHost], today).map((s) => s.id), ['ready', 'no-host']);
+});
+
+test('a multi-day class and a series stay until the last date, then drop off', () => {
+  const today = new Date(2026, 10, 7);
+  const ongoing = sess('series', '2026-10-01', { isRecurring: true, recurEndDate: '2026-11-20', extraDates: ['2026-10-08'] });
+  const twoDay = sess('two', '2026-11-06', { extraDates: ['2026-11-08'] });
+  const finishedSeries = sess('old-series', '2026-09-01', { isRecurring: true, recurEndDate: '2026-11-06' });
+  const endedExtra = sess('ended', '2026-11-01', { extraDates: ['2026-11-06'], extraDays: [{ date: '2026-11-06', time: '1:00 PM' }] });
+  const todayClass = sess('today', '2026-11-07');
+  const past = sess('past', '2026-11-05');
+  assert.equal(sandbox.dashSessionDayDiff(ongoing, today), 13);
+  assert.equal(sandbox.dashSessionDayDiff(twoDay, today), 1);
+  assert.equal(sandbox.dashSessionDayDiff(todayClass, today), 0);
+  assert.ok(sandbox.dashSessionDayDiff(finishedSeries, today) < 0);
+  assert.ok(sandbox.dashSessionDayDiff(endedExtra, today) < 0);
+  assert.ok(sandbox.dashSessionDayDiff(past, today) < 0);
+  assert.deepEqual(
+    sandbox.dashUpcomingSessions([finishedSeries, endedExtra, past, ongoing, twoDay, todayClass], today).map((s) => s.id),
+    ['series', 'two', 'today']
+  );
+  assert.equal(sandbox.dashPrepDateLabel(twoDay), 'Fri, Nov 6, 2026 - Sun, Nov 8, 2026');
+  assert.equal(sandbox.dashPrepDateLabel(todayClass), 'Sat, Nov 7, 2026');
+  assert.equal(sandbox.dashPrepCity({ city: '  Silver Spring  ' }), 'Silver Spring');
+  assert.equal(sandbox.dashPrepCity({ isVirtual: true, city: 'Zoom' }), 'Virtual');
+});
+
+test('finished prep is grouped under sessions that still need a step, and All upcoming stays the default', () => {
+  const today = new Date(2026, 10, 7);
+  const done = { materialsSent: true, instrReminderSent: true, hostReminderSent: true, classReminderSent: true };
+  sandbox.jobDataCache = {
+    sooner: done,
+    needs: { materialsSent: false, instrReminderSent: true, classReminderSent: true },
+    later: done
+  };
+  const rows = [
+    sess('sooner', '2026-11-07'),
+    sess('needs', '2026-11-08'),
+    sess('later', '2026-11-12'),
+    sess('gone', '2026-11-01', { extraDates: ['2026-11-06'] })
+  ];
+  const visible = sandbox.dashUpcomingSessions(rows, today);
+  assert.deepEqual(visible.map((s) => s.id), ['sooner', 'needs', 'later']);
+  const groups = sandbox.dashPrepPartition(visible, today);
+  assert.deepEqual(Array.from(groups.needs, (s) => s.id), ['needs']);
+  assert.deepEqual(Array.from(groups.done, (s) => s.id), ['sooner', 'later']);
+
+  const block = admin.slice(admin.indexOf('// ── Pre-class action reminders'), admin.indexOf('// ─── SESSIONS'));
+  const render = extractFunction(admin, 'renderDashUpcoming');
+  assert.ok(render.indexOf('groups.needs') < render.indexOf('Prep complete ('), 'action cards stay above Prep complete');
+  assert.match(block, /Prep complete \(/);
+  assert.match(block, /class="prep-row"/);
+  assert.match(block, /class="prep-done-badge">Prep complete</);
+  assert.match(block, /toggleDashPrepRow/);
+  assert.match(block, /toggleDashPrepSection/);
+  assert.match(block, /dashPrepCompactRow/);
+  assert.match(block, /checklistInstructorLabel\(s\)/);
+  assert.match(block, /dashPrepCity\(s\)/);
+  assert.match(block, /Hide details/);
+  assert.match(block, /Show details/);
+  assert.match(admin, /let dashUpcomingScope='all'/);
+  assert.match(block, /All upcoming/);
+  assert.match(block, /packingKitHtml/);
+  assert.doesNotMatch(admin, /dashChecklistSessions\(sessions, now\)\.filter\(function\(s\)\{return !preClassChecklistDone\(s\);\}/);
 });
